@@ -1,0 +1,6 @@
+geovision/
+  index.html      ← vais colar o código abaixo aqui
+  assets/
+    drone-campo.jpg
+    dashboard-geovision.png
+    geovision-demo.mp4
