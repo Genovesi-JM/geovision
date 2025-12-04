@@ -1,1754 +1,377 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>GeoVision – Field Intelligence Platform</title>
+  <title>GeoVision – Inteligência de Campo para Angola</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
     name="description"
-    content="GeoVision combines drone mapping, LiDAR and soil sensors into one field intelligence platform for agriculture, mining and infrastructure."
+    content="GeoVision é um conceito de plataforma de inteligência de campo para Angola, usando drones, LiDAR, sensores IoT e IA para agricultura, pecuária, mineração e desminagem."
   />
-  <style>
-
-   /* ------------------------- */
-/*  ANIMAÇÕES DO MAPA WOW   */
-/* ------------------------- */
-
-/* Pontos */
-@keyframes pulseGreen {
-  0% { transform: scale(1); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-  50% { transform: scale(1.15); box-shadow: 0 0 18px rgba(34,197,94,1); }
- 100% { transform: scale(1); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-}
-
-@keyframes pulseBlue {
-  0% { transform: scale(1); box-shadow: 0 0 8px rgba(56,189,248,0.6); }
-  50% { transform: scale(1.15); box-shadow: 0 0 18px rgba(56,189,248,1); }
- 100% { transform: scale(1); box-shadow: 0 0 8px rgba(56,189,248,0.6); }
-}
-
-/* Círculos a rodar */
-@keyframes orbitRotate {
-  0%   { transform: rotate(0deg); }
- 100%  { transform: rotate(360deg); }
-}
-
-/* Grelha a deslizar */
-@keyframes gridDrift {
-  0% {
-    background-position:
-      0px 0px,
-      0px 0px;
-  }
-  100% {
-    background-position:
-      40px 30px,
-      40px 30px;
-  }
-}
-
-/* ------------------------- */
-/*  ESTILOS DO MAPA          */
-/* ------------------------- */
-
-.hero-map-viewport {
-  position: relative;
-  border-radius: 1rem;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  overflow: hidden;
-  padding: 1rem;
-  background: radial-gradient(circle at center, #0f172a 0, #020617 55%, #000 100%);
-  min-height: 200px;
-}
-
-/* Grelha */
-.map-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, rgba(148, 163, 184, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-  background-size: 22px 22px;
-  opacity: 0.5;
-  pointer-events: none;
-  animation: gridDrift 30s linear infinite;
-}
-
-/* Círculo exterior */
-.map-orbits {
-  position: absolute;
-  inset: 12px;
-  border-radius: 50%;
-  border: 1px dashed rgba(148, 163, 184, 0.35);
-  box-shadow: 0 0 40px rgba(56, 189, 248, 0.25);
-  animation: orbitRotate 40s linear infinite;
-  transform-origin: center center;
-}
-
-/* Círculo interior */
-.map-orbits-inner {
-  position: absolute;
-  inset: 30px;
-  border-radius: 50%;
-  border: 1px dashed rgba(34, 197, 94, 0.45);
-  animation: orbitRotate 65s linear infinite reverse;
-  transform-origin: center center;
-}
-
-/* Pontos */
-.map-dot {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: var(--accent-green);
-  box-shadow: 0 0 18px rgba(34, 197, 94, 0.95);
-}
-
-.map-dot.secondary {
-  background: var(--accent-blue);
-  box-shadow: 0 0 18px rgba(56, 189, 248, 0.95);
-}
-
-/* Legenda */
-.map-caption {
-  position: absolute;
-  inset: auto 1rem 1rem 1rem;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: space-between;
-  gap: 0.7rem;
-  align-items: center;
-  backdrop-filter: blur(6px);
-  padding: 0.3rem 0.6rem;
-  border-radius: 8px;
-}
-
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    :root {
-      --bg: #020617;
-      --bg-elevated: #020617;
-      --card-border: rgba(148, 163, 184, 0.35);
-      --accent-green: #22c55e;
-      --accent-blue: #38bdf8;
-      --text-main: #e5e7eb;
-      --text-muted: #9ca3af;
-    }
-
-    body {
-      background: radial-gradient(circle at top left, #0f172a 0, #020617 45%, #000 100%);
-      color: var(--text-main);
-    }
-
-    /* Topbar */
-    .topbar {
-      position: sticky;
-      top: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 1.5rem;
-      background: rgba(2, 6, 23, 0.96);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-      z-index: 30;
-      gap: 1rem;
-    }
-
-    .logo {
-      font-weight: 700;
-      font-size: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .logo-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-      box-shadow: 0 0 16px rgba(45, 212, 191, 0.9);
-    }
-
-    .logo span {
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.8rem;
-      opacity: 0.9;
-    }
-
-    .nav-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-left: auto;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 1.5rem;
-      font-size: 0.9rem;
-    }
-
-    .nav-links a {
-      text-decoration: none;
-      color: var(--text-muted);
-      position: relative;
-    }
-
-    .nav-links a:hover {
-      color: var(--text-main);
-    }
-
-    .nav-links a::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      bottom: -4px;
-      width: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
-      transition: width 0.18s ease-out;
-    }
-
-    .nav-links a:hover::after {
-      width: 100%;
-    }
-
-    .lang-select {
-      background: rgba(15, 23, 42, 0.95);
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      color: var(--text-main);
-      padding: 0.25rem 0.8rem;
-      font-size: 0.8rem;
-      outline: none;
-      cursor: pointer;
-    }
-
-    .menu-toggle {
-      display: none;
-      background: none;
-      border: none;
-      font-size: 1.6rem;
-      color: var(--text-main);
-      cursor: pointer;
-    }
-
-    /* Layout */
-    .page {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 2.5rem 1.5rem 4rem;
-    }
-
-    /* Hero */
-    .hero {
-      display: grid;
-      gap: 2.5rem;
-      align-items: center;
-      padding-top: 2.5rem;
-      padding-bottom: 3rem;
-    }
-
-    .hero-main {
-      max-width: 640px;
-    }
-
-    .hero-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--text-muted);
-      margin-bottom: 0.9rem;
-    }
-
-    .hero-pill-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--accent-green);
-      box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
-    }
-
-    .hero-title {
-      font-size: clamp(2.4rem, 5vw, 3.4rem);
-      line-height: 1.05;
-      margin-bottom: 0.9rem;
-    }
-
-    .hero-title span {
-      background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    .hero-subtitle {
-      font-size: 0.98rem;
-      color: var(--text-muted);
-      max-width: 520px;
-      margin-bottom: 1.6rem;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.9rem;
-      margin-bottom: 1.3rem;
-    }
-
-    .btn {
-      padding: 0.85rem 1.7rem;
-      border-radius: 999px;
-      border: 1px solid transparent;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-    }
-
-    .btn-primary {
-      background: linear-gradient(120deg, var(--accent-green), var(--accent-blue));
-      color: #020617;
-      box-shadow: 0 12px 30px rgba(34, 197, 94, 0.28);
-    }
-
-    .btn-primary:hover {
-      filter: brightness(1.08);
-    }
-
-    .btn-ghost {
-      background: rgba(15, 23, 42, 0.9);
-      border-color: rgba(148, 163, 184, 0.5);
-      color: var(--text-main);
-    }
-
-    .btn-ghost:hover {
-      border-color: rgba(248, 250, 252, 0.7);
-    }
-
-    .hero-meta {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-    }
-
-    .hero-meta strong {
-      color: var(--text-main);
-    }
-
-    /* Hero map preview */
-    .hero-map-card {
-      border-radius: 1.4rem;
-      border: 1px solid var(--card-border);
-      padding: 1.1rem;
-      background: radial-gradient(circle at top, rgba(45, 212, 191, 0.18), rgba(15, 23, 42, 1));
-      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.8);
-    }
-
-    .hero-map-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.7rem;
-    }
-
-    .hero-map-title {
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-
-    .hero-map-badge {
-      font-size: 0.7rem;
-      padding: 0.25rem 0.6rem;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      color: var(--text-muted);
-    }
-
-    .hero-map-viewport {
-      position: relative;
-      border-radius: 1rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      overflow: hidden;
-      padding: 1rem;
-      background: radial-gradient(circle at center, #0f172a 0, #020617 55%, #000 100%);
-      min-height: 190px;
-    }
-
-    .map-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(to right, rgba(148, 163, 184, 0.1) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-      background-size: 22px 22px;
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    .map-orbits {
-      position: absolute;
-      inset: 12px;
-      border-radius: 50%;
-      border: 1px dashed rgba(148, 163, 184, 0.35);
-      box-shadow: 0 0 40px rgba(56, 189, 248, 0.25);
-    }
-
-    .map-orbits-inner {
-      position: absolute;
-      inset: 30px;
-      border-radius: 50%;
-      border: 1px dashed rgba(34, 197, 94, 0.45);
-    }
-
-    .map-dot {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      border-radius: 999px;
-      background: var(--accent-green);
-      box-shadow: 0 0 18px rgba(34, 197, 94, 0.95);
-    }
-
-    .map-dot.secondary {
-      background: var(--accent-blue);
-      box-shadow: 0 0 18px rgba(56, 189, 248, 0.95);
-    }
-
-    .map-dot:nth-child(1) { top: 18%; left: 62%; }
-    .map-dot:nth-child(2) { top: 60%; left: 28%; }
-    .map-dot:nth-child(3) { top: 72%; left: 72%; }
-
-    .map-caption {
-      position: absolute;
-      inset: auto 1rem 1rem 1rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      gap: 0.7rem;
-      align-items: center;
-    }
-
-    .map-caption span {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .map-legend-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 999px;
-      background: var(--accent-green);
-    }
-
-    .map-legend-dot.blue {
-      background: var(--accent-blue);
-    }
-
-    /* Sections */
-    .section {
-      padding: 3rem 0;
-      border-top: 1px solid rgba(15, 23, 42, 0.9);
-    }
-
-    .section-header {
-      margin-bottom: 1.8rem;
-    }
-
-    .eyebrow {
-      font-size: 0.75rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text-muted);
-      margin-bottom: 0.35rem;
-    }
-
-    .section-title {
-      font-size: 1.6rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .section-subtitle {
-      font-size: 0.93rem;
-      color: var(--text-muted);
-      max-width: 520px;
-    }
-
-    /* About / Platform */
-    .about-body {
-      max-width: 800px;
-      font-size: 0.96rem;
-      color: var(--text-main);
-      line-height: 1.7;
-    }
-
-    .about-body strong {
-      color: #f9fafb;
-    }
-
-    /* Modules */
-    .feature-grid {
-      display: grid;
-      gap: 1.5rem;
-    }
-
-    .feature-card {
-      padding: 1.4rem;
-      border-radius: 1rem;
-      background: var(--bg-elevated);
-      border: 1px solid var(--card-border);
-      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.65);
-    }
-
-    .feature-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      background: radial-gradient(circle at top left, var(--accent-blue), var(--accent-green));
-      margin-bottom: 0.6rem;
-    }
-
-    .feature-title {
-      font-size: 1rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .feature-text {
-      font-size: 0.88rem;
-      color: var(--text-muted);
-    }
-
-    /* Sectors */
-    .usecase-grid {
-      display: grid;
-      gap: 1.4rem;
-    }
-
-    .usecase-card {
-      padding: 1.4rem;
-      border-radius: 1rem;
-      border: 1px solid var(--card-border);
-      background: radial-gradient(circle at top left, rgba(34, 197, 94, 0.15), rgba(15, 23, 42, 0.98));
-    }
-
-    .usecase-tag {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--text-muted);
-      margin-bottom: 0.45rem;
-    }
-
-    .usecase-title {
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .usecase-text {
-      font-size: 0.88rem;
-      color: var(--text-muted);
-      margin-bottom: 0.6rem;
-    }
-
-    .usecase-meta {
-      font-size: 0.8rem;
-      color: var(--accent-green);
-    }
-
-    /* Workflow */
-    .workflow-grid {
-      display: grid;
-      gap: 1rem;
-      margin-top: 0.8rem;
-    }
-
-    .workflow-step {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      gap: 0.8rem;
-      align-items: flex-start;
-      padding: 0.9rem 1rem;
-      border-radius: 0.9rem;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      background: rgba(15, 23, 42, 0.8);
-    }
-
-    .workflow-number {
-      width: 26px;
-      height: 26px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 1);
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .workflow-title {
-      font-size: 0.9rem;
-      margin-bottom: 0.2rem;
-    }
-
-    .workflow-text {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-
-    /* Media (images & video) */
-    .media-image {
-      width: 100%;
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.8);
-      margin-top: 0.5rem;
-    }
-
-    .media-caption {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-top: 0.5rem;
-    }
-
-    .media-video-wrapper {
-      position: relative;
-      padding-bottom: 56.25%;
-      height: 0;
-      overflow: hidden;
-      border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.9);
-      margin-top: 1rem;
-    }
-
-    .media-video-wrapper iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-
-    /* CTA / Contact */
-    .cta-inner {
-      border-radius: 1.3rem;
-      border: 1px solid var(--card-border);
-      padding: 1.8rem 1.6rem;
-      background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), rgba(15, 23, 42, 0.98));
-      display: grid;
-      gap: 1.5rem;
-      align-items: center;
-    }
-
-    .cta-title {
-      font-size: 1.3rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .cta-text {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
-
-    .cta-form {
-      display: grid;
-      gap: 0.7rem;
-      max-width: 360px;
-    }
-
-    .form-row {
-      display: grid;
-      gap: 0.4rem;
-      font-size: 0.8rem;
-    }
-
-    label {
-      color: var(--text-muted);
-    }
-
-    input, textarea {
-      background: rgba(15, 23, 42, 0.96);
-      border-radius: 0.7rem;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      padding: 0.6rem 0.8rem;
-      color: var(--text-main);
-      font-size: 0.86rem;
-      outline: none;
-    }
-
-    input:focus, textarea:focus {
-      border-color: var(--accent-blue);
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
-    }
-
-    textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-
-    .form-hint {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .form-success {
-      display: none;
-      font-size: 0.8rem;
-      color: var(--accent-green);
-    }
-
-    /* Footer */
-    .footer {
-      padding: 1.8rem 1.5rem 2.5rem;
-      border-top: 1px solid rgba(15, 23, 42, 0.95);
-      text-align: center;
-      font-size: 0.74rem;
-      color: var(--text-muted);
-    }
-
-    .footer span {
-      color: var(--text-main);
-    }
-
-    /* Responsive */
-    @media (min-width: 780px) {
-      .hero {
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-      }
-
-      .feature-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-
-      .usecase-grid {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-
-      .cta-inner {
-        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-      }
-    }
-
-    @media (max-width: 900px) {
-      .nav-wrapper {
-        margin-left: 0;
-      }
-    }
-
-    @media (max-width: 720px) {
-      .nav-links {
-        position: absolute;
-        right: 1.5rem;
-        top: 60px;
-        background: #020617;
-        border-radius: 0.9rem;
-        border: 1px solid rgba(148, 163, 184, 0.6);
-        padding: 0.7rem 0.9rem;
-        flex-direction: column;
-        gap: 0.6rem;
-        display: none;
-      }
-
-      .nav-links.show {
-        display: flex;
-      }
-
-      .menu-toggle {
-        display: block;
-      }
-    }
-    @keyframes pulseGreen {
-  0% { transform: scale(1); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-  50% { transform: scale(1.15); box-shadow: 0 0 18px rgba(34,197,94,1); }
-  100% { transform: scale(1); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-}
-
-@keyframes pulseBlue {
-  0% { transform: scale(1); box-shadow: 0 0 8px rgba(56,189,248,0.6); }
-  50% { transform: scale(1.15); box-shadow: 0 0 18px rgba(56,189,248,1); }
-  100% { transform: scale(1); box-shadow: 0 0 8px rgba(56,189,248,0.6); }
-}
-
-  </style>
+  <link rel="stylesheet" href="assets/css/style.css" />
 </head>
+
 <body>
-
-  
-  <!-- Top navigation -->
+  <!-- TOPO -->
   <header class="topbar">
-    <div class="logo">
-      <div class="logo-dot"></div>
-      <span>GeoVision</span>
+    <div class="topbar-left">
+      <img src="assets/geovision-logo.png" alt="GeoVision logo" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GEOVISION</div>
+        <div class="brand-sub">Inteligência de Campo para Angola</div>
+      </div>
     </div>
 
-    <div class="nav-wrapper">
-      <nav class="nav-links">
-        <a href="#home" data-i18n="nav-home">Home</a>
-        <a href="#platform" data-i18n="nav-platform">Platform</a>
-        <a href="#modules" data-i18n="nav-modules">Modules</a>
-        <a href="#sectors" data-i18n="nav-sectors">Sectors</a>
-        <a href="#workflow" data-i18n="nav-workflow">Workflow</a>
-        <a href="#contact" data-i18n="nav-contact">Contact</a>
-      </nav>
+    <nav class="nav-links" id="main-nav">
+      <a href="index.html">Início</a>
+      <a href="angola.html">Angola</a>
+      <a href="agriculture.html">Agricultura</a>
+      <a href="livestock.html">Pecuária</a>
+      <a href="mining.html">Mineração</a>
+      <a href="demining.html">Desminagem</a>
+      <a href="economics.html">Economia</a>
+      <a href="about.html">Sobre</a>
+    </nav>
 
-      <select id="lang-select" class="lang-select">
-        <option value="en">EN</option>
-        <option value="es">ES</option>
-        <option value="pt">PT</option>
-      </select>
-
-      <button class="menu-toggle" aria-label="Open menu">☰</button>
-    </div>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">
+      ☰
+    </button>
   </header>
 
   <main class="page">
-    <!-- Hero -->
+    <!-- HERO -->
     <section id="home" class="hero">
       <div class="hero-main">
-        <div class="hero-pill" data-i18n="hero-pill">
+        <div class="hero-pill">
           <div class="hero-pill-dot"></div>
-          Drone mapping · LiDAR · Soil sensors
+          Angola · Drones · LiDAR · IoT
         </div>
-        <h1 class="hero-title" data-i18n="hero-title">
-          One platform for <span>field intelligence.</span>
+
+        <h1 class="hero-title">
+          Inteligência de campo para
+          <span>agricultura, mineração, pecuária e desminagem.</span>
         </h1>
-        <p class="hero-subtitle" data-i18n="hero-subtitle">
-          GeoVision connects drone imagery, LiDAR, and on-the-ground sensors into a single
-          view – so teams can understand their land, assets, and risks in real time.
+
+        <p class="hero-subtitle">
+          GeoVision é um conceito de plataforma que integra drones, LiDAR, imagem multiespectral, sensores de solo e
+          água e IA para apoiar decisões operacionais em Angola – do campo agrícola às minas e zonas de perigo.
         </p>
 
         <div class="hero-actions">
-          <a href="#platform" class="btn btn-primary" data-i18n="hero-cta-primary">See how it works →</a>
-          <a href="#contact" class="btn btn-ghost" data-i18n="hero-cta-secondary">Discuss a pilot project</a>
+          <a href="angola.html" class="btn btn-primary">Ver contexto de Angola →</a>
+          <a href="#modules" class="btn btn-ghost">Ver módulos GeoVision</a>
         </div>
 
-        <p class="hero-meta" data-i18n="hero-meta">
-          Designed for <strong>agriculture, mining, infrastructure,</strong> and any operation
-          where what happens on the ground really matters.
+        <p class="hero-meta">
+          Desenhado para <strong>fazendas, cooperativas, rebanhos, minas e equipas de desminagem</strong>, com decisões
+          baseadas em dados em vez de adivinhação.
         </p>
       </div>
 
-      <aside class="hero-map-card" aria-hidden="false" style="overflow:hidden; position:relative;">
-  
-  <!-- Título e badge -->
-  <div class="hero-map-header">
-    <div class="hero-map-title" data-i18n="hero-map-title">Vista de Campo GeoVision</div>
-    <div class="hero-map-badge" data-i18n="hero-map-badge">
-      Demo · Mapa Multicamadas
-    </div>
-  </div>
+      <!-- HERO DASHBOARD + MAPA -->
+      <aside class="hero-map-card">
+        <div class="hero-map-header">
+          <div class="hero-map-title">GeoVision – Vista em clusters de Angola</div>
+          <div class="hero-map-badge">Demo · Painel do site</div>
+        </div>
 
-  <!-- Área do mapa estilizado -->
-  <div class="hero-map-viewport" style="position:relative;">
-    <div class="map-grid"></div>
-    <div class="map-orbits"></div>
-    <div class="map-orbits-inner"></div>
+        <!-- Tabs de sector -->
+        <div class="hero-map-tabs">
+          <button class="hero-map-tab active" data-sector="agri">Agricultura</button>
+          <button class="hero-map-tab" data-sector="livestock">Pecuária</button>
+          <button class="hero-map-tab" data-sector="mining">Mineração</button>
+          <button class="hero-map-tab" data-sector="demining">Desminagem</button>
+        </div>
 
-    <!-- Hotspots (pontos de interesse) -->
-    <div class="map-dot" style="animation: pulseGreen 2.2s infinite;"></div>
-    <div class="map-dot secondary" style="animation: pulseBlue 2.7s infinite;"></div>
-    <div class="map-dot" style="top:55%; left:75%; animation: pulseGreen 3s infinite;"></div>
+        <!-- Painel animado -->
+        <div class="hero-map-viewport">
+          <div class="map-grid"></div>
 
-    <!-- Legendas -->
-    <div class="map-caption" style="backdrop-filter: blur(6px); border-radius:10px;">
-      <span data-i18n="map-caption-risk">
-        <div class="map-legend-dot"></div>
-        Zonas de risco / anomalia
-      </span>
-      <span data-i18n="map-caption-newdata">
-        <div class="map-legend-dot blue"></div>
-        Novos dados de sensores ou drones
-      </span>
-    </div>
-  </div>
+          <div class="map-panel">
+            <div class="map-panel-header">
+              <div>
+                <div class="map-panel-label">Visão de campo em tempo real</div>
+                <div class="map-panel-title" data-panel-title>Huíla · Agricultura de precisão</div>
+              </div>
+              <div class="map-panel-status">
+                <span class="status-dot"></span>
+                <span>A receber dados de demonstração</span>
+              </div>
+            </div>
 
-  <!-- Imagem real adicionada -->
-  <div style="
-    margin-top:1.2rem;
-    border-radius:14px;
-    overflow:hidden;
-    border:1px solid rgba(148,163,184,0.35);
-    box-shadow:0 25px 50px rgba(0,0,0,0.45);
-    ">
-    <img 
-      src="assets/meu-mapa-real.jpg"
-      alt="Mapa real gerado pela GeoVision"
-      style="width:100%; display:block; opacity:0.95; transition:0.25s;"
-      onmouseover="this.style.opacity='1';"
-      onmouseout="this.style.opacity='0.95';"
-    >
-  </div>
+            <div class="map-chip-row">
+              <span class="map-chip">NDVI / NDRE</span>
+              <span class="map-chip">Sensores de solo</span>
+              <span class="map-chip">LIDAR</span>
+              <span class="map-chip">Zonas de risco</span>
+            </div>
 
-</aside>
-<aside class="hero-map-card" style="overflow:hidden; position:relative;">
+            <div class="map-metrics-row">
+              <div>
+                <div class="map-metric-label" data-m1-label>Hectares monitorizados</div>
+                <div class="map-metric-value" data-m1-value>2 450 ha</div>
+                <div class="map-metric-badge" data-m1-badge>NDVI actualizado</div>
+                <div class="map-metric-bar"></div>
+              </div>
+              <div>
+                <div class="map-metric-label" data-m2-label>Poupança de água</div>
+                <div class="map-metric-value" data-m2-value>38%</div>
+                <div class="map-metric-badge" data-m2-badge>Rega inteligente</div>
+                <div class="map-metric-bar"></div>
+              </div>
+              <div>
+                <div class="map-metric-label" data-m3-label>Optimização de insumos</div>
+                <div class="map-metric-value" data-m3-value>22%</div>
+                <div class="map-metric-badge" data-m3-badge>Menos fertilizante</div>
+                <div class="map-metric-bar"></div>
+              </div>
+            </div>
+          </div>
 
-  <!-- Cabeçalho -->
-  <div class="hero-map-header">
-    <div class="hero-map-title">Vista de Campo GeoVision</div>
-    <div class="hero-map-badge">Demo · Mapa Multicamadas</div>
-  </div>
+          <div class="map-caption">
+            <span>
+              <span class="map-legend-dot"></span>
+              Drones, sensores e IA a alimentar o GeoVision
+            </span>
+            <span>
+              <span class="map-legend-dot amber"></span>
+              Zonas suspeitas e de perigo destacadas
+            </span>
+          </div>
+        </div>
 
-  <!-- Mapa animado -->
-  <div class="hero-map-viewport">
-
-    <div class="map-grid"></div>
-    <div class="map-orbits"></div>
-    <div class="map-orbits-inner"></div>
-
-    <!-- Pontos animados -->
-    <div class="map-dot" style="top:18%; left:62%; animation:pulseGreen 2.2s infinite;"></div>
-    <div class="map-dot secondary" style="top:55%; left:28%; animation:pulseBlue 2.8s infinite;"></div>
-    <div class="map-dot" style="top:72%; left:75%; animation:pulseGreen 3.2s infinite;"></div>
-
-    <!-- Legendas -->
-    <div class="map-caption">
-      <span><div class="map-legend-dot"></div> Zonas de risco / anomalia</span>
-      <span><div class="map-legend-dot blue"></div> Novos dados de sensores ou drones</span>
-    </div>
-  </div>
-
-  <!-- Imagem real por baixo -->
-  <div style="
-    margin-top:1.2rem;
-    border-radius:14px;
-    overflow:hidden;
-    border:1px solid rgba(148,163,184,0.35);
-    box-shadow:0 25px 50px rgba(0,0,0,0.45);
-  ">
-    <img 
-      src="assets/meu-mapa-real.jpg"
-      alt="Mapa real gerado pela GeoVision"
-      style="width:100%; display:block; opacity:0.95; transition:0.25s;"
-      onmouseover="this.style.opacity='1';"
-      onmouseout="this.style.opacity='0.95';"
-    >
-  </div>
-
-</aside>
-
-    </section>
-
-    <!-- Platform / About -->
-    <section id="platform" class="section">
-      <div class="section-header">
-        <div class="eyebrow" data-i18n="platform-eyebrow">PLATFORM</div>
-        <h2 class="section-title" data-i18n="platform-title">What GeoVision does.</h2>
-        <p class="section-subtitle" data-i18n="platform-subtitle">
-          A simple way to move from raw field data to clear decisions.
+        <!-- Imagem real -->
+        <div class="hero-real-image">
+          <img src="assets/geovision-map.jpg" alt="Exemplo de mapa GeoVision" />
+        </div>
+        <p class="media-caption">
+          Substitui <code>assets/geovision-map.jpg</code> por um mapa ou screenshot real do teu projecto.
         </p>
-      </div>
-
-      <div class="about-body" data-i18n="platform-body">
-        <!-- Conteúdo será inserido via JS -->
-      </div>
+      </aside>
     </section>
 
-    <!-- MEDIA 1: Drone field image -->
-    <section class="section">
-      <div class="section-header">
-        <div class="eyebrow" data-i18n="media1-eyebrow">FIELD VIEW</div>
-        <h2 class="section-title" data-i18n="media1-title">Aerial view from a GeoVision mission.</h2>
-        <p class="section-subtitle" data-i18n="media1-subtitle">
-          Example of a drone flight over agricultural or mining areas, where GeoVision identifies
-          priority zones directly on the map.
-        </p>
-      </div>
-
-      <!-- TROCAS ESTE FICHEIRO NA PASTA /assets/ -->
-      <img
-        src="assets/geovision-drone-field.jpg"
-        alt="Drone mapping landscape for GeoVision"
-        class="media-image"
-      />
-      <p class="media-caption" data-i18n="media1-caption">
-        Replace this file with your own image: <code>assets/geovision-drone-field.jpg</code>.
-      </p>
-    </section>
-
-    <!-- Modules -->
+    <!-- MÓDULOS GEOVISION -->
     <section id="modules" class="section">
       <div class="section-header">
-        <div class="eyebrow" data-i18n="modules-eyebrow">MODULES</div>
-        <h2 class="section-title" data-i18n="modules-title">Core building blocks of the project.</h2>
-        <p class="section-subtitle" data-i18n="modules-subtitle">
-          Each module can be developed step by step, depending on the budget and use case.
+        <div class="eyebrow">MÓDULOS</div>
+        <h2 class="section-title">GeoVision na prática.</h2>
+        <p class="section-subtitle">
+          Da captura ao insight: drones multiespectrais, drones de pulverização, sensores IoT, inteligência pecuária,
+          LIDAR mineiro e análise para desminagem.
         </p>
       </div>
 
       <div class="feature-grid">
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title" data-i18n="mod1-title">Drone & LiDAR Mapping</h3>
-          <p class="feature-text" data-i18n="mod1-text">
-            Plan flights, capture imagery and generate orthomosaics, elevation models and
-            detailed terrain profiles for any field or concession.
+          <h3 class="feature-title">Mapeamento multiespectral & NDVI</h3>
+          <p class="feature-text">
+            Drones com câmaras multiespectrais detectam stress, doenças e défices de nutrientes <strong>antes</strong>
+            de serem visíveis a olho nu.
           </p>
+          <div class="feature-tag">Fazendas · Cooperativas · Agro-indústria</div>
         </article>
 
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title" data-i18n="mod2-title">Soil & Water Sensing</h3>
-          <p class="feature-text" data-i18n="mod2-text">
-            Deploy IoT probes to monitor moisture, pH, NPK, EC and temperature, then see
-            the readings visualised on the map as zones and trends.
+          <h3 class="feature-title">Pulverização e fertilização com DJI Agras</h3>
+          <p class="feature-text">
+            Drones Agras aplicam fertilizante, sementes e químicos exactamente onde é necessário, reduzindo água,
+            químicos e mão de obra.
           </p>
+          <div class="feature-tag">Optimização de insumos</div>
         </article>
 
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title" data-i18n="mod3-title">Analytics & Indices</h3>
-          <p class="feature-text" data-i18n="mod3-text">
-            Convert raw data into NDVI-style vegetation indices, risk scores or performance
-            grades, so decision-makers get a clear “red / amber / green” view.
+          <h3 class="feature-title">Sensores de solo & água (IoT)</h3>
+          <p class="feature-text">
+            Sensores medem humidade, NPK, pH, salinidade e temperatura, alimentando a lógica de rega e planos de
+            fertilização em tempo real.
           </p>
+          <div class="feature-tag">Rega inteligente</div>
         </article>
 
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title" data-i18n="mod4-title">Reports & Exports</h3>
-          <p class="feature-text" data-i18n="mod4-text">
-            Export maps, statistics and field notes as PDFs, images or slide-ready visuals
-            to share with clients, management or authorities.
+          <h3 class="feature-title">Inteligência pecuária</h3>
+          <p class="feature-text">
+            Drones, colares GPS e câmaras térmicas reduzem perdas por seca, doenças e roubo, acompanhando o rebanho e
+            qualidade das pastagens.
           </p>
+          <div class="feature-tag">Protecção de rebanhos</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Mineração & LIDAR</h3>
+          <p class="feature-text">
+            Levantamentos LIDAR e modelos 3D suportam volumetria, estabilidade de taludes, planeamento de cava e
+            monitorização de barragens de rejeitos.
+          </p>
+          <div class="feature-tag">Catoca e outros sites</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Desminagem & zonas de perigo</h3>
+          <p class="feature-text">
+            Drones e análise ajudam a identificar padrões suspeitos, mapear acessos e apoiar equipas em zonas de alto
+            risco humanitário.
+          </p>
+          <div class="feature-tag">Impacto humanitário</div>
         </article>
       </div>
     </section>
 
-    <!-- MEDIA 2: Sensors / close-up -->
+    <!-- DASHBOARD DE ESTATÍSTICAS -->
+    <section class="section dashboard-section">
+      <div class="section-header">
+        <div class="eyebrow">PAINEL</div>
+        <h2 class="section-title">Indicadores em tempo real (demo).</h2>
+        <p class="section-subtitle">
+          Valores apenas ilustrativos para mostrar como um painel GeoVision poderia actualizar em operação real.
+        </p>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Fazendas monitorizadas</div>
+          <div class="stat-value" data-stat-farms>0</div>
+          <div class="stat-note">Clientes activos com NDVI e sensores.</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Cabeças de gado em monitorização</div>
+          <div class="stat-value" data-stat-cattle>0</div>
+          <div class="stat-note">Rebanho com GPS, térmico e pastagem mapeada.</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Zonas mineiras</div>
+          <div class="stat-value" data-stat-mines>0</div>
+          <div class="stat-note">Campanhas LIDAR e monitorização de barragens.</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-label">Alertas activos</div>
+          <div class="stat-value" data-stat-alerts>0</div>
+          <div class="stat-note">Alertas de risco operacional e zonas de perigo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMULAÇÃO DE MAPA (LINHA + PULSOS) -->
     <section class="section">
       <div class="section-header">
-        <div class="eyebrow" data-i18n="media2-eyebrow">SENSORS</div>
-        <h2 class="section-title" data-i18n="media2-title">Soil and water probes in the field.</h2>
-        <p class="section-subtitle" data-i18n="media2-subtitle">
-          Illustration of IoT sensors installed in the ground or near water sources, feeding live
-          data into GeoVision.
+        <div class="eyebrow">MAPA AO VIVO</div>
+        <h2 class="section-title">Simulação de sinais GeoVision.</h2>
+        <p class="section-subtitle">
+          Uma animação simples para representar sinais a chegar de diferentes pontos do território para o painel
+          central.
         </p>
       </div>
 
-      <!-- TROCAS ESTE FICHEIRO NA PASTA /assets/ -->
+      <div class="map-simulation">
+        <div class="line"></div>
+        <div class="pulse p1"></div>
+        <div class="pulse p2"></div>
+        <div class="pulse p3"></div>
+      </div>
+
+      <p class="media-caption">
+        Cada ponto representa um cluster de sensores, drones ou relatórios de campo a actualizar o sistema.
+      </p>
+    </section>
+
+    <!-- SENSORES -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">SENSORES</div>
+        <h2 class="section-title">Inteligência de solo e água.</h2>
+        <p class="section-subtitle">
+          Sensores de solo e água medem humidade, NPK, pH, salinidade e temperatura para optimizar rega e fertilização.
+        </p>
+      </div>
+
       <img
-        src="assets/geovision-sensors.jpg"
-        alt="Soil and water sensors used by GeoVision"
-        class="media-image"
+        src="assets/geovision-sensors.png"
+        alt="Sensores GeoVision"
+        class="media-image sensors"
       />
-      <p class="media-caption" data-i18n="media2-caption">
-        Replace this file with your own sensor image: <code>assets/geovision-sensors.jpg</code>.
+      <p class="media-caption">
+        Substitui <code>assets/geovision-sensors.png</code> por uma fotografia real da tua instalação de sensores.
       </p>
     </section>
 
-    <!-- Sectors -->
-    <section id="sectors" class="section">
+    <!-- VÍDEO DEMO -->
+    <section class="section">
       <div class="section-header">
-        <div class="eyebrow" data-i18n="sectors-eyebrow">SECTORS</div>
-        <h2 class="section-title" data-i18n="sectors-title">Where GeoVision can be applied.</h2>
-      </div>
-
-      <div class="usecase-grid">
-        <article class="usecase-card">
-          <div class="usecase-tag" data-i18n="sec1-tag">AGRICULTURE</div>
-          <h3 class="usecase-title" data-i18n="sec1-title">Precision agriculture & irrigation</h3>
-          <p class="usecase-text" data-i18n="sec1-text">
-            Identify stressed zones, drainage problems and variability inside each field.
-            Combine drone maps with moisture sensors to plan irrigation and input use
-            more efficiently.
-          </p>
-          <p class="usecase-meta" data-i18n="sec1-meta">
-            Better yields and fewer blind spots on the farm.
-          </p>
-        </article>
-
-        <article class="usecase-card">
-          <div class="usecase-tag" data-i18n="sec2-tag">MINING & QUARRIES</div>
-          <h3 class="usecase-title" data-i18n="sec2-title">Volume, stability & safety</h3>
-          <p class="usecase-text" data-i18n="sec2-text">
-            Map pits, stockpiles and haul roads, track changes over time and flag high-risk
-            areas such as unstable slopes, restricted zones or informal access paths.
-          </p>
-          <p class="usecase-meta" data-i18n="sec2-meta">
-            A clearer picture of the site, updated regularly.
-          </p>
-        </article>
-
-        <article class="usecase-card">
-          <div class="usecase-tag" data-i18n="sec3-tag">INFRASTRUCTURE & RISK</div>
-          <h3 class="usecase-title" data-i18n="sec3-title">Corridors & danger zones</h3>
-          <p class="usecase-text" data-i18n="sec3-text">
-            Monitor roads, power lines, pipelines or other linear assets and map nearby
-            risk areas – from erosion and flooding to suspected hazardous zones.
-          </p>
-          <p class="usecase-meta" data-i18n="sec3-meta">
-            Better planning and prioritisation for field teams.
-          </p>
-        </article>
-      </div>
-    </section>
-
-    <!-- Workflow + VIDEO -->
-    <section id="workflow" class="section">
-      <div class="section-header">
-        <div class="eyebrow" data-i18n="workflow-eyebrow">WORKFLOW</div>
-        <h2 class="section-title" data-i18n="workflow-title">How a GeoVision project runs.</h2>
-        <p class="section-subtitle" data-i18n="workflow-subtitle">
-          A typical engagement can be structured in four clear phases.
+        <div class="eyebrow">VÍDEO DEMO</div>
+        <h2 class="section-title">Fluxo operacional GeoVision.</h2>
+        <p class="section-subtitle">
+          Breve demonstração de voo de drone, geração de mapas NDVI e integração com sensores de solo.
         </p>
       </div>
 
-      <div class="workflow-grid">
-        <div class="workflow-step">
-          <div class="workflow-number">1</div>
-          <div>
-            <h3 class="workflow-title" data-i18n="wf1-title">Plan</h3>
-            <p class="workflow-text" data-i18n="wf1-text">
-              Define the area of interest, objectives, data sources (drones, sensors, existing
-              maps) and how often the site needs to be updated.
-            </p>
-          </div>
-        </div>
-
-        <div class="workflow-step">
-          <div class="workflow-number">2</div>
-          <div>
-            <h3 class="workflow-title" data-i18n="wf2-title">Capture</h3>
-            <p class="workflow-text" data-i18n="wf2-text">
-              Execute drone flights, collect LiDAR or imagery and retrieve sensor data from the
-              field following safe, standardised procedures.
-            </p>
-          </div>
-        </div>
-
-        <div class="workflow-step">
-          <div class="workflow-number">3</div>
-          <div>
-            <h3 class="workflow-title" data-i18n="wf3-title">Process</h3>
-            <p class="workflow-text" data-i18n="wf3-text">
-              Process the data into maps, models and indices using GIS/photogrammetry tools,
-              then load them into the GeoVision dashboard.
-            </p>
-          </div>
-        </div>
-
-        <div class="workflow-step">
-          <div class="workflow-number">4</div>
-          <div>
-            <h3 class="workflow-title" data-i18n="wf4-title">Deliver & act</h3>
-            <p class="workflow-text" data-i18n="wf4-text">
-              Share dashboards, maps and reports with decision-makers, and define concrete
-              actions for each high-priority zone on the map.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- VIDEO DEMO -->
-      <div class="section-header" style="margin-top:2rem;">
-        <div class="eyebrow" data-i18n="media3-eyebrow">VIDEO</div>
-        <h2 class="section-title" data-i18n="media3-title">GeoVision in action.</h2>
-        <p class="section-subtitle" data-i18n="media3-subtitle">
-          Short demo or simulation that shows how GeoVision collects, processes and presents data.
-        </p>
-      </div>
-
-<!-- GeoVision Extra Image -->
-<section class="section">
-  <div class="section-header">
-    <div class="eyebrow">IMAGEM EXTRA</div>
-    <h2 class="section-title">Imagem adicionada manualmente</h2>
-    <p class="section-subtitle">Esta imagem foi adicionada diretamente no HTML.</p>
-  </div>
-
-  <img src="nome-da-imagem.jpg" 
-       alt="Imagem adicionada manualmente"
-       style="width:100%; border-radius:16px; border:1px solid #4b5563;">
-</section>
-
-
-      <!-- Substitui VIDEO_ID_AQUI pelo ID real do teu vídeo no YouTube -->
       <div class="media-video-wrapper">
-      <iframe
-  src="DJI Enterprise Zenmuse L1 - Versatile LiDAR Solution"
-  title="GeoVision demo video"
-  allowfullscreen
-></iframe>
-
+        <iframe
+          src="https://www.youtube.com/embed/T_6c5sGQGIQ"
+          title="GeoVision demo"
+          allowfullscreen
+        ></iframe>
       </div>
-      <p class="media-caption" data-i18n="media3-caption">
-        Replace <code>T_6c5sGQGIQ</code> with your own YouTube video ID.
+
+      <p class="media-caption">
+        Substitui o ID do vídeo no link por um vídeo real do projecto.
       </p>
     </section>
 
-    <!-- Contact / CTA -->
+    <!-- CONTACTO -->
     <section id="contact" class="section">
+      <div class="section-header">
+        <div class="eyebrow">CONTACTO</div>
+        <h2 class="section-title">Fala connosco.</h2>
+        <p class="section-subtitle">
+          Este site é um conceito. Se quiseres transformar em projecto real, podes usar este espaço para contactos,
+          parcerias ou demonstrações.
+        </p>
+      </div>
+
       <div class="cta-inner">
         <div>
-          <div class="eyebrow" data-i18n="contact-eyebrow">CONTACT</div>
-          <h2 class="cta-title" data-i18n="contact-title">Turn GeoVision from concept into operation.</h2>
-          <p class="cta-text" data-i18n="contact-text">
-            This website summarises the GeoVision project idea: a single place to see what
-            drones, sensors and maps are telling you about the field.
-            Use this section for potential partners, clients or supervisors to reach out.
+          <h3 class="cta-title">Explorar GeoVision em Angola.</h3>
+          <p class="cta-text">
+            A ideia é combinar tecnologia validada internacionalmente com uma implementação adaptada à realidade
+            angolana – agricultura, pecuária, mineração e desminagem.
           </p>
         </div>
 
-        <form class="cta-form" id="contact-form">
+        <form class="cta-form" onsubmit="event.preventDefault(); document.querySelector('.form-success').style.display='block';">
           <div class="form-row">
-            <label for="name" data-i18n="contact-name-label">Name</label>
-            <input id="name" type="text" data-i18n-placeholder="contact-name-placeholder" placeholder="Your name" required />
+            <label for="name">Nome</label>
+            <input id="name" type="text" placeholder="O teu nome" />
           </div>
           <div class="form-row">
-            <label for="email" data-i18n="contact-email-label">Email</label>
-            <input id="email" type="email" data-i18n-placeholder="contact-email-placeholder" placeholder="you@example.com" required />
+            <label for="email">Email</label>
+            <input id="email" type="email" placeholder="nome@exemplo.com" />
           </div>
           <div class="form-row">
-            <label for="message" data-i18n="contact-message-label">Project or message</label>
-            <textarea id="message" data-i18n-placeholder="contact-message-placeholder" placeholder="Describe your field, site or use case"></textarea>
+            <label for="message">Mensagem</label>
+            <textarea id="message" placeholder="Escreve a tua mensagem"></textarea>
+            <p class="form-hint">Este formulário é apenas ilustrativo.</p>
           </div>
-          <button type="submit" class="btn btn-primary" data-i18n="contact-submit">Send message</button>
-          <p class="form-hint" data-i18n="contact-hint">
-            Front-end demo only – later you can connect this form to a real email or backend.
-          </p>
-          <p class="form-success" id="form-success" data-i18n="contact-success">
-            Thanks! Your message was recorded (demo only).
-          </p>
+          <button type="submit" class="btn btn-primary">Enviar mensagem →</button>
+          <p class="form-success">Mensagem enviada (simulação).</p>
         </form>
       </div>
     </section>
   </main>
 
-  <footer class="footer" data-i18n="footer-text">
-    © <span id="year"></span> GeoVision · Field Intelligence Project.
+  <footer class="footer">
+    © <span id="year"></span> GeoVision · Inteligência de Campo para Angola.
   </footer>
 
-  <script>
-    const translations = {
-      en: {
-        "nav-home": "Home",
-        "nav-platform": "Platform",
-        "nav-modules": "Modules",
-        "nav-sectors": "Sectors",
-        "nav-workflow": "Workflow",
-        "nav-contact": "Contact",
-
-        "hero-pill": '<div class="hero-pill-dot"></div>Drone mapping · LiDAR · Soil sensors',
-        "hero-title": 'One platform for <span>field intelligence.</span>',
-        "hero-subtitle":
-          "GeoVision connects drone imagery, LiDAR, and on-the-ground sensors into a single view – so teams can understand their land, assets, and risks in real time.",
-        "hero-cta-primary": "See how it works →",
-        "hero-cta-secondary": "Discuss a pilot project",
-        "hero-meta":
-          "Designed for <strong>agriculture, mining, infrastructure,</strong> and any operation where what happens on the ground really matters.",
-
-        "hero-map-title": "GeoVision field view",
-        "hero-map-badge": "Demo · Multi-layer map",
-        "map-caption-risk":
-          '<div class="map-legend-dot"></div>Risk / anomaly zones',
-        "map-caption-newdata":
-          '<div class="map-legend-dot blue"></div>New sensor or drone data',
-
-        "platform-eyebrow": "PLATFORM",
-        "platform-title": "What GeoVision does.",
-        "platform-subtitle": "A simple way to move from raw field data to clear decisions.",
-        "platform-body": `
-          <p>
-            <strong>GeoVision</strong> is a field intelligence platform concept that unifies
-            three layers of information:
-          </p>
-          <br />
-          <ul style="margin-left:1.1rem; font-size:0.94rem; color:inherit; line-height:1.6;">
-            <li><strong>Drone imagery & LiDAR</strong> – high-resolution maps, elevations and 3D models.</li>
-            <li><strong>Soil & water sensors</strong> – pH, NPK, moisture, salinity, temperature and more.</li>
-            <li><strong>Analytics dashboard</strong> – alerts, indices and reports that non-technical teams can read.</li>
-          </ul>
-          <br />
-          <p>
-            Instead of spreading data across different files and tools, GeoVision brings it into
-            one visual environment, so it’s easy to answer questions like:
-            “Where is the land stressed?”, “Which areas are unsafe?”, or
-            “Where should we act first?”.
-          </p>
-        `,
-
-        "media1-eyebrow": "FIELD VIEW",
-        "media1-title": "Aerial view from a GeoVision mission.",
-        "media1-subtitle":
-          "Example of a drone flight over agricultural or mining areas, where GeoVision identifies priority zones directly on the map.",
-        "media1-caption":
-          "Replace this file with your own image: <code>assets/geovision-drone-field.jpg</code>.",
-
-        "modules-eyebrow": "MODULES",
-        "modules-title": "Core building blocks of the project.",
-        "modules-subtitle": "Each module can be developed step by step, depending on the budget and use case.",
-
-        "mod1-title": "Drone & LiDAR Mapping",
-        "mod1-text":
-          "Plan flights, capture imagery and generate orthomosaics, elevation models and detailed terrain profiles for any field or concession.",
-        "mod2-title": "Soil & Water Sensing",
-        "mod2-text":
-          "Deploy IoT probes to monitor moisture, pH, NPK, EC and temperature, then see the readings visualised on the map as zones and trends.",
-        "mod3-title": "Analytics & Indices",
-        "mod3-text":
-          "Convert raw data into NDVI-style vegetation indices, risk scores or performance grades, so decision-makers get a clear “red / amber / green” view.",
-        "mod4-title": "Reports & Exports",
-        "mod4-text":
-          "Export maps, statistics and field notes as PDFs, images or slide-ready visuals to share with clients, management or authorities.",
-
-        "media2-eyebrow": "SENSORS",
-        "media2-title": "Soil and water probes in the field.",
-        "media2-subtitle":
-          "Illustration of IoT sensors installed in the ground or near water sources, feeding live data into GeoVision.",
-        "media2-caption":
-          "Replace this file with your own sensor image: <code>assets/geovision-sensors.jpg</code>.",
-
-        "sectors-eyebrow": "SECTORS",
-        "sectors-title": "Where GeoVision can be applied.",
-
-        "sec1-tag": "AGRICULTURE",
-        "sec1-title": "Precision agriculture & irrigation",
-        "sec1-text":
-          "Identify stressed zones, drainage problems and variability inside each field. Combine drone maps with moisture sensors to plan irrigation and input use more efficiently.",
-        "sec1-meta": "Better yields and fewer blind spots on the farm.",
-
-        "sec2-tag": "MINING & QUARRIES",
-        "sec2-title": "Volume, stability & safety",
-        "sec2-text":
-          "Map pits, stockpiles and haul roads, track changes over time and flag high-risk areas such as unstable slopes, restricted zones or informal access paths.",
-        "sec2-meta": "A clearer picture of the site, updated regularly.",
-
-        "sec3-tag": "INFRASTRUCTURE & RISK",
-        "sec3-title": "Corridors & danger zones",
-        "sec3-text":
-          "Monitor roads, power lines, pipelines or other linear assets and map nearby risk areas – from erosion and flooding to suspected hazardous zones.",
-        "sec3-meta": "Better planning and prioritisation for field teams.",
-
-        "workflow-eyebrow": "WORKFLOW",
-        "workflow-title": "How a GeoVision project runs.",
-        "workflow-subtitle": "A typical engagement can be structured in four clear phases.",
-
-        "wf1-title": "Plan",
-        "wf1-text":
-          "Define the area of interest, objectives, data sources (drones, sensors, existing maps) and how often the site needs to be updated.",
-        "wf2-title": "Capture",
-        "wf2-text":
-          "Execute drone flights, collect LiDAR or imagery and retrieve sensor data from the field following safe, standardised procedures.",
-        "wf3-title": "Process",
-        "wf3-text":
-          "Process the data into maps, models and indices using GIS/photogrammetry tools, then load them into the GeoVision dashboard.",
-        "wf4-title": "Deliver & act",
-        "wf4-text":
-          "Share dashboards, maps and reports with decision-makers, and define concrete actions for each high-priority zone on the map.",
-
-        "media3-eyebrow": "VIDEO",
-        "media3-title": "GeoVision in action.",
-        "media3-subtitle":
-          "Short demo or simulation that shows how GeoVision collects, processes and presents data.",
-        "media3-caption":
-          "Replace <code>VIDEO_ID_AQUI</code> with your own YouTube video ID.",
-
-        "contact-eyebrow": "CONTACT",
-        "contact-title": "Turn GeoVision from concept into operation.",
-        "contact-text":
-          "This website summarises the GeoVision project idea: a single place to see what drones, sensors and maps are telling you about the field. Use this section for potential partners, clients or supervisors to reach out.",
-
-        "contact-name-label": "Name",
-        "contact-name-placeholder": "Your name",
-        "contact-email-label": "Email",
-        "contact-email-placeholder": "you@example.com",
-        "contact-message-label": "Project or message",
-        "contact-message-placeholder": "Describe your field, site or use case",
-        "contact-submit": "Send message",
-        "contact-hint":
-          "Front-end demo only – later you can connect this form to a real email or backend.",
-        "contact-success":
-          "Thanks! Your message was recorded (demo only).",
-
-        "footer-text": "© <span id=\"year\"></span> GeoVision · Field Intelligence Project."
-      },
-
-      es: {
-        "nav-home": "Inicio",
-        "nav-platform": "Plataforma",
-        "nav-modules": "Módulos",
-        "nav-sectors": "Sectores",
-        "nav-workflow": "Flujo de trabajo",
-        "nav-contact": "Contacto",
-
-        "hero-pill": '<div class="hero-pill-dot"></div>Mapeo con drones · LiDAR · Sensores de suelo',
-        "hero-title": "Una única plataforma para la <span>inteligencia de campo.</span>",
-        "hero-subtitle":
-          "GeoVision conecta imágenes de dron, LiDAR y sensores en terreno en una sola vista, para que los equipos entiendan sus tierras, activos y riesgos en tiempo real.",
-        "hero-cta-primary": "Ver cómo funciona →",
-        "hero-cta-secondary": "Hablar de un proyecto piloto",
-        "hero-meta":
-          "Pensado para <strong>agricultura, minería e infraestructuras,</strong> y cualquier operación donde lo que ocurre en el terreno es crítico.",
-
-        "hero-map-title": "Vista de campo GeoVision",
-        "hero-map-badge": "Demo · Mapa multicapas",
-        "map-caption-risk":
-          '<div class="map-legend-dot"></div>Zonas de riesgo / anomalía',
-        "map-caption-newdata":
-          '<div class="map-legend-dot blue"></div>Nuevos datos de sensores o drones',
-
-        "platform-eyebrow": "PLATAFORMA",
-        "platform-title": "Qué hace GeoVision.",
-        "platform-subtitle": "Una forma sencilla de pasar de datos brutos a decisiones claras.",
-        "platform-body": `
-          <p>
-            <strong>GeoVision</strong> es un concepto de plataforma de inteligencia de campo que unifica
-            tres capas de información:
-          </p>
-          <br />
-          <ul style="margin-left:1.1rem; font-size:0.94rem; color:inherit; line-height:1.6;">
-            <li><strong>Imágenes de dron y LiDAR</strong> – mapas de alta resolución, modelos de elevación y 3D.</li>
-            <li><strong>Sensores de suelo y agua</strong> – pH, NPK, humedad, salinidad, temperatura y más.</li>
-            <li><strong>Panel analítico</strong> – alertas, índices e informes que cualquier equipo puede entender.</li>
-          </ul>
-          <br />
-          <p>
-            En lugar de tener los datos repartidos en muchos archivos y herramientas, GeoVision los reúne
-            en un entorno visual único para responder preguntas como:
-            “¿Dónde está el terreno estresado?”, “¿Qué zonas son inseguras?” o
-            “¿Dónde debemos actuar primero?”.
-          </p>
-        `,
-
-        "media1-eyebrow": "VISTA AÉREA",
-        "media1-title": "Vista aérea de una misión GeoVision.",
-        "media1-subtitle":
-          "Ejemplo de un vuelo de dron sobre áreas agrícolas o mineras, donde GeoVision identifica zonas prioritarias directamente en el mapa.",
-        "media1-caption":
-          "Sustituye este archivo por tu propia imagen: <code>assets/geovision-drone-field.jpg</code>.",
-
-        "modules-eyebrow": "MÓDULOS",
-        "modules-title": "Bloques clave del proyecto.",
-        "modules-subtitle":
-          "Cada módulo puede desarrollarse por fases, según el presupuesto y el caso de uso.",
-
-        "mod1-title": "Mapeo con dron y LiDAR",
-        "mod1-text":
-          "Planificar vuelos, capturar imágenes y generar ortomosaicos, modelos de elevación y perfiles de terreno detallados para cualquier finca o concesión.",
-        "mod2-title": "Sensores de suelo y agua",
-        "mod2-text":
-          "Desplegar sondas IoT para monitorizar humedad, pH, NPK, conductividad y temperatura, y ver las lecturas en el mapa como zonas y tendencias.",
-        "mod3-title": "Analítica e índices",
-        "mod3-text":
-          "Transformar los datos brutos en índices de vegetación tipo NDVI, puntuaciones de riesgo o niveles de desempeño, dando una visión clara tipo “rojo / ámbar / verde”.",
-        "mod4-title": "Informes y exportaciones",
-        "mod4-text":
-          "Exportar mapas, estadísticas y notas de campo como PDF, imágenes o visuales listos para presentaciones a clientes, dirección o autoridades.",
-
-        "media2-eyebrow": "SENSORES",
-        "media2-title": "Sondas de suelo y agua en el terreno.",
-        "media2-subtitle":
-          "Ilustración de sensores IoT instalados en el suelo o cerca de fuentes de agua, enviando datos en tiempo real a GeoVision.",
-        "media2-caption":
-          "Sustituye este archivo por tu propia imagen de sensores: <code>assets/geovision-sensors.jpg</code>.",
-
-        "sectors-eyebrow": "SECTORES",
-        "sectors-title": "Dónde se puede aplicar GeoVision.",
-
-        "sec1-tag": "AGRICULTURA",
-        "sec1-title": "Agricultura de precisión y riego",
-        "sec1-text":
-          "Detectar zonas estresadas, problemas de drenaje y variabilidad dentro de cada parcela. Combinar mapas de dron con sensores de humedad para planificar mejor el riego y el uso de insumos.",
-        "sec1-meta": "Más rendimiento y menos zonas ciegas en la explotación.",
-
-        "sec2-tag": "MINERÍA Y CANTERAS",
-        "sec2-title": "Volumen, estabilidad y seguridad",
-        "sec2-text":
-          "Mapear tajos, acopios y vías, seguir cambios en el tiempo y señalar áreas de alto riesgo como taludes inestables, zonas restringidas o accesos informales.",
-        "sec2-meta": "Una visión más clara del sitio, actualizada con regularidad.",
-
-        "sec3-tag": "INFRAESTRUCTURAS Y RIESGO",
-        "sec3-title": "Corredores y zonas peligrosas",
-        "sec3-text":
-          "Monitorizar carreteras, líneas eléctricas, tuberías u otros activos lineales y cartografiar las zonas de riesgo cercanas: erosión, inundaciones o áreas potencialmente peligrosas.",
-        "sec3-meta": "Mejor planificación y priorización para los equipos de campo.",
-
-        "workflow-eyebrow": "FLUJO DE TRABAJO",
-        "workflow-title": "Cómo se ejecuta un proyecto GeoVision.",
-        "workflow-subtitle": "Un proyecto típico puede estructurarse en cuatro fases claras.",
-
-        "wf1-title": "Planificar",
-        "wf1-text":
-          "Definir el área de interés, los objetivos, las fuentes de datos (drones, sensores, mapas existentes) y la frecuencia con la que hay que actualizar el sitio.",
-        "wf2-title": "Capturar",
-        "wf2-text":
-          "Realizar vuelos con drones, capturar LiDAR o imágenes y recuperar los datos de los sensores siguiendo procedimientos seguros y estandarizados.",
-        "wf3-title": "Procesar",
-        "wf3-text":
-          "Procesar los datos en mapas, modelos e índices usando herramientas GIS/fotogrametría, y cargarlos después en el panel de GeoVision.",
-        "wf4-title": "Entregar y actuar",
-        "wf4-text":
-          "Compartir paneles, mapas e informes con los decisores y definir acciones concretas para cada zona prioritaria en el mapa.",
-
-        "media3-eyebrow": "VÍDEO",
-        "media3-title": "GeoVision en acción.",
-        "media3-subtitle":
-          "Pequeña demo o simulación que muestre cómo GeoVision recoge, procesa y presenta los datos.",
-        "media3-caption":
-          "Sustituye <code>VIDEO_ID_AQUI</code> por el ID de tu propio vídeo en YouTube.",
-
-        "contact-eyebrow": "CONTACTO",
-        "contact-title": "Llevar GeoVision de concepto a operación.",
-        "contact-text":
-          "Esta página resume la idea del proyecto GeoVision: un único lugar para ver qué dicen los drones, sensores y mapas sobre el terreno. Utiliza esta sección para que potenciales socios, clientes o entidades se pongan en contacto.",
-
-        "contact-name-label": "Nombre",
-        "contact-name-placeholder": "Tu nombre",
-        "contact-email-label": "Correo electrónico",
-        "contact-email-placeholder": "tu@ejemplo.com",
-        "contact-message-label": "Proyecto o mensaje",
-        "contact-message-placeholder": "Describe tu finca, área o caso de uso",
-        "contact-submit": "Enviar mensaje",
-        "contact-hint":
-          "Demo sólo en el lado del navegador; más adelante puedes conectar este formulario a un correo o backend real.",
-        "contact-success":
-          "¡Gracias! Tu mensaje ha sido registrado (demo).",
-
-        "footer-text": "© <span id=\"year\"></span> GeoVision · Plataforma de inteligencia de campo."
-      },
-
-      pt: {
-        "nav-home": "Início",
-        "nav-platform": "Plataforma",
-        "nav-modules": "Módulos",
-        "nav-sectors": "Setores",
-        "nav-workflow": "Fluxo de trabalho",
-        "nav-contact": "Contacto",
-
-        "hero-pill": '<div class="hero-pill-dot"></div>Mapeamento com drones · LiDAR · Sensores de solo',
-        "hero-title": "Uma única plataforma para a <span>inteligência de campo.</span>",
-        "hero-subtitle":
-          "A GeoVision liga imagens de drones, LiDAR e sensores no terreno numa só vista, para que as equipas compreendam melhor as suas terras, ativos e riscos em tempo real.",
-        "hero-cta-primary": "Ver como funciona →",
-        "hero-cta-secondary": "Falar sobre um projeto-piloto",
-        "hero-meta":
-          "Pensada para <strong>agricultura, mineração e infraestruturas,</strong> e para qualquer operação em que o que acontece no terreno é decisivo.",
-
-        "hero-map-title": "Vista de campo GeoVision",
-        "hero-map-badge": "Demo · Mapa multicamada",
-        "map-caption-risk":
-          '<div class="map-legend-dot"></div>Zonas de risco / anomalia',
-        "map-caption-newdata":
-          '<div class="map-legend-dot blue"></div>Novos dados de sensores ou drones',
-
-        "platform-eyebrow": "PLATAFORMA",
-        "platform-title": "O que a GeoVision faz.",
-        "platform-subtitle": "Uma forma simples de transformar dados de campo em decisões claras.",
-        "platform-body": `
-          <p>
-            A <strong>GeoVision</strong> é um conceito de plataforma de inteligência de campo que junta
-            três camadas de informação:
-          </p>
-          <br />
-          <ul style="margin-left:1.1rem; font-size:0.94rem; color:inherit; line-height:1.6;">
-            <li><strong>Imagens de drone e LiDAR</strong> – mapas de alta resolução, modelos de elevação e 3D.</li>
-            <li><strong>Sensores de solo e água</strong> – pH, NPK, humidade, salinidade, temperatura e outros.</li>
-            <li><strong>Dashboard analítico</strong> – alertas, índices e relatórios que qualquer equipa consegue interpretar.</li>
-          </ul>
-          <br />
-          <p>
-            Em vez de ter a informação espalhada por ficheiros e softwares diferentes, a GeoVision concentra
-            tudo num ambiente visual único, facilitando respostas a perguntas como:
-            “Onde é que o solo está mais stressado?”, “Que zonas são inseguras?” ou
-            “Onde devemos intervir primeiro?”.
-          </p>
-        `,
-
-        "media1-eyebrow": "VISTA AÉREA",
-        "media1-title": "Vista aérea de uma missão GeoVision.",
-        "media1-subtitle":
-          "Exemplo de um voo de drone sobre áreas agrícolas ou mineiras, onde a GeoVision identifica zonas prioritárias diretamente no mapa.",
-        "media1-caption":
-          "Substitui este ficheiro pela tua própria imagem: <code>assets/geovision-drone-field.jpg</code>.",
-
-        "modules-eyebrow": "MÓDULOS",
-        "modules-title": "Blocos centrais do projeto.",
-        "modules-subtitle":
-          "Cada módulo pode ser desenvolvido por fases, de acordo com o orçamento e o caso de uso.",
-
-        "mod1-title": "Mapeamento com drone e LiDAR",
-        "mod1-text":
-          "Planear voos, capturar imagens e gerar ortomosaicos, modelos de elevação e perfis de terreno detalhados para qualquer exploração ou concessão.",
-        "mod2-title": "Sensores de solo e água",
-        "mod2-text":
-          "Instalar sondas IoT para monitorizar humidade, pH, NPK, condutividade e temperatura, e ver as leituras representadas no mapa em zonas e tendências.",
-        "mod3-title": "Análises e índices",
-        "mod3-text":
-          "Transformar dados brutos em índices de vegetação tipo NDVI, pontuações de risco ou níveis de desempenho, dando uma visão clara em “vermelho / amarelo / verde”.",
-        "mod4-title": "Relatórios e exportações",
-        "mod4-text":
-          "Exportar mapas, estatísticas e notas de campo em PDF, imagens ou visuais prontos para apresentações a clientes, gestão ou autoridades.",
-
-        "media2-eyebrow": "SENSORES",
-        "media2-title": "Sondas de solo e água no terreno.",
-        "media2-subtitle":
-          "Ilustração de sensores IoT instalados no solo ou junto a pontos de água, a enviar dados em tempo real para a GeoVision.",
-        "media2-caption":
-          "Substitui este ficheiro pela tua própria imagem de sensores: <code>assets/geovision-sensors.jpg</code>.",
-
-        "sectors-eyebrow": "SETORES",
-        "sectors-title": "Onde a GeoVision pode ser aplicada.",
-
-        "sec1-tag": "AGRICULTURA",
-        "sec1-title": "Agricultura de precisão e rega",
-        "sec1-text":
-          "Identificar zonas stressadas, problemas de drenagem e variabilidade dentro de cada parcela. Combinar mapas de drone com sensores de humidade para planear melhor a rega e o uso de insumos.",
-        "sec1-meta": "Mais rendimento e menos zonas cegas na exploração.",
-
-        "sec2-tag": "MINERAÇÃO E PEDREIRAS",
-        "sec2-title": "Volume, estabilidade e segurança",
-        "sec2-text":
-          "Mapear cortas, pilhas de stock e vias, acompanhar alterações ao longo do tempo e sinalizar áreas de maior risco como taludes instáveis, zonas restritas ou acessos informais.",
-        "sec2-meta": "Uma visão mais clara do sítio, atualizada com regularidade.",
-
-        "sec3-tag": "INFRAESTRUTURAS E RISCO",
-        "sec3-title": "Corredores e zonas perigosas",
-        "sec3-text":
-          "Monitorizar estradas, linhas elétricas, condutas ou outros ativos lineares e cartografar as zonas de risco próximas – desde erosão e cheias até áreas potencialmente perigosas.",
-        "sec3-meta": "Melhor planeamento e priorização para as equipas de campo.",
-
-        "workflow-eyebrow": "FLUXO DE TRABALHO",
-        "workflow-title": "Como decorre um projeto GeoVision.",
-        "workflow-subtitle": "Um projeto típico pode ser estruturado em quatro fases claras.",
-
-        "wf1-title": "Planear",
-        "wf1-text":
-          "Definir a área de interesse, objetivos, fontes de dados (drones, sensores, mapas existentes) e a frequência de atualização do local.",
-        "wf2-title": "Captar",
-        "wf2-text":
-          "Realizar voos com drones, capturar LiDAR ou imagens e recolher os dados dos sensores, seguindo procedimentos seguros e normalizados.",
-        "wf3-title": "Processar",
-        "wf3-text":
-          "Processar os dados em mapas, modelos e índices utilizando ferramentas de SIG/fotogrametria, e carregá-los depois no dashboard da GeoVision.",
-        "wf4-title": "Entregar e agir",
-        "wf4-text":
-          "Partilhar dashboards, mapas e relatórios com os decisores e definir ações concretas para cada zona prioritária no mapa.",
-
-        "media3-eyebrow": "VÍDEO",
-        "media3-title": "GeoVision em ação.",
-        "media3-subtitle":
-          "Pequena demo ou simulação que mostra como a GeoVision recolhe, processa e apresenta os dados.",
-        "media3-caption":
-          "Substitui <code>VIDEO_ID_AQUI</code> pelo ID do teu próprio vídeo no YouTube.",
-
-        "contact-eyebrow": "CONTACTO",
-        "contact-title": "Levar a GeoVision do conceito à operação.",
-        "contact-text":
-          "Este site resume a ideia do projeto GeoVision: um único lugar para ver o que drones, sensores e mapas revelam sobre o terreno. Usa esta secção para que potenciais parceiros, clientes ou entidades entrem em contacto.",
-
-        "contact-name-label": "Nome",
-        "contact-name-placeholder": "O teu nome",
-        "contact-email-label": "Email",
-        "contact-email-placeholder": "tu@exemplo.com",
-        "contact-message-label": "Projeto ou mensagem",
-        "contact-message-placeholder": "Descreve o teu campo, área ou caso de uso",
-        "contact-submit": "Enviar mensagem",
-        "contact-hint":
-          "Demonstração apenas no lado do browser; mais tarde podes ligar este formulário a um email ou backend reais.",
-        "contact-success":
-          "Obrigado! A tua mensagem foi registada (demo).",
-
-        "footer-text": "© <span id=\"year\"></span> GeoVision · Plataforma de inteligência de campo."
-      }
-    };
-
-    function setLanguage(lang) {
-      const dict = translations[lang] || translations.en;
-      document.querySelectorAll("[data-i18n]").forEach((el) => {
-        const key = el.getAttribute("data-i18n");
-        if (dict[key]) {
-          el.innerHTML = dict[key];
-        }
-      });
-
-      // Placeholders
-      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-        const key = el.getAttribute("data-i18n-placeholder");
-        if (dict[key]) {
-          el.placeholder = dict[key];
-        }
-      });
-
-      // Title
-      if (lang === "es") {
-        document.title = "GeoVision – Plataforma de inteligencia de campo";
-      } else if (lang === "pt") {
-        document.title = "GeoVision – Plataforma de inteligência de campo";
-      } else {
-        document.title = "GeoVision – Field Intelligence Platform";
-      }
-
-      // Year
-      const yearSpan = document.getElementById("year");
-      if (yearSpan) yearSpan.textContent = new Date().getFullYear();
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const menuBtn = document.querySelector(".menu-toggle");
-      const navLinks = document.querySelector(".nav-links");
-      const langSelect = document.getElementById("lang-select");
-      const form = document.getElementById("contact-form");
-      const success = document.getElementById("form-success");
-
-      // Idioma inicial
-      setLanguage("en");
-
-      // Mobile menu
-      if (menuBtn && navLinks) {
-        menuBtn.addEventListener("click", () => {
-          navLinks.classList.toggle("show");
-        });
-
-        navLinks.querySelectorAll("a").forEach(link => {
-          link.addEventListener("click", () => {
-            navLinks.classList.remove("show");
-          });
-        });
-      }
-
-      // Troca de idioma
-      if (langSelect) {
-        langSelect.addEventListener("change", (e) => {
-          setLanguage(e.target.value);
-        });
-      }
-
-      // Submissão fake do formulário
-      if (form && success) {
-        form.addEventListener("submit", (e) => {
-          e.preventDefault();
-          success.style.display = "block";
-          setTimeout(() => {
-            success.style.display = "none";
-            form.reset();
-          }, 2500);
-        });
-      }
-    });
-  </script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>

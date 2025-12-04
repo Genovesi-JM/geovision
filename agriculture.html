@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoVision – Agricultura Inteligente</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="GeoVision Agricultura – NDVI, sensores de solo, drones de pulverização e semeadura aérea para reduzir perdas e aumentar a produtividade em Angola."
+  />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+
+<body>
+  <!-- TOPO -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="assets/geovision-logo.png" alt="GeoVision logo" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GEOVISION</div>
+        <div class="brand-sub">Inteligência de Campo para Angola</div>
+      </div>
+    </div>
+
+    <nav class="nav-links" id="main-nav">
+      <a href="index.html">Início</a>
+      <a href="angola.html">Angola</a>
+      <a href="agriculture.html">Agricultura</a>
+      <a href="livestock.html">Pecuária</a>
+      <a href="mining.html">Mineração</a>
+      <a href="demining.html">Desminagem</a>
+      <a href="economics.html">Economia</a>
+      <a href="about.html">Sobre</a>
+    </nav>
+
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">
+      ☰
+    </button>
+  </header>
+
+  <main class="page">
+    <!-- HERO AGRICULTURA -->
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-pill">
+          <div class="hero-pill-dot"></div>
+          NDVI · Rega inteligente · NPK · Drones Agras
+        </div>
+
+        <h1 class="hero-title">
+          Agricultura inteligente em Angola,
+          <span>com drones, sensores e semeadura aérea.</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          A GeoVision aplica drones multiespectrais, sensores de solo, drones de pulverização e semeadura aérea para
+          reduzir perdas, optimizar insumos e aumentar a produtividade de fazendas e cooperativas.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#problemas" class="btn btn-primary">Ver desafios da agricultura →</a>
+          <a href="#servicos" class="btn btn-ghost">Ver serviços GeoVision</a>
+        </div>
+
+        <p class="hero-meta">
+          Focada em <strong>NDVI, humidade, NPK, pulverização de precisão e semeadura aérea</strong> para transformar
+          dados em decisões práticas no campo.
+        </p>
+      </div>
+
+      <!-- CARD LATERAL AGRI -->
+      <aside class="hero-map-card">
+        <div class="hero-map-header">
+          <div class="hero-map-title">GeoVision – Cluster agrícola (demo)</div>
+          <div class="hero-map-badge">Huíla · Fazendas piloto</div>
+        </div>
+
+        <div class="hero-map-viewport">
+          <div class="map-grid"></div>
+
+          <div class="map-panel">
+            <div class="map-panel-header">
+              <div>
+                <div class="map-panel-label">Visão de campo</div>
+                <div class="map-panel-title">NDVI · Humidade · NPK</div>
+              </div>
+              <div class="map-panel-status">
+                <span class="status-dot"></span>
+                <span>Actualização simulada</span>
+              </div>
+            </div>
+
+            <div class="map-chip-row">
+              <span class="map-chip">Stress hídrico</span>
+              <span class="map-chip">Deficiências nutricionais</span>
+              <span class="map-chip">Zonas de praga</span>
+              <span class="map-chip">Linhas de pulverização</span>
+            </div>
+
+            <div class="map-metrics-row">
+              <div>
+                <div class="map-metric-label">Hectares em monitorização</div>
+                <div class="map-metric-value">1 280 ha</div>
+                <div class="map-metric-badge">NDVI actualizado</div>
+                <div class="map-metric-bar"></div>
+              </div>
+              <div>
+                <div class="map-metric-label">Poupança de água</div>
+                <div class="map-metric-value">32%</div>
+                <div class="map-metric-badge">Rega por dados de humidade</div>
+                <div class="map-metric-bar"></div>
+              </div>
+              <div>
+                <div class="map-metric-label">Redução de químicos</div>
+                <div class="map-metric-value">24%</div>
+                <div class="map-metric-badge">Pulverização de precisão</div>
+                <div class="map-metric-bar"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="map-caption">
+            <span>
+              <span class="map-legend-dot"></span>
+              Mapas multiespectrais e sensores de solo
+            </span>
+            <span>
+              <span class="map-legend-dot amber"></span>
+              Zonas críticas para intervenção imediata
+            </span>
+          </div>
+        </div>
+
+        <div class="hero-real-image">
+          <img src="assets/geovision-field.jpg" alt="Exemplo de campo agrícola GeoVision" />
+        </div>
+        <p class="media-caption">
+          Substitui <code>assets/geovision-field.jpg</code> por uma imagem real de NDVI ou voo de drone numa fazenda.
+        </p>
+      </aside>
+    </section>
+
+    <!-- PROBLEMAS NA AGRICULTURA -->
+    <section id="problemas" class="section">
+      <div class="section-header">
+        <div class="eyebrow">DESAFIOS</div>
+        <h2 class="section-title">Principais problemas na agricultura em Angola.</h2>
+        <p class="section-subtitle">
+          Fazendas e cooperativas ainda trabalham sem dados de NDVI, humidade ou NPK em tempo real, o que resulta em
+          perdas desnecessárias de produtividade, recursos e tempo.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Falta de visibilidade sobre o vigor da cultura</h3>
+          <p class="feature-text">
+            Sem mapas NDVI, problemas de stress hídrico, doenças ou défice nutricional são vistos apenas quando já
+            causaram perda de rendimento.
+          </p>
+          <div class="feature-tag">Perdas de 20–40% são comuns</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Rega sem dados de humidade real</h3>
+          <p class="feature-text">
+            A rega é feita por rotina ou percepção, sem saber se o solo realmente precisa de água, gerando desperdício e
+            stress nas raízes.
+          </p>
+          <div class="feature-tag">Até 30–50% de água desperdiçada</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Uso excessivo de fertilizante e químicos</h3>
+          <p class="feature-text">
+            Sem monitorizar NPK, pH e salinidade, aplica-se mais fertilizante do que o necessário, aumentando custos e
+            degradando o solo.
+          </p>
+          <div class="feature-tag">Mais custo, menos sustentabilidade</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- SOLUÇÃO GEOVISION NA AGRICULTURA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">SOLUÇÃO</div>
+        <h2 class="section-title">Como o GeoVision responde a estes desafios.</h2>
+        <p class="section-subtitle">
+          Em vez de decisões baseadas em intuição, a fazenda passa a operar com camadas de mapas, sensores e rotinas de
+          drone ligadas a um painel simples de interpretar.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Mapeamento NDVI & multiespectral</h3>
+          <p class="feature-text">
+            Drones multiespectrais geram mapas de vigor que destacam zonas de stress antes de serem visíveis, permitindo
+            agir mais cedo.
+          </p>
+          <div class="feature-tag">Detecção antecipada de problemas</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Sensores de humidade e NPK no solo</h3>
+          <p class="feature-text">
+            Estacas e sondas IoT medem humidade, NPK, pH, salinidade e temperatura em pontos estratégicos do campo,
+            enviando dados continuamente.
+          </p>
+          <div class="feature-tag">Rega e fertilização por dados reais</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Drones de pulverização (DJI Agras)</h3>
+          <p class="feature-text">
+            Pulverização de precisão, aplicando químicos apenas nas zonas necessárias com doses controladas, reduzindo
+            consumo e exposição humana.
+          </p>
+          <div class="feature-tag">Menos químicos, mais segurança</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- SERVIÇOS GEO VISION NA AGRICULTURA (inclui semeadura) -->
+    <section id="servicos" class="section">
+      <div class="section-header">
+        <div class="eyebrow">SERVIÇOS</div>
+        <h2 class="section-title">Pacotes GeoVision para agricultura.</h2>
+        <p class="section-subtitle">
+          Uma combinação de monitorização contínua, campanhas de drone e apoio à decisão técnico–económica para fazendas
+          de diferentes escalas.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Monitorização NDVI mensal</h3>
+          <p class="feature-text">
+            Voo mensal com drone multiespectral, geração de mapas NDVI/NDRE e relatório simples com zonas de risco,
+            recomendando prioridades no campo.
+          </p>
+          <div class="feature-tag">Ideal para planeamento de safra</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Pacote solo + rega inteligente</h3>
+          <p class="feature-text">
+            Instalação de sensores em pontos críticos da fazenda para medir humidade e NPK, com regras básicas de
+            alerta e apoio à rega.
+          </p>
+          <div class="feature-tag">Redução de consumo de água</div>
+        </article>
+
+        <!-- Serviço de semeadura aérea -->
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Semeadura aérea com drones (sementes e plantas)</h3>
+          <p class="feature-text">
+            Utilização de drones (como DJI Agras) equipados com kits de sementeira para distribuir sementes ou pequenas
+            plantas de forma uniforme em áreas difíceis de alcançar por máquinas terrestres.
+          </p>
+          <p class="feature-text">
+            Ideal para renovação de pastagens, recuperação de talhões degradados, plantio de coberturas verdes e
+            experiências piloto de culturas com maior valor acrescentado.
+          </p>
+          <div class="feature-tag">Cobertura rápida · Menos compactação do solo</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Pulverização de precisão sob encomenda</h3>
+          <p class="feature-text">
+            Campanhas específicas de pulverização ou fertilização, com base em mapas NDVI e dados de solo, reduzindo
+            aplicação em áreas que não precisam de tratamento.
+          </p>
+          <div class="feature-tag">Aplicação direccionada · Menos desperdício</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">Relatórios económicos da fazenda</h3>
+          <p class="feature-text">
+            Consolidação dos dados de monitorização em relatórios simples, mostrando impacto em custos de água,
+            fertilizante e produtividade estimada.
+          </p>
+          <div class="feature-tag">Conversa directa com o gestor financeiro</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- SENSORES NA AGRICULTURA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">SENSORES</div>
+        <h2 class="section-title">Como os sensores IoT suportam as decisões no campo.</h2>
+        <p class="section-subtitle">
+          Em vez de depender apenas da observação visual, decisões sobre rega e fertilização passam a considerar
+          leituras reais do solo, actualizadas ao longo do dia.
+        </p>
+      </div>
+
+      <img
+        src="assets/geovision-sensors.png"
+        alt="Sensores GeoVision em campo agrícola"
+        class="media-image sensors"
+      />
+      <p class="media-caption">
+        A imagem acima pode representar estacas de humidade, sensores de NPK ou estações compactas ao lado de pivôs e
+        linhas de rega.
+      </p>
+    </section>
+
+    <!-- FLUXO DE TRABALHO -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">FLUXO</div>
+        <h2 class="section-title">Fluxo típico de uma campanha GeoVision numa fazenda.</h2>
+        <p class="section-subtitle">
+          Um ciclo simples e repetível, que pode ser ajustado à realidade de cada cliente – desde pequenos produtores a
+          grandes fazendas comerciais.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">1. Levantamento inicial</h3>
+          <p class="feature-text">
+            Visita técnica ou reunião remota para entender a fazenda, principais culturas, problemas actuais e metas de
+            produtividade.
+          </p>
+          <div class="feature-tag">Diagnóstico rápido</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">2. Planeamento de voos e sensores</h3>
+          <p class="feature-text">
+            Desenho de rotas de drone, definição de áreas de interesse e pontos ideais para instalação de sensores de
+            solo e água.
+          </p>
+          <div class="feature-tag">Cobertura completa da área</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">3. Captura de dados & mapas</h3>
+          <p class="feature-text">
+            Execução dos voos, recolha de imagens multiespectrais e sincronização das leituras dos sensores com a nuvem
+            ou servidor local.
+          </p>
+          <div class="feature-tag">Dados brutos convertidos em camadas</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">4. Análise e recomendações</h3>
+          <p class="feature-text">
+            Geração de mapas NDVI, relatórios simples e recomendações práticas: onde regar mais, onde ajustar dose de
+            fertilizante, onde concentrar pulverização.
+          </p>
+          <div class="feature-tag">Insights accionáveis</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">5. Semeadura/pulverização com drones</h3>
+          <p class="feature-text">
+            Se necessário, realização de campanha de semeadura aérea ou pulverização, directamente conectada aos mapas
+            e prioridades definidos na análise.
+          </p>
+          <div class="feature-tag">Operação fechando o ciclo</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- CALL TO ACTION -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PRÓXIMO PASSO</div>
+        <h2 class="section-title">Simular o modelo numa fazenda real.</h2>
+        <p class="section-subtitle">
+          A página de agricultura do GeoVision é uma maquete conceptual. Numa implementação real, estes módulos seriam
+          adaptados ao tamanho, cultura e orçamento de cada fazenda.
+        </p>
+      </div>
+
+      <div class="cta-inner">
+        <div>
+          <h3 class="cta-title">Da teoria para o talhão.</h3>
+          <p class="cta-text">
+            Podes usar este site como base para explicar a professores, parceiros ou clientes como funcionaria uma
+            solução de agricultura de precisão com drones, sensores e semeadura aérea em Angola.
+          </p>
+        </div>
+
+        <form class="cta-form" onsubmit="event.preventDefault(); document.querySelector('.form-success').style.display='block';">
+          <div class="form-row">
+            <label for="farm-name">Nome da fazenda ou projecto</label>
+            <input id="farm-name" type="text" placeholder="Ex.: Fazenda piloto Huíla" />
+          </div>
+          <div class="form-row">
+            <label for="hectares">Área aproximada (ha)</label>
+            <input id="hectares" type="number" placeholder="Ex.: 150" />
+          </div>
+          <div class="form-row">
+            <label for="crops">Culturas principais</label>
+            <input id="crops" type="text" placeholder="Ex.: milho, soja, pastagem" />
+          </div>
+          <button type="submit" class="btn btn-primary">Simular proposta (demo) →</button>
+          <p class="form-success">Simulação enviada (apenas para fins de demonstração).</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    © <span id="year"></span> GeoVision · Inteligência de Campo para Angola.
+  </footer>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
