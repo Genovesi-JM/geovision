@@ -1,21 +1,23 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>GeoVision – Inteligência de Campo para Angola</title>
+  <title>GeoVision - Inteligência de Campo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
     name="description"
-    content="GeoVision é um conceito de plataforma de inteligência de campo para Angola, usando drones, LiDAR, sensores IoT e IA para agricultura, pecuária, mineração e desminagem."
+    content="GeoVision - Drones, sensores e mapas inteligentes para agricultura, pecuária, mineração, construção e infraestruturas em Angola."
   />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/chatbot.css">
+
 </head>
 
 <body>
-  <!-- TOPO -->
+  <!-- TOPBAR -->
   <header class="topbar">
     <div class="topbar-left">
-      <img src="assets/geovision-logo.png" alt="GeoVision logo" class="logo-img" />
+      <img src="assets/geovision-logo.png" alt="GeoVision" class="logo-img" />
       <div class="brand">
         <div class="brand-name">GEOVISION</div>
         <div class="brand-sub">Inteligência de Campo para Angola</div>
@@ -23,355 +25,346 @@
     </div>
 
     <nav class="nav-links" id="main-nav">
-      <a href="index.html">Início</a>
-      <a href="angola.html">Angola</a>
+      <a href="index.html" class="active">Início</a>
       <a href="agriculture.html">Agricultura</a>
       <a href="livestock.html">Pecuária</a>
       <a href="mining.html">Mineração</a>
       <a href="demining.html">Desminagem</a>
-      <a href="economics.html">Economia</a>
-      <a href="about.html">Sobre</a>
+      <a href="construction.html">Construção</a>
+      <a href="infrastructure.html">Infraestruturas</a>
     </nav>
 
-    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">
-      ☰
-    </button>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
   </header>
 
   <main class="page">
     <!-- HERO -->
-    <section id="home" class="hero">
+    <section class="hero">
       <div class="hero-main">
         <div class="hero-pill">
           <div class="hero-pill-dot"></div>
-          Angola · Drones · LiDAR · IoT
+          <span class="hero-pill-text">Drones · Sensores · Mapas inteligentes</span>
         </div>
 
         <h1 class="hero-title">
-          Inteligência de campo para
-          <span>agricultura, mineração, pecuária e desminagem.</span>
+          Uma camada de inteligência por cima de fazendas,
+          <span>rebanhos, minas e obras em Angola.</span>
         </h1>
 
         <p class="hero-subtitle">
-          GeoVision é um conceito de plataforma que integra drones, LiDAR, imagem multiespectral, sensores de solo e
-          água e IA para apoiar decisões operacionais em Angola – do campo agrícola às minas e zonas de perigo.
+          GeoVision é uma plataforma conceito que junta dados de drones, sensores e satélite
+          para ajudar produtores, operadores e governos a decidir com base em evidências.
         </p>
 
         <div class="hero-actions">
-          <a href="angola.html" class="btn btn-primary">Ver contexto de Angola →</a>
-          <a href="#modules" class="btn btn-ghost">Ver módulos GeoVision</a>
+          <a href="#sectores" class="btn btn-primary">Ver módulos</a>
+          <a href="#angola" class="btn btn-ghost">Contexto Angola</a>
         </div>
 
         <p class="hero-meta">
-          Desenhado para <strong>fazendas, cooperativas, rebanhos, minas e equipas de desminagem</strong>, com decisões
-          baseadas em dados em vez de adivinhação.
+          Uma plataforma pensada para cooperativas, fazendas, minas, construtoras e gestores de infraestruturas.
         </p>
       </div>
 
-      <!-- HERO DASHBOARD + MAPA -->
+      <!-- CARTÃO MAPA DEMO -->
       <aside class="hero-map-card">
-        <div class="hero-map-header">
-          <div class="hero-map-title">GeoVision – Vista em clusters de Angola</div>
-          <div class="hero-map-badge">Demo · Painel do site</div>
-        </div>
+        <header class="hero-map-header">
+          <div class="hero-map-label">Mapa demo GeoVision</div>
+          <div class="hero-map-value" data-map-title>Huila - NDVI - Risco</div>
+        </header>
 
-        <!-- Tabs de sector -->
-        <div class="hero-map-tabs">
-          <button class="hero-map-tab active" data-sector="agri">Agricultura</button>
-          <button class="hero-map-tab" data-sector="livestock">Pecuária</button>
-          <button class="hero-map-tab" data-sector="mining">Mineração</button>
-          <button class="hero-map-tab" data-sector="demining">Desminagem</button>
-        </div>
-
-        <!-- Painel animado -->
-        <div class="hero-map-viewport">
-          <div class="map-grid"></div>
-
-          <div class="map-panel">
-            <div class="map-panel-header">
-              <div>
-                <div class="map-panel-label">Visão de campo em tempo real</div>
-                <div class="map-panel-title" data-panel-title>Huíla · Agricultura de precisão</div>
-              </div>
-              <div class="map-panel-status">
-                <span class="status-dot"></span>
-                <span>A receber dados de demonstração</span>
-              </div>
-            </div>
-
-            <div class="map-chip-row">
-              <span class="map-chip">NDVI / NDRE</span>
-              <span class="map-chip">Sensores de solo</span>
-              <span class="map-chip">LIDAR</span>
-              <span class="map-chip">Zonas de risco</span>
-            </div>
-
-            <div class="map-metrics-row">
-              <div>
-                <div class="map-metric-label" data-m1-label>Hectares monitorizados</div>
-                <div class="map-metric-value" data-m1-value>2 450 ha</div>
-                <div class="map-metric-badge" data-m1-badge>NDVI actualizado</div>
-                <div class="map-metric-bar"></div>
-              </div>
-              <div>
-                <div class="map-metric-label" data-m2-label>Poupança de água</div>
-                <div class="map-metric-value" data-m2-value>38%</div>
-                <div class="map-metric-badge" data-m2-badge>Rega inteligente</div>
-                <div class="map-metric-bar"></div>
-              </div>
-              <div>
-                <div class="map-metric-label" data-m3-label>Optimização de insumos</div>
-                <div class="map-metric-value" data-m3-value>22%</div>
-                <div class="map-metric-badge" data-m3-badge>Menos fertilizante</div>
-                <div class="map-metric-bar"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="map-caption">
-            <span>
-              <span class="map-legend-dot"></span>
-              Drones, sensores e IA a alimentar o GeoVision
-            </span>
-            <span>
-              <span class="map-legend-dot amber"></span>
-              Zonas suspeitas e de perigo destacadas
-            </span>
+        <div class="hero-map-image">
+          <div class="hero-map-preview" data-theme="agri">
+            <span class="hero-map-pill" data-map-badge>Agricultura de precisão</span>
+            <div class="hero-map-fake"></div>
           </div>
         </div>
 
-        <!-- Imagem real -->
-        <div class="hero-real-image">
-          <img src="assets/geovision-map.jpg" alt="Exemplo de mapa GeoVision" />
-        </div>
-        <p class="media-caption">
-          Substitui <code>assets/geovision-map.jpg</code> por um mapa ou screenshot real do teu projecto.
-        </p>
+        <footer class="hero-map-footer">
+          <div class="map-tabs">
+            <button
+              class="map-tab active"
+              data-title="Huila - NDVI - Risco"
+              data-badge="Agricultura de precisão"
+              data-theme="agri">
+              Agricultura
+            </button>
+
+            <button
+              class="map-tab"
+              data-title="Huambo - Rebanho"
+              data-badge="Pecuária conectada"
+              data-theme="livestock">
+              Pecuária
+            </button>
+
+            <button
+              class="map-tab"
+              data-title="Lunda Sul - Mina"
+              data-badge="Mineração segura"
+              data-theme="mining">
+              Mineração
+            </button>
+
+            <button
+              class="map-tab"
+              data-title="Zona de risco - Desminagem"
+              data-badge="Operações de desminagem"
+              data-theme="demining">
+              Desminagem
+            </button>
+
+            <button
+              class="map-tab"
+              data-title="Luanda - Obras"
+              data-badge="Construção monitorizada"
+              data-theme="construction">
+              Construção
+            </button>
+
+            <button
+              class="map-tab"
+              data-title="Corredor rodoviário"
+              data-badge="Infraestruturas críticas"
+              data-theme="infra">
+              Infraestruturas
+            </button>
+          </div>
+        </footer>
       </aside>
     </section>
 
-    <!-- MÓDULOS GEOVISION -->
-    <section id="modules" class="section">
+    <!-- SECTORES -->
+    <section class="section" id="sectores">
       <div class="section-header">
-        <div class="eyebrow">MÓDULOS</div>
-        <h2 class="section-title">GeoVision na prática.</h2>
+        <div class="eyebrow">SECTORES</div>
+        <h2 class="section-title">Onde o GeoVision gera maior impacto.</h2>
         <p class="section-subtitle">
-          Da captura ao insight: drones multiespectrais, drones de pulverização, sensores IoT, inteligência pecuária,
-          LIDAR mineiro e análise para desminagem.
+          Uma plataforma unificada para monitorização, análise e decisão — adaptada aos sectores chave de Angola.
+        </p>
+      </div>
+
+      <div class="sectors-grid">
+        <!-- AGRICULTURA -->
+        <a href="agriculture.html" class="sector-card">
+          <div class="sector-icon">🌱</div>
+          <h3>Agricultura de precisão</h3>
+          <p>NDVI, sensores de solo e drones para melhorar produtividade e reduzir perdas.</p>
+          <div class="sector-arrow">Ver módulo →</div>
+        </a>
+
+        <!-- PECUÁRIA -->
+        <a href="livestock.html" class="sector-card">
+          <div class="sector-icon">🐄</div>
+          <h3>Pecuária conectada</h3>
+          <p>Drones térmicos, GPS e mapas de pastagem para monitorização inteligente do rebanho.</p>
+          <div class="sector-arrow">Ver módulo →</div>
+        </a>
+
+        <!-- MINERAÇÃO -->
+        <a href="mining.html" class="sector-card">
+          <div class="sector-icon">⛏️</div>
+          <h3>Mineração</h3>
+          <p>Modelos 3D, volumes, taludes e inteligência visual para operações complexas.</p>
+          <div class="sector-arrow">Ver módulo →</div>
+        </a>
+
+        <!-- DESMINAGEM -->
+        <a href="demining.html" class="sector-card">
+          <div class="sector-icon">🧭</div>
+          <h3>Desminagem</h3>
+          <p>Mapas aéreos de alta precisão para apoiar operações de desminagem humanitária.</p>
+          <div class="sector-arrow">Ver módulo →</div>
+        </a>
+
+        <!-- CONSTRUÇÃO -->
+        <a href="construction.html" class="sector-card">
+          <div class="sector-icon">🏗️</div>
+          <h3>Construção</h3>
+          <p>Topografia rápida, fiscalização visual e volumetria de obra.</p>
+          <div class="sector-arrow">Ver módulo →</div>
+        </a>
+
+        <!-- INFRAESTRUTURAS -->
+        <a href="infrastructure.html" class="sector-card">
+          <div class="sector-icon">🛰️</div>
+          <h3>Infraestruturas</h3>
+          <p>Estradas, barragens e drenagem com monitorização por drone e análise.</p>
+          <div class="sector-arrow">Ver módulo →</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ANGOLA -->
+    <section class="section" id="angola">
+      <div class="section-header">
+        <div class="eyebrow">ANGOLA</div>
+        <h2 class="section-title">Recursos grandes, pouca monitorização.</h2>
+        <p class="section-subtitle">
+          Milhões de hectares agrícolas, rebanhos e minas relevantes — mas com poucos dados de terreno.
         </p>
       </div>
 
       <div class="feature-grid">
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title">Mapeamento multiespectral & NDVI</h3>
+          <h3 class="feature-title">Agricultura</h3>
           <p class="feature-text">
-            Drones com câmaras multiespectrais detectam stress, doenças e défices de nutrientes <strong>antes</strong>
-            de serem visíveis a olho nu.
+            Sem NDVI e sensores, pragas e stress hídrico são vistos tarde demais.
           </p>
-          <div class="feature-tag">Fazendas · Cooperativas · Agro-indústria</div>
+          <div class="feature-tag">Perdas evitáveis</div>
         </article>
 
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title">Pulverização e fertilização com DJI Agras</h3>
+          <h3 class="feature-title">Pecuária</h3>
           <p class="feature-text">
-            Drones Agras aplicam fertilizante, sementes e químicos exactamente onde é necessário, reduzindo água,
-            químicos e mão de obra.
+            Falta de mapeamento de pasto, pontos de água e GPS aumenta perdas e riscos.
           </p>
-          <div class="feature-tag">Optimização de insumos</div>
+          <div class="feature-tag">Rebanho vulnerável</div>
         </article>
 
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title">Sensores de solo & água (IoT)</h3>
+          <h3 class="feature-title">Mineração & Obras</h3>
           <p class="feature-text">
-            Sensores medem humidade, NPK, pH, salinidade e temperatura, alimentando a lógica de rega e planos de
-            fertilização em tempo real.
+            Taludes, volumes e progresso de obra sem leitura frequente geram decisões cegas.
           </p>
-          <div class="feature-tag">Rega inteligente</div>
+          <div class="feature-tag">Risco técnico</div>
         </article>
 
         <article class="feature-card">
           <div class="feature-icon"></div>
-          <h3 class="feature-title">Inteligência pecuária</h3>
+          <h3 class="feature-title">Infraestruturas</h3>
           <p class="feature-text">
-            Drones, colares GPS e câmaras térmicas reduzem perdas por seca, doenças e roubo, acompanhando o rebanho e
-            qualidade das pastagens.
+            Estradas, barragens e drenagem precisam de dados para manutenção e planeamento.
           </p>
-          <div class="feature-tag">Protecção de rebanhos</div>
-        </article>
-
-        <article class="feature-card">
-          <div class="feature-icon"></div>
-          <h3 class="feature-title">Mineração & LIDAR</h3>
-          <p class="feature-text">
-            Levantamentos LIDAR e modelos 3D suportam volumetria, estabilidade de taludes, planeamento de cava e
-            monitorização de barragens de rejeitos.
-          </p>
-          <div class="feature-tag">Catoca e outros sites</div>
-        </article>
-
-        <article class="feature-card">
-          <div class="feature-icon"></div>
-          <h3 class="feature-title">Desminagem & zonas de perigo</h3>
-          <p class="feature-text">
-            Drones e análise ajudam a identificar padrões suspeitos, mapear acessos e apoiar equipas em zonas de alto
-            risco humanitário.
-          </p>
-          <div class="feature-tag">Impacto humanitário</div>
+          <div class="feature-tag">Investimento protegido</div>
         </article>
       </div>
     </section>
 
-    <!-- DASHBOARD DE ESTATÍSTICAS -->
-    <section class="section dashboard-section">
+    <!-- VÍDEOS -->
+    <section class="section" id="videos">
       <div class="section-header">
-        <div class="eyebrow">PAINEL</div>
-        <h2 class="section-title">Indicadores em tempo real (demo).</h2>
+        <div class="eyebrow">VÍDEOS</div>
+        <h2 class="section-title">Demonstrações & explicações</h2>
         <p class="section-subtitle">
-          Valores apenas ilustrativos para mostrar como um painel GeoVision poderia actualizar em operação real.
+          Exemplos visuais de agricultura de precisão, mineração e construção — reproduzidos aqui na página.
         </p>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Fazendas monitorizadas</div>
-          <div class="stat-value" data-stat-farms>0</div>
-          <div class="stat-note">Clientes activos com NDVI e sensores.</div>
+      <div class="video-grid">
+        <!-- VIDEO 1 -->
+        <div class="video-card">
+          <div class="video-thumb-container video-thumb-agri" data-video-id="FtVhZ8vJgS4">
+            <div class="video-fake-layer"></div>
+            <div class="video-label">NDVI & stress hídrico</div>
+            <div class="video-play-icon">▶</div>
+          </div>
+          <h3 class="video-title">Agricultura – NDVI & stress hídrico</h3>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-label">Cabeças de gado em monitorização</div>
-          <div class="stat-value" data-stat-cattle>0</div>
-          <div class="stat-note">Rebanho com GPS, térmico e pastagem mapeada.</div>
+        <!-- VIDEO 2 -->
+        <div class="video-card">
+          <div class="video-thumb-container video-thumb-mining" data-video-id="46pHBxKyY48">
+            <div class="video-fake-layer"></div>
+            <div class="video-label">Modelos 3D & taludes</div>
+            <div class="video-play-icon">▶</div>
+          </div>
+          <h3 class="video-title">Mineração – Modelos 3D</h3>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-label">Zonas mineiras</div>
-          <div class="stat-value" data-stat-mines>0</div>
-          <div class="stat-note">Campanhas LIDAR e monitorização de barragens.</div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-label">Alertas activos</div>
-          <div class="stat-value" data-stat-alerts>0</div>
-          <div class="stat-note">Alertas de risco operacional e zonas de perigo.</div>
+        <!-- VIDEO 3 -->
+        <div class="video-card">
+          <div class="video-thumb-container video-thumb-construction" data-video-id="6IykYDLBs6c">
+            <div class="video-fake-layer"></div>
+            <div class="video-label">Acompanhamento de obras</div>
+            <div class="video-play-icon">▶</div>
+          </div>
+          <h3 class="video-title">Construção – Acompanhamento de obras</h3>
         </div>
       </div>
+      <div id="video-modal" class="video-modal">
+  <div class="video-modal-backdrop"></div>
+
+  <div class="video-modal-dialog">
+    <button class="video-modal-close" aria-label="Fechar vídeo">×</button>
+    <div class="video-modal-inner">
+      <div class="video-modal-content"></div>
+    </div>
+  </div>
+</div>
+
     </section>
 
-    <!-- SIMULAÇÃO DE MAPA (LINHA + PULSOS) -->
-    <section class="section">
+    <!-- CTA / DEMO -->
+    <section class="section" id="cta">
       <div class="section-header">
-        <div class="eyebrow">MAPA AO VIVO</div>
-        <h2 class="section-title">Simulação de sinais GeoVision.</h2>
+        <div class="eyebrow">DEMO</div>
+        <h2 class="section-title">Registar um interesse (demo).</h2>
         <p class="section-subtitle">
-          Uma animação simples para representar sinais a chegar de diferentes pontos do território para o painel
-          central.
-        </p>
-      </div>
-
-      <div class="map-simulation">
-        <div class="line"></div>
-        <div class="pulse p1"></div>
-        <div class="pulse p2"></div>
-        <div class="pulse p3"></div>
-      </div>
-
-      <p class="media-caption">
-        Cada ponto representa um cluster de sensores, drones ou relatórios de campo a actualizar o sistema.
-      </p>
-    </section>
-
-    <!-- SENSORES -->
-    <section class="section">
-      <div class="section-header">
-        <div class="eyebrow">SENSORES</div>
-        <h2 class="section-title">Inteligência de solo e água.</h2>
-        <p class="section-subtitle">
-          Sensores de solo e água medem humidade, NPK, pH, salinidade e temperatura para optimizar rega e fertilização.
-        </p>
-      </div>
-
-      <img
-        src="assets/geovision-sensors.png"
-        alt="Sensores GeoVision"
-        class="media-image sensors"
-      />
-      <p class="media-caption">
-        Substitui <code>assets/geovision-sensors.png</code> por uma fotografia real da tua instalação de sensores.
-      </p>
-    </section>
-
-    <!-- VÍDEO DEMO -->
-    <section class="section">
-      <div class="section-header">
-        <div class="eyebrow">VÍDEO DEMO</div>
-        <h2 class="section-title">Fluxo operacional GeoVision.</h2>
-        <p class="section-subtitle">
-          Breve demonstração de voo de drone, geração de mapas NDVI e integração com sensores de solo.
-        </p>
-      </div>
-
-      <div class="media-video-wrapper">
-        <iframe
-          src="https://www.youtube.com/embed/T_6c5sGQGIQ"
-          title="GeoVision demo"
-          allowfullscreen
-        ></iframe>
-      </div>
-
-      <p class="media-caption">
-        Substitui o ID do vídeo no link por um vídeo real do projecto.
-      </p>
-    </section>
-
-    <!-- CONTACTO -->
-    <section id="contact" class="section">
-      <div class="section-header">
-        <div class="eyebrow">CONTACTO</div>
-        <h2 class="section-title">Fala connosco.</h2>
-        <p class="section-subtitle">
-          Este site é um conceito. Se quiseres transformar em projecto real, podes usar este espaço para contactos,
-          parcerias ou demonstrações.
+          Este formulário cria um registo de interesse no painel interno, útil para demonstrar o conceito.
         </p>
       </div>
 
       <div class="cta-inner">
         <div>
-          <h3 class="cta-title">Explorar GeoVision em Angola.</h3>
+          <h3 class="cta-title">Escolher sector e região</h3>
           <p class="cta-text">
-            A ideia é combinar tecnologia validada internacionalmente com uma implementação adaptada à realidade
-            angolana – agricultura, pecuária, mineração e desminagem.
+            Não é um contacto comercial real — serve para encher o painel e testar o fluxo GeoVision.
           </p>
         </div>
 
-        <form class="cta-form" onsubmit="event.preventDefault(); document.querySelector('.form-success').style.display='block';">
+        <form class="cta-form" id="contact-form">
           <div class="form-row">
-            <label for="name">Nome</label>
-            <input id="name" type="text" placeholder="O teu nome" />
+            <label for="sector">Sector</label>
+            <input id="sector" type="text" placeholder="Agricultura, pecuária, mineração..." />
           </div>
+
           <div class="form-row">
-            <label for="email">Email</label>
-            <input id="email" type="email" placeholder="nome@exemplo.com" />
+            <label for="regiao">Região</label>
+            <input id="regiao" type="text" placeholder="Ex.: Huila, Huambo, Lunda Sul..." />
           </div>
-          <div class="form-row">
-            <label for="message">Mensagem</label>
-            <textarea id="message" placeholder="Escreve a tua mensagem"></textarea>
-            <p class="form-hint">Este formulário é apenas ilustrativo.</p>
-          </div>
-          <button type="submit" class="btn btn-primary">Enviar mensagem →</button>
-          <p class="form-success">Mensagem enviada (simulação).</p>
+
+          <button type="submit" class="btn btn-primary">Enviar (demo)</button>
+          <p class="form-success">Interesse registado (simulação).</p>
         </form>
       </div>
     </section>
   </main>
 
   <footer class="footer">
-    © <span id="year"></span> GeoVision · Inteligência de Campo para Angola.
+    GeoVision - Inteligência de Campo para Angola. <span id="year"></span>
   </footer>
 
+  <!-- MODAL DE VÍDEO -->
+  <div id="video-modal" class="video-modal">
+    <div class="video-modal-backdrop"></div>
+
+    <div class="video-modal-dialog">
+      <button class="video-modal-close" aria-label="Fechar vídeo">×</button>
+      <div class="video-modal-inner">
+        <div class="video-modal-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/chatbot.css">
+
+<script>
+  window.GV_CHAT_API_BASE = "http://127.0.0.1:8090";
+</script>
+<script src="assets/js/chatbot.js"></script>
+
+  <!-- JS -->
   <script src="assets/js/app.js"></script>
+  <script>
+    window.GV_CHAT_API_BASE = "http://127.0.0.1:8090";
+</script>
+
+  <script src="assets/js/chatbot.js"></script>
 </body>
 </html>
+

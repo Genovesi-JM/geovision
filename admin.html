@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoVision - Painel Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Painel admin GeoVision: gerir projectos e simulacoes via API backend." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="assets/geovision-logo.png" alt="GeoVision" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GEOVISION</div>
+        <div class="brand-sub">Painel Admin</div>
+      </div>
+    </div>
+
+    <nav class="nav-links" id="main-nav">
+      <a href="index.html">Inicio</a>
+      <a href="admin.html" class="active">Painel</a>
+    </nav>
+
+    <button id="logout-btn" class="btn btn-ghost" style="margin-left: 1rem;">Sair</button>
+  </header>
+
+  <main class="page">
+    <!-- TABELA DE PROJECTOS -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PAINEL</div>
+        <h2 class="section-title">Projectos registados</h2>
+        <p class="section-subtitle">Dados vindos da API FastAPI (/projects).</p>
+      </div>
+
+      <div id="projects-container" class="projects-table-container">
+        <p style="color: var(--text-muted);">A carregar projectos…</p>
+      </div>
+    </section>
+
+    <!-- CRIAR PROJECTO -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">ACCAO</div>
+        <h2 class="section-title">Criar projecto manualmente</h2>
+        <p class="section-subtitle">Envia um projecto de teste directamente para o backend.</p>
+      </div>
+
+      <form id="new-project-form" class="cta-inner" style="max-width: 540px;">
+        <div class="form-row">
+          <label>Tipo de projecto</label>
+          <input id="np-type" type="text" placeholder="Ex.: Agricultura, Pecuaria" required />
+        </div>
+
+        <div class="form-row">
+          <label>Cliente</label>
+          <input id="np-client" type="text" placeholder="Nome do cliente" required />
+        </div>
+
+        <div class="form-row">
+          <label>Local</label>
+          <input id="np-location" type="text" placeholder="Ex.: Huila, Luanda" required />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Criar projecto</button>
+        <p id="np-success" class="form-success">Criado com sucesso!</p>
+        <p id="np-error" class="form-error" style="color: #ff8a8a;"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer class="footer">
+    GeoVision - Inteligencia de Campo. <span id="year"></span>
+  </footer>
+
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
