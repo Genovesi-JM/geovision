@@ -7,7 +7,16 @@ function isInVSCode() {
   // Check for VS Code specific user agents or window properties
   const userAgent = navigator.userAgent.toLowerCase();
   const isVSCodeUA = userAgent.includes('vscode');
-  const isVSCodeWindow = window.parent !== window && window.parent.location.protocol === 'vscode-webview:';
+  
+  // Try to check parent window protocol (wrapped in try-catch for cross-origin safety)
+  let isVSCodeWindow = false;
+  try {
+    isVSCodeWindow = window.parent !== window && window.parent.location.protocol === 'vscode-webview:';
+  } catch (e) {
+    // Cross-origin access denied - not a VS Code webview
+    isVSCodeWindow = false;
+  }
+  
   const isElectron = userAgent.includes('electron');
   
   // VS Code embeds pages in webviews with specific characteristics
@@ -116,13 +125,14 @@ container.innerHTML = `
     inputEl.value = "";
     renderMessages();
 
-    // Check for VS Code related questions
+    // Check for VS Code related questions (more specific pattern matching)
     const lowerText = text.toLowerCase();
     const isVSCodeQuestion = lowerText.includes('vs code') || 
                             lowerText.includes('vscode') || 
                             lowerText.includes('visual studio code') ||
-                            (lowerText.includes('conectado') && lowerText.includes('code')) ||
-                            (lowerText.includes('connected') && lowerText.includes('code'));
+                            /conectado.{0,20}(vs code|vscode)/i.test(text) ||
+                            /connected.{0,20}(vs code|vscode)/i.test(text) ||
+                            /(vs code|vscode).{0,20}(conectado|connected)/i.test(text);
 
     if (isVSCodeQuestion) {
       const vscodeResponse = vscodeConnected
