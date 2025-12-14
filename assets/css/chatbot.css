@@ -122,6 +122,36 @@
       color: #9ca8c7;
     }
 
+    /* VS Code connection status */
+    #gv-vscode-status {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      background: rgba(15, 98, 254, 0.15);
+      border: 1px solid rgba(15, 98, 254, 0.4);
+      border-radius: 12px;
+      font-size: 0.65rem;
+      color: #7ec8ff;
+      width: fit-content;
+    }
+
+    .gv-vscode-icon {
+      font-size: 0.75rem;
+      animation: vscode-pulse 2s ease-in-out infinite;
+    }
+
+    .gv-vscode-text {
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    @keyframes vscode-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
 /* Corpo das mensagens */
 #gv-chat-messages {
   flex: 1;
