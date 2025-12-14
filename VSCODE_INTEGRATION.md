@@ -77,13 +77,42 @@ Try these questions:
 
 ```javascript
 function isInVSCode() {
+  // Check for VS Code specific user agents or window properties
   const userAgent = navigator.userAgent.toLowerCase();
   const isVSCodeUA = userAgent.includes('vscode');
-  const isVSCodeWindow = window.parent !== window && window.parent.location.protocol === 'vscode-webview:';
+  
+  // Try to check parent window protocol (wrapped in try-catch for cross-origin safety)
+  let isVSCodeWindow = false;
+  try {
+    if (window.parent && window.parent !== window) {
+      isVSCodeWindow = window.parent.location.protocol === 'vscode-webview:';
+    }
+  } catch (e) {
+    // Cross-origin access denied - not a VS Code webview
+    isVSCodeWindow = false;
+  }
+  
   const isElectron = userAgent.includes('electron');
+  
+  // VS Code embeds pages in webviews with specific characteristics
   return isVSCodeUA || isVSCodeWindow || (isElectron && window.parent !== window);
 }
+
+// Pre-compiled regex patterns for VS Code question detection (performance optimization)
+const VSCODE_QUESTION_PATTERNS = [
+  /vs code/i,
+  /vscode/i,
+  /visual studio code/i,
+  /conectado.{0,20}(vs code|vscode)/i,
+  /connected.{0,20}(vs code|vscode)/i,
+  /(vs code|vscode).{0,20}(conectado|connected)/i
+];
 ```
+
+**Key Features of the Detection:**
+- **Cross-origin safe**: Uses try-catch to prevent errors when accessing parent window
+- **Multi-factor detection**: Checks user agent, window context, and Electron environment
+- **Performance optimized**: Pre-compiled regex patterns for question detection
 
 ### CSS Styling
 

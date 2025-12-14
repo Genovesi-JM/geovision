@@ -11,7 +11,9 @@ function isInVSCode() {
   // Try to check parent window protocol (wrapped in try-catch for cross-origin safety)
   let isVSCodeWindow = false;
   try {
-    isVSCodeWindow = window.parent !== window && window.parent.location.protocol === 'vscode-webview:';
+    if (window.parent && window.parent !== window) {
+      isVSCodeWindow = window.parent.location.protocol === 'vscode-webview:';
+    }
   } catch (e) {
     // Cross-origin access denied - not a VS Code webview
     isVSCodeWindow = false;
@@ -22,6 +24,16 @@ function isInVSCode() {
   // VS Code embeds pages in webviews with specific characteristics
   return isVSCodeUA || isVSCodeWindow || (isElectron && window.parent !== window);
 }
+
+// Pre-compiled regex patterns for VS Code question detection (performance optimization)
+const VSCODE_QUESTION_PATTERNS = [
+  /vs code/i,
+  /vscode/i,
+  /visual studio code/i,
+  /conectado.{0,20}(vs code|vscode)/i,
+  /connected.{0,20}(vs code|vscode)/i,
+  /(vs code|vscode).{0,20}(conectado|connected)/i
+];
 
 document.addEventListener("DOMContentLoaded", () => {
   const path = window.location.pathname || "";
@@ -125,14 +137,8 @@ container.innerHTML = `
     inputEl.value = "";
     renderMessages();
 
-    // Check for VS Code related questions (more specific pattern matching)
-    const lowerText = text.toLowerCase();
-    const isVSCodeQuestion = lowerText.includes('vs code') || 
-                            lowerText.includes('vscode') || 
-                            lowerText.includes('visual studio code') ||
-                            /conectado.{0,20}(vs code|vscode)/i.test(text) ||
-                            /connected.{0,20}(vs code|vscode)/i.test(text) ||
-                            /(vs code|vscode).{0,20}(conectado|connected)/i.test(text);
+    // Check for VS Code related questions using pre-compiled patterns
+    const isVSCodeQuestion = VSCODE_QUESTION_PATTERNS.some(pattern => pattern.test(text));
 
     if (isVSCodeQuestion) {
       const vscodeResponse = vscodeConnected
