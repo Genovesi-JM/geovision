@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: geovision-backend
+    runtime: python
+    rootDir: backend
+    plan: free
+    autoDeploy: true
+    buildCommand: pip install -r requirements.deploy.txt
+    startCommand: python start.py
+    envVars:
+      - key: ENV
+        value: prod
+      - key: CORS_ORIGINS
+        value: https://genovesi-jm.github.io
+      # Set these in Render dashboard as Secret values:
+      # - SECRET_KEY
+      # - FRONTEND_BASE (e.g. https://genovesi-jm.github.io/geovision)
+      # - BACKEND_BASE (e.g. https://geovision-backend.onrender.com)
+      # - GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (optional)
+      # - OPENAI_API_KEY (optional)

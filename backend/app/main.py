@@ -2,6 +2,9 @@
 
 from pathlib import Path
 
+import os
+from urllib.parse import urlparse
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,10 +24,29 @@ def create_application() -> FastAPI:
     """Build and configure the FastAPI instance."""
     application = FastAPI(title=settings.app_name)
 
-    # CORS – em dev deixamos aberto, em produção restringes ao dominio do frontend
+    # CORS
+    # Note: browsers will reject `Access-Control-Allow-Origin: *` when
+    # `allow_credentials=True`, so we must send an explicit origin list.
+    default_origins = {
+        "http://127.0.0.1:8001",
+        "http://localhost:8001",
+    }
+    try:
+        parsed = urlparse(settings.frontend_base)
+        if parsed.scheme and parsed.netloc:
+            default_origins.add(f"{parsed.scheme}://{parsed.netloc}")
+    except Exception:
+        pass
+
+    env_origins = os.getenv("CORS_ORIGINS", "")
+    if env_origins.strip():
+        allow_origins = [o.strip() for o in env_origins.split(",") if o.strip()]
+    else:
+        allow_origins = sorted(default_origins)
+
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=allow_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
