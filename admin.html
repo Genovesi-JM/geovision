@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin – Operações GeoVision</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #020617, #000 60%);
+      color: #e5e7eb;
+    }
+
+    .admin-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    .admin-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.7rem 1rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.7);
+      margin-bottom: 1.8rem;
+    }
+
+    .admin-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .admin-logo {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+    }
+
+    .admin-brand-main {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .admin-brand-sub {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .admin-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .admin-pill {
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.96);
+    }
+
+    .btn-logout {
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      color: #020617;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .admin-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .admin-eyebrow {
+      font-size: 0.8rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 0.35rem;
+    }
+
+    .admin-title {
+      font-size: 1.5rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .admin-subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      max-width: 700px;
+    }
+
+    .admin-layout {
+      display: grid;
+      gap: 1.4rem;
+    }
+
+    @media (min-width: 900px) {
+      .admin-layout {
+        grid-template-columns: 1.6fr 1fr;
+      }
+    }
+
+    .admin-card {
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      background: rgba(15, 23, 42, 0.96);
+      padding: 1rem 1.1rem;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
+      font-size: 0.85rem;
+    }
+
+    .admin-card-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .admin-table th,
+    .admin-table td {
+      padding: 0.45rem 0.35rem;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+    }
+
+    .admin-table th {
+      color: #9ca3af;
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .admin-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .admin-actions button {
+      margin-left: 0.25rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 1);
+      color: #e5e7eb;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      cursor: pointer;
+    }
+
+    .admin-actions button:hover {
+      border-color: #22c55e;
+    }
+
+    .admin-form {
+      display: grid;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+    }
+
+    .admin-form-row {
+      display: grid;
+      gap: 0.25rem;
+    }
+
+    .admin-form label {
+      color: #d1d5db;
+    }
+
+    .admin-form input,
+    .admin-form textarea,
+    .admin-form select {
+      border-radius: 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.96);
+      padding: 0.5rem 0.7rem;
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .admin-form textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .admin-form input:focus,
+    .admin-form textarea:focus,
+    .admin-form select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+    }
+
+    .admin-form-actions {
+      margin-top: 0.4rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      color: #020617;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.83rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.96);
+      color: #e5e7eb;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.83rem;
+      cursor: pointer;
+    }
+
+    .admin-badge {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+    }
+
+    .admin-badge.active {
+      border-color: #22c55e;
+      color: #bbf7d0;
+    }
+
+    .admin-badge.inactive {
+      border-color: #f97316;
+      color: #fed7aa;
+    }
+
+    .admin-hint {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 0.3rem;
+    }
+
+    .admin-kpi-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    @media (min-width: 780px) {
+      .admin-kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    .admin-kpi {
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), #020617);
+      padding: 0.9rem 1rem;
+      font-size: 0.82rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .admin-kpi span {
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+
+    .admin-kpi strong {
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    .admin-alerts {
+      margin-top: 0.9rem;
+    }
+
+    .admin-alerts-list {
+      list-style: none;
+      padding-left: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .admin-alerts-list li {
+      border-radius: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      padding: 0.6rem 0.7rem;
+      background: rgba(15, 23, 42, 0.9);
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="admin-shell">
+    <header class="admin-topbar">
+      <div class="admin-topbar-left">
+        <div class="admin-logo"></div>
+        <div>
+          <div class="admin-brand-main">GEOVISION</div>
+          <div class="admin-brand-sub">Admin · Operações e serviços</div>
+        </div>
+      </div>
+      <div class="admin-topbar-right">
+        <span id="admin-email" class="admin-pill">admin@geovision</span>
+        <button id="btn-admin-logout" class="btn-logout">Terminar sessão</button>
+      </div>
+    </header>
+
+    <section class="admin-header">
+      <div class="admin-eyebrow">Operações · Serviços</div>
+      <h1 class="admin-title">Estado das missões, relatórios e clientes GeoVision</h1>
+      <p class="admin-subtitle">
+        Monitorize missões de drones, inspeções de infraestrutura e relatórios prontos para envio. Esta visão
+        foca-se nos serviços em campo e na informação que entregamos aos clientes.
+      </p>
+    </section>
+
+    <section class="admin-layout">
+      <article class="admin-card">
+        <div class="admin-eyebrow">Indicadores rápidos</div>
+        <div class="admin-kpi-grid">
+          <div class="admin-kpi" data-admin-kpi="projects">
+            <span>Projetos ativos</span>
+            <strong id="kpi-projects">0</strong>
+          </div>
+          <div class="admin-kpi" data-admin-kpi="missions">
+            <span>Missões em voo hoje</span>
+            <strong id="kpi-missions">0</strong>
+          </div>
+          <div class="admin-kpi" data-admin-kpi="reports">
+            <span>Relatórios prontos</span>
+            <strong id="kpi-reports">0</strong>
+          </div>
+          <div class="admin-kpi" data-admin-kpi="alerts">
+            <span>Alertas críticos</span>
+            <strong id="kpi-alerts">0</strong>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="admin-layout">
+      <article class="admin-card">
+        <h2 class="admin-card-title">Pipeline de serviços em campo</h2>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Serviço</th>
+              <th>Região</th>
+              <th>Estado</th>
+              <th>Próxima ação</th>
+            </tr>
+          </thead>
+          <tbody id="pipeline-body"></tbody>
+        </table>
+      </article>
+
+      <article class="admin-card">
+        <h2 class="admin-card-title">Relatórios e briefings</h2>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Relatório</th>
+              <th>Entrega prevista</th>
+              <th>Responsável</th>
+            </tr>
+          </thead>
+          <tbody id="reports-body"></tbody>
+        </table>
+        <div class="admin-alerts">
+          <h3 style="margin:0.9rem 0 0.4rem;">Alertas e notas</h3>
+          <ul id="alerts-list" class="admin-alerts-list"></ul>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script type="module" src="assets/js/admin-ops.js"></script>
+  <script>
+    // Inline fallback logout handler (ensures logout works even if external scripts fail)
+    (function(){
+      try {
+        const btn = document.getElementById('btn-admin-logout');
+        if (!btn) return;
+        if (btn.dataset && btn.dataset.gvInlineLogout === '1') return;
+        btn.addEventListener('click', function(){
+          try { localStorage.removeItem('gv_token'); } catch(e) {}
+          try { localStorage.removeItem('gv_role'); } catch(e) {}
+          try { localStorage.removeItem('gv_email'); } catch(e) {}
+          window.location.href = 'index.html';
+        });
+        try { btn.dataset.gvInlineLogout = '1'; } catch(e) {}
+      } catch(e){ console.error('inline admin logout attach failed', e); }
+    })();
+  </script>
+</body>
+</html>

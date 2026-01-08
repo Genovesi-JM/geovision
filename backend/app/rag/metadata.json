@@ -1,0 +1,12 @@
+{
+  "corpus_path": "gaia_corpus.txt",
+  "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "chunk_size": 1000,
+  "chunk_overlap": 200,
+  "total_chunks": 10,
+  "embedding_dim": 384,
+  "total_characters": 8452,
+  "created_at": "2025-12-07",
+  "version": "1.0",
+  "description": "GeoVision RAG corpus with chunks for semantic search"
+}

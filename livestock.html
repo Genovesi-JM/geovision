@@ -1,0 +1,215 @@
+﻿<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoVision - Pecuária conectada</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="GeoVision Pecuária: drones, GPS e mapas de pastagem para reduzir perdas de gado e melhorar a gestão do rebanho."
+  />
+  <link rel="stylesheet" href="assets/css/style.css" />
+   <link rel="stylesheet" href="assets/css/chatbot.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="assets/img/geovision-logo.png" alt="GeoVision" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GEOVISION</div>
+        <div class="brand-sub">Inteligência de Campo para Angola</div>
+      </div>
+    </div>
+
+    <nav class="nav-links" id="main-nav">
+      <a href="index.html">Início</a>
+      <a href="agriculture.html">Agricultura</a>
+      <a href="livestock.html" class="active">Pecuária</a>
+      <a href="mining.html">Mineração</a>
+      <a href="demining.html">Desminagem</a>
+      <a href="construction.html">Construção</a>
+      <a href="infrastructure.html">Infraestruturas</a>
+      <a href="loja.html">Loja</a>
+      <a href="login.html" target="_blank" rel="noopener">Login</a>
+    </nav>
+
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
+  </header>
+
+  <main class="page">
+    <!-- HERO PECUÁRIA -->
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-pill">
+          <div class="hero-pill-dot"></div>
+          <span class="hero-pill-text">Mapas de pastagem · Drones térmicos · GPS</span>
+        </div>
+
+        <h1 class="hero-title">
+          Pecuária conectada
+          <span>para reduzir perdas e localizar o rebanho.</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          GeoVision ajuda a visualizar onde o gado realmente anda, como está a disponibilidade de
+          pasto e quais áreas estão mais pressionadas ao longo da época seca.
+        </p>
+
+        <p class="hero-meta">
+          Focado em fazendas de corte, leite e cooperativas com rebanhos dispersos por grandes áreas.
+        </p>
+      </div>
+
+      <aside class="hero-map-card">
+        <header class="hero-map-header">
+          <div class="hero-map-label">Mapa demo</div>
+          <div class="hero-map-value">Mapa de pastagem - época seca</div>
+        </header>
+
+        <div class="hero-map-image">
+          <div class="hero-map-preview" data-theme="livestock-pasto">
+            <span class="hero-map-pill">Pontos de água &amp; pressão de pasto</span>
+            <div class="hero-map-fake"></div>
+          </div>
+        </div>
+
+<footer class="hero-map-footer">
+          <p style="font-size:0.78rem;color:var(--text-muted);">
+            Pontos claros = concentrações de gado · Gradiente indica uso do pasto ao longo da época.
+          </p>
+
+          <div class="sector-mini">
+            <div class="sector-mini-metric" data-mini-metric>
+              Pressão de pastagem · últimos 30 dias
+            </div>
+            <div class="sector-mini-tabs">
+              <button
+                class="sector-mini-tab is-active"
+                data-mini-tab
+                data-metric="Pressão de pastagem · últimos 30 dias"
+                data-map-title="Mapa de pastagem - época seca"
+                data-map-badge="Pontos de água &amp; pressão de pasto"
+                data-map-theme="livestock-pasto">
+                Pasto
+              </button>
+              <button
+                class="sector-mini-tab"
+                data-mini-tab
+                data-metric="Distância média até pontos de água"
+                data-map-title="Distância até pontos de água"
+                data-map-badge="Rotas até aguadas"
+                data-map-theme="livestock-agua">
+                Água
+              </button>
+              <button
+                class="sector-mini-tab"
+                data-mini-tab
+                data-metric="Concentrações de gado por hectare"
+                data-map-title="Concentração de gado por hectare"
+                data-map-badge="Densidade térmica do rebanho"
+                data-map-theme="livestock-rebanho">
+                Rebanho
+              </button>
+            </div>
+          </div>
+        </footer>
+
+      </aside>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PECUÁRIA</div>
+        <h2 class="section-title">Ver o rebanho como um “sistema” no mapa.</h2>
+        <p class="section-subtitle">
+          O módulo de pecuária do GeoVision combina dados de drones, GPS e sensores para dar uma visão
+          contínua do rebanho.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">1. Zonas de uso</h3>
+          <p class="feature-text">
+            Mapear onde o rebanho passa mais tempo e identificar áreas subutilizadas.
+          </p>
+          <div class="feature-tag">Equilíbrio do pasto</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">2. Pontos de água</h3>
+          <p class="feature-text">
+            Identificar dependência de poucas aguadas e planear abertura de novos pontos estratégicos.
+          </p>
+          <div class="feature-tag">Menos stress para o gado</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">3. Drones térmicos</h3>
+          <p class="feature-text">
+            Vistorias rápidas em zonas de difícil acesso, procurando animais isolados ou em risco.
+          </p>
+          <div class="feature-tag">Resgate e controlo</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">4. Relatórios simples</h3>
+          <p class="feature-text">
+            Entrega de mapas e relatórios fáceis de partilhar entre gestores, veterinários e donos.
+          </p>
+          <div class="feature-tag">Comunicação clara</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- FORM PECUÁRIA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PLANO DEMO</div>
+        <h2 class="section-title">Simular um plano de monitorização do rebanho.</h2>
+        <p class="section-subtitle">
+          Este formulário preenche um projecto demo no painel, simulando um pedido de estudo para
+          rebanho em determinada província.
+        </p>
+      </div>
+
+      <div class="cta-inner">
+        <div>
+          <h3 class="cta-title">Qual rebanho queres testar?</h3>
+          <p class="cta-text">
+            Usa números aproximados. O objetivo é apenas ver como o pedido apareceria na interface interna.
+          </p>
+        </div>
+
+        <form class="cta-form" id="livestock-form">
+          <div class="form-row">
+            <label for="herd">Tamanho do rebanho</label>
+            <input id="herd" type="number" placeholder="Ex.: 500 cabeças" />
+          </div>
+
+          <div class="form-row">
+            <label for="prov">Província / região principal</label>
+            <input id="prov" type="text" placeholder="Ex.: Huíla, Cunene..." />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Simular (demo)</button>
+          <p class="form-success">Plano registado (simulação).</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    GeoVision - Inteligência de Campo para Angola. <span id="year"></span>
+  </footer>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/chatbot.js"></script>
+</body>
+</html>

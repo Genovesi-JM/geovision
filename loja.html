@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Loja GeoVision – Serviços & Hardware</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+
+  <style>
+    /* Estilos específicos da Loja */
+
+    body {
+      background: radial-gradient(circle at top, #0f172a, #020617 55%, #000 100%);
+      color: #e5e7eb;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+    }
+
+    .loja-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 3rem;
+    }
+
+    .loja-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1.2rem;
+      margin-bottom: 1.8rem;
+    }
+
+    .loja-title-block {
+      max-width: 600px;
+    }
+
+    .loja-eyebrow {
+      font-size: 0.8rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 0.35rem;
+    }
+
+    .loja-title {
+      font-size: 1.8rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .loja-subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    .loja-cart-panel {
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.2), #020617);
+      padding: 0.9rem 1rem;
+      min-width: 240px;
+      max-width: 320px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+      font-size: 0.85rem;
+    }
+
+    .loja-cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .loja-cart-title {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .loja-cart-count {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .loja-cart-items {
+      max-height: 180px;
+      overflow-y: auto;
+      margin: 0.3rem 0 0.5rem;
+    }
+
+    .loja-cart-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.4rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
+      font-size: 0.78rem;
+    }
+
+    .loja-cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .loja-cart-item-name {
+      font-weight: 500;
+    }
+
+    .loja-cart-item-meta {
+      color: #9ca3af;
+    }
+
+    .loja-cart-item-actions {
+      text-align: right;
+    }
+
+    .loja-cart-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .loja-cart-buttons {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .btn-sm {
+      flex: 1;
+      padding: 0.45rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.96);
+      color: #e5e7eb;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .btn-sm-primary {
+      border: none;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      color: #020617;
+      font-weight: 500;
+    }
+
+    .btn-sm:hover {
+      filter: brightness(1.06);
+    }
+
+    .loja-cart-note {
+      color: #38bdf8;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .cart-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin: 0.8rem 0;
+    }
+
+    .cart-form label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #9ca3af;
+    }
+
+    .cart-form input,
+    .cart-form textarea {
+      width: 100%;
+      border-radius: 0.7rem;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.8);
+      color: #e5e7eb;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.85rem;
+    }
+
+    .cart-form textarea {
+      resize: vertical;
+    }
+
+    /* Filtros e grelha de produtos */
+
+    .loja-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.3rem;
+    }
+
+    .loja-filter-btn {
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      background: rgba(15, 23, 42, 0.9);
+      color: #9ca3af;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .loja-filter-btn.active {
+      color: #020617;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      border-color: transparent;
+    }
+
+    .loja-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .loja-card {
+      border-radius: 1rem;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.95);
+      padding: 1rem 1.1rem;
+      box-shadow: 0 16px 35px rgba(0, 0, 0, 0.8);
+      font-size: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .loja-card-tag {
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 0.3rem;
+    }
+
+    .loja-card-title {
+      font-size: 1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .loja-card-desc {
+      font-size: 0.82rem;
+      color: #9ca3af;
+      margin-bottom: 0.4rem;
+    }
+
+    .loja-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.4rem;
+      gap: 0.8rem;
+    }
+
+    .loja-price {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .loja-price span {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-left: 0.15rem;
+    }
+
+    .btn-add {
+      padding: 0.5rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      background: rgba(15, 23, 42, 0.96);
+      color: #e5e7eb;
+      font-size: 0.8rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-add:hover {
+      border-color: #22c55e;
+    }
+
+    .loja-empty {
+      font-size: 0.85rem;
+      color: #9ca3af;
+      margin-top: 0.6rem;
+    }
+
+    /* Footer pagamentos */
+
+    .loja-footer {
+      margin-top: 2.2rem;
+      padding-top: 1.3rem;
+      border-top: 1px solid rgba(15, 23, 42, 0.9);
+      font-size: 0.8rem;
+      color: #9ca3af;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .loja-footer-left {
+      max-width: 420px;
+    }
+
+    .loja-footer-payments {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      align-items: flex-start;
+    }
+
+    .loja-payments-logos {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .loja-payments-logos img {
+      height: 26px;
+      width: auto;
+      border-radius: 6px;
+      background: #020617;
+      padding: 3px 6px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+
+    .loja-demo-panel {
+      margin-top: 2rem;
+      border-radius: 1.2rem;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      background: rgba(2, 6, 23, 0.6);
+      padding: 1.2rem;
+      box-shadow: inset 0 0 30px rgba(15, 23, 42, 0.5);
+    }
+
+    .loja-demo-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.6rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .loja-demo-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .loja-demo-status {
+      font-size: 0.78rem;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    .loja-demo-grid {
+      display: grid;
+      gap: 0.8rem;
+      margin-top: 0.8rem;
+    }
+
+    .loja-demo-block {
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 0.9rem;
+      padding: 0.8rem;
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .loja-demo-pre {
+      font-size: 0.75rem;
+      color: #a5b4fc;
+      margin: 0.4rem 0 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    @media (min-width: 880px) {
+      .loja-demo-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 880px) {
+      .loja-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 780px) {
+      .loja-header {
+        flex-direction: column;
+      }
+      .loja-footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body data-page="loja">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="assets/img/geovision-logo.png" alt="GeoVision logo" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GeoVision</div>
+        <div class="brand-sub">Field Intelligence para Angola</div>
+      </div>
+    </div>
+
+        <nav class="nav-links">
+      <a href="index.html">In?cio</a>
+      <a href="agriculture.html">Agro &amp; Pecu?ria</a>
+      <a href="mining.html">Minera??o</a>
+      <a href="construction.html">Constru??o &amp; Infra</a>
+      <a href="loja.html" class="active">Loja</a>
+      <a href="login.html" target="_blank" rel="noopener">Login</a>
+    </nav>
+
+    <button class="menu-toggle">☰</button>
+  </header>
+
+  <main class="loja-shell">
+    <!-- Cabeçalho + carrinho -->
+    <section class="loja-header">
+      <div class="loja-title-block">
+        <div class="loja-eyebrow">Loja GeoVision</div>
+        <h1 class="loja-title">Serviços de drones, sensores & insumos de campo</h1>
+        <p class="loja-subtitle">
+          Combine serviços de mapeamento, pulverização, kits IoT e insumos agrícolas, tudo integrado com a
+          plataforma GeoVision. Os valores são demonstrativos e ajustados por proposta comercial.
+        </p>
+      </div>
+
+      <aside class="loja-cart-panel">
+        <div class="loja-cart-header">
+          <div>
+            <div class="loja-cart-title">Carrinho</div>
+            <div class="loja-cart-count" id="cart-count">0 itens</div>
+          </div>
+          <small class="loja-cart-note">Ligado ao backend FastAPI</small>
+        </div>
+
+        <div class="loja-cart-items" id="cart-items"></div>
+
+        <div class="loja-cart-total">
+          <span>Total estimado</span>
+          <strong id="cart-total">€ 0,00</strong>
+        </div>
+
+        <div class="cart-form">
+          <label for="checkout-name">Nome</label>
+          <input type="text" id="checkout-name" placeholder="Ex.: Joana M." />
+
+          <label for="checkout-company">Empresa / Fazenda</label>
+          <input type="text" id="checkout-company" placeholder="Opcional" />
+
+          <label for="checkout-email">Email</label>
+          <input type="email" id="checkout-email" placeholder="cliente@empresa.co.ao" required />
+
+          <label for="checkout-phone">Telefone</label>
+          <input type="text" id="checkout-phone" placeholder="+244 ..." />
+
+          <label for="checkout-notes">Notas adicionais</label>
+          <textarea id="checkout-notes" rows="3" placeholder="Ex.: missão em Benguela, urgência em 30 dias"></textarea>
+        </div>
+
+        <div class="loja-cart-buttons">
+          <button id="cart-clear" class="btn-sm">Limpar carrinho</button>
+          <button id="cart-checkout" class="btn-sm btn-sm-primary">
+            Enviar pedido
+          </button>
+        </div>
+
+        <p class="form-hint">
+          Os itens e dados acima são enviados ao backend FastAPI local para gerar um pedido de demonstração.
+        </p>
+      </aside>
+
+      <div class="loja-demo-panel">
+        <div class="loja-demo-header">
+          <div class="loja-demo-title">Demonstração em tempo real</div>
+          <div class="loja-demo-status" id="demo-status">Aguarda envio...</div>
+        </div>
+        <p class="loja-subtitle" style="margin-bottom:0.8rem;">
+          Assim que clicas em “Enviar pedido”, mostramos em baixo o payload enviado e a resposta devolvida pelo FastAPI.
+        </p>
+
+        <div class="loja-demo-grid">
+          <div class="loja-demo-block">
+            <div class="loja-card-tag">Payload enviado</div>
+            <pre class="loja-demo-pre" id="demo-request">Sem dados de pedido ainda.</pre>
+          </div>
+          <div class="loja-demo-block">
+            <div class="loja-card-tag">Resposta do backend</div>
+            <pre class="loja-demo-pre" id="demo-response">Aguardando a primeira resposta.</pre>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Filtros -->
+    <section>
+      <div class="loja-filters">
+        <button class="loja-filter-btn active" data-filter="all">Todos</button>
+        <button class="loja-filter-btn" data-filter="servico">Serviços de campo</button>
+        <button class="loja-filter-btn" data-filter="hardware">Hardware & IoT</button>
+        <button class="loja-filter-btn" data-filter="insumo">Insumos & ração</button>
+        <button class="loja-filter-btn" data-filter="pacote">Pacotes</button>
+      </div>
+      <div id="loja-grid" class="loja-grid"></div>
+      <p id="loja-empty" class="loja-empty" style="display:none;">
+        Nenhum produto encontrado para este filtro.
+      </p>
+    </section>
+    <!-- Footer com métodos de pagamento -->
+    <footer class="loja-footer">
+      <div class="loja-footer-left">
+        © <span id="year"></span> GeoVision · Loja de serviços e hardware integrado para Angola.
+      </div>
+      <div class="loja-footer-payments">
+        <span>Métodos de pagamento (fase piloto / demo):</span>
+        <div class="loja-payments-logos">
+          <!-- Troca estes ficheiros pelos teus logos reais -->
+          <img src="assets/img/payment-multicaixa.png" alt="Multicaixa" />
+          <img src="assets/img/payment-visa.png" alt="Visa" />
+          <img src="assets/img/payment-mastercard.png" alt="Mastercard" />
+        </div>
+        <small>
+          Pagamentos finais serão confirmados por contrato, fatura ou link seguro de pagamento.
+        </small>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/loja.js"></script>
+</body>
+</html>

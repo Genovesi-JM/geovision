@@ -1,0 +1,214 @@
+/* ================================
+   GAIA / GEOVISION - CHATBOT UI
+   CSS ISOLADO (NÃO MEXE NO LAYOUT GERAL)
+   ================================ */
+
+#gv-chatbot {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Space Grotesk", sans-serif;
+  color: #f5f5f5;
+}
+
+/* Botão pequeno tipo “Chat GeoVision” */
+    #gv-chat-toggle {
+      background: transparent;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.55);
+      padding: 0;
+    }
+
+    .gv-chat-toggle-inner {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 6px 10px 6px 6px;
+      border-radius: 999px;
+      background: rgba(7, 11, 25, 0.96);
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    .gv-chat-logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #7ef29a, #0f62fe);
+      box-shadow: 0 0 0 1px rgba(15, 98, 254, 0.8), 0 8px 18px rgba(0,0,0,0.6);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    /* QUANDO TIVERES O LOGO REAL, TROCAS ESTA LINHA: */
+    /* .gv-chat-logo { background-image: url("assets/logos/gaia-logo.png"); background-size: cover; background-position: center; } */
+
+    .gv-chat-toggle-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .gv-chat-toggle-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #e5f0ff;
+    }
+
+    .gv-chat-toggle-sub {
+      font-size: 0.7rem;
+      color: #9ca8c7;
+    }
+
+/* Janela compacta (como na tua screenshot antiga) */
+#gv-chat-window {
+  position: absolute;
+  bottom: 42px;
+  right: 0;
+  width: 360px;          /* altera aqui se quiseres mais largo */
+  max-height: 460px;     /* altera aqui se quiseres mais alto */
+  background: rgba(8, 14, 30, 0.97);
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Cabeçalho do chat */
+    #gv-chat-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+      background: radial-gradient(circle at 0 0, rgba(126, 242, 154, 0.2), transparent 55%),
+                  rgba(15, 23, 42, 0.96);
+    }
+
+    .gv-chat-header-main {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .gv-chat-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #7ef29a, #0f62fe);
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.7);
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    /* TAL COMO NO BOTÃO, AQUI PODES POR O LOGO REAL DEPOIS: */
+    /* .gv-chat-avatar { background-image: url("assets/logos/gaia-avatar.png"); background-size: cover; background-position: center; } */
+
+    .gv-chat-header-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .gv-chat-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #e5f0ff;
+    }
+
+    .gv-chat-subtitle {
+      font-size: 0.7rem;
+      color: #9ca8c7;
+    }
+
+/* Corpo das mensagens */
+#gv-chat-messages {
+  flex: 1;
+  padding: 8px 10px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#gv-chat-messages::-webkit-scrollbar {
+  width: 5px;
+}
+#gv-chat-messages::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 999px;
+}
+
+/* Mensagens */
+.gv-msg {
+  margin-bottom: 6px;
+  max-width: 92%;
+  word-wrap: break-word;
+}
+
+.gv-msg-user {
+  text-align: right;
+  margin-left: auto;
+  color: #9cd2ff;
+}
+
+.gv-msg-bot {
+  text-align: left;
+  margin-right: auto;
+  color: #f5f5f5;
+}
+
+/* Área de input */
+#gv-chat-input-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  background: rgba(5, 9, 20, 0.98);
+}
+
+#gv-chat-input {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 13px;
+  background: rgba(15, 25, 49, 0.95);
+  color: #e4e9f5;
+  outline: none;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+#gv-chat-input::placeholder {
+  color: #8c9bb5;
+}
+
+#gv-chat-send {
+  border: none;
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #2dd6a3, #29b3ff);
+  color: #041018;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+}
+
+#gv-chat-send:disabled {
+  opacity: 0.6;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Mobile: janela maior */
+@media (max-width: 640px) {
+  #gv-chat-window {
+    width: calc(100vw - 24px);
+    right: 0;
+    left: 0;
+    margin: 0 auto;
+    max-height: 65vh;
+  }
+}

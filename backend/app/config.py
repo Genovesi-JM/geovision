@@ -1,0 +1,56 @@
+from pathlib import Path
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+class Settings(BaseSettings):
+    app_name: str = "GeoVision Backend"
+    env: str = "dev"
+
+    # JWT / Auth
+    secret_key: str = "CHANGE_ME"
+    algorithm: str = "HS256"
+    access_token_expires_minutes: int = 60
+
+    # Frontend URL used to build password-reset links (no trailing slash)
+    frontend_base: str = "http://127.0.0.1:8001"
+
+    # Optional SMTP settings for sending password reset emails
+    smtp_host: Optional[str] = None
+    smtp_port: int = 25
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[str] = None
+    smtp_use_tls: bool = True
+
+    # Backend base URL used for OAuth callbacks (no trailing slash)
+    backend_base: str = "http://127.0.0.1:8010"
+
+    # Google OAuth settings (optional)
+    google_client_id: Optional[str] = None
+    google_client_secret: Optional[str] = None
+
+    # Bases de dados
+    database_url: str = "sqlite:///./geovision.db"
+    accounts_database_url: str = "sqlite:///./accounts.db"
+
+    # OpenAI (opcional – para o chatbot AI)
+    openai_api_key: Optional[str] = None
+    openai_model: str = "gpt-4.1-mini"
+
+    # Pydantic v2 settings: accept extra env vars (ignore unknown variables)
+    model_config = {
+        "env_file": Path(__file__).resolve().parent.parent / ".env",
+        "extra": "ignore",
+    }
+
+settings = Settings()
+
+# Backwards-compatible names expected elsewhere in the codebase
+JWT_SECRET = settings.secret_key
+JWT_ALG = settings.algorithm
+JWT_EXPIRE_MIN = settings.access_token_expires_minutes
+
+# Expose OpenAI key alias for modules that look for OPENAI_API_KEY
+OPENAI_API_KEY = settings.openai_api_key
+# Backwards-compatible DB URL constant for alembic/env.py
+DATABASE_URL = settings.database_url

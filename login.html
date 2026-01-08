@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login – GeoVision</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/chatbot.css" />
+
+  <style>
+    body {
+      background: radial-gradient(circle at 20% 20%, #102540, #04070f 55%);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #e8edf4;
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem 1rem;
+    }
+    .shell {
+      width: min(520px, 100%);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      padding: 2.4rem 2.1rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.2rem;
+    }
+    .brand img { width: 46px; height: 46px; }
+    .title {
+      font-size: 1.95rem;
+      margin: 0 0 0.25rem;
+    }
+    .subtitle {
+      margin: 0;
+      color: #9fb4d3;
+      font-size: 0.95rem;
+    }
+    .grid {
+      display: grid;
+      gap: 1.4rem;
+      margin-top: 1.4rem;
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: #d7deea;
+      margin-bottom: 0.35rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.9rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: #f2f6ff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 0.95rem;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(130deg, #22c55e, #38bdf8);
+      color: #052010;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-ghost {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: transparent;
+      color: #e8edf4;
+      cursor: pointer;
+    }
+    .actions {
+      display: grid;
+      gap: 0.75rem;
+      margin-top: 0.3rem;
+    }
+    .split {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.9rem;
+      color: #9fb4d3;
+    }
+    .link {
+      color: #8ed0ff;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .google-btn {
+      width: 100%;
+      display: inline-flex;
+      gap: 0.65rem;
+      align-items: center;
+      justify-content: center;
+      padding: 0.9rem;
+      border-radius: 12px;
+      background: #fff;
+      color: #111827;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+    .feedback {
+      display: none;
+      margin-top: 0.8rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      font-size: 0.93rem;
+    }
+    .feedback.error { background: rgba(255, 99, 99, 0.12); border: 1px solid rgba(255, 99, 99, 0.4); color: #ff9b9b; }
+    .feedback.success { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); color: #b6f4c5; }
+    .hint {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: rgba(10,16,28,0.6);
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <div class="brand">
+      <img src="assets/img/geovision-logo.png" alt="GeoVision" />
+      <div>
+        <div class="title">Entrar</div>
+        <p class="subtitle">Aceda ao painel GeoVision</p>
+      </div>
+    </div>
+
+    <form id="login-form" class="grid" autocomplete="on">
+      <div>
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="utilizador@empresa.com" required />
+      </div>
+      <div>
+        <label for="login-password">Senha</label>
+        <input type="password" id="login-password" placeholder="••••••••" required />
+      </div>
+      <div class="actions">
+        <button class="btn-primary" type="submit" id="login-submit">Iniciar sessão</button>
+        <button class="google-btn" type="button" id="google-btn">
+          <span>🔑</span> Entrar com Google
+        </button>
+        <div class="split">
+          <span class="link" id="forgot-link">Esqueci a senha</span>
+          <span class="link" id="toggle-create" aria-expanded="false">Criar conta</span>
+        </div>
+      </div>
+    </form>
+
+    <form id="create-form" class="grid" style="display:none; margin-top:1rem;" aria-hidden="true">
+      <div>
+        <label for="create-email">Email</label>
+        <input type="email" id="create-email" placeholder="novo@exemplo.com" required />
+      </div>
+      <div>
+        <label for="create-password">Senha</label>
+        <input type="password" id="create-password" placeholder="Escolhe uma senha" required />
+      </div>
+      <div>
+        <label for="create-password-confirm">Confirmar senha</label>
+        <input type="password" id="create-password-confirm" placeholder="Repete a senha" required />
+      </div>
+      <div>
+        <label for="create-sector">Tipo de conta</label>
+        <select id="create-sector" required>
+          <option value="">Seleciona o sector</option>
+          <option value="agro_pecuaria">Agro &amp; Pecuária</option>
+          <option value="mining">Mineração</option>
+          <option value="demining">Desminagem</option>
+          <option value="construction_infra">Construção &amp; Infra</option>
+        </select>
+      </div>
+      <div class="actions">
+        <button id="create-submit" class="btn-primary" type="submit">Criar conta</button>
+        <button id="create-cancel" class="btn-ghost" type="button">Cancelar</button>
+      </div>
+    </form>
+
+    <div id="success-box" class="feedback success" role="status" aria-live="polite" aria-hidden="true" tabindex="-1"></div>
+    <div id="error-box" class="feedback error" role="alert" aria-live="assertive" aria-hidden="true" tabindex="-1"></div>
+
+    <div class="hint">
+      Demo rápido: teste@admin.com / 123456 → painel admin | teste@cliente.com / 123456 → dashboard
+    </div>
+
+    <div style="margin-top: 0.8rem; text-align:center;">
+      <a href="index.html" class="link">← Voltar ao site</a>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
+    const successBox = document.getElementById("success-box");
+    const errorBox = document.getElementById("error-box");
+
+    function show(box, msg) {
+      if (!box) return;
+      box.textContent = msg;
+      box.style.display = "block";
+      box.setAttribute("aria-hidden", "false");
+    }
+    function hide(box) {
+      if (!box) return;
+      box.style.display = "none";
+      box.textContent = "";
+      box.setAttribute("aria-hidden", "true");
+    }
+
+    // Login handler
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hide(errorBox); hide(successBox);
+      const email = (document.getElementById("login-email").value || "").trim().toLowerCase();
+      const password = (document.getElementById("login-password").value || "").trim();
+      if (!email || !password) { show(errorBox, "Preenche email e senha."); return; }
+      const btn = document.getElementById("login-submit"); btn.disabled = true;
+      try {
+        const res = await fetch(API_BASE + "/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        if (!res.ok) throw new Error((await res.text()) || "Credenciais inválidas.");
+        const data = await res.json().catch(() => ({}));
+        const token = data.access_token || data.token;
+        if (!token) throw new Error("Token não recebido do servidor.");
+        localStorage.setItem("gv_token", token);
+        localStorage.setItem("gv_user", JSON.stringify(data.user || { email }));
+        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Login bem-sucedido", type: "success", ts: Date.now() }));
+        const isAdmin = (data.user && data.user.role === "admin") || email === "teste@admin.com";
+        window.location.href = isAdmin ? "admin.html" : "dashboard.html";
+      } catch (err) {
+        console.error("login", err);
+        show(errorBox, err && err.message ? err.message : "Erro no login.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Toggle create form
+    (function(){
+      const toggle = document.getElementById("toggle-create");
+      const createForm = document.getElementById("create-form");
+      if (!toggle || !createForm) return;
+      toggle.addEventListener("click", () => {
+        const open = createForm.style.display !== "none";
+        if (open) {
+          createForm.style.display = "none";
+          createForm.setAttribute("aria-hidden","true");
+          toggle.setAttribute("aria-expanded","false");
+        } else {
+          createForm.style.display = "grid";
+          createForm.setAttribute("aria-hidden","false");
+          toggle.setAttribute("aria-expanded","true");
+        }
+      });
+      document.getElementById("create-cancel").addEventListener("click", () => {
+        createForm.style.display = "none";
+        createForm.setAttribute("aria-hidden","true");
+        toggle.setAttribute("aria-expanded","false");
+      });
+    })();
+
+    // Signup handler
+    document.getElementById("create-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hide(errorBox); hide(successBox);
+      const email = (document.getElementById("create-email").value || "").trim().toLowerCase();
+      const pass = (document.getElementById("create-password").value || "").trim();
+      const conf = (document.getElementById("create-password-confirm").value || "").trim();
+      const sector = document.getElementById("create-sector").value;
+      if (!email || !pass || !sector) { show(errorBox, "Preenche email, senha e tipo de conta."); return; }
+      if (pass !== conf) { show(errorBox, "As senhas não coincidem."); return; }
+      const btn = document.getElementById("create-submit"); btn.disabled = true;
+      try {
+        const res = await fetch(API_BASE + "/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email, password: pass, sector: sector }),
+        });
+        if (!res.ok) throw new Error((await res.text()) || "Registo falhou.");
+        const data = await res.json().catch(() => ({}));
+        const token = data.access_token || data.token;
+        if (token) localStorage.setItem("gv_token", token);
+        localStorage.setItem("gv_user", JSON.stringify({ email, sector: sector, role: data.role || "cliente" }));
+        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Conta criada – a redirecionar", type: "success", ts: Date.now() }));
+        window.location.href = (data.role === "admin") ? "admin.html" : "dashboard.html";
+      } catch (err) {
+        console.error("signup", err);
+        show(errorBox, err && err.message ? err.message : "Erro ao criar conta.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Forgot password
+    document.getElementById("forgot-link").addEventListener("click", async (e) => {
+      e.preventDefault();
+      hide(successBox); hide(errorBox);
+      const email = (document.getElementById("login-email").value || "").trim().toLowerCase();
+      if (!email) { show(errorBox, "Indica o email para recuperar a senha."); return; }
+      try {
+        const res = await fetch(API_BASE + "/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        if (res.ok) {
+          show(successBox, "Se a conta existir, enviámos um link de redefinição para o email.");
+        } else {
+          const txt = await res.text().catch(()=>null);
+          show(errorBox, "Não foi possível enviar o email: " + (txt || res.statusText || res.status));
+        }
+      } catch (err) {
+        console.error("forgot", err);
+        show(errorBox, "Erro ao contactar o servidor.");
+      }
+    });
+
+    // Google login placeholder
+    document.getElementById("google-btn").addEventListener("click", () => {
+      window.location.href = API_BASE + "/auth/google/login";
+    });
+  </script>
+  <script src="assets/js/chatbot.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "geovision-frontend-tests",
+  "version": "0.0.1",
+  "private": true,
+  "devDependencies": {
+    "pa11y": "^6.0.0",
+    "playwright": "^1.43.0",
+    "@axe-core/playwright": "^4.0.1"
+  },
+  "scripts": {
+    "test:pa11y-login": "pa11y http://127.0.0.1:8001/login.html --reporter cli",
+    "test:e2e": "playwright test",
+    "test:e2e:login": "playwright test tests/login.spec.js --project=chromium --reporter=list"
+  }
+}

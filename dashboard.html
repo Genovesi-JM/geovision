@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel — GeoVision</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/chatbot.css">
+</head>
+
+<body>
+  <main class="dash-shell">
+    <!-- TOPBAR -->
+    <header class="dash-topbar">
+      <div class="dash-topbar-left">
+        <div class="dash-dot"></div>
+        <div class="dash-brand">
+          <h1>GEOVISION</h1>
+          <small>Painel do Cliente</small>
+        </div>
+      </div>
+      <div class="dash-topbar-right">
+        <select id="account-switcher" class="dash-select account-switcher" aria-label="Selecionar conta"></select>
+        <button id="open-account-modal" class="btn-primary" type="button">Nova conta</button>
+        <span id="user-email-pill" class="dash-pill">cliente@geovision</span>
+        <button id="logout-btn" class="btn-danger">Terminar sessão</button>
+      </div>
+    </header>
+
+    <!-- HEADER -->
+    <section class="dash-header">
+      <div class="dash-eyebrow">Conta ativa</div>
+      <h1 class="dash-title" id="dash-title">Conta GeoVision</h1>
+      <p class="dash-subtitle" id="dash-meta">Setor • Tipo de entidade</p>
+      <div id="modules-chips" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+    </section>
+
+    <!-- KPI CARDS -->
+    <section class="kpi-grid">
+      <article class="kpi-card">
+        <div class="kpi-label">Serviços ativos</div>
+        <div class="kpi-value" id="kpi-services">—</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-label">Hardware instalado</div>
+        <div class="kpi-value" id="kpi-hardware">—</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-label">Relatórios disponíveis</div>
+        <div class="kpi-value" id="kpi-reports">—</div>
+      </article>
+      <article class="kpi-card">
+        <div class="kpi-label">Alertas</div>
+        <div class="kpi-value" id="kpi-alerts">—</div>
+      </article>
+    </section>
+
+    <!-- CONTENT GRID -->
+    <section class="content-grid">
+      <div class="card">
+        <div class="card-header">
+          <h3>Operações em curso</h3>
+          <span id="services-badge" class="badge">0 ativos</span>
+        </div>
+        <table class="dash-table" id="services-table">
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Local</th>
+              <th>Área (ha)</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="dash-empty" id="services-empty" style="display:none;">
+          Ainda não existem serviços registados. Fale connosco pela Loja GeoVision para agendar.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Alertas & atenção</h3>
+          <span class="badge">Ao vivo</span>
+        </div>
+        <div id="alerts-list" style="display:flex; flex-direction:column; gap:8px;">
+          <!-- preenchido via JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Hardware instalado</h3>
+        </div>
+        <table class="dash-table" id="hardware-table">
+          <thead>
+            <tr>
+              <th>Equipamento</th>
+              <th>Local</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="dash-empty" id="hardware-empty" style="display:none;">
+          Nenhum hardware registado na sua conta (ainda).
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Relatórios</h3>
+        </div>
+        <table class="dash-table" id="reports-table">
+          <thead>
+            <tr>
+              <th>Relatório</th>
+              <th>Serviço</th>
+              <th>Entrega</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="dash-empty" id="reports-empty" style="display:none;">
+          Ainda não existem relatórios prontos. Assim que finalizarmos um serviço, ele aparece aqui.
+        </div>
+      </div>
+    </section>
+
+    <!-- Placeholder map / layers -->
+    <section class="card" style="margin-top:14px;">
+      <div class="card-header">
+        <h3>Mapa / Layers</h3>
+        <span class="badge">Em breve</span>
+      </div>
+      <p style="color: rgba(255,255,255,0.75); font-size:0.9rem; margin: 4px 0 0;">
+        Visualização de camadas, últimos voos e alertas geográficos (placeholder).
+      </p>
+    </section>
+  </main>
+
+  <!-- Account creation modal -->
+  <div class="modal-backdrop" id="account-modal-backdrop" aria-hidden="true">
+    <div class="modal">
+      <h2>Criar workspace</h2>
+      <div class="row">
+        <div>
+          <label for="account-name-input">Nome da conta</label>
+          <input id="account-name-input" type="text" placeholder="Ex: Fazenda Rio Kunene">
+        </div>
+        <div>
+          <label for="account-entity-input">Tipo de entidade</label>
+          <select id="account-entity-input">
+            <option value="org">Organização</option>
+            <option value="individual">Individual</option>
+          </select>
+        </div>
+      </div>
+      <label for="account-sector-input">Setor</label>
+      <select id="account-sector-input">
+        <option value="agro">Agro</option>
+        <option value="mining">Mining</option>
+        <option value="demining">Demining</option>
+        <option value="construction">Construction</option>
+        <option value="infrastructure">Infrastructure</option>
+        <option value="solar">Solar</option>
+      </select>
+      <label style="margin-top:10px;">Módulos</label>
+      <div class="checkboxes" id="account-modules">
+        <label><input type="checkbox" value="kpi" checked> KPIs</label>
+        <label><input type="checkbox" value="projects" checked> Projects</label>
+        <label><input type="checkbox" value="store" checked> Store</label>
+        <label><input type="checkbox" value="alerts" checked> Alerts</label>
+      </div>
+      <div class="actions">
+        <button type="button" id="account-cancel" class="btn-secondary">Cancelar</button>
+        <button type="button" id="account-create" class="btn-primary">Criar e usar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/dashboard-client.js"></script>
+  <script>
+    window.GV_CHAT_API_BASE = "http://127.0.0.1:8010";
+  </script>
+  <script src="assets/js/chatbot.js?v=2"></script>
+  <script>
+    // Inline fallback logout for dashboard
+    (function(){
+      try {
+        const btn = document.getElementById('logout-btn');
+        if (!btn) return;
+        if (btn.dataset && btn.dataset.gvInlineLogout === '1') return;
+        btn.addEventListener('click', function(){
+          try { localStorage.removeItem('gv_token'); } catch(e) {}
+          try { localStorage.removeItem('gv_role'); } catch(e) {}
+          try { localStorage.removeItem('gv_email'); } catch(e) {}
+          try { localStorage.removeItem('gv_account_id'); } catch(e) {}
+          window.location.href = 'index.html';
+        });
+        try { btn.dataset.gvInlineLogout = '1'; } catch(e) {}
+      } catch(e){ console.error('inline dashboard logout attach failed', e); }
+    })();
+  </script>
+</body>
+</html>

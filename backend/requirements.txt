@@ -1,0 +1,18 @@
+fastapi==0.111.0
+uvicorn[standard]==0.30.0
+SQLAlchemy==2.0.30
+passlib[bcrypt]==1.7.4
+python-jose==3.3.0
+PyJWT
+python-multipart==0.0.9
+pydantic==2.7.1
+pydantic-settings==2.2.1
+httpx
+
+# Validation helpers
+email-validator
+
+# RAG / Vector Search Dependencies
+numpy>=1.21.0
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.0  # Optional: for production vector search (or use faiss-gpu)

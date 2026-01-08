@@ -1,0 +1,266 @@
+GeoVision - Drone-based Intelligence for Angola
+
+OVERVIEW
+========
+
+GeoVision is a specialized drone technology and geospatial intelligence platform 
+designed to serve agriculture, mining, infrastructure, and land management sectors in Angola.
+
+Our Mission: Empower Angolan businesses with affordable, accurate, and actionable 
+aerial intelligence to increase productivity, reduce costs, and improve decision-making.
+
+SERVICES
+========
+
+1. AGRICULTURAL INTELLIGENCE
+   - Crop health monitoring using multispectral sensors
+   - Soil analysis and moisture mapping
+   - Irrigation optimization and water management
+   - Yield prediction and forecasting
+   - Pest and disease early detection
+   - Field boundary delineation and area calculation
+   - Temporal monitoring for seasonal trends
+
+2. MINING & MINERAL EXPLORATION
+   - Site surveying and topographic mapping
+   - Stockpile volumetric calculations
+   - Environmental compliance monitoring
+   - Safety inspections of mining operations
+   - Geological feature identification
+   - Change detection and progress monitoring
+
+3. INFRASTRUCTURE & CONSTRUCTION
+   - Project site surveying and planning
+   - Progress tracking and time-lapse documentation
+   - 3D mapping and orthomosaics
+   - Bridge and structure inspections
+   - Road condition assessment
+   - Construction site security monitoring
+
+4. LAND & ENVIRONMENTAL MANAGEMENT
+   - Land boundary surveying and mapping
+   - Deforestation detection and monitoring
+   - Wetland and water body assessment
+   - Environmental impact assessment
+   - Vegetation mapping and biomass estimation
+   - Disaster management and emergency response
+
+TECHNOLOGY STACK
+================
+
+DRONES & SENSORS
+- DJI Enterprise drones (Matrice 300, Phantom 4 Pro)
+- Multispectral and thermal cameras
+- LiDAR for detailed 3D mapping
+- RGB and NIR sensors
+
+PROCESSING & ANALYSIS
+- Pix4D and DroneDeploy for image processing
+- ArcGIS for geospatial analysis
+- Custom algorithms for crop health (NDVI, GNDVI)
+- Machine learning for change detection
+- Real-time data processing pipelines
+
+DELIVERABLES
+- Orthomosaics (full mosaic images)
+- Digital Surface Models (DSM)
+- Digital Elevation Models (DEM)
+- Classification maps (crop types, land use)
+- Spectral indices (NDVI, NDBI, NDMI)
+- 3D point clouds and meshes
+- Interactive web dashboards
+- PDF reports with analysis
+
+GEOGRAPHIC FOCUS
+================
+
+Primary Markets:
+- Northern Region: Luanda province, Greater Luanda area
+- Eastern Region: Moxico, Cuando Cubango provinces
+- Central Region: Huambo, Bié provinces
+- Southern Region: Cunene, Huíla provinces
+
+Key Cities:
+- Luanda (headquarters and operations center)
+- Huambo (agricultural hub)
+- Soyo (oil & gas operations)
+- Lundas provinces (mining regions)
+
+PRICING & PACKAGES
+==================
+
+AGRICULTURE PACKAGES
+- Monitoring: $2,500-5,000 per 5,000 hectares per flight
+- Analysis: $1,000-2,000 per report
+- Subscription (monthly): $5,000-10,000 for recurring flights
+
+MINING PACKAGES
+- Site Survey: $3,000-7,000
+- Volumetric Analysis: $2,000-4,000
+- Monthly Monitoring: $8,000-15,000
+
+INFRASTRUCTURE PACKAGES
+- Project Planning: $2,000-5,000
+- Progress Monitoring: $3,000-8,000 per month
+- Final Documentation: $4,000-10,000
+
+CONTACT & SUPPORT
+=================
+
+Headquarters:
+GeoVision
+Luanda, Angola
+Phone: +244 222 XXX XXX
+Email: info@geovision.ao
+
+Sales Team:
+- Agricultural Sector: agriculture@geovision.ao
+- Mining Sector: mining@geovision.ao
+- Infrastructure: infrastructure@geovision.ao
+
+Technical Support:
+- support@geovision.ao
+- Emergency: +244 923 XXX XXX
+
+CASE STUDIES
+============
+
+CASE 1: LARGE-SCALE FARMING OPERATION
+Challenge: 50,000 hectare farm needed optimal irrigation scheduling
+Solution: Monthly multispectral monitoring with NDVI analysis
+Result: 25% water savings, 15% yield increase
+
+CASE 2: MINING COMPLIANCE
+Challenge: Environmental monitoring for mining license compliance
+Solution: Quarterly drone surveys with change detection
+Result: Real-time compliance documentation, reduced audit costs
+
+CASE 3: INFRASTRUCTURE PROJECT
+Challenge: 200km road construction tracking
+Solution: Bi-weekly drone surveys with orthomosaics
+Result: Better project management, 10% cost reduction
+
+ABOUT GEOVISION
+===============
+
+Founded: 2021
+Team: 15+ professionals (pilots, engineers, analysts)
+Certifications: ANAC drone pilot licenses, ISO 9001 Quality Management
+Partnerships: DJI Enterprise, Pix4D, ArcGIS, local universities
+
+Our Commitment:
+- Accuracy: Sub-centimeter GPS accuracy
+- Reliability: 99.5% mission success rate
+- Safety: Best practices and emergency protocols
+- Sustainability: Drone technology reduces environmental impact
+- Training: Customer training and capacity building
+
+NDVI & SPECTRAL ANALYSIS
+=========================
+
+NDVI (Normalized Difference Vegetation Index):
+- Range: -1 to +1
+- >0.6: Healthy, dense vegetation
+- 0.4-0.6: Moderate vegetation
+- <0.4: Stressed or sparse vegetation
+- Values used for crop health assessment
+
+NDBI (Normalized Difference Built-up Index):
+- Used for urban mapping and infrastructure detection
+- Identifies built-up areas and urban sprawl
+
+NDMI (Normalized Difference Moisture Index):
+- Measures water content in vegetation
+- Used for drought and water stress assessment
+- Critical for irrigation management
+
+Data Processing:
+1. Image acquisition via drone
+2. Radiometric calibration
+3. Atmospheric correction
+4. Co-registration and alignment
+5. Index calculation
+6. Classification and thresholding
+7. Vector conversion and reporting
+
+FREQUENTLY ASKED QUESTIONS
+==========================
+
+Q: How accurate are drone surveys?
+A: We achieve sub-centimeter accuracy with PPK (Post-Processed Kinematic) GPS correction.
+
+Q: What's the typical coverage area per flight?
+A: Depends on drone altitude and area size, typically 500-5,000 hectares per mission.
+
+Q: How long does analysis take?
+A: Standard processing: 3-5 days. Express: 24 hours.
+
+Q: What happens in bad weather?
+A: Operations postponed. Safety is our priority.
+
+Q: Can drones work at night?
+A: Not for visual surveys, but thermal sensors work day/night for specific applications.
+
+Q: What's the difference between multispectral and hyperspectral?
+A: Multispectral: 4-5 bands (RGB, NIR, Red Edge). Hyperspectral: 100+ bands for specialized analysis.
+
+ENVIRONMENTAL BENEFITS
+======================
+
+Compared to traditional ground surveys:
+- 80% reduction in labor costs
+- 70% faster data collection
+- Higher accuracy and objectivity
+- Real-time decision support
+- Reduced carbon footprint
+- Non-invasive monitoring
+- Historical trend analysis
+
+TECHNICAL SPECIFICATIONS
+========================
+
+DJI Matrice 300 RTK:
+- Maximum Altitude: 7,000 m
+- Flight Time: 46 minutes
+- Payload Capacity: 2.7 kg
+- Wind Resistance: 12 m/s
+- IP45 Weather Rating
+
+Sensors:
+- RGB Camera: 20 MP, 4/3 CMOS
+- Multispectral: 48 MP, 5-band (R, G, B, Red Edge, NIR)
+- Thermal: 640×512 radiometric
+- Zoom: 30x hybrid zoom
+
+TRAINING & CAPACITY BUILDING
+=============================
+
+GeoVision offers training programs:
+1. Drone Pilot Certification (40 hours)
+2. Image Analysis and Interpretation (20 hours)
+3. GIS and Data Management (30 hours)
+4. Sector-Specific Applications (custom duration)
+
+Locations:
+- Luanda (main training center)
+- Huambo (regional center)
+- Virtual options available
+
+FUTURE ROADMAP
+==============
+
+2025 Expansion:
+- AI-powered automated analysis
+- Real-time edge processing
+- Extended flight range with solar-powered drones
+- Satellite data integration
+- Mobile app for field teams
+- Blockchain for data verification
+
+2026 Goals:
+- Regional expansion to Zambia, Namibia
+- Enterprise SaaS platform
+- Public data marketplace
+- Climate monitoring network
+
+python -m app.rag.build

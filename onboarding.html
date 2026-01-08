@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Configurar conta – GeoVision</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    body {
+      background: radial-gradient(circle at 20% 20%, #102540, #04070f 55%);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #e8edf4;
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2rem 1rem;
+    }
+    .shell {
+      width: min(520px, 100%);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 18px;
+      padding: 2.4rem 2.1rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(12px);
+    }
+    .title {
+      font-size: 1.8rem;
+      margin: 0 0 0.3rem;
+    }
+    .subtitle {
+      margin: 0 0 1.4rem;
+      color: #9fb4d3;
+      font-size: 0.95rem;
+    }
+    .grid { display: grid; gap: 1.2rem; }
+    label { display:block; font-size:0.9rem; margin-bottom:0.35rem; color:#d7deea; }
+    input, select {
+      width: 100%;
+      padding: 0.9rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: #f2f6ff;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus, select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+    }
+    .btn-primary {
+      width: 100%;
+      padding: 0.95rem;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(130deg, #22c55e, #38bdf8);
+      color: #052010;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: filter 0.2s;
+    }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .feedback {
+      display: none;
+      margin-top: 0.8rem;
+      padding: 0.75rem;
+      border-radius: 10px;
+      font-size: 0.93rem;
+    }
+    .feedback.error { background: rgba(255, 99, 99, 0.12); border: 1px solid rgba(255, 99, 99, 0.4); color: #ff9b9b; }
+    .feedback.success { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.35); color: #b6f4c5; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1 class="title">Configurar tipo de conta</h1>
+    <p class="subtitle" id="welcome-text">Bem-vindo ao GeoVision.</p>
+
+    <form id="onboarding-form" class="grid">
+      <div>
+        <label for="sector">Setor principal</label>
+        <select id="sector" required>
+          <option value="">Seleciona o setor</option>
+          <option value="agro">Agro &amp; Pecuária</option>
+          <option value="mining">Mineração</option>
+          <option value="demining">Desminagem</option>
+          <option value="construction">Construção</option>
+          <option value="infrastructure">Infraestruturas</option>
+          <option value="solar">Solar</option>
+        </select>
+      </div>
+      <div>
+        <label for="org-name">Nome da organização (opcional)</label>
+        <input id="org-name" type="text" placeholder="Nome da empresa / fazenda" />
+      </div>
+      <div>
+        <label for="account-name">Nome do espaço de trabalho (opcional)</label>
+        <input id="account-name" type="text" placeholder="Ex.: GeoVision – Operações Agro" />
+      </div>
+      <button type="submit" class="btn-primary" id="submit-btn">Guardar e continuar</button>
+    </form>
+
+    <div id="success-box" class="feedback success" role="status" aria-live="polite" aria-hidden="true"></div>
+    <div id="error-box" class="feedback error" role="alert" aria-live="assertive" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
+    const successBox = document.getElementById("success-box");
+    const errorBox = document.getElementById("error-box");
+
+    function show(box, msg) {
+      if (!box) return;
+      box.textContent = msg;
+      box.style.display = "block";
+      box.setAttribute("aria-hidden", "false");
+    }
+    function hide(box) {
+      if (!box) return;
+      box.style.display = "none";
+      box.textContent = "";
+      box.setAttribute("aria-hidden", "true");
+    }
+
+    const rawUser = localStorage.getItem("gv_user");
+    try {
+      const u = rawUser ? JSON.parse(rawUser) : null;
+      if (u && u.email) {
+        document.getElementById("welcome-text").textContent = `Bem-vindo, ${u.email}. Escolhe como queres usar o GeoVision.`;
+      }
+    } catch (_) {}
+
+    const token = localStorage.getItem("gv_token");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    document.getElementById("onboarding-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hide(errorBox); hide(successBox);
+
+      const sector = document.getElementById("sector").value;
+      const orgName = document.getElementById("org-name").value.trim();
+      const accountName = document.getElementById("account-name").value.trim();
+
+      if (!sector) {
+        show(errorBox, "Seleciona o setor principal.");
+        return;
+      }
+
+      const btn = document.getElementById("submit-btn");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(API_BASE + "/auth/google/onboarding", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token,
+          },
+          body: JSON.stringify({
+            sector_focus: sector,
+            entity_type: "individual",
+            org_name: orgName || null,
+            account_name: accountName || null,
+          }),
+        });
+
+        if (!res.ok) {
+          const txt = await res.text().catch(() => null);
+          throw new Error(txt || "Não foi possível guardar a configuração.");
+        }
+
+        const data = await res.json().catch(() => ({}));
+        if (data.access_token) {
+          localStorage.setItem("gv_token", data.access_token);
+        }
+        if (data.user) {
+          localStorage.setItem("gv_user", JSON.stringify(data.user));
+        }
+        localStorage.setItem("gv_toast", JSON.stringify({
+          msg: "Conta configurada com sucesso.",
+          type: "success",
+          ts: Date.now(),
+        }));
+
+        const isAdmin = data.user && data.user.role === "admin";
+        window.location.href = isAdmin ? "admin.html" : "dashboard.html";
+      } catch (err) {
+        console.error("onboarding", err);
+        show(errorBox, (err && err.message) ? err.message : "Erro ao guardar configuração.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

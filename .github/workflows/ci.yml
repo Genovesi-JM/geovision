@@ -1,0 +1,66 @@
+name: CI - tests & smoke e2e
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-and-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Install Playwright (Python) + browsers
+        working-directory: ./
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          python -m playwright install --with-deps
+
+      - name: Start backend (uvicorn)
+        working-directory: ./backend
+        run: |
+          nohup ${PYTHON:-python} -m uvicorn app.main:app --host 127.0.0.1 --port 8010 > /tmp/uvicorn-ci.log 2>&1 &
+          sleep 2
+
+      - name: Start static server for frontend
+        working-directory: ./
+        run: |
+          nohup python -m http.server 8001 > /tmp/static-ci.log 2>&1 &
+          sleep 1
+
+      - name: Run backend tests (pytest)
+        working-directory: ./backend
+        run: |
+          python -m pip install pytest
+          pytest -q
+
+      - name: Run Playwright Python smoke check
+        env:
+          API_BASE: http://127.0.0.1:8010
+        working-directory: ./
+        run: |
+          python -u scripts/playwright_check.py
+
+      - name: Upload logs (uvicorn + static)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-server-logs
+          path: |
+            /tmp/uvicorn-ci.log
+            /tmp/static-ci.log
