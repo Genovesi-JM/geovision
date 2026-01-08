@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const API_BASE = window.API_BASE || "http://127.0.0.1:8090";
+    const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
 
     try {
       if (submitBtn) {

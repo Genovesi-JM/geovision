@@ -1,9 +1,8 @@
 ﻿// GeoVision FRONTEND CORE + BACKEND
-// Ajusta aqui se o backend nao estiver em localhost:8090
-const API_BASE = "http://127.0.0.1:8090";
-if (typeof window !== "undefined") {
-  window.API_BASE = API_BASE;
-}
+// Prefer `window.API_BASE` (set by assets/js/config.js). Fallback to localhost.
+const DEFAULT_API_BASE = "http://127.0.0.1:8010";
+const API_BASE = (typeof window !== "undefined" && window.API_BASE) ? window.API_BASE : DEFAULT_API_BASE;
+if (typeof window !== "undefined") window.API_BASE = API_BASE;
 const DEMO_EMAIL = "teste@demo.com";
 const DEMO_PASSWORD = "123456";
 const DEMO_TOKEN = "demo-token";
