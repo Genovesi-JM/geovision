@@ -13,6 +13,7 @@ backend/.env
 backend/app/.env
 .env
 .env.*
+!backend/.env.example
 
 # SQLite / local databases
 *.db
