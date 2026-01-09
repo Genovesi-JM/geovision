@@ -288,11 +288,27 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
     }
     try:
         tokres = requests.post(token_url, data=data, timeout=10)
-        tokres.raise_for_status()
+        if tokres.status_code != 200:
+            body = tokres.text
+            try:
+                body = json.dumps(tokres.json(), ensure_ascii=False)
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Erro a trocar o código: "
+                    f"HTTP {tokres.status_code} - {body}. "
+                    f"redirect_uri={redirect_uri}"
+                ),
+            )
+
         tok = tokres.json()
         access_token = tok.get("access_token")
+    except HTTPException:
+        raise
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Erro a trocar o código: {exc}")
+        raise HTTPException(status_code=400, detail=f"Erro a trocar o código: {type(exc).__name__}: {exc}")
 
     now = datetime.utcnow()
     # Em ambiente de desenvolvimento, sejamos mais tolerantes com o state.
