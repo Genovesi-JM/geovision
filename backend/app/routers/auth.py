@@ -2,6 +2,7 @@
 
 import json
 import secrets
+import traceback
 from datetime import datetime, timedelta
 from typing import List, Optional, Set
 from urllib.parse import urlencode
@@ -256,154 +257,170 @@ def google_login(db: Session = Depends(get_db)):
 @router.get("/google/callback")
 def google_callback(code: str = None, state: str = None, db: Session = Depends(get_db)):
     """Handle Google OAuth2 callback and return an app JWT."""
-    if not code:
-        raise HTTPException(status_code=400, detail="Código ausente.")
-    if not state:
-        raise HTTPException(status_code=400, detail="State ausente.")
-    if not settings.google_client_id or not settings.google_client_secret:
-        redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
-        missing = []
-        if not settings.google_client_id:
-            missing.append("GOOGLE_CLIENT_ID")
-        if not settings.google_client_secret:
-            missing.append("GOOGLE_CLIENT_SECRET")
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Google OAuth não configurado. Defina "
-                + ", ".join(missing)
-                + ". Redirect URI esperado no Google Console: "
-                + redirect_uri
-            ),
-        )
-
-    token_url = "https://oauth2.googleapis.com/token"
-    redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
-    data = {
-        "code": code,
-        "client_id": settings.google_client_id,
-        "client_secret": settings.google_client_secret,
-        "redirect_uri": redirect_uri,
-        "grant_type": "authorization_code",
-    }
     try:
-        tokres = requests.post(token_url, data=data, timeout=10)
-        if tokres.status_code != 200:
-            body = tokres.text
-            try:
-                body = json.dumps(tokres.json(), ensure_ascii=False)
-            except Exception:
-                pass
+        if not code:
+            raise HTTPException(status_code=400, detail="Código ausente.")
+        if not state:
+            raise HTTPException(status_code=400, detail="State ausente.")
+        if not settings.google_client_id or not settings.google_client_secret:
+            redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
+            missing = []
+            if not settings.google_client_id:
+                missing.append("GOOGLE_CLIENT_ID")
+            if not settings.google_client_secret:
+                missing.append("GOOGLE_CLIENT_SECRET")
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "Erro a trocar o código: "
-                    f"HTTP {tokres.status_code} - {body}. "
-                    f"redirect_uri={redirect_uri}"
+                    "Google OAuth não configurado. Defina "
+                    + ", ".join(missing)
+                    + ". Redirect URI esperado no Google Console: "
+                    + redirect_uri
                 ),
             )
 
-        tok = tokres.json()
-        access_token = tok.get("access_token")
-    except HTTPException:
-        raise
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Erro a trocar o código: {type(exc).__name__}: {exc}")
-
-    now = datetime.utcnow()
-    # Em ambiente de desenvolvimento, sejamos mais tolerantes com o state.
-    st = db.query(OAuthState).filter(OAuthState.state == state).first()
-    if not st:
-        # Fallback: tenta usar o registo mais recente para evitar quebrar o fluxo
-        st = db.query(OAuthState).order_by(OAuthState.created_at.desc()).first()
-        if not st:
-            raise HTTPException(status_code=400, detail="State invA­lido ou jA­ utilizado.")
-
-    if st.expires_at < now:
-        raise HTTPException(status_code=400, detail="State expirou.")
-
-    # Marcamos como usado mas aceitaremos múltiplos callbacks enquanto não expirar.
-    st.used = True
-    db.add(st)
-    db.commit()
-
-    try:
-        ures = requests.get("https://www.googleapis.com/oauth2/v2/userinfo", params={"access_token": access_token}, timeout=10)
-        ures.raise_for_status()
-        userinfo = ures.json()
-        email = userinfo.get("email")
-        name = userinfo.get("name")
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Erro a obter userinfo: {exc}")
-
-    if not email:
-        raise HTTPException(status_code=400, detail="Email nAœo fornecido pelo Google.")
-
-    row = db.execute(text("SELECT id, role FROM users WHERE email = :email"), {"email": email}).first()
-    if row:
-        user_id = row[0]
-        role = row[1] if row[1] else ("admin" if email.lower() in ADMIN_EMAILS else "cliente")
-    else:
-        temp_pass = secrets.token_urlsafe(12)
-        hashed = hash_password(temp_pass)
-        now_iso = datetime.utcnow().isoformat(sep=" ")
-
-        insertion_error = None
-        fallback_error = None
+        token_url = "https://oauth2.googleapis.com/token"
+        redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
+        data = {
+            "code": code,
+            "client_id": settings.google_client_id,
+            "client_secret": settings.google_client_secret,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }
         try:
-            new_user = User(email=email, password_hash=hashed, role="cliente", is_active=True)
-            db.add(new_user)
-            db.commit()
-            user_id = new_user.id
-            role = resolve_role(new_user)
+            tokres = requests.post(token_url, data=data, timeout=10)
+            if tokres.status_code != 200:
+                body = tokres.text
+                try:
+                    body = json.dumps(tokres.json(), ensure_ascii=False)
+                except Exception:
+                    pass
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Erro a trocar o código: "
+                        f"HTTP {tokres.status_code} - {body}. "
+                        f"redirect_uri={redirect_uri}"
+                    ),
+                )
+
+            tok = tokres.json()
+            access_token = tok.get("access_token")
+        except HTTPException:
+            raise
         except Exception as exc:
-            insertion_error = exc
-            db.rollback()
-            try:
-                with engine.begin() as conn:
-                    conn.execute(
-                        text(
-                            "INSERT INTO users (email, password_hash, role, is_active, created_at, updated_at) VALUES (:email, :password_hash, :role, 1, :now, :now)"
-                        ),
-                        {"email": email, "password_hash": hashed, "role": "cliente", "now": now_iso},
-                    )
-                insertion_error = None
-            except Exception as exc2:
-                fallback_error = exc2
+            raise HTTPException(status_code=400, detail=f"Erro a trocar o código: {type(exc).__name__}: {exc}")
+
+        now = datetime.utcnow()
+        # Em ambiente de desenvolvimento, sejamos mais tolerantes com o state.
+        st = db.query(OAuthState).filter(OAuthState.state == state).first()
+        if not st:
+            # Fallback: tenta usar o registo mais recente para evitar quebrar o fluxo
+            st = db.query(OAuthState).order_by(OAuthState.created_at.desc()).first()
+            if not st:
+                raise HTTPException(status_code=400, detail="State inválido ou já utilizado.")
+
+        if st.expires_at < now:
+            raise HTTPException(status_code=400, detail="State expirou.")
+
+        # Marcamos como usado mas aceitaremos múltiplos callbacks enquanto não expirar.
+        st.used = True
+        db.add(st)
+        db.commit()
 
         try:
-            with SessionLocal() as fresh_db:
-                user_row = fresh_db.execute(text("SELECT id FROM users WHERE email = :email"), {"email": email}).first()
-        except Exception:
-            user_row = None
-        if not user_row:
-            details = []
-            if insertion_error:
-                details.append(str(insertion_error))
-            if fallback_error:
-                details.append(str(fallback_error))
-            raise HTTPException(status_code=500, detail=("Falha a criar/utilizar utilizador. " + " | ".join(details)))
-        user_id = user_row[0]
-        role = "cliente"
+            ures = requests.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                params={"access_token": access_token},
+                timeout=10,
+            )
+            ures.raise_for_status()
+            userinfo = ures.json()
+            email = userinfo.get("email")
+            name = userinfo.get("name")
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Erro a obter userinfo: {type(exc).__name__}: {exc}")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="Email não fornecido pelo Google.")
+
+        row = db.execute(text("SELECT id, role FROM users WHERE email = :email"), {"email": email}).first()
+        if row:
+            user_id = row[0]
+            role = row[1] if row[1] else ("admin" if email.lower() in ADMIN_EMAILS else "cliente")
+        else:
+            temp_pass = secrets.token_urlsafe(12)
+            hashed = hash_password(temp_pass)
+            now_iso = datetime.utcnow().isoformat(sep=" ")
+
+            insertion_error = None
+            fallback_error = None
+            try:
+                new_user = User(email=email, password_hash=hashed, role="cliente", is_active=True)
+                db.add(new_user)
+                db.commit()
+                user_id = new_user.id
+                role = resolve_role(new_user)
+            except Exception as exc:
+                insertion_error = exc
+                db.rollback()
+                try:
+                    with engine.begin() as conn:
+                        conn.execute(
+                            text(
+                                "INSERT INTO users (email, password_hash, role, is_active, created_at, updated_at) VALUES (:email, :password_hash, :role, 1, :now, :now)"
+                            ),
+                            {"email": email, "password_hash": hashed, "role": "cliente", "now": now_iso},
+                        )
+                    insertion_error = None
+                except Exception as exc2:
+                    fallback_error = exc2
+
+            try:
+                with SessionLocal() as fresh_db:
+                    user_row = fresh_db.execute(
+                        text("SELECT id FROM users WHERE email = :email"),
+                        {"email": email},
+                    ).first()
+            except Exception:
+                user_row = None
+            if not user_row:
+                details = []
+                if insertion_error:
+                    details.append(str(insertion_error))
+                if fallback_error:
+                    details.append(str(fallback_error))
+                raise HTTPException(status_code=500, detail=("Falha a criar/utilizar utilizador. " + " | ".join(details)))
+            user_id = user_row[0]
+            role = "cliente"
 
     # token JWT com email como "sub" e id em "uid",
     # para ser compatível com o fluxo de onboarding Google.
-    token = create_access_token({"sub": email, "role": role, "uid": user_id})
-    # Se o utilizador ainda n?o tiver conta associada, envia para onboarding
-    membership = db.query(AccountMember).filter(AccountMember.user_id == user_id).first()
-    redirect_path = "/admin.html" if role == "admin" else "/dashboard.html"
-    if not membership:
-        redirect_path = "/onboarding.html"
+        token = create_access_token({"sub": email, "role": role, "uid": user_id})
+        # Se o utilizador ainda não tiver conta associada, envia para onboarding
+        membership = db.query(AccountMember).filter(AccountMember.user_id == user_id).first()
+        redirect_path = "/admin.html" if role == "admin" else "/dashboard.html"
+        if not membership:
+            redirect_path = "/onboarding.html"
 
-    frontend_base = settings.frontend_base.rstrip("/")
-    callback_url = f"{frontend_base}/auth-callback.html"
-    params = urlencode({
-        "token": token,
-        "email": email,
-        "role": role,
-        "redirect": redirect_path,
-    })
-    return RedirectResponse(f"{callback_url}?{params}")
+        frontend_base = settings.frontend_base.rstrip("/")
+        callback_url = f"{frontend_base}/auth-callback.html"
+        params = urlencode({
+            "token": token,
+            "email": email,
+            "role": role,
+            "redirect": redirect_path,
+        })
+        return RedirectResponse(f"{callback_url}?{params}")
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Log full traceback to Render logs, return a safe error to the client
+        print("[GeoVision] Unhandled error in google_callback")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Erro interno no callback Google: {type(exc).__name__}: {exc}")
 
 
 class GoogleOnboardingRequest(BaseModel):
