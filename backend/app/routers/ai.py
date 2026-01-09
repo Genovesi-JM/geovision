@@ -37,6 +37,11 @@ class ChatResponse(BaseModel):
     reply: str
 
 
+class AIStatusResponse(BaseModel):
+    openai_configured: bool
+    openai_model: str
+
+
 SYSTEM_PROMPT = """
 Es o assistente comercial AI da GeoVision (Gaia), focado em Angola.
 
@@ -291,3 +296,11 @@ async def chat(request: ChatRequest) -> ChatResponse:
     )
 
     return ChatResponse(reply=reply)
+
+
+@router.get("/status", response_model=AIStatusResponse)
+def ai_status() -> AIStatusResponse:
+    """Returns AI configuration status without exposing secrets."""
+    api_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
+    model = settings.openai_model or "gpt-4.1-mini"
+    return AIStatusResponse(openai_configured=bool(api_key), openai_model=model)

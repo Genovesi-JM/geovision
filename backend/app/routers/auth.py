@@ -200,9 +200,22 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
 @router.get("/google/login")
 def google_login(db: Session = Depends(get_db)):
     """Redirect the user to Google's OAuth2 consent screen."""
-    if not settings.google_client_id:
-        raise HTTPException(status_code=400, detail="Google OAuth nAœo configurado.")
     redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
+    missing = []
+    if not settings.google_client_id:
+        missing.append("GOOGLE_CLIENT_ID")
+    if not settings.google_client_secret:
+        missing.append("GOOGLE_CLIENT_SECRET")
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Google OAuth não configurado. Defina "
+                + ", ".join(missing)
+                + ". Redirect URI esperado no Google Console: "
+                + redirect_uri
+            ),
+        )
     state = _generate_state_token()
     expires_at = datetime.utcnow() + timedelta(minutes=10)
     os_state = OAuthState(state=state, expires_at=expires_at)
@@ -226,11 +239,25 @@ def google_login(db: Session = Depends(get_db)):
 def google_callback(code: str = None, state: str = None, db: Session = Depends(get_db)):
     """Handle Google OAuth2 callback and return an app JWT."""
     if not code:
-        raise HTTPException(status_code=400, detail="CA3digo ausente.")
+        raise HTTPException(status_code=400, detail="Código ausente.")
     if not state:
         raise HTTPException(status_code=400, detail="State ausente.")
     if not settings.google_client_id or not settings.google_client_secret:
-        raise HTTPException(status_code=400, detail="Google OAuth nAœo configurado.")
+        redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
+        missing = []
+        if not settings.google_client_id:
+            missing.append("GOOGLE_CLIENT_ID")
+        if not settings.google_client_secret:
+            missing.append("GOOGLE_CLIENT_SECRET")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Google OAuth não configurado. Defina "
+                + ", ".join(missing)
+                + ". Redirect URI esperado no Google Console: "
+                + redirect_uri
+            ),
+        )
 
     token_url = "https://oauth2.googleapis.com/token"
     redirect_uri = settings.backend_base.rstrip("/") + "/auth/google/callback"
@@ -247,7 +274,7 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
         tok = tokres.json()
         access_token = tok.get("access_token")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Erro a trocar o cA3digo: {exc}")
+        raise HTTPException(status_code=400, detail=f"Erro a trocar o código: {exc}")
 
     now = datetime.utcnow()
     # Em ambiente de desenvolvimento, sejamos mais tolerantes com o state.

@@ -10,7 +10,9 @@ backend/.venv/
 
 # Local env files (do not commit secrets)
 backend/.env
+backend/app/.env
 .env
+.env.*
 
 # SQLite / local databases
 *.db
