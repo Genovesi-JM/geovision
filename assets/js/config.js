@@ -7,7 +7,7 @@
 (function () {
 	const LOCAL_DEFAULT = "http://127.0.0.1:8010";
 	// Set your deployed backend URL here (must be HTTPS for GitHub Pages)
-	const PROD_DEFAULT = "https://geovision-backend.onrender.com";
+	const PROD_DEFAULT = "https://geovision-backend-db2f.onrender.com";
 
 	const isGitHubPages =
 		typeof window !== "undefined" &&
