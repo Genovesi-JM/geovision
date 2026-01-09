@@ -148,6 +148,24 @@ def _generate_state_token() -> str:
     return secrets.token_urlsafe(24)
 
 
+@router.get("/status", tags=["auth", "system"])
+def auth_status() -> dict:
+    """Non-sensitive auth/runtime configuration status for debugging deployments."""
+    backend_base = (settings.backend_base or "").rstrip("/")
+    frontend_base = (settings.frontend_base or "").rstrip("/")
+    redirect_uri = (backend_base + "/auth/google/callback") if backend_base else ""
+
+    return {
+        "backend_base": backend_base,
+        "frontend_base": frontend_base,
+        "google_oauth": {
+            "client_id_set": bool(settings.google_client_id),
+            "client_secret_set": bool(settings.google_client_secret),
+            "redirect_uri_expected": redirect_uri,
+        },
+    }
+
+
 @router.post("/forgot-password", status_code=202)
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """Request a password reset. Always returns 202 to avoid user enumeration."""

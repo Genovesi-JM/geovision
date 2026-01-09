@@ -24,6 +24,22 @@ def create_application() -> FastAPI:
     """Build and configure the FastAPI instance."""
     application = FastAPI(title=settings.app_name)
 
+    # Safe startup diagnostics (no secrets)
+    try:
+        print(
+            "[GeoVision] Config: "
+            f"env={settings.env} "
+            f"backend_base={settings.backend_base} "
+            f"frontend_base={settings.frontend_base} "
+            f"google_client_id_set={bool(settings.google_client_id)} "
+            f"google_client_secret_set={bool(settings.google_client_secret)}"
+        )
+        cors_env = os.getenv("CORS_ORIGINS", "")
+        if cors_env.strip():
+            print(f"[GeoVision] CORS_ORIGINS(env)={cors_env}")
+    except Exception:
+        pass
+
     # CORS
     # Note: browsers will reject `Access-Control-Allow-Origin: *` when
     # `allow_credentials=True`, so we must send an explicit origin list.
