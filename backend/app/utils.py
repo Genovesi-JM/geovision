@@ -19,13 +19,12 @@ def hash_password(password: str) -> str:
 
     Returns the encoded bcrypt hash string.
     """
-    # Some underlying schemes (bcrypt) have a 72-byte input limit. To avoid
-    # unexpected errors when callers pass long inputs, truncate to 72 bytes
-    # before hashing. For PBKDF2 this is a no-op for normal-length passwords.
+    # bcrypt has a 72-byte input limit. Truncate by bytes (not characters)
+    # to handle multi-byte UTF-8 properly.
     if password is None:
         password = ""
-    pw = password[:72]
-    return pwd_context.hash(pw)
+    pw_bytes = password.encode('utf-8')[:72]
+    return pwd_context.hash(pw_bytes.decode('utf-8', errors='ignore'))
 
 
 def _is_legacy_sha256(s: str) -> bool:
