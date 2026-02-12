@@ -1,14 +1,31 @@
 const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
 const SESSION_ACCOUNT_KEY = "gv_account_id";
+const SESSION_ACTIVE_SECTOR_KEY = "gv_active_sector";
 const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
 
-function buildDemoPortfolio(account) {
-  const sector = (account && account.sector_focus) || "generic";
+const SECTOR_LABELS = {
+  agro: "Agro & Pecuária",
+  mining: "Mineração",
+  demining: "Desminagem",
+  construction: "Construção",
+  infrastructure: "Infraestruturas",
+  solar: "Solar",
+};
 
+function getSectorsFromAccount(account) {
+  if (!account || !account.sector_focus) return ["generic"];
+  const raw = account.sector_focus;
+  if (raw.includes(",")) {
+    return raw.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  return [raw];
+}
+
+function buildDemoPortfolioForSector(sector, accountName) {
   if (sector === "agro") {
     return {
-      name: account?.name || "Operações Agro",
+      name: accountName || "Operações Agro",
       services: [
         { type: "NDVI + Pulverização", location: "Huambo", hectares: 180, status: "em campo" },
         { type: "Mapeamento de talhão", location: "Benguela", hectares: 95, status: "processamento" },
@@ -25,7 +42,7 @@ function buildDemoPortfolio(account) {
 
   if (sector === "mining") {
     return {
-      name: account?.name || "Operações Mining",
+      name: accountName || "Operações Mining",
       services: [
         { type: "Levantamento LIDAR", location: "Mina Catoca", hectares: "-", status: "planeado" },
       ],
@@ -39,11 +56,29 @@ function buildDemoPortfolio(account) {
     };
   }
 
-  if (sector === "infrastructure" || sector === "construction") {
+  if (sector === "construction") {
     return {
-      name: account?.name || "Infra & Construção",
+      name: accountName || "Operações Construção",
+      services: [
+        { type: "Levantamento topográfico", location: "Obra Talatona", hectares: 12, status: "em campo" },
+        { type: "Inspeção estrutural", location: "Edifício Central", hectares: "-", status: "processamento" },
+      ],
+      hardware: [
+        { name: "Sensor estrutural", location: "Torre Sul", status: "online" },
+      ],
+      reports: [
+        { title: "Relatório topográfico", service: "Topografia", eta: "+2 dias", status: "em processamento" },
+      ],
+      alerts: ["Verificar estabilidade torre sul."],
+    };
+  }
+
+  if (sector === "infrastructure") {
+    return {
+      name: accountName || "Infraestruturas",
       services: [
         { type: "Inspeção ponte", location: "Luena", hectares: "-", status: "processamento" },
+        { type: "Monitorização estradas", location: "EN-100", hectares: "-", status: "em campo" },
       ],
       hardware: [
         { name: "Sensor vibração", location: "Ponte principal", status: "online" },
@@ -53,8 +88,38 @@ function buildDemoPortfolio(account) {
     };
   }
 
+  if (sector === "solar") {
+    return {
+      name: accountName || "Operações Solar",
+      services: [
+        { type: "Inspeção térmica painéis", location: "Parque Solar Namibe", hectares: 85, status: "planeado" },
+      ],
+      hardware: [
+        { name: "Sensor irradiância", location: "Estação central", status: "online" },
+      ],
+      reports: [
+        { title: "Análise eficiência Q4", service: "Térmico", eta: "+5 dias", status: "em processamento" },
+      ],
+      alerts: ["Painel B12 com temperatura elevada."],
+    };
+  }
+
+  if (sector === "demining") {
+    return {
+      name: accountName || "Operações Desminagem",
+      services: [
+        { type: "Levantamento área", location: "Cuito Cuanavale", hectares: 45, status: "em campo" },
+      ],
+      hardware: [
+        { name: "Drone deteção", location: "Base operacional", status: "online" },
+      ],
+      reports: [],
+      alerts: ["Área prioridade alta identificada."],
+    };
+  }
+
   return {
-    name: account?.name || "Conta GeoVision",
+    name: accountName || "Conta GeoVision",
     services: [
       { type: "Missão drone", location: "Cliente GeoVision", hectares: "-", status: "planeado" },
     ],
@@ -62,6 +127,72 @@ function buildDemoPortfolio(account) {
     reports: [],
     alerts: ["Sem alertas críticos no momento."],
   };
+}
+
+function buildDemoPortfolio(account, activeSector) {
+  const sectors = getSectorsFromAccount(account);
+  const accountName = account?.name;
+  
+  // If activeSector specified and valid, show only that sector
+  if (activeSector && sectors.includes(activeSector)) {
+    return buildDemoPortfolioForSector(activeSector, accountName);
+  }
+  
+  // If single sector, return it directly
+  if (sectors.length === 1) {
+    return buildDemoPortfolioForSector(sectors[0], accountName);
+  }
+  
+  // Multiple sectors: combine all data
+  const combined = {
+    name: accountName || "Multi-Setor",
+    services: [],
+    hardware: [],
+    reports: [],
+    alerts: [],
+  };
+  
+  sectors.forEach(sector => {
+    const p = buildDemoPortfolioForSector(sector, accountName);
+    combined.services.push(...p.services.map(s => ({ ...s, sector })));
+    combined.hardware.push(...p.hardware.map(h => ({ ...h, sector })));
+    combined.reports.push(...p.reports.map(r => ({ ...r, sector })));
+    combined.alerts.push(...p.alerts);
+  });
+  
+  return combined;
+}
+
+function renderSectorTabs(account, activeSector, onTabClick) {
+  const container = document.getElementById("sector-tabs");
+  if (!container) return;
+  
+  const sectors = getSectorsFromAccount(account);
+  
+  // Hide tabs if single sector
+  if (sectors.length <= 1) {
+    container.style.display = "none";
+    return;
+  }
+  
+  container.style.display = "flex";
+  container.innerHTML = "";
+  
+  // "Todos" tab for combined view
+  const allTab = document.createElement("button");
+  allTab.className = "sector-tab" + (!activeSector ? " active" : "");
+  allTab.textContent = "Todos";
+  allTab.onclick = () => onTabClick(null);
+  container.appendChild(allTab);
+  
+  // Individual sector tabs
+  sectors.forEach(sector => {
+    const tab = document.createElement("button");
+    tab.className = "sector-tab" + (activeSector === sector ? " active" : "");
+    tab.textContent = SECTOR_LABELS[sector] || sector;
+    tab.onclick = () => onTabClick(sector);
+    container.appendChild(tab);
+  });
 }
 
 function requireSession() {
@@ -326,10 +457,11 @@ async function handleAccountCreate(currentAccountId, reloadFn) {
   }
 }
 
-async function loadDashboard(accountIdHint) {
+async function loadDashboard(accountIdHint, activeSectorHint) {
   requireSession();
 
   let currentAccountId = accountIdHint || localStorage.getItem(SESSION_ACCOUNT_KEY) || null;
+  let activeSector = activeSectorHint !== undefined ? activeSectorHint : (localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY) || null);
   let meData = null;
   try {
     meData = await apiGet("/me", currentAccountId);
@@ -356,7 +488,18 @@ async function loadDashboard(accountIdHint) {
 
   const activeAccount =
     (meData && meData.accounts && meData.accounts.find((a) => a.id === currentAccountId)) || null;
-  const portfolio = buildDemoPortfolio(activeAccount);
+  
+  // Render sector tabs for multi-sector accounts
+  renderSectorTabs(activeAccount, activeSector, (newSector) => {
+    if (newSector) {
+      localStorage.setItem(SESSION_ACTIVE_SECTOR_KEY, newSector);
+    } else {
+      localStorage.removeItem(SESSION_ACTIVE_SECTOR_KEY);
+    }
+    loadDashboard(currentAccountId, newSector);
+  });
+  
+  const portfolio = buildDemoPortfolio(activeAccount, activeSector);
 
   await loadKpis(currentAccountId);
 
@@ -385,7 +528,8 @@ async function loadDashboard(accountIdHint) {
     switcher.addEventListener("change", async (e) => {
       const val = e.target.value;
       localStorage.setItem(SESSION_ACCOUNT_KEY, val);
-      await loadDashboard(val);
+      localStorage.removeItem(SESSION_ACTIVE_SECTOR_KEY); // Reset sector filter on account change
+      await loadDashboard(val, null);
     });
     switcher.dataset.gvBound = "1";
   }

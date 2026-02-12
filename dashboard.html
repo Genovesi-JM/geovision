@@ -6,6 +6,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/chatbot.css">
+  <style>
+    .sector-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .sector-tab {
+      padding: 8px 16px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #d7deea;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sector-tab:hover {
+      background: rgba(255,255,255,0.12);
+    }
+    .sector-tab.active {
+      background: linear-gradient(130deg, #22c55e, #38bdf8);
+      color: #052010;
+      font-weight: 600;
+      border-color: transparent;
+    }
+  </style>
 </head>
 
 <body>
@@ -33,6 +59,8 @@
       <h1 class="dash-title" id="dash-title">Conta GeoVision</h1>
       <p class="dash-subtitle" id="dash-meta">Setor • Tipo de entidade</p>
       <div id="modules-chips" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
+      <!-- Sector tabs for multi-sector accounts -->
+      <div id="sector-tabs" class="sector-tabs" style="display:none; margin-top:12px;"></div>
     </section>
 
     <!-- KPI CARDS -->
