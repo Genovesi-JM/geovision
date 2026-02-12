@@ -107,11 +107,23 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     email = (payload.email or "").strip().lower()
     user = db.query(User).filter(User.email == email).first()
 
-    if not user or not user.password_hash:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Este email não está registado. Cria uma conta ou usa o login Google."
+        )
+
+    if not user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Esta conta foi criada via Google. Usa o botão 'Entrar com Google'."
+        )
 
     if not verify_password(payload.password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password incorreta. Usa 'Esqueceu a senha?' para redefinir."
+        )
 
     token = create_access_token({
         "sub": user.email,
