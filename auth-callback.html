@@ -39,7 +39,16 @@
         localStorage.setItem('gv_user', JSON.stringify({ email: email || '', role }));
         localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Login com Google concluído', type: 'success', ts: Date.now() }));
       } catch (e) { /* ignore */ }
-      window.location.replace(redirect);
+      // Handle redirect - if it starts with /, make it relative to current directory
+      let finalRedirect = redirect;
+      if (redirect.startsWith('/')) {
+        // Get the base path (e.g., /geovision/) from current URL
+        const pathParts = window.location.pathname.split('/');
+        pathParts.pop(); // remove current file (auth-callback.html)
+        const basePath = pathParts.join('/');
+        finalRedirect = basePath + redirect;
+      }
+      window.location.replace(finalRedirect);
     })();
   </script>
 </body>
