@@ -438,7 +438,8 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
 
 
 class GoogleOnboardingRequest(BaseModel):
-    sector_focus: str
+    sector_focus: str  # Can be comma-separated for multiple sectors
+    sectors: Optional[List[str]] = None  # Alternative: list of sectors
     entity_type: str = "individual"
     account_name: Optional[str] = None
     org_name: Optional[str] = None
@@ -483,9 +484,17 @@ def google_onboarding(
         })
         return AuthResponse(access_token=new_token, user=user, account=account)
 
-    sector = payload.sector_focus or "agro"
-    if sector not in ALLOWED_SECTORS:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sector_focus")
+    # Support multiple sectors - either from sectors list or comma-separated sector_focus
+    if payload.sectors:
+        sectors_list = [s.strip() for s in payload.sectors if s.strip() in ALLOWED_SECTORS]
+    else:
+        sectors_list = [s.strip() for s in (payload.sector_focus or "agro").split(",") if s.strip() in ALLOWED_SECTORS]
+    
+    if not sectors_list:
+        sectors_list = ["agro"]  # Default fallback
+    
+    # Store as comma-separated string
+    sector = ",".join(sectors_list)
 
     modules = payload.modules_enabled or DEFAULT_MODULES
     account_name = payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
