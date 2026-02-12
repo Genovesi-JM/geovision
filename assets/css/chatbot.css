@@ -213,81 +213,83 @@
 /* Mobile: janela compacta e bem posicionada */
 @media (max-width: 768px) {
   #gv-chatbot {
-    right: 10px;
-    bottom: 10px;
+    right: 8px;
+    bottom: 8px;
   }
 
   #gv-chat-toggle {
-    transform: scale(0.9);
+    transform: scale(0.85);
     transform-origin: bottom right;
   }
 
   .gv-chat-toggle-inner {
-    padding: 5px 8px 5px 5px;
-    gap: 0.35rem;
+    padding: 4px 7px 4px 4px;
+    gap: 0.3rem;
   }
 
   .gv-chat-logo {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
   }
 
   .gv-chat-toggle-title {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
   }
 
   .gv-chat-toggle-sub {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
 
   #gv-chat-window {
-    width: calc(100vw - 20px);
-    max-width: 320px;
-    right: 0;
-    bottom: 38px;
-    max-height: 55vh;
+    position: fixed;
+    width: calc(100vw - 16px);
+    max-width: 300px;
+    right: 8px;
+    bottom: 44px;
+    max-height: 42vh;
   }
 
   #gv-chat-header {
-    padding: 8px 10px;
+    padding: 6px 8px;
   }
 
   .gv-chat-avatar {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
   }
 
   .gv-chat-title {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   .gv-chat-subtitle {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
   }
 
   #gv-chat-messages {
-    padding: 6px 8px;
-    font-size: 12px;
-    line-height: 1.45;
+    padding: 5px 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    max-height: calc(42vh - 90px);
   }
 
   .gv-msg {
-    margin-bottom: 5px;
-    max-width: 94%;
+    margin-bottom: 4px;
+    max-width: 95%;
   }
 
   #gv-chat-input-area {
-    padding: 5px 6px;
-    gap: 5px;
+    padding: 4px 5px;
+    gap: 4px;
   }
 
   #gv-chat-input {
-    padding: 6px 9px;
-    font-size: 12px;
+    padding: 5px 8px;
+    font-size: 11px;
   }
 
   #gv-chat-send {
-    padding: 6px 9px;
-    font-size: 12px;
+    padding: 5px 8px;
+    font-size: 11px;
   }
 }
