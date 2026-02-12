@@ -23,8 +23,8 @@ def hash_password(password: str) -> str:
     # to handle multi-byte UTF-8 properly.
     if password is None:
         password = ""
-    pw_bytes = password.encode('utf-8')[:72]
-    return pwd_context.hash(pw_bytes.decode('utf-8', errors='ignore'))
+    pw_truncated = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(pw_truncated)
 
 
 def _is_legacy_sha256(s: str) -> bool:

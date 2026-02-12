@@ -6,6 +6,7 @@ from app.config import JWT_SECRET, JWT_ALG, JWT_EXPIRE_MIN
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 def hash_password(password: str) -> str:
     """Hash a plain-text password with bcrypt.
     
@@ -14,8 +15,8 @@ def hash_password(password: str) -> str:
     if password is None:
         password = ""
     # Truncate to 72 bytes (not characters) for bcrypt compatibility
-    pw_bytes = password.encode('utf-8')[:72]
-    return pwd_context.hash(pw_bytes.decode('utf-8', errors='ignore'))
+    pw_truncated = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(pw_truncated)
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
     """Validate a plain-text password against a stored hash."""

@@ -115,7 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     value: _valueText(_servicesActive),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _KpiCard(
                     label: 'Hardware instalado',
@@ -133,7 +133,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     value: _valueText(_reportsReady),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _KpiCard(
                     label: 'Alertas',
