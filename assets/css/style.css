@@ -165,14 +165,15 @@ a {
 
 .menu-toggle {
   display: none;
-  border: 1px solid var(--stroke);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-main);
-  font-size: 1.35rem;
-  padding: 0.45rem 0.7rem;
-  border-radius: 12px;
+  border: 2px solid var(--accent-green);
+  background: rgba(11, 20, 42, 0.95);
+  color: var(--accent-green);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   cursor: pointer;
-  z-index: 1;
+  z-index: 100;
 }
 
 /* ---------------- HERO ---------------- */
@@ -1281,9 +1282,10 @@ textarea {
 
 @media (max-width: 768px) {
   .topbar {
-    position: static;
+    position: relative;
     margin: 1rem 1rem 0.5rem;
     flex-wrap: wrap;
+    z-index: 9000;
   }
 
   .menu-toggle {
@@ -1292,26 +1294,28 @@ textarea {
 
   .nav-links {
     position: absolute;
-    right: 1rem;
-    top: 70px;
+    right: 0;
+    top: 100%;
     flex-direction: column;
     gap: 0;
-    background: rgba(11, 20, 42, 0.98);
+    background: #0b1428;
     border-radius: 12px;
-    border: 1px solid var(--stroke);
+    border: 1px solid rgba(95, 212, 255, 0.3);
     padding: 0.5rem 0;
     display: none;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
-    z-index: 1000;
-    min-width: 180px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    min-width: 200px;
   }
 
   .nav-links a {
-    padding: 0.7rem 1.2rem;
+    padding: 0.9rem 1.4rem;
     display: block;
     width: 100%;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 1rem;
+    color: #e9eef8;
+    text-decoration: none;
   }
 
   .nav-links a:last-child {
@@ -1320,7 +1324,8 @@ textarea {
 
   .nav-links a:hover,
   .nav-links a.active {
-    background: rgba(95, 212, 255, 0.1);
+    background: rgba(95, 212, 255, 0.2);
+    color: #5fd4ff;
   }
 
   .nav-links.show {
