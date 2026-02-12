@@ -31,6 +31,74 @@
       font-weight: 600;
       border-color: transparent;
     }
+    
+    /* KPI Status Colors */
+    .kpi-value.kpi-warning {
+      color: #fbbf24;
+    }
+    .kpi-value.kpi-critical {
+      color: #ef4444;
+    }
+    
+    /* Alert Styling */
+    .alert-item {
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-left: 4px solid rgba(255,255,255,0.2);
+    }
+    .alert-item.alert-critical {
+      border-left-color: #ef4444;
+      background: rgba(239,68,68,0.1);
+    }
+    .alert-item.alert-warning {
+      border-left-color: #fbbf24;
+      background: rgba(251,191,36,0.1);
+    }
+    .alert-item.alert-info {
+      border-left-color: #38bdf8;
+      background: rgba(56,189,248,0.1);
+    }
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .alert-severity {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .alert-severity.critical {
+      background: #ef4444;
+      color: white;
+    }
+    .alert-severity.warning {
+      background: #fbbf24;
+      color: #1a1a1a;
+    }
+    .alert-severity.info {
+      background: #38bdf8;
+      color: #1a1a1a;
+    }
+    .alert-title {
+      font-weight: 600;
+      color: #e8edf4;
+    }
+    .alert-description {
+      font-size: 0.9rem;
+      color: #9fb4d3;
+      line-height: 1.4;
+    }
+    .alert-location {
+      font-size: 0.8rem;
+      color: #6b8bb8;
+      margin-top: 6px;
+    }
   </style>
 </head>
 

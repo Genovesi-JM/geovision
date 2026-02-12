@@ -369,26 +369,109 @@ function renderAccountMeta(account) {
   }
 }
 
-async function loadKpis(accountId) {
-  const placeholders = {
+async function loadKpis(accountId, activeSector) {
+  // Map of KPI ids to DOM element ids for generic KPIs
+  const genericPlaceholders = {
     services_active: "kpi-services",
     hardware_active: "kpi-hardware",
     reports_ready: "kpi-reports",
     alerts_open: "kpi-alerts",
   };
+  
+  // Sector-specific KPI mappings (first 4 KPIs of each sector)
+  const sectorKpiMapping = {
+    agro: ["ndvi_avg", "water_stress", "hectares_monitored", "yield_estimate"],
+    mining: ["extraction_volume", "slope_stability", "sensors_active", "geotechnical_alerts"],
+    construction: ["progress_percent", "conformity_index", "pending_inspections", "volume_earthwork"],
+    infrastructure: ["km_monitored", "structural_integrity", "vibration_sensors", "maintenance_alerts"],
+    solar: ["panel_efficiency", "irradiance_avg", "anomaly_panels", "energy_generated"],
+    demining: ["area_cleared", "objects_detected", "progress_rate", "priority_zones"],
+  };
+  
   try {
-    const summary = await apiGet("/kpi/summary", accountId);
-    if (summary && summary.items) {
-      summary.items.forEach((item) => {
-        const elId = placeholders[item.id];
-        if (elId) {
-          const el = document.getElementById(elId);
-          if (el) el.textContent = item.value;
+    const sectorParam = activeSector ? `?sector=${activeSector}` : "";
+    const summary = await apiGet(`/kpi/summary${sectorParam}`, accountId);
+    
+    if (summary && summary.items && summary.items.length > 0) {
+      // Get the KPI card elements
+      const kpiCards = document.querySelectorAll(".kpi-card");
+      const kpiLabels = ["kpi-services", "kpi-hardware", "kpi-reports", "kpi-alerts"];
+      const labelTexts = {
+        "kpi-services": ".kpi-label",
+        "kpi-hardware": ".kpi-label", 
+        "kpi-reports": ".kpi-label",
+        "kpi-alerts": ".kpi-label"
+      };
+      
+      // Update up to 4 KPIs in the dashboard cards
+      summary.items.slice(0, 4).forEach((item, index) => {
+        const card = kpiCards[index];
+        if (card) {
+          const labelEl = card.querySelector(".kpi-label");
+          const valueEl = card.querySelector(".kpi-value");
+          
+          if (labelEl) labelEl.textContent = item.label;
+          if (valueEl) {
+            valueEl.textContent = item.value + (item.unit || "");
+            // Add status class for visual feedback
+            valueEl.className = "kpi-value";
+            if (item.status === "warning") valueEl.classList.add("kpi-warning");
+            if (item.status === "critical") valueEl.classList.add("kpi-critical");
+          }
+          
+          // Store description as data attribute for tooltips/chatbot
+          card.dataset.kpiDescription = item.description || "";
+          card.dataset.kpiId = item.id;
         }
       });
     }
   } catch (err) {
-    console.warn("KPI fallback", err);
+    console.warn("KPI fallback to generic", err);
+  }
+}
+
+async function loadAlerts(accountId, activeSector) {
+  try {
+    const sectorParam = activeSector ? `?sector=${activeSector}` : "";
+    const alertsData = await apiGet(`/kpi/alerts${sectorParam}`, accountId);
+    
+    const container = document.getElementById("alerts-list");
+    if (!container) return;
+    
+    container.innerHTML = "";
+    
+    if (!alertsData || !alertsData.alerts || !alertsData.alerts.length) {
+      container.innerHTML = '<div class="dash-empty">Sem alertas ativos.</div>';
+      document.getElementById("kpi-alerts")?.textContent || "0";
+      return;
+    }
+    
+    alertsData.alerts.forEach((alert) => {
+      const div = document.createElement("div");
+      div.className = `alert-item alert-${alert.severity}`;
+      div.innerHTML = `
+        <div class="alert-header">
+          <span class="alert-severity ${alert.severity}">${alert.severity.toUpperCase()}</span>
+          <span class="alert-title">${alert.title}</span>
+        </div>
+        <div class="alert-description">${alert.description}</div>
+        ${alert.location ? `<div class="alert-location">📍 ${alert.location}</div>` : ""}
+      `;
+      container.appendChild(div);
+    });
+    
+    // Update alert count
+    const alertKpi = document.getElementById("kpi-alerts");
+    if (alertKpi) {
+      alertKpi.textContent = alertsData.total;
+      if (alertsData.critical_count > 0) {
+        alertKpi.classList.add("kpi-critical");
+      } else if (alertsData.warning_count > 0) {
+        alertKpi.classList.add("kpi-warning");
+      }
+    }
+  } catch (err) {
+    console.warn("Alerts fallback", err);
   }
 }
 
@@ -501,12 +584,16 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   
   const portfolio = buildDemoPortfolio(activeAccount, activeSector);
 
-  await loadKpis(currentAccountId);
+  // Load KPIs from backend (sector-specific)
+  await loadKpis(currentAccountId, activeSector);
+  
+  // Load alerts from backend (sector-specific)
+  await loadAlerts(currentAccountId, activeSector);
 
   renderServices(portfolio);
   renderHardware(portfolio);
   renderReports(portfolio);
-  renderAlerts(portfolio);
+  // renderAlerts from portfolio is now replaced by loadAlerts from backend
 
   // Enriquecer tabela de relatórios com pedidos reais da loja (se existirem)
   await loadOrdersOverrideReports(currentAccountId);

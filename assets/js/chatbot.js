@@ -82,16 +82,36 @@ document.addEventListener("DOMContentLoaded", () => {
       const mainEl = document.querySelector("main") || document.body;
       const title = document.title || "";
       let text = (mainEl.innerText || "").replace(/\s+/g, " ").trim();
-      const kpiHint = "KPIs principais: projects, store, alerts.";
-      if (!text.toLowerCase().includes("projects") || !text.toLowerCase().includes("alerts")) {
-        text = `${text} ${kpiHint}`.trim();
-      }
       if (text.length > 3500) {
         text = text.slice(0, 3500) + " ...";
       }
       return { page_text: text, page_title: title };
     } catch (_) {
       return { page_text: "", page_title: "" };
+    }
+  }
+
+  async function fetchDashboardContext() {
+    // Try to get structured context from backend for better chatbot responses
+    try {
+      const token = localStorage.getItem("gv_token");
+      if (!token) return null;
+      
+      const activeSector = localStorage.getItem("gv_active_sector") || "";
+      const url = `${CHAT_API_BASE}/kpi/context${activeSector ? '?sector=' + activeSector : ''}`;
+      
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (_) {
+      return null;
     }
   }
 
@@ -128,6 +148,27 @@ document.addEventListener("DOMContentLoaded", () => {
     })();
 
     const { page_text, page_title } = collectPageContext();
+    
+    // Try to get structured dashboard context
+    const dashboardContext = await fetchDashboardContext();
+    
+    // Build enhanced context for the AI
+    let enhancedContext = page_text;
+    if (dashboardContext) {
+      enhancedContext = `
+CONTEXTO DO DASHBOARD DO UTILIZADOR:
+${dashboardContext.summary_text}
+
+KPIS VISIVEIS:
+${dashboardContext.kpis.map(k => `- ${k.label}: ${k.value}${k.unit || ''} (${k.status}) - ${k.description || ''}`).join('\n')}
+
+ALERTAS ATIVOS:
+${dashboardContext.alerts.map(a => `- [${a.severity.toUpperCase()}] ${a.title}: ${a.description}`).join('\n')}
+
+TEXTO DA PAGINA:
+${page_text}
+`.trim();
+    }
 
     try {
       const res = await fetch(`${CHAT_API_BASE}/ai/chat`, {
@@ -136,9 +177,10 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({
           messages: history.map((m) => ({ role: m.role, content: m.content })),
           page: path,
-          sector: sectorGuess,
-          page_text,
-          page_title
+          sector: dashboardContext?.sectors?.[0] || sectorGuess,
+          page_text: enhancedContext,
+          page_title,
+          dashboard_context: dashboardContext
         })
       });
 

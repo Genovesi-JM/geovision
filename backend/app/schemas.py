@@ -140,10 +140,64 @@ class KPIItem(BaseModel):
     label: str
     value: float | int | str
     unit: Optional[str] = None
-    status: Optional[str] = None
-    trend: Optional[str] = None
+    status: Optional[str] = None  # ok, warning, critical
+    trend: Optional[str] = None   # up, down, stable
     updated_at: datetime
+    sector: Optional[str] = None  # For multi-sector filtering
+    description: Optional[str] = None  # Human-readable explanation for chatbot
 
 
 class KPIResponse(BaseModel):
     items: List[KPIItem]
+    sector: Optional[str] = None  # Active sector filter
+
+
+class AlertItem(BaseModel):
+    id: str
+    severity: str  # info, warning, critical
+    sector: str
+    title: str
+    description: str
+    location: Optional[str] = None
+    created_at: datetime
+    acknowledged: bool = False
+    resolved: bool = False
+
+
+class AlertsResponse(BaseModel):
+    alerts: List[AlertItem]
+    total: int
+    critical_count: int
+    warning_count: int
+
+
+class ServiceItem(BaseModel):
+    id: str
+    type: str
+    location: str
+    area_hectares: Optional[float] = None
+    status: str  # planned, in_field, processing, completed
+    sector: str
+    progress_percent: Optional[int] = None
+    updated_at: datetime
+
+
+class HardwareItem(BaseModel):
+    id: str
+    name: str
+    location: str
+    status: str  # online, offline, maintenance
+    sector: str
+    last_reading_at: Optional[datetime] = None
+
+
+class DashboardContext(BaseModel):
+    """Structured context for chatbot to understand what user sees."""
+    account_name: str
+    sectors: List[str]
+    active_sector: Optional[str] = None
+    kpis: List[KPIItem]
+    alerts: List[AlertItem]
+    services_count: int
+    hardware_count: int
+    summary_text: str  # Human-readable summary for chatbot
