@@ -199,20 +199,24 @@ def seed_demo_employees() -> int:
         return inserted
     finally:
         db.close()
-# seed_data.py
-from sqlalchemy.orm import Session
-from app.database import SessionLocal
+
+
+# Legacy seed function (kept for backwards compatibility but uses truncated password)
+from sqlalchemy.orm import Session as LegacySession
+from app.database import SessionLocal as LegacySessionLocal
 from app.models import User, UserProfile, Category, Product, ProductImage, Inventory
-from app.security import hash_password
+# Use utils.hash_password which properly truncates to 72 bytes
+from app.utils import hash_password as safe_hash_password
+
 
 def run():
-    db: Session = SessionLocal()
+    db: LegacySession = LegacySessionLocal()
 
     # users demo
     def upsert_user(email, pw, role):
         u = db.query(User).filter(User.email == email).first()
         if not u:
-            u = User(email=email, password_hash=hash_password(pw), role=role)
+            u = User(email=email, password_hash=safe_hash_password(pw), role=role)
             db.add(u)
             db.flush()
             db.add(UserProfile(user_id=u.id, full_name=email.split("@")[0]))
