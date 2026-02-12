@@ -6,14 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/css/style.css" />
   <script>
-    // Redirect logged-in users to dashboard where orders are now displayed
+    // All order management is now in the dashboard
+    // Redirect all users to dashboard with orders tab active
     (function() {
-      var token = localStorage.getItem("gv_token");
-      if (token && token.length > 10) {
-        window.location.href = "dashboard.html";
-      }
+      window.location.href = "dashboard.html?view=orders";
     })();
   </script>
+</head>
+<body>
+  <p style="text-align:center;padding:2rem;color:#9ca3af;">Redirecionando para o Dashboard...</p>
+</body>
+</html>
 
   <style>
     body {
