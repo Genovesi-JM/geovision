@@ -465,12 +465,27 @@ def google_onboarding(
     claims = verify_access_token(token)
     user_id = claims.get("uid")
     email = claims.get("sub")
-    if not user_id or not email:
+    if not email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
 
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user or user.email.lower() != str(email).lower():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    # Try to find user by id first, then by email
+    user = None
+    if user_id:
+        user = db.query(User).filter(User.id == user_id).first()
+    
+    # If not found by id, try by email (handles database resets on Render)
+    if not user and email:
+        user = db.query(User).filter(User.email == email).first()
+    
+    # If still not found, create the user (resilient onboarding)
+    if not user:
+        temp_pass = secrets.token_urlsafe(12)
+        temp_pass_safe = temp_pass.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+        hashed = hash_password(temp_pass_safe)
+        user = User(email=email, password_hash=hashed, role="cliente", is_active=True)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     # Se já tiver membership, só devolve os dados
     membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
