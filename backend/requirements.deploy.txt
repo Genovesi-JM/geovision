@@ -12,3 +12,4 @@ pydantic-settings==2.2.1
 httpx
 email-validator
 requests
+boto3>=1.34.0
