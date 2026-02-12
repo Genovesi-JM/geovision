@@ -363,7 +363,9 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
             role = row[1] if row[1] else ("admin" if email.lower() in ADMIN_EMAILS else "cliente")
         else:
             temp_pass = secrets.token_urlsafe(12)
-            hashed = hash_password(temp_pass)
+            # Truncate to 72 bytes inline to avoid bcrypt limit issues
+            temp_pass_safe = temp_pass.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+            hashed = hash_password(temp_pass_safe)
             now_iso = datetime.utcnow().isoformat(sep=" ")
 
             insertion_error = None
