@@ -13,6 +13,7 @@ from .database import init_db_engine
 from .routers import auth, projects, ai, accounts, me, kpi
 from .routers import products, orders, customer_accounts, employees
 from .routers import datasets, risk, payments, admin
+from .routers import shop
 from .seed_data import (
     seed_demo_products,
     seed_demo_users,
@@ -115,6 +116,7 @@ def create_application() -> FastAPI:
     application.include_router(risk.router)      # /risk
     application.include_router(payments.router)  # /payments
     application.include_router(admin.router)     # /admin
+    application.include_router(shop.router)      # /shop (e-commerce)
 
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:
