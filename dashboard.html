@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/chatbot.css">
   <style>
+    body {
+      background: radial-gradient(circle at top, #0f172a, #020617 55%, #000 100%);
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
     .sector-tabs {
       display: flex;
       gap: 8px;
@@ -234,6 +239,17 @@
         Visualização de camadas, últimos voos e alertas geográficos (placeholder).
       </p>
     </section>
+
+    <!-- MINHAS COMPRAS (ORDERS) SECTION -->
+    <section class="card" id="orders-section" style="margin-top:14px;">
+      <div class="card-header">
+        <h3>Minhas Compras</h3>
+        <a href="loja.html" class="badge" style="text-decoration:none;">+ Ir para Loja</a>
+      </div>
+      <div id="orders-container">
+        <p style="color: rgba(255,255,255,0.6); font-size:0.85rem;">A carregar pedidos...</p>
+      </div>
+    </section>
   </main>
 
   <!-- Account creation modal -->
@@ -296,6 +312,90 @@
         });
         try { btn.dataset.gvInlineLogout = '1'; } catch(e) {}
       } catch(e){ console.error('inline dashboard logout attach failed', e); }
+    })();
+
+    // Orders loading for Minhas Compras section
+    (function(){
+      const API_URL = window.API_BASE || "http://127.0.0.1:8010";
+
+      function formatAOA(cents) {
+        const value = cents / 100;
+        return value.toLocaleString("pt-AO", {
+          style: "currency",
+          currency: "AOA",
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        });
+      }
+
+      function formatDate(isoDate) {
+        const d = new Date(isoDate);
+        return d.toLocaleDateString("pt-AO", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      }
+
+      async function loadDashboardOrders() {
+        const container = document.getElementById("orders-container");
+        if (!container) return;
+
+        try {
+          const token = localStorage.getItem("gv_token");
+          const headers = token ? { "Authorization": "Bearer " + token } : {};
+          const res = await fetch(`${API_URL}/shop/me/orders`, { headers });
+
+          if (!res.ok) {
+            if (res.status === 401) {
+              container.innerHTML = '<p style="color:#9ca3af;font-size:0.85rem;">Inicia sessão para ver os teus pedidos.</p>';
+              return;
+            }
+            throw new Error("Erro ao carregar pedidos");
+          }
+
+          const orders = await res.json();
+
+          if (!orders.length) {
+            container.innerHTML = `
+              <div style="padding:1rem;text-align:center;color:#9ca3af;">
+                <p>Ainda não tens pedidos.</p>
+                <a href="loja.html" style="color:#38bdf8;">Explorar a Loja →</a>
+              </div>
+            `;
+            return;
+          }
+
+          let html = '<div style="display:flex;flex-direction:column;gap:0.6rem;">';
+          orders.slice(0, 5).forEach((order) => {
+            const statusClass = order.status === 'completed' || order.status === 'delivered' ? '#22c55e' : 
+                               order.status === 'awaiting_payment' ? '#fbbf24' : '#38bdf8';
+            html += `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06);">
+                <div>
+                  <div style="font-weight:500;font-size:0.85rem;">${order.order_number}</div>
+                  <div style="font-size:0.75rem;color:#9ca3af;">${formatDate(order.created_at)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:0.8rem;">${formatAOA(order.total)}</div>
+                  <div style="font-size:0.65rem;color:${statusClass};text-transform:uppercase;">${order.status_label || order.status}</div>
+                </div>
+              </div>
+            `;
+          });
+          html += '</div>';
+          if (orders.length > 5) {
+            html += '<p style="margin-top:0.6rem;font-size:0.8rem;color:#9ca3af;">+ ' + (orders.length - 5) + ' pedidos anteriores</p>';
+          }
+          container.innerHTML = html;
+
+        } catch (err) {
+          console.warn("Erro ao carregar pedidos:", err);
+          container.innerHTML = '<p style="color:#9ca3af;font-size:0.85rem;">Não foi possível carregar pedidos.</p>';
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadDashboardOrders);
     })();
   </script>
 </body>

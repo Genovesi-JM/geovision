@@ -840,6 +840,24 @@
         <button class="checkout-close" onclick="closeCheckoutModal()">×</button>
       </div>
       
+      <!-- Auth Choice Section -->
+      <div id="checkout-auth-choice" style="display:none;">
+        <div class="checkout-section" style="text-align:center;">
+          <p style="color:#9ca3af;margin-bottom:1rem;">Para continuar, escolhe uma opção:</p>
+          <div style="display:flex;flex-direction:column;gap:0.8rem;max-width:300px;margin:0 auto;">
+            <a href="login.html?redirect=loja.html" class="checkout-btn" style="text-decoration:none;text-align:center;background:linear-gradient(135deg,#22c55e,#38bdf8);">
+              Iniciar Sessão
+            </a>
+            <button class="checkout-btn" onclick="continueAsGuest()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);">
+              Continuar como Convidado
+            </button>
+          </div>
+          <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem;">
+            Ao iniciar sessão, podes acompanhar os teus pedidos no Dashboard.
+          </p>
+        </div>
+      </div>
+
       <div id="checkout-content">
         <div class="checkout-section">
           <h4>Dados de Faturação</h4>

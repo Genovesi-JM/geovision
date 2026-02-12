@@ -5,6 +5,15 @@
   <title>Minhas Compras | GeoVision</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <script>
+    // Redirect logged-in users to dashboard where orders are now displayed
+    (function() {
+      var token = localStorage.getItem("gv_token");
+      if (token && token.length > 10) {
+        window.location.href = "dashboard.html";
+      }
+    })();
+  </script>
 
   <style>
     body {
@@ -409,9 +418,25 @@
 
     async function loadOrders() {
       const container = document.getElementById("orders-container");
+      
+      // Check if user is logged in
+      const token = localStorage.getItem("gv_token");
+      if (!token || token.length < 10) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔐</div>
+            <h3>Inicia sessão para ver os teus pedidos</h3>
+            <p>Precisas de uma conta para acompanhar as tuas compras.</p>
+            <a href="login.html?redirect=dashboard.html" class="btn-primary" style="text-decoration:none;">Iniciar Sessão</a>
+          </div>
+        `;
+        return;
+      }
 
       try {
-        const res = await fetch(`${API_URL}/shop/me/orders`);
+        const res = await fetch(`${API_URL}/shop/me/orders`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
         if (!res.ok) throw new Error("Falha ao carregar pedidos");
 
         const orders = await res.json();

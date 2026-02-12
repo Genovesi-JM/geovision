@@ -341,6 +341,15 @@ function setupFilters() {
 
 // ============ CHECKOUT ============
 
+function isLoggedIn() {
+  const token = localStorage.getItem("gv_token");
+  return token && token.length > 10;
+}
+
+function getUserEmail() {
+  return localStorage.getItem("gv_email") || "";
+}
+
 async function openCheckoutModal() {
   if (!currentCart || !currentCart.items.length) {
     alert("O carrinho está vazio.");
@@ -348,20 +357,51 @@ async function openCheckoutModal() {
   }
 
   const modal = document.getElementById("checkout-modal");
-  if (modal) {
-    modal.style.display = "flex";
+  const authChoice = document.getElementById("checkout-auth-choice");
+  const checkoutContent = document.getElementById("checkout-content");
+  
+  if (!modal) return;
+  
+  modal.style.display = "flex";
+  
+  if (isLoggedIn()) {
+    // User is logged in - skip auth choice, pre-fill email
+    if (authChoice) authChoice.style.display = "none";
+    if (checkoutContent) checkoutContent.style.display = "block";
+    
+    const emailInput = document.getElementById("billing-email");
+    if (emailInput && !emailInput.value) {
+      emailInput.value = getUserEmail();
+    }
+    
     renderCheckoutSummary();
+  } else {
+    // Not logged in - show auth choice
+    if (authChoice) authChoice.style.display = "block";
+    if (checkoutContent) checkoutContent.style.display = "none";
   }
+}
+
+function continueAsGuest() {
+  const authChoice = document.getElementById("checkout-auth-choice");
+  const checkoutContent = document.getElementById("checkout-content");
+  
+  if (authChoice) authChoice.style.display = "none";
+  if (checkoutContent) checkoutContent.style.display = "block";
+  
+  renderCheckoutSummary();
 }
 
 function closeCheckoutModal() {
   const modal = document.getElementById("checkout-modal");
+  const authChoice = document.getElementById("checkout-auth-choice");
   const checkoutContent = document.getElementById("checkout-content");
   const paymentInstructions = document.getElementById("payment-instructions");
   
   if (modal) modal.style.display = "none";
   
   // Reset state for next checkout
+  if (authChoice) authChoice.style.display = "none";
   if (checkoutContent) checkoutContent.style.display = "block";
   if (paymentInstructions) {
     paymentInstructions.style.display = "none";
