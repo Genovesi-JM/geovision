@@ -1253,9 +1253,19 @@ textarea {
   letter-spacing: 0.01em;
 }
 
-/* ---------------- RESPONSIVE ---------------- */
+/* ================================================================================
+   RESPONSIVE BREAKPOINTS
+   ================================================================================
+   Standard breakpoints used throughout this stylesheet:
+   
+   Desktop:  min-width: 769px   (multi-column layouts, expanded navigation)
+   Tablet:   max-width: 1024px  (reduced columns, stacked grids)
+   Mobile:   max-width: 768px   (single column, hamburger menu, simplified UI)
+   
+   Always use these exact values for consistency.
+   ================================================================================ */
 
-@media (min-width: 820px) {
+@media (min-width: 769px) {
   .hero {
     grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.08fr);
   }
@@ -1269,11 +1279,15 @@ textarea {
   }
 }
 
-@media (max-width: 819px) {
+@media (max-width: 768px) {
   .topbar {
     position: static;
     margin: 1rem 1rem 0.5rem;
     flex-wrap: wrap;
+  }
+
+  .menu-toggle {
+    display: block;
   }
 
   .nav-links {
@@ -1974,7 +1988,7 @@ textarea {
   margin-top: 0.4rem;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2215,7 +2229,7 @@ textarea {
   color: var(--text-muted);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .cart-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2328,7 +2342,7 @@ textarea {
   display: block;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .footer-main {
     flex-direction: column;
     align-items: flex-start;
@@ -2556,7 +2570,7 @@ textarea {
   gap: 12px;
 }
 
-@media (max-width: 920px){
+@media (max-width: 1024px){
   .kpi-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -2588,7 +2602,7 @@ textarea {
   margin-top: 14px;
 }
 
-@media (max-width: 920px){
+@media (max-width: 1024px){
   .content-grid{ grid-template-columns: 1fr; }
 }
 
