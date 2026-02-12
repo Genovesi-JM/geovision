@@ -46,6 +46,7 @@ def create_application() -> FastAPI:
     default_origins = {
         "http://127.0.0.1:8001",
         "http://localhost:8001",
+        "https://genovesi-jm.github.io",
     }
     try:
         parsed = urlparse(settings.frontend_base)
