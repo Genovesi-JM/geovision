@@ -1,7 +1,7 @@
 """Add complete enterprise schema - payments, risk, analytics
 
 Revision ID: enterprise_complete_v1
-Revises: c8858ccfbb42
+Revises: 3e76cc464332
 Create Date: 2026-02-13
 
 This migration adds:
@@ -18,7 +18,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'enterprise_complete_v1'
-down_revision = 'c8858ccfbb42'
+down_revision = '3e76cc464332'
 branch_labels = None
 depends_on = None
 
