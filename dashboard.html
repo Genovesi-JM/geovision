@@ -7,210 +7,676 @@
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/chatbot.css">
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body {
-      background: radial-gradient(circle at top, #0f172a, #020617 55%, #000 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #050914;
       color: #e5e7eb;
       min-height: 100vh;
+      display: flex;
     }
+
+    /* ============ SIDEBAR ============ */
+    .client-sidebar {
+      width: 260px;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+      border-right: 1px solid rgba(148, 163, 184, 0.15);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+
+    .client-sidebar.collapsed {
+      transform: translateX(-100%);
+    }
+
+    .sidebar-brand {
+      padding: 1.2rem 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .sidebar-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #020617;
+    }
+
+    .sidebar-brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-brand-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .sidebar-brand-sub {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #6b7280;
+      padding: 0 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-link:hover {
+      background: rgba(56, 189, 248, 0.08);
+      color: #e5e7eb;
+    }
+
+    .sidebar-link.active {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border-left-color: #38bdf8;
+    }
+
+    .sidebar-link-icon {
+      font-size: 1.1rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .sidebar-link-badge {
+      margin-left: auto;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .sidebar-link-badge.success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+    }
+
+    /* Account Switcher in Sidebar */
+    .sidebar-account {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .sidebar-account-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 0.4rem;
+    }
+
+    .sidebar-account-select {
+      width: 100%;
+      padding: 0.5rem 0.7rem;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .sidebar-account-select option {
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sidebar-user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .sidebar-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sidebar-user-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-user-role {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    /* ============ MAIN CONTENT ============ */
+    .client-main {
+      flex: 1;
+      margin-left: 260px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============ TOP BAR ============ */
+    .client-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .topbar-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    .topbar-breadcrumb span {
+      color: #e5e7eb;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .topbar-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(255, 255, 255, 0.03);
+      color: #9ca3af;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .topbar-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e5e7eb;
+    }
+
+    .topbar-btn .badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      font-size: 0.65rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-logout {
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ============ CONTENT AREA ============ */
+    .client-content {
+      flex: 1;
+      padding: 1.5rem;
+    }
+
+    /* ============ PAGE HEADER ============ */
+    .page-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .page-eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 0.25rem;
+    }
+
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .page-subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      max-width: 600px;
+    }
+
+    /* ============ SECTOR TABS ============ */
     .sector-tabs {
       display: flex;
-      gap: 8px;
+      gap: 0.5rem;
       flex-wrap: wrap;
+      margin-bottom: 1.5rem;
     }
+
     .sector-tab {
-      padding: 8px 16px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      color: #d7deea;
-      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #9ca3af;
+      font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.2s;
     }
+
     .sector-tab:hover {
-      background: rgba(255,255,255,0.12);
+      background: rgba(255, 255, 255, 0.08);
+      color: #e5e7eb;
     }
+
     .sector-tab.active {
-      background: linear-gradient(130deg, #22c55e, #38bdf8);
-      color: #052010;
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      color: #020617;
       font-weight: 600;
       border-color: transparent;
     }
-    
-    /* KPI Status Colors */
-    .kpi-value.kpi-warning {
-      color: #fbbf24;
+
+    /* ============ KPI GRID ============ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
     }
-    .kpi-value.kpi-critical {
+
+    .kpi-card {
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(5, 9, 20, 0.95));
+      padding: 1rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .kpi-card.success {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(5, 9, 20, 0.95));
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .kpi-card.warning {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(5, 9, 20, 0.95));
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .kpi-card.danger {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(5, 9, 20, 0.95));
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .kpi-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+
+    .kpi-icon {
+      font-size: 1.2rem;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .kpi-change {
+      font-size: 0.75rem;
+      color: #22c55e;
+    }
+
+    .kpi-change.negative {
       color: #ef4444;
     }
-    
-    /* Alert Styling */
-    .alert-item {
-      background: rgba(255,255,255,0.05);
+
+    /* ============ CARDS ============ */
+    .card {
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: rgba(15, 23, 42, 0.7);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .card-body {
+      padding: 1rem 1.2rem;
+    }
+
+    /* ============ TABLES ============ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .data-table th {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+    }
+
+    .data-table tr:hover {
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ============ BADGES ============ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-active {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-pending {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .badge-info {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* ============ BUTTONS ============ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
       border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 8px;
-      border-left: 4px solid rgba(255,255,255,0.2);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
     }
-    .alert-item.alert-critical {
+
+    .btn-sm {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      color: #020617;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* ============ ALERTS LIST ============ */
+    .alerts-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .alert-item {
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border-left: 4px solid rgba(148, 163, 184, 0.3);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .alert-item.critical {
       border-left-color: #ef4444;
-      background: rgba(239,68,68,0.1);
+      background: rgba(239, 68, 68, 0.1);
     }
-    .alert-item.alert-warning {
+
+    .alert-item.warning {
       border-left-color: #fbbf24;
-      background: rgba(251,191,36,0.1);
+      background: rgba(251, 191, 36, 0.1);
     }
-    .alert-item.alert-info {
+
+    .alert-item.info {
       border-left-color: #38bdf8;
-      background: rgba(56,189,248,0.1);
+      background: rgba(56, 189, 248, 0.1);
     }
+
     .alert-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
     }
+
     .alert-severity {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       font-weight: 700;
-      padding: 2px 6px;
+      padding: 0.15rem 0.4rem;
       border-radius: 4px;
       text-transform: uppercase;
     }
+
     .alert-severity.critical {
       background: #ef4444;
       color: white;
     }
+
     .alert-severity.warning {
       background: #fbbf24;
       color: #1a1a1a;
     }
+
     .alert-severity.info {
       background: #38bdf8;
       color: #1a1a1a;
     }
+
     .alert-title {
       font-weight: 600;
-      color: #e8edf4;
-    }
-    .alert-description {
       font-size: 0.9rem;
-      color: #9fb4d3;
+    }
+
+    .alert-description {
+      font-size: 0.85rem;
+      color: #9ca3af;
       line-height: 1.4;
     }
+
     .alert-location {
-      font-size: 0.8rem;
-      color: #6b8bb8;
-      margin-top: 6px;
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.35rem;
     }
 
-    /* View Tabs */
-    .view-tabs {
-      display: flex;
-      gap: 0;
-      margin: 1rem 0;
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: 12px;
-      padding: 4px;
-      border: 1px solid rgba(255,255,255,0.1);
-      width: fit-content;
+    /* ============ VIEW PANELS ============ */
+    .view-panel {
+      display: none;
     }
-    .view-tab {
-      padding: 10px 24px;
-      border-radius: 8px;
-      background: transparent;
-      border: none;
-      color: #9fb4d3;
-      font-size: 0.95rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .view-tab:hover {
-      color: #e8edf4;
-    }
-    .view-tab.active {
-      background: linear-gradient(130deg, #22c55e, #38bdf8);
-      color: #052010;
-      font-weight: 600;
-    }
-    
-    @media (max-width: 768px) {
-      .view-tabs {
-        width: 100%;
-      }
-      .view-tab {
-        flex: 1;
-        padding: 10px 12px;
-        font-size: 0.85rem;
-        text-align: center;
-      }
-      
-      /* Dashboard topbar mobile */
-      .dash-topbar {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 10px !important;
-        padding: 12px !important;
-      }
-      
-      .dash-topbar-left {
-        min-width: 0 !important;
-        justify-content: center !important;
-      }
-      
-      .dash-topbar-right {
-        flex-wrap: wrap !important;
-        justify-content: center !important;
-        gap: 8px !important;
-      }
-      
-      .dash-select {
-        flex: 1;
-        min-width: 100px;
-        max-width: 140px;
-        font-size: 12px !important;
-        height: 32px !important;
-        padding: 0 8px !important;
-      }
-      
-      .dash-topbar .btn-primary,
-      .dash-topbar .btn-danger {
-        height: 32px !important;
-        padding: 0 10px !important;
-        font-size: 12px !important;
-      }
-      
-      .dash-pill {
-        font-size: 11px !important;
-        padding: 6px 10px !important;
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-    }
-    
-    /* Hide/Show views */
-    .view-panel { display: none; }
-    .view-panel.active { display: block; }
 
-    /* Orders Styles */
+    .view-panel.active {
+      display: block;
+    }
+
+    /* ============ ORDERS LIST ============ */
     .orders-list {
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
+
     .order-card {
-      border-radius: 1rem;
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      background: rgba(15, 23, 42, 0.95);
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: rgba(15, 23, 42, 0.7);
       padding: 1.2rem;
       transition: border-color 0.2s;
     }
+
     .order-card:hover {
       border-color: #38bdf8;
     }
+
     .order-header {
       display: flex;
       justify-content: space-between;
@@ -218,14 +684,17 @@
       gap: 1rem;
       margin-bottom: 0.8rem;
     }
+
     .order-number {
       font-size: 1.1rem;
       font-weight: 600;
     }
+
     .order-date {
       font-size: 0.8rem;
       color: #9ca3af;
     }
+
     .order-status {
       padding: 0.35rem 0.8rem;
       border-radius: 999px;
@@ -234,99 +703,316 @@
       text-transform: uppercase;
       letter-spacing: 0.08em;
     }
+
     .status-awaiting_payment {
       background: rgba(251, 191, 36, 0.2);
       color: #fbbf24;
     }
+
     .status-paid, .status-processing {
       background: rgba(56, 189, 248, 0.2);
       color: #38bdf8;
     }
+
     .status-assigned, .status-in_progress {
       background: rgba(168, 85, 247, 0.2);
       color: #a855f7;
     }
+
     .status-completed, .status-delivered {
       background: rgba(34, 197, 94, 0.2);
       color: #22c55e;
     }
+
     .status-cancelled {
       background: rgba(239, 68, 68, 0.2);
       color: #ef4444;
     }
+
     .order-items-text {
       font-size: 0.85rem;
       color: #9ca3af;
       margin-bottom: 0.6rem;
     }
+
     .order-total {
       font-size: 0.95rem;
       font-weight: 600;
     }
+
     .order-actions {
       display: flex;
       gap: 0.5rem;
       margin-top: 0.8rem;
     }
-    .btn-outline {
-      padding: 0.45rem 0.9rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 0.96);
-      color: #e5e7eb;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-    .btn-outline:hover {
-      border-color: #38bdf8;
+
+    /* ============ EMPTY STATE ============ */
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #9ca3af;
     }
 
-    /* Order Modal */
-    .order-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 2000;
-      justify-content: center;
-      align-items: center;
-      padding: 1rem;
-    }
-    .order-modal-content {
-      background: #0f172a;
-      border-radius: 1.2rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      max-width: 600px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 1.5rem;
-    }
-    .order-modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .empty-icon {
+      font-size: 3rem;
       margin-bottom: 1rem;
     }
-    .order-modal-title {
-      font-size: 1.2rem;
+
+    .spinner {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      border: 3px solid rgba(148, 163, 184, 0.3);
+      border-radius: 50%;
+      border-top-color: #38bdf8;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============ MODALS ============ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      width: min(500px, 95vw);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #0f172a;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
       font-weight: 600;
     }
-    .btn-close {
+
+    .modal-close {
       background: none;
       border: none;
       color: #9ca3af;
       font-size: 1.5rem;
       cursor: pointer;
     }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    /* ============ FORMS ============ */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      color: #d1d5db;
+      margin-bottom: 0.35rem;
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      border-color: #38bdf8;
+    }
+
+    .form-select option {
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .form-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .form-checkboxes label {
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* ============ TWO COLUMN GRID ============ */
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* ============ QUICK ACTIONS ============ */
+    .quick-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .quick-action {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    /* ============ CONTACT BUTTONS ============ */
+    .contact-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .contact-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.7rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .contact-btn.whatsapp {
+      background: rgba(37, 211, 102, 0.15);
+      color: #25d366;
+      border: 1px solid rgba(37, 211, 102, 0.3);
+    }
+
+    .contact-btn.whatsapp:hover {
+      background: rgba(37, 211, 102, 0.25);
+    }
+
+    .contact-btn.email {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .contact-btn.email:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .contact-btn.phone {
+      background: rgba(168, 85, 247, 0.15);
+      color: #a855f7;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .contact-btn.phone:hover {
+      background: rgba(168, 85, 247, 0.25);
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 1024px) {
+      .client-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .client-sidebar.open {
+        transform: translateX(0);
+      }
+
+      .client-main {
+        margin-left: 0;
+      }
+
+      .btn-menu-toggle {
+        display: flex;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============ MAP PLACEHOLDER ============ */
+    .map-container {
+      height: 300px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(5, 9, 20, 0.95));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    /* ============ TIMELINE ============ */
     .timeline {
       position: relative;
       padding-left: 1.5rem;
       margin: 1rem 0;
     }
+
     .timeline::before {
       content: "";
       position: absolute;
@@ -336,10 +1022,12 @@
       width: 2px;
       background: rgba(148, 163, 184, 0.3);
     }
+
     .timeline-event {
       position: relative;
       padding-bottom: 1rem;
     }
+
     .timeline-event::before {
       content: "";
       position: absolute;
@@ -350,28 +1038,31 @@
       border-radius: 50%;
       background: #38bdf8;
     }
-    .timeline-event:last-child {
-      padding-bottom: 0;
-    }
+
     .event-title {
       font-size: 0.9rem;
       font-weight: 500;
       margin-bottom: 0.2rem;
     }
+
     .event-desc {
       font-size: 0.8rem;
       color: #9ca3af;
     }
+
     .event-time {
       font-size: 0.72rem;
       color: #6b7280;
       margin-top: 0.15rem;
     }
+
+    /* ============ DELIVERABLES ============ */
     .deliverables-section {
       margin-top: 1.5rem;
       padding-top: 1rem;
       border-top: 1px solid rgba(148, 163, 184, 0.2);
     }
+
     .deliverable-item {
       display: flex;
       justify-content: space-between;
@@ -381,13 +1072,16 @@
       border-radius: 0.5rem;
       margin-top: 0.5rem;
     }
+
     .deliverable-name {
       font-size: 0.85rem;
     }
+
     .deliverable-type {
       font-size: 0.7rem;
       color: #9ca3af;
     }
+
     .btn-download {
       padding: 0.35rem 0.7rem;
       border-radius: 999px;
@@ -399,232 +1093,478 @@
       cursor: pointer;
       text-decoration: none;
     }
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: #9ca3af;
-    }
-    .empty-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
-    .spinner {
-      display: inline-block;
-      width: 30px;
-      height: 30px;
-      border: 3px solid rgba(148, 163, 184, 0.3);
-      border-radius: 50%;
-      border-top-color: #38bdf8;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
   </style>
 </head>
 
 <body>
-  <main class="dash-shell">
-    <!-- TOPBAR -->
-    <header class="dash-topbar">
-      <div class="dash-topbar-left">
-        <div class="dash-dot"></div>
-        <div class="dash-brand">
-          <h1>GEOVISION</h1>
-          <small>Painel do Cliente</small>
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="client-sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">G</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">GEOVISION</div>
+        <div class="sidebar-brand-sub">Painel do Cliente</div>
+      </div>
+    </div>
+
+    <!-- Account Switcher -->
+    <div class="sidebar-account">
+      <div class="sidebar-account-label">Conta Ativa</div>
+      <select id="account-switcher" class="sidebar-account-select" aria-label="Selecionar conta"></select>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Principal -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <a href="#" class="sidebar-link active" data-view="dashboard">
+          <span class="sidebar-link-icon">📊</span>
+          Visão Geral
+        </a>
+        <a href="#" class="sidebar-link" data-view="operations">
+          <span class="sidebar-link-icon">🚀</span>
+          Operações
+          <span class="sidebar-link-badge success" id="badge-operations">0</span>
+        </a>
+        <a href="#" class="sidebar-link" data-view="alerts">
+          <span class="sidebar-link-icon">🔔</span>
+          Alertas
+          <span class="sidebar-link-badge" id="badge-alerts">0</span>
+        </a>
+      </div>
+
+      <!-- Recursos -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Recursos</div>
+        <a href="#" class="sidebar-link" data-view="hardware">
+          <span class="sidebar-link-icon">📡</span>
+          Hardware
+        </a>
+        <a href="#" class="sidebar-link" data-view="reports">
+          <span class="sidebar-link-icon">📄</span>
+          Relatórios
+        </a>
+        <a href="#" class="sidebar-link" data-view="map">
+          <span class="sidebar-link-icon">🗺️</span>
+          Mapa / Layers
+        </a>
+      </div>
+
+      <!-- Loja -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Compras</div>
+        <a href="#" class="sidebar-link" data-view="orders">
+          <span class="sidebar-link-icon">📦</span>
+          Minhas Compras
+        </a>
+        <a href="loja.html" class="sidebar-link">
+          <span class="sidebar-link-icon">🛒</span>
+          Ir para Loja
+        </a>
+      </div>
+
+      <!-- Suporte -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Suporte</div>
+        <a href="#" class="sidebar-link" data-view="support">
+          <span class="sidebar-link-icon">💬</span>
+          Contactar GeoVision
+        </a>
+        <a href="#" class="sidebar-link" data-view="settings">
+          <span class="sidebar-link-icon">⚙️</span>
+          Definições
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="user-avatar">C</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="user-name">Cliente</div>
+          <div class="sidebar-user-role" id="user-role">Cliente</div>
         </div>
       </div>
-      <div class="dash-topbar-right">
-        <select id="account-switcher" class="dash-select account-switcher" aria-label="Selecionar conta"></select>
-        <button id="open-account-modal" class="btn-primary" type="button">Nova conta</button>
-        <span id="user-email-pill" class="dash-pill">cliente@geovision</span>
-        <button id="logout-btn" class="btn-danger">Terminar sessão</button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="client-main">
+    <!-- Top Bar -->
+    <header class="client-topbar">
+      <div class="topbar-left">
+        <button class="btn-menu-toggle" id="btn-menu-toggle">☰</button>
+        <div class="topbar-breadcrumb">
+          Painel / <span id="breadcrumb-current">Visão Geral</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-primary" id="open-account-modal">+ Nova Conta</button>
+        <button class="topbar-btn" id="btn-notifications" title="Notificações">
+          🔔
+          <span class="badge" id="notification-count">0</span>
+        </button>
+        <button class="btn-logout" id="logout-btn">Terminar sessão</button>
       </div>
     </header>
 
-    <!-- HEADER -->
-    <section class="dash-header">
-      <div class="dash-eyebrow">Conta ativa</div>
-      <h1 class="dash-title" id="dash-title">Conta GeoVision</h1>
-      <p class="dash-subtitle" id="dash-meta">Setor • Tipo de entidade</p>
-      <div id="modules-chips" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;"></div>
-      <!-- Sector tabs for multi-sector accounts -->
-      <div id="sector-tabs" class="sector-tabs" style="display:none; margin-top:12px;"></div>
-    </section>
+    <!-- Content Area -->
+    <div class="client-content">
+      
+      <!-- ============ DASHBOARD VIEW ============ -->
+      <div class="view-panel active" id="view-dashboard">
+        <div class="page-header">
+          <div class="page-eyebrow">Conta Ativa</div>
+          <h1 class="page-title" id="dash-title">Conta GeoVision</h1>
+          <p class="page-subtitle" id="dash-meta">Setor • Tipo de entidade</p>
+        </div>
 
-    <!-- VIEW TABS: Painel / Minhas Compras -->
-    <div class="view-tabs">
-      <button class="view-tab active" data-view="dashboard">Painel</button>
-      <button class="view-tab" data-view="orders">Minhas Compras</button>
-    </div>
+        <!-- Sector Tabs -->
+        <div id="sector-tabs" class="sector-tabs" style="display:none;"></div>
 
-    <!-- DASHBOARD VIEW -->
-    <div id="view-dashboard" class="view-panel active">
-      <!-- KPI CARDS -->
-      <section class="kpi-grid">
-        <article class="kpi-card">
-          <div class="kpi-label">Serviços ativos</div>
-          <div class="kpi-value" id="kpi-services">—</div>
-        </article>
-        <article class="kpi-card">
-          <div class="kpi-label">Hardware instalado</div>
-          <div class="kpi-value" id="kpi-hardware">—</div>
-        </article>
-        <article class="kpi-card">
-          <div class="kpi-label">Relatórios disponíveis</div>
-          <div class="kpi-value" id="kpi-reports">—</div>
-        </article>
-        <article class="kpi-card">
-          <div class="kpi-label">Alertas</div>
-          <div class="kpi-value" id="kpi-alerts">—</div>
-        </article>
-      </section>
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <a href="loja.html" class="quick-action">
+            <span>🛒</span> Encomendar Serviço
+          </a>
+          <button class="quick-action" onclick="switchView('reports')">
+            <span>📄</span> Ver Relatórios
+          </button>
+          <button class="quick-action" onclick="switchView('support')">
+            <span>💬</span> Contactar Suporte
+          </button>
+        </div>
 
-      <!-- CONTENT GRID -->
-      <section class="content-grid">
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Serviços Ativos</span>
+              <span class="kpi-icon">🚀</span>
+            </div>
+            <div class="kpi-value" id="kpi-services">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Hardware Instalado</span>
+              <span class="kpi-icon">📡</span>
+            </div>
+            <div class="kpi-value" id="kpi-hardware">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Relatórios</span>
+              <span class="kpi-icon">📄</span>
+            </div>
+            <div class="kpi-value" id="kpi-reports">—</div>
+          </div>
+          <div class="kpi-card warning" id="kpi-alerts-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Alertas</span>
+              <span class="kpi-icon">⚠️</span>
+            </div>
+            <div class="kpi-value" id="kpi-alerts">—</div>
+          </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+          <!-- Operations -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Operações em Curso</h3>
+              <span class="badge badge-active" id="services-badge">0 ativos</span>
+            </div>
+            <div class="card-body">
+              <table class="data-table" id="services-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Local</th>
+                    <th>Área (ha)</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+              <div class="empty-state" id="services-empty" style="display:none;">
+                <div class="empty-icon">🚀</div>
+                <p>Ainda não existem serviços registados.</p>
+                <a href="loja.html" class="btn btn-primary" style="margin-top:1rem;text-decoration:none;">Encomendar Serviço</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerts -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Alertas & Atenção</h3>
+              <span class="badge badge-danger">Ao vivo</span>
+            </div>
+            <div class="card-body">
+              <div id="alerts-list" class="alerts-list">
+                <!-- Filled by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ OPERATIONS VIEW ============ -->
+      <div class="view-panel" id="view-operations">
+        <div class="page-header">
+          <div class="page-eyebrow">Recursos</div>
+          <h1 class="page-title">Operações</h1>
+          <p class="page-subtitle">Acompanhe todas as operações e serviços em curso.</p>
+        </div>
         <div class="card">
           <div class="card-header">
-            <h3>Operações em curso</h3>
-            <span id="services-badge" class="badge">0 ativos</span>
+            <h3 class="card-title">Lista de Operações</h3>
           </div>
-          <table class="dash-table" id="services-table">
-            <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Local</th>
-                <th>Área (ha)</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <div class="dash-empty" id="services-empty" style="display:none;">
-            Ainda não existem serviços registados. Fale connosco pela Loja GeoVision para agendar.
+          <div class="card-body">
+            <table class="data-table" id="operations-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Local</th>
+                  <th>Área (ha)</th>
+                  <th>Data Início</th>
+                  <th>Estado</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="operations-table-body"></tbody>
+            </table>
           </div>
         </div>
+      </div>
 
+      <!-- ============ ALERTS VIEW ============ -->
+      <div class="view-panel" id="view-alerts">
+        <div class="page-header">
+          <div class="page-eyebrow">Monitorização</div>
+          <h1 class="page-title">Alertas</h1>
+          <p class="page-subtitle">Alertas e notificações dos seus serviços e hardware.</p>
+        </div>
         <div class="card">
-          <div class="card-header">
-            <h3>Alertas & atenção</h3>
-            <span class="badge">Ao vivo</span>
-          </div>
-          <div id="alerts-list" style="display:flex; flex-direction:column; gap:8px;">
-            <!-- preenchido via JS -->
+          <div class="card-body">
+            <div id="alerts-full-list" class="alerts-list">
+              <!-- Filled by JS -->
+            </div>
           </div>
         </div>
+      </div>
 
+      <!-- ============ HARDWARE VIEW ============ -->
+      <div class="view-panel" id="view-hardware">
+        <div class="page-header">
+          <div class="page-eyebrow">Recursos</div>
+          <h1 class="page-title">Hardware Instalado</h1>
+          <p class="page-subtitle">Equipamentos instalados nos seus projetos.</p>
+        </div>
         <div class="card">
-          <div class="card-header">
-            <h3>Hardware instalado</h3>
-          </div>
-          <table class="dash-table" id="hardware-table">
-            <thead>
-              <tr>
-                <th>Equipamento</th>
-                <th>Local</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <div class="dash-empty" id="hardware-empty" style="display:none;">
-            Nenhum hardware registado na sua conta (ainda).
+          <div class="card-body">
+            <table class="data-table" id="hardware-table">
+              <thead>
+                <tr>
+                  <th>Equipamento</th>
+                  <th>Local</th>
+                  <th>Estado</th>
+                  <th>Última Comunicação</th>
+                </tr>
+              </thead>
+              <tbody id="hardware-table-body"></tbody>
+            </table>
+            <div class="empty-state" id="hardware-empty" style="display:none;">
+              <div class="empty-icon">📡</div>
+              <p>Nenhum hardware registado na sua conta.</p>
+            </div>
           </div>
         </div>
+      </div>
 
+      <!-- ============ REPORTS VIEW ============ -->
+      <div class="view-panel" id="view-reports">
+        <div class="page-header">
+          <div class="page-eyebrow">Documentos</div>
+          <h1 class="page-title">Relatórios</h1>
+          <p class="page-subtitle">Relatórios e entregáveis dos seus serviços.</p>
+        </div>
         <div class="card">
-          <div class="card-header">
-            <h3>Relatórios</h3>
+          <div class="card-body">
+            <table class="data-table" id="reports-table">
+              <thead>
+                <tr>
+                  <th>Relatório</th>
+                  <th>Serviço</th>
+                  <th>Data</th>
+                  <th>Estado</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="reports-table-body"></tbody>
+            </table>
+            <div class="empty-state" id="reports-empty" style="display:none;">
+              <div class="empty-icon">📄</div>
+              <p>Ainda não existem relatórios prontos.</p>
+            </div>
           </div>
-          <table class="dash-table" id="reports-table">
-            <thead>
-              <tr>
-                <th>Relatório</th>
-                <th>Serviço</th>
-                <th>Entrega</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-          <div class="dash-empty" id="reports-empty" style="display:none;">
-            Ainda não existem relatórios prontos. Assim que finalizarmos um serviço, ele aparece aqui.
+        </div>
+      </div>
+
+      <!-- ============ MAP VIEW ============ -->
+      <div class="view-panel" id="view-map">
+        <div class="page-header">
+          <div class="page-eyebrow">Visualização</div>
+          <h1 class="page-title">Mapa / Layers</h1>
+          <p class="page-subtitle">Visualização de camadas, voos e alertas geográficos.</p>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="map-container">
+              🗺️ Mapa interativo (em breve)
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- Placeholder map / layers -->
-      <section class="card" style="margin-top:14px;">
-        <div class="card-header">
-          <h3>Mapa / Layers</h3>
-          <span class="badge">Em breve</span>
+      <!-- ============ ORDERS VIEW ============ -->
+      <div class="view-panel" id="view-orders">
+        <div class="page-header">
+          <div class="page-eyebrow">Compras</div>
+          <h1 class="page-title">Minhas Compras</h1>
+          <p class="page-subtitle">Acompanhe seus pedidos e faça download dos entregáveis.</p>
         </div>
-        <p style="color: rgba(255,255,255,0.75); font-size:0.9rem; margin: 4px 0 0;">
-          Visualização de camadas, últimos voos e alertas geográficos (placeholder).
-        </p>
-      </section>
-    </div>
-
-    <!-- ORDERS VIEW (Minhas Compras) -->
-    <div id="view-orders" class="view-panel">
-      <section class="card">
-        <div class="card-header">
-          <h3>Minhas Compras</h3>
-          <a href="loja.html" class="badge" style="text-decoration:none;">+ Ir para Loja</a>
+        <div class="quick-actions">
+          <a href="loja.html" class="quick-action">
+            <span>🛒</span> Ir para Loja
+          </a>
         </div>
-        <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">Acompanhe seus pedidos, visualize a timeline de serviços e faça download dos entregáveis.</p>
-        <div id="orders-full-container">
+        <div id="orders-container">
           <div class="empty-state">
             <div class="spinner"></div>
             <p style="margin-top:1rem;">Carregando pedidos...</p>
           </div>
         </div>
-      </section>
+      </div>
+
+      <!-- ============ SUPPORT VIEW ============ -->
+      <div class="view-panel" id="view-support">
+        <div class="page-header">
+          <div class="page-eyebrow">Suporte</div>
+          <h1 class="page-title">Contactar GeoVision</h1>
+          <p class="page-subtitle">Estamos aqui para ajudar. Escolha o seu canal preferido.</p>
+        </div>
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-body" style="text-align:center;">
+              <div style="font-size:2.5rem;margin-bottom:0.75rem;">📱</div>
+              <h3 style="margin-bottom:0.5rem;">WhatsApp</h3>
+              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">Resposta rápida via chat</p>
+              <a href="https://wa.me/244923456789" target="_blank" class="btn btn-primary" style="text-decoration:none;">Abrir WhatsApp</a>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-body" style="text-align:center;">
+              <div style="font-size:2.5rem;margin-bottom:0.75rem;">✉️</div>
+              <h3 style="margin-bottom:0.5rem;">Email</h3>
+              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">suporte@geovision.ao</p>
+              <a href="mailto:suporte@geovision.ao" class="btn btn-secondary" style="text-decoration:none;">Enviar Email</a>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-body" style="text-align:center;">
+              <div style="font-size:2.5rem;margin-bottom:0.75rem;">📞</div>
+              <h3 style="margin-bottom:0.5rem;">Telefone</h3>
+              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">+244 923 456 789</p>
+              <a href="tel:+244923456789" class="btn btn-secondary" style="text-decoration:none;">Ligar Agora</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SETTINGS VIEW ============ -->
+      <div class="view-panel" id="view-settings">
+        <div class="page-header">
+          <div class="page-eyebrow">Conta</div>
+          <h1 class="page-title">Definições</h1>
+          <p class="page-subtitle">Gerir as definições da sua conta.</p>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Informações da Conta</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="settings-email" readonly />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Conta Ativa</label>
+              <input type="text" class="form-input" id="settings-account" readonly />
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
-  <!-- Order Detail Modal -->
-  <div id="order-modal" class="order-modal">
-    <div class="order-modal-content" id="order-modal-content">
-      <!-- Populated by JS -->
+  <!-- ============ ORDER DETAIL MODAL ============ -->
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h2 class="modal-title" id="order-modal-title">Detalhes do Pedido</h2>
+        <button class="modal-close" onclick="closeOrderModal()">×</button>
+      </div>
+      <div class="modal-body" id="order-modal-content">
+        <!-- Populated by JS -->
+      </div>
     </div>
   </div>
 
-  <!-- Account creation modal -->
-  <div class="modal-backdrop" id="account-modal-backdrop" aria-hidden="true">
+  <!-- ============ NEW ACCOUNT MODAL ============ -->
+  <div class="modal-overlay" id="account-modal">
     <div class="modal">
-      <h2>Criar workspace</h2>
-      <div class="row">
-        <div>
-          <label for="account-name-input">Nome da conta</label>
-          <input id="account-name-input" type="text" placeholder="Ex: Fazenda Rio Kunene">
+      <div class="modal-header">
+        <h2 class="modal-title">Criar Workspace</h2>
+        <button class="modal-close" onclick="closeModal('account-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nome da conta *</label>
+          <input type="text" class="form-input" id="account-name-input" placeholder="Ex: Fazenda Rio Kunene" />
         </div>
-        <div>
-          <label for="account-entity-input">Tipo de entidade</label>
-          <select id="account-entity-input">
+        <div class="form-group">
+          <label class="form-label">Tipo de entidade</label>
+          <select class="form-select" id="account-entity-input">
             <option value="org">Organização</option>
             <option value="individual">Individual</option>
           </select>
         </div>
+        <div class="form-group">
+          <label class="form-label">Setor</label>
+          <select class="form-select" id="account-sector-input">
+            <option value="agro">Agro & Pecuária</option>
+            <option value="mining">Mineração</option>
+            <option value="demining">Desminagem</option>
+            <option value="construction">Construção e Infraestrutura</option>
+            <option value="solar">Solar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Módulos</label>
+          <div class="form-checkboxes" id="account-modules">
+            <label><input type="checkbox" value="kpi" checked /> KPIs</label>
+            <label><input type="checkbox" value="projects" checked /> Projects</label>
+            <label><input type="checkbox" value="store" checked /> Store</label>
+            <label><input type="checkbox" value="alerts" checked /> Alerts</label>
+          </div>
+        </div>
       </div>
-      <label for="account-sector-input">Setor</label>
-      <select id="account-sector-input">
-        <option value="agro">Agro & Pecuária</option>
-        <option value="mining">Mineração</option>
-        <option value="demining">Desminagem</option>
-        <option value="construction">Construção e Infraestrutura</option>
-        <option value="solar">Solar</option>
-      </select>
-      <label style="margin-top:10px;">Módulos</label>
-      <div class="checkboxes" id="account-modules">
-        <label><input type="checkbox" value="kpi" checked> KPIs</label>
-        <label><input type="checkbox" value="projects" checked> Projects</label>
-        <label><input type="checkbox" value="store" checked> Store</label>
-        <label><input type="checkbox" value="alerts" checked> Alerts</label>
-      </div>
-      <div class="actions">
-        <button type="button" id="account-cancel" class="btn-secondary">Cancelar</button>
-        <button type="button" id="account-create" class="btn-primary">Criar e usar</button>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('account-modal')">Cancelar</button>
+        <button class="btn btn-primary" id="account-create">Criar e usar</button>
       </div>
     </div>
   </div>
@@ -634,288 +1574,302 @@
   <script type="module" src="assets/js/dashboard-client.js"></script>
   <script src="assets/js/chatbot.js?v=3"></script>
   <script>
-    // Inline fallback logout for dashboard
-    (function(){
-      try {
-        const btn = document.getElementById('logout-btn');
-        if (!btn) return;
-        if (btn.dataset && btn.dataset.gvInlineLogout === '1') return;
-        btn.addEventListener('click', function(){
-          try { localStorage.removeItem('gv_token'); } catch(e) {}
-          try { localStorage.removeItem('gv_role'); } catch(e) {}
-          try { localStorage.removeItem('gv_email'); } catch(e) {}
-          try { localStorage.removeItem('gv_account_id'); } catch(e) {}
-          window.location.href = 'index.html';
-        });
-        try { btn.dataset.gvInlineLogout = '1'; } catch(e) {}
-      } catch(e){ console.error('inline dashboard logout attach failed', e); }
-    })();
+    // ============ VIEW NAVIGATION ============
+    const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
+    const viewPanels = document.querySelectorAll('.view-panel');
+    const breadcrumb = document.getElementById('breadcrumb-current');
+    let ordersLoaded = false;
 
-    // Orders and View Tab Management
-    (function(){
-      const API_URL = window.API_BASE || "http://127.0.0.1:8010";
-      let ordersLoaded = false;
-
-      function formatAOA(cents) {
-        const value = cents / 100;
-        return value.toLocaleString("pt-AO", {
-          style: "currency",
-          currency: "AOA",
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        });
-      }
-
-      function formatDate(isoDate) {
-        const d = new Date(isoDate);
-        return d.toLocaleDateString("pt-AO", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        });
-      }
-
-      function formatDateTime(isoDate) {
-        const d = new Date(isoDate);
-        return d.toLocaleString("pt-AO", {
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
-
-      // View Tab Switching
-      function initViewTabs() {
-        const tabs = document.querySelectorAll('.view-tab');
-        
-        // Check for URL parameter
-        const urlParams = new URLSearchParams(window.location.search);
-        const viewParam = urlParams.get('view');
-        
-        tabs.forEach(tab => {
-          tab.addEventListener('click', function() {
-            switchToView(this.dataset.view);
-          });
-        });
-        
-        // If ?view=orders, switch to orders tab
-        if (viewParam === 'orders') {
-          switchToView('orders');
-        }
-      }
-      
-      function switchToView(viewId) {
-        const tabs = document.querySelectorAll('.view-tab');
-        
-        // Update tab states
-        tabs.forEach(t => t.classList.remove('active'));
-        document.querySelector(`.view-tab[data-view="${viewId}"]`)?.classList.add('active');
-        
-        // Update view panels
-        document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('view-' + viewId)?.classList.add('active');
-        
-        // Load orders if switching to orders view
-        if (viewId === 'orders' && !ordersLoaded) {
-          loadFullOrders();
-        }
-      }
-
-      // Full Orders List
-      async function loadFullOrders() {
-        const container = document.getElementById("orders-full-container");
-        if (!container) return;
-
-        try {
-          const token = localStorage.getItem("gv_token");
-          if (!token) {
-            container.innerHTML = `
-              <div class="empty-state">
-                <div class="empty-icon">🔐</div>
-                <h3>Inicia sessão para ver os teus pedidos</h3>
-                <p>Precisas de uma conta para acompanhar as tuas compras.</p>
-                <a href="login.html?redirect=dashboard.html" class="btn-primary" style="text-decoration:none;display:inline-block;padding:0.6rem 1.2rem;border-radius:999px;background:linear-gradient(135deg,#22c55e,#38bdf8);color:#020617;font-weight:500;margin-top:1rem;">Iniciar Sessão</a>
-              </div>
-            `;
-            return;
-          }
-
-          const res = await fetch(`${API_URL}/shop/me/orders`, {
-            headers: { "Authorization": "Bearer " + token }
-          });
-
-          if (!res.ok) {
-            if (res.status === 401) {
-              container.innerHTML = '<div class="empty-state"><p>Sessão expirada. <a href="login.html">Iniciar sessão</a></p></div>';
-              return;
-            }
-            throw new Error("Erro ao carregar pedidos");
-          }
-
-          const orders = await res.json();
-          ordersLoaded = true;
-
-          if (!orders.length) {
-            container.innerHTML = `
-              <div class="empty-state">
-                <div class="empty-icon">📦</div>
-                <h3>Ainda não tens pedidos</h3>
-                <p>Explora a nossa loja e faz o teu primeiro pedido.</p>
-                <a href="loja.html" class="btn-primary" style="text-decoration:none;display:inline-block;padding:0.6rem 1.2rem;border-radius:999px;background:linear-gradient(135deg,#22c55e,#38bdf8);color:#020617;font-weight:500;margin-top:1rem;">Ir para a Loja</a>
-              </div>
-            `;
-            return;
-          }
-
-          let html = '<div class="orders-list">';
-          orders.forEach((order) => {
-            html += `
-              <article class="order-card">
-                <div class="order-header">
-                  <div>
-                    <div class="order-number">${order.order_number}</div>
-                    <div class="order-date">${formatDate(order.created_at)}</div>
-                  </div>
-                  <span class="order-status status-${order.status}">${order.status_label || order.status}</span>
-                </div>
-                <div class="order-items-text">${order.item_count || '?'} ${order.item_count === 1 ? 'item' : 'itens'}</div>
-                <div class="order-total">${formatAOA(order.total)}</div>
-                <div class="order-actions">
-                  <button class="btn-outline" onclick="viewOrder('${order.id}')">Ver Detalhes</button>
-                </div>
-              </article>
-            `;
-          });
-          html += '</div>';
-          container.innerHTML = html;
-
-        } catch (err) {
-          console.error("Erro ao carregar pedidos:", err);
-          container.innerHTML = `
-            <div class="empty-state">
-              <div class="empty-icon">⚠️</div>
-              <h3>Erro ao carregar pedidos</h3>
-              <p>${err.message}</p>
-              <button class="btn-primary" onclick="loadFullOrders()" style="padding:0.6rem 1.2rem;border-radius:999px;background:linear-gradient(135deg,#22c55e,#38bdf8);color:#020617;border:none;cursor:pointer;">Tentar Novamente</button>
-            </div>
-          `;
-        }
-      }
-
-      // View Order Details
-      window.viewOrder = async function(orderId) {
-        const modal = document.getElementById("order-modal");
-        const content = document.getElementById("order-modal-content");
-
-        modal.style.display = "flex";
-        content.innerHTML = `
-          <div style="text-align:center;padding:2rem;">
-            <div class="spinner"></div>
-            <p style="margin-top:1rem;color:#9ca3af;">Carregando detalhes...</p>
-          </div>
-        `;
-
-        try {
-          const token = localStorage.getItem("gv_token");
-          const res = await fetch(`${API_URL}/shop/orders/${orderId}`, {
-            headers: token ? { "Authorization": "Bearer " + token } : {}
-          });
-          if (!res.ok) throw new Error("Falha ao carregar pedido");
-
-          const order = await res.json();
-
-          let itemsHtml = (order.items || []).map(item => `
-            <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid rgba(148,163,184,0.2);">
-              <span>${item.quantity}x ${item.product_name}</span>
-              <span>${formatAOA(item.total_price)}</span>
-            </div>
-          `).join("");
-
-          let timelineHtml = (order.events || []).map(event => `
-            <div class="timeline-event">
-              <div class="event-title">${event.title}</div>
-              <div class="event-desc">${event.description || ""}</div>
-              <div class="event-time">${formatDateTime(event.created_at)}</div>
-            </div>
-          `).join("");
-
-          let deliverablesHtml = "";
-          if (order.deliverables && order.deliverables.length) {
-            deliverablesHtml = `
-              <div class="deliverables-section">
-                <h4>Entregáveis</h4>
-                ${order.deliverables.map(d => `
-                  <div class="deliverable-item">
-                    <div>
-                      <div class="deliverable-name">${d.name}</div>
-                      <div class="deliverable-type">${d.deliverable_type}</div>
-                    </div>
-                    ${d.download_url ? `<a href="${d.download_url}" class="btn-download" target="_blank">Download</a>` : ""}
-                  </div>
-                `).join("")}
-              </div>
-            `;
-          }
-
-          content.innerHTML = `
-            <div class="order-modal-header">
-              <div class="order-modal-title">${order.order_number}</div>
-              <button class="btn-close" onclick="closeOrderModal()">×</button>
-            </div>
-
-            <div style="margin-bottom:1rem;">
-              <span class="order-status status-${order.status}">${order.status_label || order.status}</span>
-            </div>
-
-            <div style="margin-bottom:1rem;">
-              ${itemsHtml}
-              <div style="display:flex;justify-content:space-between;padding:0.6rem 0;font-weight:600;">
-                <span>Total</span>
-                <span>${formatAOA(order.total)}</span>
-              </div>
-            </div>
-
-            ${timelineHtml ? `<h4>Timeline</h4><div class="timeline">${timelineHtml}</div>` : ""}
-
-            ${deliverablesHtml}
-
-            ${order.assigned_team ? `
-              <div style="margin-top:1rem;padding:0.8rem;background:rgba(168,85,247,0.1);border-radius:0.5rem;">
-                <strong>Equipa Atribuída:</strong> ${order.assigned_team}
-                ${order.scheduled_start ? `<br><strong>Agendado:</strong> ${formatDateTime(order.scheduled_start)}` : ""}
-              </div>
-            ` : ""}
-          `;
-
-        } catch (err) {
-          console.error("Erro ao carregar pedido:", err);
-          content.innerHTML = `
-            <div class="order-modal-header">
-              <div class="order-modal-title">Erro</div>
-              <button class="btn-close" onclick="closeOrderModal()">×</button>
-            </div>
-            <p style="color:#ef4444;">${err.message}</p>
-          `;
-        }
-      };
-
-      window.closeOrderModal = function() {
-        document.getElementById("order-modal").style.display = "none";
-      };
-
-      // Close modal on outside click
-      document.getElementById("order-modal")?.addEventListener("click", (e) => {
-        if (e.target === e.currentTarget) {
-          closeOrderModal();
-        }
+    function switchView(viewId) {
+      // Update sidebar
+      viewLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.view === viewId);
       });
 
-      // Make loadFullOrders available globally for retry button
-      window.loadFullOrders = loadFullOrders;
+      // Update panels
+      viewPanels.forEach(panel => {
+        panel.classList.toggle('active', panel.id === `view-${viewId}`);
+      });
 
-      document.addEventListener("DOMContentLoaded", initViewTabs);
-    })();
+      // Update breadcrumb
+      const activeLink = document.querySelector(`.sidebar-link[data-view="${viewId}"]`);
+      if (activeLink) {
+        breadcrumb.textContent = activeLink.textContent.trim();
+      }
+
+      // Load orders if switching to orders view
+      if (viewId === 'orders' && !ordersLoaded) {
+        loadOrders();
+      }
+    }
+
+    viewLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView(link.dataset.view);
+      });
+    });
+
+    // Check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('view') === 'orders') {
+      switchView('orders');
+    }
+
+    // ============ SIDEBAR TOGGLE ============
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('btn-menu-toggle');
+
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 1024) {
+        if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+          sidebar.classList.remove('open');
+        }
+      }
+    });
+
+    // ============ MODALS ============
+    function showModal(modalId) {
+      document.getElementById(modalId).classList.add('open');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('open');
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('open');
+        }
+      });
+    });
+
+    document.getElementById('open-account-modal').addEventListener('click', () => {
+      showModal('account-modal');
+    });
+
+    // ============ ORDERS ============
+    const API_URL = window.API_BASE || "http://127.0.0.1:8010";
+
+    function formatAOA(cents) {
+      const value = cents / 100;
+      return value.toLocaleString("pt-AO", {
+        style: "currency",
+        currency: "AOA",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+    }
+
+    function formatDate(isoDate) {
+      const d = new Date(isoDate);
+      return d.toLocaleDateString("pt-AO", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+    }
+
+    function formatDateTime(isoDate) {
+      const d = new Date(isoDate);
+      return d.toLocaleString("pt-AO", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    async function loadOrders() {
+      const container = document.getElementById("orders-container");
+      if (!container) return;
+
+      try {
+        const token = localStorage.getItem("gv_token");
+        if (!token) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🔐</div>
+              <h3>Inicia sessão para ver os teus pedidos</h3>
+              <a href="login.html?redirect=dashboard.html?view=orders" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">Iniciar Sessão</a>
+            </div>
+          `;
+          return;
+        }
+
+        const res = await fetch(`${API_URL}/shop/me/orders`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            container.innerHTML = '<div class="empty-state"><p>Sessão expirada. <a href="login.html">Iniciar sessão</a></p></div>';
+            return;
+          }
+          throw new Error("Erro ao carregar pedidos");
+        }
+
+        const orders = await res.json();
+        ordersLoaded = true;
+
+        if (!orders.length) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">📦</div>
+              <h3>Ainda não tens pedidos</h3>
+              <p>Explora a nossa loja e faz o teu primeiro pedido.</p>
+              <a href="loja.html" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">Ir para a Loja</a>
+            </div>
+          `;
+          return;
+        }
+
+        let html = '<div class="orders-list">';
+        orders.forEach((order) => {
+          html += `
+            <article class="order-card">
+              <div class="order-header">
+                <div>
+                  <div class="order-number">${order.order_number}</div>
+                  <div class="order-date">${formatDate(order.created_at)}</div>
+                </div>
+                <span class="order-status status-${order.status}">${order.status_label || order.status}</span>
+              </div>
+              <div class="order-items-text">${order.item_count || '?'} ${order.item_count === 1 ? 'item' : 'itens'}</div>
+              <div class="order-total">${formatAOA(order.total)}</div>
+              <div class="order-actions">
+                <button class="btn btn-sm btn-secondary" onclick="viewOrder('${order.id}')">Ver Detalhes</button>
+              </div>
+            </article>
+          `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+      } catch (err) {
+        console.error("Erro ao carregar pedidos:", err);
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">⚠️</div>
+            <h3>Erro ao carregar pedidos</h3>
+            <p>${err.message}</p>
+            <button class="btn btn-primary" onclick="loadOrders()">Tentar Novamente</button>
+          </div>
+        `;
+      }
+    }
+
+    window.viewOrder = async function(orderId) {
+      const modal = document.getElementById("order-modal");
+      const content = document.getElementById("order-modal-content");
+
+      modal.classList.add('open');
+      content.innerHTML = `
+        <div style="text-align:center;padding:2rem;">
+          <div class="spinner"></div>
+          <p style="margin-top:1rem;color:#9ca3af;">Carregando detalhes...</p>
+        </div>
+      `;
+
+      try {
+        const token = localStorage.getItem("gv_token");
+        const res = await fetch(`${API_URL}/shop/orders/${orderId}`, {
+          headers: token ? { "Authorization": "Bearer " + token } : {}
+        });
+        if (!res.ok) throw new Error("Falha ao carregar pedido");
+
+        const order = await res.json();
+        document.getElementById('order-modal-title').textContent = order.order_number;
+
+        let itemsHtml = (order.items || []).map(item => `
+          <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid rgba(148,163,184,0.2);">
+            <span>${item.quantity}x ${item.product_name}</span>
+            <span>${formatAOA(item.total_price)}</span>
+          </div>
+        `).join("");
+
+        let timelineHtml = (order.events || []).map(event => `
+          <div class="timeline-event">
+            <div class="event-title">${event.title}</div>
+            <div class="event-desc">${event.description || ""}</div>
+            <div class="event-time">${formatDateTime(event.created_at)}</div>
+          </div>
+        `).join("");
+
+        let deliverablesHtml = "";
+        if (order.deliverables && order.deliverables.length) {
+          deliverablesHtml = `
+            <div class="deliverables-section">
+              <h4>Entregáveis</h4>
+              ${order.deliverables.map(d => `
+                <div class="deliverable-item">
+                  <div>
+                    <div class="deliverable-name">${d.name}</div>
+                    <div class="deliverable-type">${d.deliverable_type}</div>
+                  </div>
+                  ${d.download_url ? `<a href="${d.download_url}" class="btn-download" target="_blank">Download</a>` : ""}
+                </div>
+              `).join("")}
+            </div>
+          `;
+        }
+
+        content.innerHTML = `
+          <div style="margin-bottom:1rem;">
+            <span class="order-status status-${order.status}">${order.status_label || order.status}</span>
+          </div>
+
+          <div style="margin-bottom:1rem;">
+            ${itemsHtml}
+            <div style="display:flex;justify-content:space-between;padding:0.6rem 0;font-weight:600;">
+              <span>Total</span>
+              <span>${formatAOA(order.total)}</span>
+            </div>
+          </div>
+
+          ${timelineHtml ? `<h4>Timeline</h4><div class="timeline">${timelineHtml}</div>` : ""}
+
+          ${deliverablesHtml}
+
+          ${order.assigned_team ? `
+            <div style="margin-top:1rem;padding:0.8rem;background:rgba(168,85,247,0.1);border-radius:0.5rem;">
+              <strong>Equipa Atribuída:</strong> ${order.assigned_team}
+              ${order.scheduled_start ? `<br><strong>Agendado:</strong> ${formatDateTime(order.scheduled_start)}` : ""}
+            </div>
+          ` : ""}
+        `;
+
+      } catch (err) {
+        console.error("Erro ao carregar pedido:", err);
+        content.innerHTML = `<p style="color:#ef4444;">${err.message}</p>`;
+      }
+    };
+
+    window.closeOrderModal = function() {
+      document.getElementById("order-modal").classList.remove('open');
+    };
+
+    // ============ LOGOUT ============
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('gv_token');
+      localStorage.removeItem('gv_role');
+      localStorage.removeItem('gv_email');
+      localStorage.removeItem('gv_account_id');
+      window.location.href = 'index.html';
+    });
+
+    // ============ INIT ============
+    document.addEventListener('DOMContentLoaded', () => {
+      const email = localStorage.getItem('gv_email') || 'cliente@geovision';
+      document.getElementById('user-name').textContent = email.split('@')[0];
+      document.getElementById('user-avatar').textContent = email.charAt(0).toUpperCase();
+      document.getElementById('settings-email').value = email;
+    });
   </script>
 </body>
 </html>
