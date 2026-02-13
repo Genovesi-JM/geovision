@@ -1574,6 +1574,9 @@
   <script type="module" src="assets/js/dashboard-client.js"></script>
   <script src="assets/js/chatbot.js?v=3"></script>
   <script>
+    // ============ API CONFIG ============
+    const API_URL = window.API_BASE || "http://127.0.0.1:8010";
+
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
     const viewPanels = document.querySelectorAll('.view-panel');
@@ -1654,7 +1657,6 @@
     });
 
     // ============ ORDERS ============
-    const API_URL = window.API_BASE || "http://127.0.0.1:8010";
 
     function formatAOA(cents) {
       const value = cents / 100;
