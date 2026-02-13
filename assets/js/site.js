@@ -14,6 +14,12 @@
     const nav = document.getElementById("main-nav") || document.querySelector(".navbar-nav");
     const langToggle = document.querySelector(".lang-toggle");
     if (!menuToggle || !nav) return;
+
+    // On mobile, move lang-toggle inside the nav dropdown so it flows below links
+    if (langToggle && window.innerWidth <= 768) {
+      nav.appendChild(langToggle);
+    }
+
     menuToggle.addEventListener("click", () => {
       nav.classList.toggle("show");
       if (langToggle) langToggle.classList.toggle("show");

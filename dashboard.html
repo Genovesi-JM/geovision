@@ -73,6 +73,22 @@
       color: #9ca3af;
     }
 
+    .sidebar-close-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      margin-left: auto;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .sidebar-close-btn:hover {
+      color: #fff;
+    }
+
     .sidebar-nav {
       flex: 1;
       padding: 1rem 0;
@@ -982,6 +998,10 @@
       .btn-menu-toggle {
         display: flex;
       }
+
+      .sidebar-close-btn {
+        display: block;
+      }
     }
 
     @media (max-width: 640px) {
@@ -1128,6 +1148,7 @@
         <div class="sidebar-brand-name">GEOVISION</div>
         <div class="sidebar-brand-sub">Painel do Cliente</div>
       </div>
+      <button class="sidebar-close-btn" id="sidebar-close" aria-label="Fechar menu">✕</button>
     </div>
 
     <!-- Account Switcher -->
@@ -1646,10 +1667,17 @@
     // ============ SIDEBAR TOGGLE ============
     const sidebar = document.getElementById('sidebar');
     const menuToggle = document.getElementById('btn-menu-toggle');
+    const sidebarClose = document.getElementById('sidebar-close');
 
     menuToggle.addEventListener('click', () => {
       sidebar.classList.toggle('open');
     });
+
+    if (sidebarClose) {
+      sidebarClose.addEventListener('click', () => {
+        sidebar.classList.remove('open');
+      });
+    }
 
     document.addEventListener('click', (e) => {
       if (window.innerWidth <= 1024) {

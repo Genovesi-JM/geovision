@@ -566,6 +566,27 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     logoutBtn.dataset.gvBound = "1";
   }
 
+  // ── Bind modal buttons early — BEFORE any await/render that could throw ──
+  if (openModal && !openModal.dataset.gvBound) {
+    openModal.onclick = () => {
+      const name = document.getElementById("account-name-input");
+      if (name) name.value = "";
+      toggleModal(true);
+    };
+    openModal.dataset.gvBound = "1";
+  }
+  if (cancelBtn && !cancelBtn.dataset.gvBound) {
+    cancelBtn.onclick = () => toggleModal(false);
+    cancelBtn.dataset.gvBound = "1";
+  }
+  if (createBtn && !createBtn.dataset.gvBound) {
+    createBtn.onclick = () => {
+      const accId = localStorage.getItem(SESSION_ACCOUNT_KEY) || null;
+      handleAccountCreate(accId, loadDashboard);
+    };
+    createBtn.dataset.gvBound = "1";
+  }
+
   let currentAccountId = accountIdHint || localStorage.getItem(SESSION_ACCOUNT_KEY) || null;
   let activeSector = activeSectorHint !== undefined ? activeSectorHint : (localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY) || null);
   let meData = null;
@@ -575,9 +596,12 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     console.warn("me fallback", err);
   }
 
+  const emailPill = document.getElementById("user-email-pill");
+  const dashTitle = document.getElementById("dash-title");
+
   if (meData && meData.user) {
     const email = meData.user.email || "cliente@geovision";
-    document.getElementById("user-email-pill").textContent = email;
+    if (emailPill) emailPill.textContent = email;
     localStorage.setItem(SESSION_EMAIL_KEY, email);
 
     const accounts = meData.accounts || [];
@@ -588,8 +612,8 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     if (active) renderAccountMeta(active);
   } else {
     const email = localStorage.getItem(SESSION_EMAIL_KEY) || "cliente@geovision";
-    document.getElementById("user-email-pill").textContent = email;
-    document.getElementById("dash-title").textContent = `Olá, ${email}`;
+    if (emailPill) emailPill.textContent = email;
+    if (dashTitle) dashTitle.textContent = `Olá, ${email}`;
   }
 
   const activeAccount =
@@ -630,23 +654,6 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
       await loadDashboard(val, null);
     });
     switcher.dataset.gvBound = "1";
-  }
-
-  if (openModal && !openModal.dataset.gvBound) {
-    openModal.onclick = () => {
-      const name = document.getElementById("account-name-input");
-      if (name) name.value = "";
-      toggleModal(true);
-    };
-    openModal.dataset.gvBound = "1";
-  }
-  if (cancelBtn && !cancelBtn.dataset.gvBound) {
-    cancelBtn.onclick = () => toggleModal(false);
-    cancelBtn.dataset.gvBound = "1";
-  }
-  if (createBtn && !createBtn.dataset.gvBound) {
-    createBtn.onclick = () => handleAccountCreate(currentAccountId, loadDashboard);
-    createBtn.dataset.gvBound = "1";
   }
 }
 
