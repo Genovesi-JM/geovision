@@ -1677,24 +1677,25 @@ textarea {
    =========================================================== */
 
 .video-thumb-agri .video-fake-layer {
-  background-image: url("../img/Dashboard de agro.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background:
+    linear-gradient(120deg, rgba(40, 190, 120, 0.9), rgba(0, 120, 255, 0.7)),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 100% 100%, 22px 22px, 22px 22px;
 }
 
 .video-thumb-mining .video-fake-layer {
-  background-image: url("../img/MINERAÇÃO.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background:
+    linear-gradient(135deg, rgba(180, 110, 60, 0.95), rgba(50, 30, 20, 0.98)),
+    linear-gradient(0deg, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px;
 }
 
 .video-thumb-construction .video-fake-layer {
-  background-image: url("../img/Dashboard Técnico de Obra.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background:
+    linear-gradient(120deg, rgba(190, 190, 210, 0.95), rgba(70, 80, 95, 1)),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.18) 0, rgba(0, 0, 0, 0.18) 4px, transparent 4px, transparent 8px);
+  background-size: 100% 100%, 32px 32px;
 }
 
 /* =========================================================
