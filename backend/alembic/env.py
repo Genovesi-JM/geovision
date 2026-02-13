@@ -10,6 +10,15 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from app.database import Base
 from app import models  # IMPORTANTE: força o carregamento dos models
+# Import additional model files to register them with Base.metadata
+try:
+    from app import models_enterprise
+    from app import models_shop
+    from app import models_payments
+    from app import models_risk
+except ImportError:
+    pass  # Some models may not exist yet
+
 from app.config import DATABASE_URL
 
 config = context.config

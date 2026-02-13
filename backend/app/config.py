@@ -1,5 +1,6 @@
 from pathlib import Path
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from typing import Optional
 
 class Settings(BaseSettings):
@@ -32,6 +33,14 @@ class Settings(BaseSettings):
     # Bases de dados
     database_url: str = "sqlite:///./geovision.db"
     accounts_database_url: str = "sqlite:///./accounts.db"
+    
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def fix_postgres_url(cls, v: str) -> str:
+        """Render uses postgres:// but SQLAlchemy 2.0 requires postgresql://"""
+        if v and v.startswith("postgres://"):
+            return v.replace("postgres://", "postgresql://", 1)
+        return v
 
     # OpenAI (opcional – para o chatbot AI)
     openai_api_key: Optional[str] = None
