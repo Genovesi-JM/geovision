@@ -160,8 +160,8 @@
       // Fallback static contacts if API fails
       createWidget([
         { channel: 'whatsapp', label: 'Suporte', value: '+244 928 917 269', link: 'https://wa.me/244928917269?text=Ol%C3%A1%20GeoVision%2C%20preciso%20de%20ajuda.' },
-        { channel: 'instagram', label: 'Instagram', value: '@geovision.digital', link: 'https://instagram.com/geovision.digital' },
-        { channel: 'email', label: 'Suporte', value: 'support@geovision.digital', link: 'mailto:support@geovision.digital?subject=Contacto%20via%20GeoVision' },
+        { channel: 'instagram', label: 'Instagram', value: '@geovisionops', link: 'https://instagram.com/geovisionops' },
+        { channel: 'email', label: 'Suporte', value: 'support@geovisionops.com', link: 'mailto:support@geovisionops.com?subject=Contacto%20via%20GeoVision' },
       ]);
     }
   }

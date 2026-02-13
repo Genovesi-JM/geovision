@@ -1,110 +1,110 @@
-# 📧 Estratégia de Emails Corporativos - GeoVision
+﻿# ðŸ“§ EstratÃ©gia de Emails Corporativos - GeoVision
 
-## 🎯 Objetivo
+## ðŸŽ¯ Objetivo
 
-Estabelecer uma estrutura profissional de emails corporativos para a GeoVision, garantindo credibilidade institucional, segurança e conformidade com boas práticas empresariais.
-
----
-
-## 🌐 Domínios Recomendados
-
-### Domínio Principal
-- **`geovision.ao`** — Domínio angolano preferencial para operações locais
-- **`geovision.co.ao`** — Alternativa empresarial angolana
-
-### Domínio Internacional (Opcional)
-- **`geovision.tech`** ou **`geovision.io`** — Para comunicações internacionais
+Estabelecer uma estrutura profissional de emails corporativos para a GeoVision, garantindo credibilidade institucional, seguranÃ§a e conformidade com boas prÃ¡ticas empresariais.
 
 ---
 
-## 📬 Estrutura de Endereços de Email
+## ðŸŒ DomÃ­nios Recomendados
 
-### 👤 Emails Nominativos (Colaboradores)
+### DomÃ­nio Principal
+- **`geovisionops.com`** â€” DomÃ­nio angolano preferencial para operaÃ§Ãµes locais
+- **`geovision.co.ao`** â€” Alternativa empresarial angolana
 
-Formato padrão: `nome.sobrenome@geovision.ao`
+### DomÃ­nio Internacional (Opcional)
+- **`geovision.tech`** ou **`geovision.io`** â€” Para comunicaÃ§Ãµes internacionais
+
+---
+
+## ðŸ“¬ Estrutura de EndereÃ§os de Email
+
+### ðŸ‘¤ Emails Nominativos (Colaboradores)
+
+Formato padrÃ£o: `nome.sobrenome@geovisionops.com`
 
 | Colaborador | Email |
 |-------------|-------|
-| João Silva | joao.silva@geovision.ao |
-| Maria Santos | maria.santos@geovision.ao |
-| Admin Sistema | admin@geovision.ao |
+| JoÃ£o Silva | joao.silva@geovisionops.com |
+| Maria Santos | maria.santos@geovisionops.com |
+| Admin Sistema | admin@geovisionops.com |
 
-### 🏢 Emails Departamentais
+### ðŸ¢ Emails Departamentais
 
 | Departamento | Email | Finalidade |
 |--------------|-------|------------|
-| Geral | info@geovision.ao | Informações gerais, primeiro contacto |
-| Suporte | support@geovision.ao | Suporte técnico ao cliente |
-| Comercial | comercial@geovision.ao | Propostas, orçamentos, vendas |
-| Financeiro | financeiro@geovision.ao | Faturas, pagamentos |
-| RH | rh@geovision.ao | Recrutamento, recursos humanos |
-| Parcerias | parcerias@geovision.ao | Acordos B2B, integrações |
-| Contabilidade | contabilidade@geovision.ao | Documentos fiscais, declarações |
+| Geral | info@geovisionops.com | InformaÃ§Ãµes gerais, primeiro contacto |
+| Suporte | support@geovisionops.com | Suporte tÃ©cnico ao cliente |
+| Comercial | comercial@geovisionops.com | Propostas, orÃ§amentos, vendas |
+| Financeiro | financeiro@geovisionops.com | Faturas, pagamentos |
+| RH | rh@geovisionops.com | Recrutamento, recursos humanos |
+| Parcerias | parcerias@geovisionops.com | Acordos B2B, integraÃ§Ãµes |
+| Contabilidade | contabilidade@geovisionops.com | Documentos fiscais, declaraÃ§Ãµes |
 
-### 📢 Emails de Comunicação
-
-| Tipo | Email | Finalidade |
-|------|-------|------------|
-| Newsletter | newsletter@geovision.ao | Envio de newsletters |
-| Marketing | marketing@geovision.ao | Campanhas, promoções |
-| Notificações | noreply@geovision.ao | Emails automáticos do sistema |
-| Alertas | alerts@geovision.ao | Notificações críticas |
-
-### 🔐 Emails de Segurança (Não Expor Publicamente)
+### ðŸ“¢ Emails de ComunicaÃ§Ã£o
 
 | Tipo | Email | Finalidade |
 |------|-------|------------|
-| Segurança | security@geovision.ao | Relatórios de vulnerabilidades |
-| Abuse | abuse@geovision.ao | Denúncias de uso indevido |
-| Admin TI | it-admin@geovision.ao | Administração de sistemas |
+| Newsletter | newsletter@geovisionops.com | Envio de newsletters |
+| Marketing | marketing@geovisionops.com | Campanhas, promoÃ§Ãµes |
+| NotificaÃ§Ãµes | noreply@geovisionops.com | Emails automÃ¡ticos do sistema |
+| Alertas | alerts@geovisionops.com | NotificaÃ§Ãµes crÃ­ticas |
+
+### ðŸ” Emails de SeguranÃ§a (NÃ£o Expor Publicamente)
+
+| Tipo | Email | Finalidade |
+|------|-------|------------|
+| SeguranÃ§a | security@geovisionops.com | RelatÃ³rios de vulnerabilidades |
+| Abuse | abuse@geovisionops.com | DenÃºncias de uso indevido |
+| Admin TI | it-admin@geovisionops.com | AdministraÃ§Ã£o de sistemas |
 
 ---
 
-## 🔧 Provedor Recomendado
+## ðŸ”§ Provedor Recomendado
 
-### Opção 1: Google Workspace (Recomendado)
-- **Preço:** ~$6-12/usuário/mês
+### OpÃ§Ã£o 1: Google Workspace (Recomendado)
+- **PreÃ§o:** ~$6-12/usuÃ¡rio/mÃªs
 - **Vantagens:**
   - Interface familiar (Gmail)
-  - Integração com Google Drive, Meet, Calendar
+  - IntegraÃ§Ã£o com Google Drive, Meet, Calendar
   - Excelente filtro de spam
-  - 30GB+ de armazenamento por usuário
+  - 30GB+ de armazenamento por usuÃ¡rio
   - Admin Console robusto
   - Logs de auditoria
 
-### Opção 2: Microsoft 365 Business
-- **Preço:** ~$6-12/usuário/mês
+### OpÃ§Ã£o 2: Microsoft 365 Business
+- **PreÃ§o:** ~$6-12/usuÃ¡rio/mÃªs
 - **Vantagens:**
-  - Integração com Office (Word, Excel, etc.)
-  - Microsoft Teams incluído
+  - IntegraÃ§Ã£o com Office (Word, Excel, etc.)
+  - Microsoft Teams incluÃ­do
   - OneDrive para ficheiros
   - Familiar para empresas tradicionais
 
-### Opção 3: Zoho Mail
-- **Preço:** ~$1-4/usuário/mês
+### OpÃ§Ã£o 3: Zoho Mail
+- **PreÃ§o:** ~$1-4/usuÃ¡rio/mÃªs
 - **Vantagens:**
-  - Mais económico
+  - Mais econÃ³mico
   - Funcionalidades essenciais
   - Boa alternativa para startups
 
 ---
 
-## 🛡️ Políticas de Segurança
+## ðŸ›¡ï¸ PolÃ­ticas de SeguranÃ§a
 
-### Autenticação
+### AutenticaÃ§Ã£o
 
-1. **2FA Obrigatório**
-   - Todos os colaboradores devem ativar autenticação de dois fatores
-   - Preferência: App autenticador (Google Authenticator, Authy)
+1. **2FA ObrigatÃ³rio**
+   - Todos os colaboradores devem ativar autenticaÃ§Ã£o de dois fatores
+   - PreferÃªncia: App autenticador (Google Authenticator, Authy)
    - Alternativa: SMS (menos seguro)
 
-2. **Políticas de Senha**
-   - Mínimo 12 caracteres
-   - Combinação de maiúsculas, minúsculas, números e símbolos
-   - Rotação a cada 90 dias
-   - Proibido reutilizar as últimas 5 senhas
+2. **PolÃ­ticas de Senha**
+   - MÃ­nimo 12 caracteres
+   - CombinaÃ§Ã£o de maiÃºsculas, minÃºsculas, nÃºmeros e sÃ­mbolos
+   - RotaÃ§Ã£o a cada 90 dias
+   - Proibido reutilizar as Ãºltimas 5 senhas
 
-### Configurações DNS
+### ConfiguraÃ§Ãµes DNS
 
 ```dns
 # SPF - Sender Policy Framework
@@ -114,70 +114,70 @@ TXT @ "v=spf1 include:_spf.google.com ~all"
 TXT google._domainkey "v=DKIM1; k=rsa; p=..."
 
 # DMARC - Domain-based Message Authentication
-TXT _dmarc "v=DMARC1; p=quarantine; rua=mailto:dmarc@geovision.ao"
+TXT _dmarc "v=DMARC1; p=quarantine; rua=mailto:dmarc@geovisionops.com"
 ```
 
 ### Regras de Uso
 
-1. **Proibido usar emails pessoais** para comunicações oficiais
+1. **Proibido usar emails pessoais** para comunicaÃ§Ãµes oficiais
 2. **Proibido partilhar credenciais** de acesso
-3. **Evitar expor emails admin** em páginas públicas (usar formulários)
+3. **Evitar expor emails admin** em pÃ¡ginas pÃºblicas (usar formulÃ¡rios)
 4. **Backup regular** de emails importantes
-5. **Encriptar anexos sensíveis** com password
+5. **Encriptar anexos sensÃ­veis** com password
 
 ---
 
-## 📊 Estrutura por Departamento
+## ðŸ“Š Estrutura por Departamento
 
 ### Diretoria
 ```
-ceo@geovision.ao
-cto@geovision.ao
-cfo@geovision.ao
-direcao@geovision.ao
+ceo@geovisionops.com
+cto@geovisionops.com
+cfo@geovisionops.com
+direcao@geovisionops.com
 ```
 
-### Operações de Voo
+### OperaÃ§Ãµes de Voo
 ```
-operacoes@geovision.ao
-pilotos@geovision.ao
-manutencao@geovision.ao
-logistica@geovision.ao
+operacoes@geovisionops.com
+pilotos@geovisionops.com
+manutencao@geovisionops.com
+logistica@geovisionops.com
 ```
 
 ### Tecnologia
 ```
-tech@geovision.ao
-dev@geovision.ao
-dados@geovision.ao
-rag@geovision.ao
+tech@geovisionops.com
+dev@geovisionops.com
+dados@geovisionops.com
+rag@geovisionops.com
 ```
 
 ### Sectores (Contas de Suporte)
 ```
-mining@geovision.ao
-agro@geovision.ao
-infrastructure@geovision.ao
-demining@geovision.ao
-solar@geovision.ao
+mining@geovisionops.com
+agro@geovisionops.com
+infrastructure@geovisionops.com
+demining@geovisionops.com
+solar@geovisionops.com
 ```
 
 ---
 
-## 📝 Templates de Assinatura
+## ðŸ“ Templates de Assinatura
 
-### Modelo Padrão
+### Modelo PadrÃ£o
 
 ```html
 --
-João Silva
-Especialista em Operações de Voo
+JoÃ£o Silva
+Especialista em OperaÃ§Ãµes de Voo
 
-📧 joao.silva@geovision.ao
-📞 +244 923 000 000
-🌐 www.geovision.ao
+ðŸ“§ joao.silva@geovisionops.com
+ðŸ“ž +244 923 000 000
+ðŸŒ www.geovisionops.com
 
-GeoVision — Inteligência Aérea para Angola
+GeoVision â€” InteligÃªncia AÃ©rea para Angola
 Mining | Infrastructure | Agriculture | Demining | Solar
 
 [Logo pequeno]
@@ -187,92 +187,92 @@ Mining | Infrastructure | Agriculture | Demining | Solar
 
 ```html
 --
-João Silva | GeoVision
-📧 joao.silva@geovision.ao | 📞 +244 923 000 000
+JoÃ£o Silva | GeoVision
+ðŸ“§ joao.silva@geovisionops.com | ðŸ“ž +244 923 000 000
 ```
 
 ---
 
-## 🔄 Fluxo de Emails do Sistema
+## ðŸ”„ Fluxo de Emails do Sistema
 
-### Notificações Automáticas
+### NotificaÃ§Ãµes AutomÃ¡ticas
 
 | Tipo | De | Assunto |
 |------|-----|---------|
-| Registo | noreply@geovision.ao | "Bem-vindo à GeoVision" |
-| Reset Senha | noreply@geovision.ao | "Recuperar Senha - GeoVision" |
-| Confirmação Compra | noreply@geovision.ao | "Pedido #XXX Confirmado" |
-| Relatório Pronto | alerts@geovision.ao | "Seu relatório está disponível" |
-| Alerta Sistema | alerts@geovision.ao | "Alerta: [descrição]" |
+| Registo | noreply@geovisionops.com | "Bem-vindo Ã  GeoVision" |
+| Reset Senha | noreply@geovisionops.com | "Recuperar Senha - GeoVision" |
+| ConfirmaÃ§Ã£o Compra | noreply@geovisionops.com | "Pedido #XXX Confirmado" |
+| RelatÃ³rio Pronto | alerts@geovisionops.com | "Seu relatÃ³rio estÃ¡ disponÃ­vel" |
+| Alerta Sistema | alerts@geovisionops.com | "Alerta: [descriÃ§Ã£o]" |
 
-### Configuração SMTP para Sistema
+### ConfiguraÃ§Ã£o SMTP para Sistema
 
 ```python
-# Configuração para emails transacionais
+# ConfiguraÃ§Ã£o para emails transacionais
 SMTP_HOST = "smtp.gmail.com"  # ou provedor escolhido
 SMTP_PORT = 587
-SMTP_USER = "noreply@geovision.ao"
+SMTP_USER = "noreply@geovisionops.com"
 SMTP_PASSWORD = "app-password-seguro"
-SMTP_FROM = "GeoVision <noreply@geovision.ao>"
+SMTP_FROM = "GeoVision <noreply@geovisionops.com>"
 SMTP_TLS = True
 ```
 
 ---
 
-## 📋 Checklist de Implementação
+## ðŸ“‹ Checklist de ImplementaÃ§Ã£o
 
-### Fase 1: Configuração Inicial
-- [ ] Registar domínio geovision.ao (se ainda não registado)
+### Fase 1: ConfiguraÃ§Ã£o Inicial
+- [ ] Registar domÃ­nio geovisionops.com (se ainda nÃ£o registado)
 - [ ] Escolher provedor (Google Workspace / Microsoft 365)
 - [ ] Configurar registos DNS (MX, SPF, DKIM, DMARC)
 - [ ] Criar contas administrativas principais
 
 ### Fase 2: Contas Departamentais
 - [ ] Criar info@, support@, comercial@
-- [ ] Configurar grupos de distribuição
-- [ ] Definir políticas de retenção
+- [ ] Configurar grupos de distribuiÃ§Ã£o
+- [ ] Definir polÃ­ticas de retenÃ§Ã£o
 
 ### Fase 3: Contas de Colaboradores
 - [ ] Criar contas nominativas
 - [ ] Ativar 2FA em todas as contas
 - [ ] Distribuir assinaturas padronizadas
 
-### Fase 4: Integração com Sistema
+### Fase 4: IntegraÃ§Ã£o com Sistema
 - [ ] Configurar SMTP para emails transacionais
 - [ ] Testar envio de reset de senha
-- [ ] Testar confirmações de compra
+- [ ] Testar confirmaÃ§Ãµes de compra
 - [ ] Configurar logs de envio
 
-### Fase 5: Monitorização
+### Fase 5: MonitorizaÃ§Ã£o
 - [ ] Ativar alertas de login suspeito
-- [ ] Configurar relatórios DMARC
+- [ ] Configurar relatÃ³rios DMARC
 - [ ] Rever logs de auditoria semanalmente
 
 ---
 
-## 💡 Boas Práticas
+## ðŸ’¡ Boas PrÃ¡ticas
 
-1. **Resposta Rápida**: Responder emails de clientes em até 24h úteis
-2. **Tom Profissional**: Manter comunicação formal mas acessível
+1. **Resposta RÃ¡pida**: Responder emails de clientes em atÃ© 24h Ãºteis
+2. **Tom Profissional**: Manter comunicaÃ§Ã£o formal mas acessÃ­vel
 3. **Assinatura Completa**: Sempre incluir nome, cargo e contactos
-4. **Assunto Claro**: Usar assuntos descritivos e específicos
-5. **Arquivamento**: Manter histórico de comunicações importantes
-6. **Confidencialidade**: Nunca enviar dados sensíveis sem encriptação
+4. **Assunto Claro**: Usar assuntos descritivos e especÃ­ficos
+5. **Arquivamento**: Manter histÃ³rico de comunicaÃ§Ãµes importantes
+6. **Confidencialidade**: Nunca enviar dados sensÃ­veis sem encriptaÃ§Ã£o
 
 ---
 
-## 📞 Contactos Prioritários
+## ðŸ“ž Contactos PrioritÃ¡rios
 
-| Situação | Email | Tempo de Resposta |
+| SituaÃ§Ã£o | Email | Tempo de Resposta |
 |----------|-------|-------------------|
-| Emergência Operacional | operacoes@geovision.ao | < 2h |
-| Suporte Técnico | support@geovision.ao | < 24h |
-| Questões Comerciais | comercial@geovision.ao | < 24h |
-| Facturação | financeiro@geovision.ao | < 48h |
-| Parcerias B2B | parcerias@geovision.ao | < 48h |
+| EmergÃªncia Operacional | operacoes@geovisionops.com | < 2h |
+| Suporte TÃ©cnico | support@geovisionops.com | < 24h |
+| QuestÃµes Comerciais | comercial@geovisionops.com | < 24h |
+| FacturaÃ§Ã£o | financeiro@geovisionops.com | < 48h |
+| Parcerias B2B | parcerias@geovisionops.com | < 48h |
 
 ---
 
 *Documento criado: 2025*
-*Última atualização: Janeiro 2025*
-*Responsável: Equipa TI - GeoVision*
+*Ãšltima atualizaÃ§Ã£o: Janeiro 2025*
+*ResponsÃ¡vel: Equipa TI - GeoVision*

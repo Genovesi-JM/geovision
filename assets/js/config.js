@@ -7,14 +7,14 @@
 (function () {
 	const LOCAL_DEFAULT = "http://127.0.0.1:8010";
 	// Production backend URL
-	const PROD_DEFAULT = "https://api.geovision.digital";
+	const PROD_DEFAULT = "https://api.geovisionops.com";
 
 	const isProduction =
 		typeof window !== "undefined" &&
 		window.location &&
 		window.location.hostname &&
 		(window.location.hostname.endsWith("github.io") ||
-		 window.location.hostname.endsWith("geovision.digital"));
+		 window.location.hostname.endsWith("geovisionops.com"));
 
 	let override = null;
 	try {

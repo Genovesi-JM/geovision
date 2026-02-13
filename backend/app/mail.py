@@ -43,7 +43,7 @@ def _base_html(title: str, content: str) -> str:
 </td></tr>
 <tr><td style="background:#f8f9fa;padding:20px 40px;text-align:center;border-top:1px solid #e9ecef;">
 <p style="margin:0;color:#6c757d;font-size:12px;">
-© {datetime.utcnow().year} GeoVision Digital · Angola
+© {datetime.utcnow().year} GeoVision Ops · Angola
 <br>Este email foi enviado automaticamente. Não responda directamente.
 </p>
 </td></tr>

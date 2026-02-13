@@ -19,7 +19,7 @@ services:
       - key: ENV
         value: prod
       - key: CORS_ORIGINS
-        value: https://genovesi-jm.github.io,https://geovision.digital,https://www.geovision.digital
+        value: https://genovesi-jm.github.io,https://geovisionops.com,https://www.geovisionops.com
       - key: DATABASE_URL
         fromDatabase:
           name: geovision-db

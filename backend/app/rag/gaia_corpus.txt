@@ -1,4 +1,4 @@
-GeoVision - Drone-based Intelligence for Angola
+﻿GeoVision - Drone-based Intelligence for Angola
 
 OVERVIEW
 ========
@@ -77,8 +77,8 @@ GEOGRAPHIC FOCUS
 Primary Markets:
 - Northern Region: Luanda province, Greater Luanda area
 - Eastern Region: Moxico, Cuando Cubango provinces
-- Central Region: Huambo, Bié provinces
-- Southern Region: Cunene, Huíla provinces
+- Central Region: Huambo, BiÃ© provinces
+- Southern Region: Cunene, HuÃ­la provinces
 
 Key Cities:
 - Luanda (headquarters and operations center)
@@ -111,15 +111,15 @@ Headquarters:
 GeoVision
 Luanda, Angola
 Phone: +244 222 XXX XXX
-Email: info@geovision.ao
+Email: info@geovisionops.com
 
 Sales Team:
-- Agricultural Sector: agriculture@geovision.ao
-- Mining Sector: mining@geovision.ao
-- Infrastructure: infrastructure@geovision.ao
+- Agricultural Sector: agriculture@geovisionops.com
+- Mining Sector: mining@geovisionops.com
+- Infrastructure: infrastructure@geovisionops.com
 
 Technical Support:
-- support@geovision.ao
+- support@geovisionops.com
 - Emergency: +244 923 XXX XXX
 
 CASE STUDIES
@@ -229,7 +229,7 @@ DJI Matrice 300 RTK:
 Sensors:
 - RGB Camera: 20 MP, 4/3 CMOS
 - Multispectral: 48 MP, 5-band (R, G, B, Red Edge, NIR)
-- Thermal: 640×512 radiometric
+- Thermal: 640Ã—512 radiometric
 - Zoom: 30x hybrid zoom
 
 TRAINING & CAPACITY BUILDING

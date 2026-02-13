@@ -1091,8 +1091,8 @@ async def get_admin_contacts():
     
     return [
         AdminContactOut(type="whatsapp", label="WhatsApp Suporte", value="+244928917269", icon="📱"),
-        AdminContactOut(type="email", label="Email Suporte", value="suporte@geovision.digital", icon="✉️"),
+        AdminContactOut(type="email", label="Email Suporte", value="suporte@geovisionops.com", icon="✉️"),
         AdminContactOut(type="phone", label="Telefone", value="+244928917269", icon="📞"),
         AdminContactOut(type="sms", label="SMS", value="+244928917269", icon="💬"),
-        AdminContactOut(type="instagram", label="Instagram", value="@geovision.digital", icon="📷"),
+        AdminContactOut(type="instagram", label="Instagram", value="@geovisionops", icon="📷"),
     ]
