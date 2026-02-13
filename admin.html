@@ -5,6 +5,7 @@
   <title>Admin – GeoVision Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="stylesheet" href="assets/css/chatbot.css" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
@@ -2108,5 +2109,8 @@
       document.getElementById('user-avatar').textContent = email.charAt(0).toUpperCase();
     });
   </script>
+  <script src="assets/js/config.js?v=4"></script>
+  <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
+  <script src="assets/js/chatbot.js?v=4"></script>
 </body>
 </html>

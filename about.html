@@ -1,18 +1,46 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sobre Nós — GeoVision</title>
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <title>About Us — GeoVision | Operational Intelligence for Strategic Assets</title>
+  <meta name="description" content="GeoVision delivers advanced aerial monitoring, geospatial intelligence and selective field execution across mining, infrastructure and territorial operations in Angola and Africa." />
+  <meta name="keywords" content="GeoVision, aerial monitoring, geospatial intelligence, drones Angola, mining operations, infrastructure monitoring, demining, agriculture precision" />
+  <meta property="og:title" content="About GeoVision — Operational Intelligence for Strategic Assets" />
+  <meta property="og:description" content="Advanced aerial monitoring, geospatial intelligence and selective field execution across strategic sectors in Africa." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://geovision.africa/about" />
+  <link rel="canonical" href="https://geovision.africa/about" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/chatbot.css" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg-dark: #050914;
+      --bg-darker: #020408;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --border: rgba(148, 163, 184, 0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-green: #22c55e;
+      --accent-blue: #0ea5e9;
+      --accent-cyan: #06b6d4;
+      --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
+      --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
+    }
+    
+    html { scroll-behavior: smooth; }
     
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #050914;
-      color: #e5e7eb;
-      line-height: 1.6;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.7;
+      overflow-x: hidden;
     }
 
     /* ============ NAVBAR ============ */
@@ -21,14 +49,15 @@
       top: 0;
       left: 0;
       right: 0;
-      z-index: 100;
+      z-index: 1000;
       padding: 1rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(5, 9, 20, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      background: rgba(5, 9, 20, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
     }
 
     .navbar-brand {
@@ -36,381 +65,782 @@
       align-items: center;
       gap: 0.75rem;
       text-decoration: none;
-      color: #e5e7eb;
+      color: var(--text-primary);
     }
 
     .navbar-logo {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #22c55e, #38bdf8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1.2rem;
-      color: #020617;
+      overflow: hidden;
+    }
+
+    .navbar-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .navbar-brand-text {
       font-size: 1.1rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
+      font-weight: 700;
+      letter-spacing: 0.15em;
     }
 
     .navbar-nav {
       display: flex;
       align-items: center;
-      gap: 2rem;
+      gap: 2.5rem;
     }
 
     .navbar-link {
-      color: #9ca3af;
+      color: var(--text-secondary);
       text-decoration: none;
       font-size: 0.9rem;
+      font-weight: 500;
       transition: color 0.2s;
     }
 
-    .navbar-link:hover {
-      color: #e5e7eb;
-    }
-
+    .navbar-link:hover,
     .navbar-link.active {
-      color: #38bdf8;
+      color: var(--accent-cyan);
     }
 
     .btn-nav {
-      padding: 0.5rem 1.2rem;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      padding: 0.6rem 1.4rem;
+      border-radius: 8px;
+      background: var(--gradient-primary);
       color: #020617;
       font-weight: 600;
       text-decoration: none;
       font-size: 0.85rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-nav:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+    }
+
+    .navbar-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .navbar-toggle span {
+      width: 24px;
+      height: 2px;
+      background: var(--text-primary);
+      transition: 0.3s;
+    }
+
+    /* ============ LANGUAGE TOGGLE ============ */
+    .lang-toggle {
+      display: flex;
+      gap: 0.25rem;
+      margin-left: 1rem;
+      padding-left: 1rem;
+      border-left: 1px solid var(--border);
+    }
+
+    .lang-btn {
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .lang-btn.active {
+      background: var(--gradient-primary);
+      color: #020617;
+      border-color: transparent;
     }
 
     /* ============ HERO ============ */
     .hero {
-      padding: 10rem 2rem 5rem;
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8rem 2rem 5rem;
       text-align: center;
-      background: linear-gradient(180deg, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(34, 197, 94, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.08) 0%, transparent 40%),
+        linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 50%, var(--bg-dark) 100%);
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(148,163,184,0.03)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .hero-video-container {
+      position: relative;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 3rem;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border);
+    }
+
+    .hero-video-container::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: var(--gradient-primary);
+      border-radius: 18px;
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    .video-wrapper {
+      position: relative;
+      padding-bottom: 56.25%;
+      height: 0;
+    }
+
+    .video-wrapper iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
     }
 
     .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
       font-size: 0.75rem;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: #38bdf8;
-      margin-bottom: 1rem;
+      color: var(--accent-green);
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      border-radius: 999px;
     }
 
     .hero-title {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      font-weight: 700;
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.1;
       margin-bottom: 1.5rem;
-      background: linear-gradient(135deg, #e5e7eb, #9ca3af);
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
 
     .hero-subtitle {
-      max-width: 800px;
-      margin: 0 auto;
-      font-size: 1.15rem;
-      color: #9ca3af;
+      max-width: 750px;
+      margin: 0 auto 2.5rem;
+      font-size: 1.2rem;
+      color: var(--text-secondary);
       line-height: 1.8;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.9rem 2rem;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--gradient-primary);
+      color: #020617;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 40px rgba(34, 197, 94, 0.35);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--accent-cyan);
     }
 
     /* ============ SECTIONS ============ */
     .section {
-      padding: 5rem 2rem;
+      padding: 6rem 2rem;
       max-width: 1200px;
       margin: 0 auto;
     }
 
+    .section-full {
+      padding: 6rem 2rem;
+      max-width: 100%;
+    }
+
     .section-header {
       text-align: center;
-      margin-bottom: 3rem;
+      margin-bottom: 4rem;
     }
 
     .section-eyebrow {
       font-size: 0.7rem;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: #22c55e;
-      margin-bottom: 0.5rem;
+      color: var(--accent-green);
+      margin-bottom: 0.75rem;
+      font-weight: 600;
     }
 
     .section-title {
-      font-size: 2rem;
-      font-weight: 600;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      font-weight: 700;
       margin-bottom: 1rem;
     }
 
     .section-desc {
       max-width: 700px;
       margin: 0 auto;
-      color: #9ca3af;
+      color: var(--text-secondary);
+      font-size: 1.1rem;
     }
 
-    /* ============ MISSION/VISION/VALUES ============ */
-    .mvv-grid {
+    /* ============ WHO WE ARE ============ */
+    .who-section {
+      background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(15, 23, 42, 0.3) 50%, var(--bg-dark) 100%);
+    }
+
+    .who-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      margin-bottom: 4rem;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
-    .mvv-card {
-      padding: 2rem;
+    .who-content h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .who-content p {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      line-height: 1.9;
+      margin-bottom: 1.5rem;
+    }
+
+    .who-content .highlight {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .who-video {
       border-radius: 16px;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(5, 9, 20, 0.95));
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
     }
 
-    .mvv-icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(56, 189, 248, 0.2));
+    /* ============ MISSION & VISION ============ */
+    .mv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .mv-card {
+      padding: 2.5rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      transition: transform 0.3s, border-color 0.3s;
+    }
+
+    .mv-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .mv-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: var(--gradient-glow);
+      border: 1px solid rgba(34, 197, 94, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .mv-title {
+      font-size: 1.3rem;
+      font-weight: 700;
       margin-bottom: 1rem;
+      color: var(--text-primary);
     }
 
-    .mvv-title {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin-bottom: 0.75rem;
+    .mv-text {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      line-height: 1.8;
     }
 
-    .mvv-text {
-      color: #9ca3af;
-      font-size: 0.95rem;
-      line-height: 1.7;
+    /* ============ CORE VALUES ============ */
+    .values-section {
+      background: radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.06) 0%, transparent 50%);
     }
 
-    /* ============ VALUES LIST ============ */
     .values-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
     }
 
-    .value-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      padding: 1.5rem;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(148, 163, 184, 0.1);
-    }
-
-    .value-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #22c55e, #38bdf8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.1rem;
-      flex-shrink: 0;
-    }
-
-    .value-content h4 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 0.35rem;
-    }
-
-    .value-content p {
-      font-size: 0.85rem;
-      color: #9ca3af;
-    }
-
-    /* ============ SECTORS ============ */
-    .sectors-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      margin-top: 2rem;
-    }
-
-    .sector-card {
+    .value-card {
       text-align: center;
-      padding: 2rem 1.5rem;
-      border-radius: 14px;
-      border: 1px solid rgba(148, 163, 184, 0.15);
-      background: rgba(15, 23, 42, 0.7);
+      padding: 2.5rem 1.5rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
       transition: all 0.3s;
     }
 
-    .sector-card:hover {
-      border-color: #38bdf8;
-      transform: translateY(-4px);
+    .value-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(34, 197, 94, 0.4);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
     }
 
-    .sector-icon {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .sector-name {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-    }
-
-    .sector-desc {
-      font-size: 0.8rem;
-      color: #9ca3af;
-    }
-
-    /* ============ DIFFERENTIALS ============ */
-    .diff-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
+    .value-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--gradient-glow);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      display: flex;
       align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      margin: 0 auto 1.25rem;
     }
 
-    @media (max-width: 768px) {
-      .diff-grid {
-        grid-template-columns: 1fr;
-      }
+    .value-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
     }
 
-    .diff-content h3 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-    }
-
-    .diff-content p {
-      color: #9ca3af;
-      margin-bottom: 1.5rem;
+    .value-text {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
       line-height: 1.7;
     }
 
-    .diff-list {
-      list-style: none;
+    /* ============ SECTORS ============ */
+    .sectors-section {
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, var(--bg-dark) 100%);
     }
 
-    .diff-list li {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-      font-size: 0.95rem;
-    }
-
-    .diff-list li::before {
-      content: "✓";
-      color: #22c55e;
-      font-weight: bold;
-    }
-
-    .diff-visual {
-      padding: 2rem;
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(56, 189, 248, 0.1));
-      border: 1px solid rgba(148, 163, 184, 0.15);
-    }
-
-    .diff-visual-title {
-      text-align: center;
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 1.5rem;
-      color: #38bdf8;
-    }
-
-    .diff-visual-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
-    }
-
-    .diff-visual-item:last-child {
-      border-bottom: none;
-    }
-
-    .diff-visual-label {
-      font-size: 0.85rem;
-      color: #9ca3af;
-    }
-
-    .diff-visual-value {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #22c55e;
-    }
-
-    /* ============ WHY GEOVISION ============ */
-    .why-section {
-      background: linear-gradient(180deg, rgba(56, 189, 248, 0.05), transparent);
-      padding: 5rem 2rem;
-    }
-
-    .why-grid {
+    .sectors-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
       gap: 2rem;
       max-width: 1200px;
       margin: 0 auto;
     }
 
-    .why-card {
-      padding: 2rem;
-      border-radius: 14px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.15);
+    .sector-card {
+      padding: 2.5rem;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
     }
 
-    .why-number {
+    .sector-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--gradient-primary);
+      transform: scaleX(0);
+      transition: transform 0.3s;
+    }
+
+    .sector-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .sector-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(14, 165, 233, 0.3);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .sector-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .sector-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    .sector-desc {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+    }
+
+    .sector-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--accent-cyan);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: gap 0.2s;
+    }
+
+    .sector-link:hover {
+      gap: 0.75rem;
+    }
+
+    /* ============ HYBRID MODEL ============ */
+    .hybrid-section {
+      background: radial-gradient(circle at 30% 50%, rgba(34, 197, 94, 0.05) 0%, transparent 40%),
+                  radial-gradient(circle at 70% 50%, rgba(14, 165, 233, 0.05) 0%, transparent 40%);
+    }
+
+    .hybrid-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hybrid-content h3 {
       font-size: 2rem;
       font-weight: 700;
-      background: linear-gradient(135deg, #22c55e, #38bdf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-primary);
+    }
+
+    .hybrid-content p {
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      line-height: 1.9;
+      font-size: 1.05rem;
+    }
+
+    .hybrid-levels {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .hybrid-level {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+
+    .hybrid-level:hover {
+      border-color: rgba(34, 197, 94, 0.3);
+      transform: translateX(8px);
+    }
+
+    .hybrid-level-num {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--gradient-glow);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent-green);
+      flex-shrink: 0;
+    }
+
+    .hybrid-level-content h4 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text-primary);
+    }
+
+    .hybrid-level-content p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .hybrid-visual {
+      padding: 2.5rem;
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+
+    .hybrid-visual-title {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      color: var(--accent-cyan);
+    }
+
+    .hybrid-check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .hybrid-check-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      background: rgba(34, 197, 94, 0.05);
+      border: 1px solid rgba(34, 197, 94, 0.1);
+    }
+
+    .hybrid-check-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #020617;
+      font-weight: bold;
+    }
+
+    .hybrid-check-text {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* ============ TECHNOLOGY ============ */
+    .tech-section {
+      background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(15, 23, 42, 0.5) 50%, var(--bg-dark) 100%);
+    }
+
+    .tech-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .tech-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .tech-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+
+    .tech-item:hover {
+      border-color: rgba(14, 165, 233, 0.3);
+      transform: translateX(8px);
+    }
+
+    .tech-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(14, 165, 233, 0.1);
+      border: 1px solid rgba(14, 165, 233, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .tech-item-content h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+      color: var(--text-primary);
+    }
+
+    .tech-item-content p {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .tech-video {
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+    }
+
+    /* ============ WHY GEOVISION ============ */
+    .why-section {
+      background: radial-gradient(circle at 50% 100%, rgba(34, 197, 94, 0.06) 0%, transparent 50%);
+    }
+
+    .why-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .why-card {
+      padding: 2.5rem;
+      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+
+    .why-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(34, 197, 94, 0.3);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .why-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      background: var(--gradient-glow);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 1.25rem;
     }
 
     .why-title {
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: 1.15rem;
+      font-weight: 700;
       margin-bottom: 0.75rem;
+      color: var(--text-primary);
     }
 
     .why-text {
-      font-size: 0.9rem;
-      color: #9ca3af;
-      line-height: 1.6;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
     }
 
     /* ============ COMMITMENT ============ */
     .commitment-section {
-      padding: 5rem 2rem;
+      padding: 6rem 2rem;
       text-align: center;
-      background: linear-gradient(180deg, transparent, rgba(34, 197, 94, 0.05));
+      background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(34, 197, 94, 0.04) 100%);
     }
 
     .commitment-content {
-      max-width: 800px;
+      max-width: 850px;
       margin: 0 auto;
     }
 
     .commitment-flag {
-      font-size: 3rem;
-      margin-bottom: 1.5rem;
+      font-size: 4rem;
+      margin-bottom: 2rem;
     }
 
     .commitment-title {
@@ -551,31 +981,241 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: #9ca3af;
-      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
     }
 
-    /* ============ MOBILE ============ */
+    /* ============ CTA FINAL ============ */
+    .cta-final {
+      padding: 7rem 2rem;
+      text-align: center;
+      background: 
+        linear-gradient(180deg, var(--bg-dark) 0%, rgba(5, 9, 20, 0.98) 100%),
+        radial-gradient(circle at 30% 50%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 70% 50%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+      position: relative;
+    }
+
+    .cta-final::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--gradient-primary);
+      opacity: 0.3;
+    }
+
+    .cta-content {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .cta-tagline {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cta-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      line-height: 1.8;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1.25rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ============ FOOTER ============ */
+    .footer {
+      padding: 4rem 2rem 2rem;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      background: var(--bg-darker);
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .footer-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #020617;
+      font-size: 1rem;
+    }
+
+    .footer-brand-text {
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--text-primary);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 2.5rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover {
+      color: var(--accent-cyan);
+    }
+
+    .footer-divider {
+      width: 80px;
+      height: 1px;
+      background: var(--border);
+      margin: 2rem auto;
+    }
+
+    .footer-copyright {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 1024px) {
+      .who-grid,
+      .hybrid-grid,
+      .tech-grid {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+
+      .why-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 768px) {
-      .navbar-nav {
+      .navbar-nav,
+      .lang-toggle {
         display: none;
       }
 
+      .navbar-toggle {
+        display: flex;
+      }
+
       .hero {
-        padding: 8rem 1.5rem 3rem;
+        padding: 7rem 1.5rem 4rem;
       }
 
-      .section {
-        padding: 3rem 1.5rem;
+      .section,
+      .section-full {
+        padding: 4rem 1.5rem;
       }
 
-      .mvv-grid {
+      .mv-grid {
         grid-template-columns: 1fr;
       }
 
       .values-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+      }
+
+      .sectors-grid {
         grid-template-columns: 1fr;
       }
+
+      .why-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-title {
+        font-size: 2.2rem;
+      }
+
+      .hero-subtitle {
+        font-size: 1.05rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .values-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .btn {
+        width: 100%;
+        max-width: 280px;
+        justify-content: center;
+      }
+    }
+
+    /* ============ ANIMATIONS ============ */
+    @media (prefers-reduced-motion: no-preference) {
+      .mv-card,
+      .value-card,
+      .sector-card,
+      .why-card,
+      .hybrid-level,
+      .tech-item {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: fadeInUp 0.6s ease forwards;
+      }
+
+      @keyframes fadeInUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .mv-card:nth-child(1) { animation-delay: 0.1s; }
+      .mv-card:nth-child(2) { animation-delay: 0.2s; }
+      .value-card:nth-child(1) { animation-delay: 0.1s; }
+      .value-card:nth-child(2) { animation-delay: 0.15s; }
+      .value-card:nth-child(3) { animation-delay: 0.2s; }
+      .value-card:nth-child(4) { animation-delay: 0.25s; }
+      .sector-card:nth-child(1) { animation-delay: 0.1s; }
+      .sector-card:nth-child(2) { animation-delay: 0.15s; }
+      .sector-card:nth-child(3) { animation-delay: 0.2s; }
+      .sector-card:nth-child(4) { animation-delay: 0.25s; }
+      .sector-card:nth-child(5) { animation-delay: 0.3s; }
     }
   </style>
 </head>
@@ -584,265 +1224,432 @@
   <!-- ============ NAVBAR ============ -->
   <nav class="navbar">
     <a href="index.html" class="navbar-brand">
-      <div class="navbar-logo">G</div>
+      <div class="navbar-logo"><img src="assets/img/geovision-logo.png" alt="GeoVision" /></div>
       <span class="navbar-brand-text">GEOVISION</span>
     </a>
     <div class="navbar-nav">
-      <a href="index.html" class="navbar-link">Início</a>
-      <a href="about.html" class="navbar-link active">Sobre Nós</a>
-      <a href="loja.html" class="navbar-link">Serviços</a>
-      <a href="login.html" class="btn-nav">Aceder</a>
+      <a href="index.html" class="navbar-link" data-i18n="nav.home">Home</a>
+      <a href="about.html" class="navbar-link active" data-i18n="nav.about">About</a>
+      <a href="sectors.html" class="navbar-link" data-i18n="nav.sectors">Sectors</a>
+      <a href="loja.html" class="navbar-link" data-i18n="nav.services">Services</a>
+      <a href="login.html" class="btn-nav" data-i18n="nav.portal">Portal</a>
     </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" data-lang="pt">PT</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="es">ES</button>
+    </div>
+    <button class="navbar-toggle" aria-label="Toggle menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
   </nav>
 
-  <!-- ============ HERO ============ -->
+  <!-- ============ HERO WITH VIDEO ============ -->
   <header class="hero">
-    <div class="hero-eyebrow">Sobre a GeoVision</div>
-    <h1 class="hero-title">Inteligência Territorial para Angola</h1>
-    <p class="hero-subtitle">
-      Somos uma empresa angolana especializada em geoespacial e operações aéreas, combinando tecnologia de ponta com execução real no terreno. Não somos apenas tecnologia — somos parceiros operacionais que entregam resultados tangíveis para os sectores estratégicos de Angola.
-    </p>
+    <div class="hero-content">
+      <span class="hero-eyebrow" data-i18n="about.hero.eyebrow">Operational Intelligence</span>
+      <h1 class="hero-title" data-i18n="about.hero.title">Operational Intelligence for Strategic Assets</h1>
+      <p class="hero-subtitle" data-i18n="about.hero.subtitle">
+        GeoVision delivers advanced aerial monitoring, geospatial intelligence and selective field execution across mining, infrastructure and territorial operations.
+      </p>
+      <div class="hero-buttons">
+        <a href="loja.html" class="btn btn-primary" data-i18n="about.hero.cta.services">Explore Our Services</a>
+        <a href="#contact" class="btn btn-secondary" data-i18n="about.hero.cta.contact">Contact Our Team</a>
+      </div>
+    </div>
+
+    <div class="hero-video-container">
+      <div class="video-wrapper">
+        <iframe 
+          src="https://www.youtube.com/embed/VIDEO_ID?autoplay=0&mute=1&rel=0&modestbranding=1" 
+          title="GeoVision Operations Overview" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen
+          loading="lazy">
+        </iframe>
+      </div>
+    </div>
   </header>
 
-  <!-- ============ MISSION / VISION / VALUES ============ -->
-  <section class="section">
-    <div class="mvv-grid">
-      <div class="mvv-card">
-        <div class="mvv-icon">🎯</div>
-        <h3 class="mvv-title">Missão</h3>
-        <p class="mvv-text">
-          Fornecer inteligência territorial precisa e soluções operacionais integradas que permitam a tomada de decisões estratégicas nos sectores de mineração, infraestrutura, agricultura, desminagem e energia em Angola e na região.
-        </p>
+  <!-- ============ WHO WE ARE ============ -->
+  <section class="section-full who-section">
+    <div class="section" style="padding-top: 0; padding-bottom: 0;">
+      <div class="section-header">
+        <div class="section-eyebrow" data-i18n="about.who.eyebrow">Who We Are</div>
+        <h2 class="section-title" data-i18n="about.who.title">Intelligence & Execution Partner</h2>
       </div>
 
-      <div class="mvv-card">
-        <div class="mvv-icon">🔭</div>
-        <h3 class="mvv-title">Visão</h3>
-        <p class="mvv-text">
-          Ser a referência regional em inteligência geoespacial e operações aéreas, reconhecida pela excelência técnica, rigor operacional e compromisso com o desenvolvimento sustentável do território angolano.
-        </p>
-      </div>
-
-      <div class="mvv-card">
-        <div class="mvv-icon">⚖️</div>
-        <h3 class="mvv-title">Valores</h3>
-        <p class="mvv-text">
-          Segurança operacional sem compromisso. Precisão técnica em cada entrega. Inovação aplicada a problemas reais. Responsabilidade territorial e ambiental. Integridade em todas as operações.
-        </p>
-      </div>
-    </div>
-
-    <div class="section-header">
-      <h2 class="section-title">Os Nossos Valores Fundamentais</h2>
-    </div>
-
-    <div class="values-grid">
-      <div class="value-item">
-        <div class="value-icon">🛡️</div>
-        <div class="value-content">
-          <h4>Segurança</h4>
-          <p>Protocolos rigorosos em todas as operações aéreas e terrestres.</p>
+      <div class="who-grid">
+        <div class="who-content">
+          <h2 data-i18n="about.who.title2">Angolan-Led Operational Intelligence</h2>
+          <p data-i18n="about.who.p1">
+            GeoVision is an <span class="highlight">Angolan-led operational intelligence company</span> combining drone operations, geospatial analysis and risk monitoring systems to support strategic sectors across Africa.
+          </p>
+          <p data-i18n="about.who.p2">
+            We do not position ourselves merely as a drone service provider. We operate as an <span class="highlight">intelligence and execution partner</span> for industrial and territorial operations, delivering actionable insights that drive strategic decision-making.
+          </p>
+          <p data-i18n="about.who.p3">
+            With deep local expertise and enterprise-grade technology, we bridge the gap between data acquisition and operational outcomes.
+          </p>
         </div>
-      </div>
 
-      <div class="value-item">
-        <div class="value-icon">🎯</div>
-        <div class="value-content">
-          <h4>Precisão</h4>
-          <p>Dados geoespaciais com exactidão centimétrica quando necessário.</p>
-        </div>
-      </div>
-
-      <div class="value-item">
-        <div class="value-icon">💡</div>
-        <div class="value-content">
-          <h4>Inovação Aplicada</h4>
-          <p>Tecnologia ao serviço de problemas operacionais concretos.</p>
-        </div>
-      </div>
-
-      <div class="value-item">
-        <div class="value-icon">🌍</div>
-        <div class="value-content">
-          <h4>Responsabilidade Territorial</h4>
-          <p>Compromisso com o desenvolvimento sustentável de Angola.</p>
+        <div class="who-video">
+          <div class="video-wrapper">
+            <iframe 
+              src="https://www.youtube.com/embed/VIDEO_ID?rel=0&modestbranding=1" 
+              title="GeoVision Company Overview" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen
+              loading="lazy">
+            </iframe>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ============ SECTORS ============ -->
-  <section class="section" style="background: rgba(15, 23, 42, 0.5);">
+  <!-- ============ MISSION & VISION ============ -->
+  <section class="section">
     <div class="section-header">
-      <div class="section-eyebrow">Áreas de Actuação</div>
-      <h2 class="section-title">Sectores Estratégicos</h2>
-      <p class="section-desc">
-        Operamos nos sectores que impulsionam o desenvolvimento de Angola, fornecendo inteligência e execução especializada.
-      </p>
+      <div class="section-eyebrow" data-i18n="about.purpose.eyebrow">Our Purpose</div>
+      <h2 class="section-title" data-i18n="about.purpose.title">Mission & Vision</h2>
     </div>
 
-    <div class="sectors-grid">
-      <div class="sector-card">
-        <div class="sector-icon">⛏️</div>
-        <div class="sector-name">Mineração</div>
-        <div class="sector-desc">Topografia 3D, volumetria, monitorização de taludes e segurança mineira.</div>
+    <div class="mv-grid">
+      <div class="mv-card">
+        <div class="mv-icon">🎯</div>
+        <h3 class="mv-title" data-i18n="about.ourMission">Our Mission</h3>
+        <p class="mv-text" data-i18n="about.mission.text2">
+          To enhance operational visibility, risk management and territorial intelligence through advanced aerial technologies and structured analytical frameworks.
+        </p>
       </div>
 
-      <div class="sector-card">
-        <div class="sector-icon">🏗️</div>
-        <div class="sector-name">Construção e Infraestrutura</div>
-        <div class="sector-desc">Digital twins, monitorização de progresso, análise de earthworks.</div>
+      <div class="mv-card">
+        <div class="mv-icon">🔭</div>
+        <h3 class="mv-title" data-i18n="about.ourVision">Our Vision</h3>
+        <p class="mv-text" data-i18n="about.vision.text2">
+          To become a leading operational intelligence platform across Africa, integrating aerial monitoring, infrastructure oversight and sector-specific risk modeling into strategic decision-making environments.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CORE VALUES ============ -->
+  <section class="section values-section">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="about.values2.eyebrow">What Drives Us</div>
+      <h2 class="section-title" data-i18n="about.values2.title">Core Values</h2>
+    </div>
+
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="value-icon">🎯</div>
+        <h4 class="value-title" data-i18n="about.value.precision">Precision</h4>
+        <p class="value-text" data-i18n="about.value.precision2.desc">Centimeter-accurate data capture and rigorous analytical standards in every deliverable.</p>
       </div>
 
-      <div class="sector-card">
-        <div class="sector-icon">🌾</div>
-        <div class="sector-name">Agricultura e Pecuária</div>
-        <div class="sector-desc">NDVI, pulverização de precisão, contagem de rebanho, gestão de terras.</div>
+      <div class="value-card">
+        <div class="value-icon">⚙️</div>
+        <h4 class="value-title">Operational Integrity</h4>
+        <p class="value-text">End-to-end accountability from mission planning through final delivery and support.</p>
       </div>
 
-      <div class="sector-card">
-        <div class="sector-icon">💣</div>
-        <div class="sector-name">Desminagem Humanitária</div>
-        <div class="sector-desc">Mapeamento térmico, detecção de anomalias, suporte a operações de limpeza.</div>
+      <div class="value-card">
+        <div class="value-icon">🛡️</div>
+        <h4 class="value-title">Security & Compliance</h4>
+        <p class="value-text">Enterprise-grade data protection and full regulatory adherence across all operations.</p>
       </div>
 
-      <div class="sector-card">
-        <div class="sector-icon">☀️</div>
-        <div class="sector-name">Solar e Energia</div>
-        <div class="sector-desc">Inspecção térmica de painéis, monitorização de parques solares.</div>
+      <div class="value-card">
+        <div class="value-icon">💡</div>
+        <h4 class="value-title">Innovation Applied</h4>
+        <p class="value-text">Cutting-edge technology deployed for real operational challenges, not innovation for its own sake.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SECTORS WE OPERATE ============ -->
+  <section class="section-full sectors-section">
+    <div class="section" style="padding-top: 0; padding-bottom: 0;">
+      <div class="section-header">
+        <div class="section-eyebrow">Our Expertise</div>
+        <h2 class="section-title">Sectors We Operate</h2>
+        <p class="section-desc">
+          Strategic intelligence and execution capability across Africa's most critical industrial sectors.
+        </p>
+      </div>
+
+      <div class="sectors-grid">
+        <div class="sector-card">
+          <div class="sector-icon">⛏️</div>
+          <h3 class="sector-name">Mining Operations Intelligence</h3>
+          <p class="sector-desc">
+            3D topographic mapping, volumetric analysis, slope stability monitoring and comprehensive mine site intelligence.
+          </p>
+          <a href="mining.html" class="sector-link">Learn More →</a>
+        </div>
+
+        <div class="sector-card">
+          <div class="sector-icon">🏗️</div>
+          <h3 class="sector-name">Infrastructure & Construction</h3>
+          <p class="sector-desc">
+            Progress monitoring, digital twins, earthworks analysis and construction site oversight.
+          </p>
+          <a href="infrastructure.html" class="sector-link">Learn More →</a>
+        </div>
+
+        <div class="sector-card">
+          <div class="sector-icon">🌾</div>
+          <h3 class="sector-name">Agriculture & Livestock</h3>
+          <p class="sector-desc">
+            NDVI crop health analysis, precision spraying, livestock counting and land management.
+          </p>
+          <a href="agriculture.html" class="sector-link">Learn More →</a>
+        </div>
+
+        <div class="sector-card">
+          <div class="sector-icon">💣</div>
+          <h3 class="sector-name">Demining & Territorial Safety</h3>
+          <p class="sector-desc">
+            Thermal mapping, anomaly detection and operational support for humanitarian demining programs.
+          </p>
+          <a href="demining.html" class="sector-link">Learn More →</a>
+        </div>
+
+        <div class="sector-card">
+          <div class="sector-icon">☀️</div>
+          <h3 class="sector-name">Solar & Energy Inspection</h3>
+          <p class="sector-desc">
+            Thermal panel inspection, solar farm monitoring and energy infrastructure assessment.
+          </p>
+          <a href="loja.html" class="sector-link">Learn More →</a>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- ============ HYBRID MODEL ============ -->
-  <section class="section">
-    <div class="diff-grid">
-      <div class="diff-content">
-        <h3>Modelo Híbrido: Análise + Execução</h3>
+  <section class="section hybrid-section">
+    <div class="section-header">
+      <div class="section-eyebrow">Our Approach</div>
+      <h2 class="section-title">Our Hybrid Model</h2>
+      <p class="section-desc">
+        Unlike traditional service providers, GeoVision integrates analysis, monitoring and selective execution into a unified operational framework.
+      </p>
+    </div>
+
+    <div class="hybrid-grid">
+      <div class="hybrid-content">
+        <h3>Three-Level Operational Framework</h3>
         <p>
-          Diferente de empresas puramente tecnológicas, a GeoVision combina capacidade analítica avançada com execução operacional real. Não entregamos apenas dados — entregamos resultados no terreno.
+          Our hybrid model ensures that intelligence translates directly into operational outcomes. We don't just deliver data — we deliver results.
         </p>
-        <ul class="diff-list">
-          <li>Análise geoespacial com IA e processamento avançado</li>
-          <li>Frota própria de aeronaves e drones especializados</li>
-          <li>Equipas de campo treinadas para operações complexas</li>
-          <li>Execução seletiva para projectos de alta criticidade</li>
-          <li>Integração completa desde o voo até à decisão</li>
-        </ul>
+
+        <div class="hybrid-levels">
+          <div class="hybrid-level">
+            <div class="hybrid-level-num">01</div>
+            <div class="hybrid-level-content">
+              <h4>Data Acquisition</h4>
+              <p>Advanced drone platforms, multispectral sensors and LiDAR technology.</p>
+            </div>
+          </div>
+
+          <div class="hybrid-level">
+            <div class="hybrid-level-num">02</div>
+            <div class="hybrid-level-content">
+              <h4>Analytical Intelligence</h4>
+              <p>AI-powered processing, GIS integration and structured risk modeling.</p>
+            </div>
+          </div>
+
+          <div class="hybrid-level">
+            <div class="hybrid-level-num">03</div>
+            <div class="hybrid-level-content">
+              <h4>Selective Field Execution</h4>
+              <p>On-ground teams for high-criticality projects requiring direct intervention.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="diff-visual">
-        <div class="diff-visual-title">Capacidades Integradas</div>
-        <div class="diff-visual-item">
-          <span class="diff-visual-label">Recolha de Dados</span>
-          <span class="diff-visual-value">Drones + Satélite</span>
+      <div class="hybrid-visual">
+        <div class="hybrid-visual-title">Integrated Capabilities</div>
+        <div class="hybrid-check-list">
+          <div class="hybrid-check-item">
+            <div class="hybrid-check-icon">✓</div>
+            <span class="hybrid-check-text">Analysis & Intelligence</span>
+          </div>
+          <div class="hybrid-check-item">
+            <div class="hybrid-check-icon">✓</div>
+            <span class="hybrid-check-text">Continuous Monitoring</span>
+          </div>
+          <div class="hybrid-check-item">
+            <div class="hybrid-check-icon">✓</div>
+            <span class="hybrid-check-text">Execution Support</span>
+          </div>
+          <div class="hybrid-check-item">
+            <div class="hybrid-check-icon">✓</div>
+            <span class="hybrid-check-text">Real-Time Dashboards</span>
+          </div>
+          <div class="hybrid-check-item">
+            <div class="hybrid-check-icon">✓</div>
+            <span class="hybrid-check-text">Enterprise Integration</span>
+          </div>
         </div>
-        <div class="diff-visual-item">
-          <span class="diff-visual-label">Processamento</span>
-          <span class="diff-visual-value">IA + Análise Humana</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TECHNOLOGY & SYSTEMS ============ -->
+  <section class="section-full tech-section">
+    <div class="section" style="padding-top: 0; padding-bottom: 0;">
+      <div class="section-header">
+        <div class="section-eyebrow">Our Technology</div>
+        <h2 class="section-title">Technology & Systems</h2>
+        <p class="section-desc">
+          Enterprise-grade platforms designed for reliability, security and seamless integration.
+        </p>
+      </div>
+
+      <div class="tech-grid">
+        <div class="tech-list">
+          <div class="tech-item">
+            <div class="tech-icon">🚁</div>
+            <div class="tech-item-content">
+              <h4>Advanced Drone Platforms</h4>
+              <p>Industrial-grade UAVs with multispectral, thermal and LiDAR payloads.</p>
+            </div>
+          </div>
+
+          <div class="tech-item">
+            <div class="tech-icon">🗺️</div>
+            <div class="tech-item-content">
+              <h4>GIS Systems</h4>
+              <p>Full geospatial stack for mapping, analysis and spatial intelligence.</p>
+            </div>
+          </div>
+
+          <div class="tech-item">
+            <div class="tech-icon">📊</div>
+            <div class="tech-item-content">
+              <h4>Monitoring Dashboards</h4>
+              <p>Real-time visualization and alerting for continuous operational oversight.</p>
+            </div>
+          </div>
+
+          <div class="tech-item">
+            <div class="tech-icon">⚠️</div>
+            <div class="tech-item-content">
+              <h4>Risk Scoring Models</h4>
+              <p>Proprietary algorithms for sector-specific risk assessment and prediction.</p>
+            </div>
+          </div>
+
+          <div class="tech-item">
+            <div class="tech-icon">🔗</div>
+            <div class="tech-item-content">
+              <h4>Enterprise Integration</h4>
+              <p>API connectivity and data pipelines for existing enterprise systems.</p>
+            </div>
+          </div>
         </div>
-        <div class="diff-visual-item">
-          <span class="diff-visual-label">Entrega</span>
-          <span class="diff-visual-value">Relatórios + Dashboards</span>
-        </div>
-        <div class="diff-visual-item">
-          <span class="diff-visual-label">Execução</span>
-          <span class="diff-visual-value">Operações no Terreno</span>
-        </div>
-        <div class="diff-visual-item">
-          <span class="diff-visual-label">Monitorização</span>
-          <span class="diff-visual-value">Alertas em Tempo Real</span>
+
+        <div class="tech-video">
+          <div class="video-wrapper">
+            <iframe 
+              src="https://www.youtube.com/embed/VIDEO_ID?rel=0&modestbranding=1" 
+              title="GeoVision Technology Demo" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen
+              loading="lazy">
+            </iframe>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
   <!-- ============ WHY GEOVISION ============ -->
-  <section class="why-section">
+  <section class="section why-section">
     <div class="section-header">
-      <div class="section-eyebrow">Diferencial</div>
-      <h2 class="section-title">Porquê a GeoVision?</h2>
+      <div class="section-eyebrow">Our Advantage</div>
+      <h2 class="section-title">Why GeoVision</h2>
     </div>
 
     <div class="why-grid">
       <div class="why-card">
-        <div class="why-number">01</div>
-        <h4 class="why-title">Conhecimento Local</h4>
+        <div class="why-icon">🎯</div>
+        <h4 class="why-title">Multi-Sector Capability</h4>
         <p class="why-text">
-          Entendemos as particularidades do território angolano, regulamentações locais e desafios operacionais específicos da região.
+          Proven expertise across mining, infrastructure, agriculture, demining and energy sectors.
         </p>
       </div>
 
       <div class="why-card">
-        <div class="why-number">02</div>
-        <h4 class="why-title">Execução Comprovada</h4>
+        <div class="why-icon">🏢</div>
+        <h4 class="why-title">Enterprise-Ready Systems</h4>
         <p class="why-text">
-          Não somos apenas consultoria. Temos equipamento, equipas e capacidade de executar operações complexas no terreno.
+          Industrial-grade platforms with robust security, compliance and scalability.
         </p>
       </div>
 
       <div class="why-card">
-        <div class="why-number">03</div>
-        <h4 class="why-title">Tecnologia de Ponta</h4>
+        <div class="why-icon">🔐</div>
+        <h4 class="why-title">Secure Data Management</h4>
         <p class="why-text">
-          Sensores multiespectrais, LiDAR, processamento com IA e plataformas de visualização desenvolvidas internamente.
+          End-to-end encryption, access controls and compliant data handling protocols.
         </p>
       </div>
 
       <div class="why-card">
-        <div class="why-number">04</div>
-        <h4 class="why-title">Parceiro Estratégico</h4>
+        <div class="why-icon">📈</div>
+        <h4 class="why-title">Structured Risk Modeling</h4>
         <p class="why-text">
-          Apoiamos grandes projectos e operações estratégicas com monitorização contínua e suporte à decisão executiva.
+          Proprietary risk frameworks tailored to sector-specific operational challenges.
         </p>
       </div>
 
       <div class="why-card">
-        <div class="why-number">05</div>
-        <h4 class="why-title">Segurança e Compliance</h4>
+        <div class="why-icon">💳</div>
+        <h4 class="why-title">Flexible Payment Options</h4>
         <p class="why-text">
-          Protocolos de segurança rigorosos, conformidade regulatória e gestão de risco integrada em todas as operações.
+          Adaptable payment infrastructure supporting diverse enterprise requirements.
         </p>
       </div>
 
       <div class="why-card">
-        <div class="why-number">06</div>
-        <h4 class="why-title">Escalabilidade</h4>
+        <div class="why-icon">🇦🇴</div>
+        <h4 class="why-title">Local Operational Expertise</h4>
         <p class="why-text">
-          Desde pequenas propriedades agrícolas até grandes operações mineiras — escalamos conforme a necessidade.
+          Deep understanding of Angolan terrain, regulations and operational contexts.
         </p>
       </div>
     </div>
   </section>
 
-  <!-- ============ COMMITMENT TO ANGOLA ============ -->
+  <!-- ============ STRATEGIC COMMITMENT ============ -->
   <section class="commitment-section">
     <div class="commitment-content">
-      <div class="commitment-flag">🇦🇴</div>
-      <h2 class="commitment-title">Compromisso com Angola</h2>
-      <p class="commitment-text">
-        A GeoVision nasceu com uma missão clara: contribuir para o desenvolvimento sustentável de Angola através de inteligência territorial de excelência. Acreditamos que dados precisos e análise rigorosa são fundamentais para decisões que transformam o país.
-      </p>
-      <p class="commitment-text">
-        Com base em Luanda e capacidade operacional nacional, estamos preparados para expandir regionalmente, levando expertise angolana para toda a África Austral.
+      <div class="commitment-flag">🌍</div>
+      <h2 class="section-title">Strategic Commitment to Africa</h2>
+      <p class="section-desc" style="max-width: 800px; margin: 0 auto;">
+        GeoVision is committed to supporting sustainable development, operational transparency and infrastructure modernization across Angola and emerging African markets. Our mission extends beyond service delivery to actively contributing to the technological advancement of the continent.
       </p>
     </div>
   </section>
 
-  <!-- ============ CTA ============ -->
-  <section class="cta-section">
+  <!-- ============ FINAL CTA ============ -->
+  <section class="cta-final" id="contact">
     <div class="cta-content">
-      <h2 class="cta-title">Pronto para Trabalhar Connosco?</h2>
-      <p class="cta-text">
-        Descubra como a inteligência territorial pode transformar as suas operações. Entre em contacto para uma consulta inicial sem compromisso.
+      <h2 class="cta-tagline">Intelligence. Precision. Execution.</h2>
+      <p class="cta-subtitle">
+        Ready to transform your operational capabilities? Connect with our team to discuss how GeoVision can support your strategic objectives.
       </p>
       <div class="cta-buttons">
-        <a href="loja.html" class="btn-cta btn-cta-primary">
-          Ver Serviços
-        </a>
-        <a href="mailto:info@geovision.ao" class="btn-cta btn-cta-secondary">
-          Contactar-nos
-        </a>
+        <a href="loja.html" class="btn btn-primary">Request Proposal</a>
+        <a href="mailto:operations@geovision.africa" class="btn btn-secondary">Contact Operations Team</a>
       </div>
     </div>
   </section>
@@ -851,14 +1658,14 @@
   <footer class="footer">
     <div class="footer-brand">
       <div class="footer-logo">G</div>
-      <span>GEOVISION</span>
+      <span class="footer-brand-text">GEOVISION</span>
     </div>
 
     <div class="footer-links">
-      <a href="index.html" class="footer-link">Início</a>
-      <a href="about.html" class="footer-link">Sobre Nós</a>
-      <a href="loja.html" class="footer-link">Serviços</a>
-      <a href="login.html" class="footer-link">Aceder</a>
+      <a href="index.html" class="footer-link">Home</a>
+      <a href="about.html" class="footer-link">About</a>
+      <a href="loja.html" class="footer-link">Services</a>
+      <a href="login.html" class="footer-link">Portal</a>
     </div>
 
     <div class="contact-info">
@@ -866,17 +1673,63 @@
         <span>📍</span> Luanda, Angola
       </div>
       <div class="contact-item">
-        <span>✉️</span> info@geovision.ao
+        <span>🌐</span> geovision.africa
       </div>
       <div class="contact-item">
-        <span>📞</span> +244 923 456 789
+        <span>✉️</span> operations@geovision.africa
       </div>
     </div>
 
-    <p class="footer-text" style="margin-top: 2rem;">
-      © 2024 GeoVision. Inteligência Territorial para Angola.
+    <div class="footer-divider"></div>
+
+    <p class="footer-copyright">
+      © 2024 GeoVision. Operational Intelligence for Strategic Assets.
     </p>
   </footer>
+
+  <script>
+    // Lazy load YouTube videos on scroll
+    document.addEventListener('DOMContentLoaded', function() {
+      const videoContainers = document.querySelectorAll('.video-wrapper iframe');
+      
+      if ('IntersectionObserver' in window) {
+        const videoObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const iframe = entry.target;
+              if (iframe.dataset.src) {
+                iframe.src = iframe.dataset.src;
+              }
+              videoObserver.unobserve(iframe);
+            }
+          });
+        }, { rootMargin: '100px' });
+        
+        videoContainers.forEach(iframe => {
+          const src = iframe.src;
+          if (src && src.includes('youtube.com')) {
+            iframe.dataset.src = src;
+            iframe.src = '';
+            videoObserver.observe(iframe);
+          }
+        });
+      }
+
+      // Mobile menu toggle
+      const navToggle = document.querySelector('.navbar-toggle');
+      const navLinks = document.querySelector('.navbar-nav');
+      
+      if (navToggle && navLinks) {
+        navToggle.addEventListener('click', () => {
+          navLinks.classList.toggle('active');
+        });
+      }
+    });
+  </script>
+  <script src="assets/js/i18n.js?v=1"></script>
+  <script src="assets/js/config.js?v=4"></script>
+  <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
+  <script src="assets/js/chatbot.js?v=4"></script>
 
 </body>
 </html>

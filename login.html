@@ -1,28 +1,183 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Login – GeoVision</title>
+  <title>Portal – GeoVision</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <link rel="stylesheet" href="assets/css/style.css" />
+  <meta name="description" content="Access your GeoVision portal for aerial monitoring, geospatial intelligence and field operations dashboard." />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/chatbot.css" />
 
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg-dark: #050914;
+      --bg-darker: #020408;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --border: rgba(148, 163, 184, 0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-green: #22c55e;
+      --accent-blue: #0ea5e9;
+      --accent-cyan: #06b6d4;
+      --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
+      --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
+    }
+
     body {
-      background: radial-gradient(circle at 20% 20%, #102540, #04070f 55%);
-      font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-      color: #e8edf4;
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
       margin: 0;
       min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 2rem 1rem;
+      padding: 6rem 1rem 2rem;
+      line-height: 1.7;
     }
+
+    /* ============ NAVBAR ============ */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(5, 9, 20, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .navbar-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .navbar-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .navbar-brand-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+    }
+
+    .navbar-nav {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+    }
+
+    .navbar-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .navbar-link:hover,
+    .navbar-link.active {
+      color: var(--accent-cyan);
+    }
+
+    .btn-nav {
+      padding: 0.6rem 1.4rem;
+      border-radius: 8px;
+      background: var(--gradient-primary);
+      color: #020617;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-nav:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+    }
+
+    .navbar-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .navbar-toggle span {
+      width: 24px;
+      height: 2px;
+      background: var(--text-primary);
+      transition: 0.3s;
+    }
+
+    /* ============ LANGUAGE TOGGLE ============ */
+    .lang-toggle {
+      display: flex;
+      gap: 0.25rem;
+      margin-left: 1rem;
+      padding-left: 1rem;
+      border-left: 1px solid var(--border);
+    }
+
+    .lang-btn {
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .lang-btn.active {
+      background: var(--gradient-primary);
+      color: #020617;
+      border-color: transparent;
+    }
+
+    @media (max-width: 768px) {
+      .navbar-nav, .lang-toggle { display: none; }
+      .navbar-toggle { display: flex; }
+    }
+
+    /* ============ LOGIN SHELL ============ */
     .shell {
       width: min(520px, 100%);
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 18px;
       padding: 2.4rem 2.1rem;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
@@ -41,7 +196,7 @@
     }
     .subtitle {
       margin: 0;
-      color: #9fb4d3;
+      color: var(--text-secondary);
       font-size: 0.95rem;
     }
     .grid {
@@ -52,27 +207,27 @@
     label {
       display: block;
       font-size: 0.9rem;
-      color: #d7deea;
+      color: var(--text-secondary);
       margin-bottom: 0.35rem;
     }
     input, select {
       width: 100%;
       padding: 0.9rem 0.85rem;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.14);
+      border: 1px solid var(--border);
       background: rgba(15, 23, 42, 0.95);
-      color: #f2f6ff;
+      color: var(--text-primary);
       font-size: 1rem;
       outline: none;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     select option {
       background: #0f172a;
-      color: #f2f6ff;
+      color: var(--text-primary);
       padding: 0.5rem;
     }
     input:focus, select:focus {
-      border-color: #38bdf8;
+      border-color: var(--accent-blue);
       box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
     }
     .btn-primary {
@@ -80,7 +235,7 @@
       padding: 0.95rem;
       border: none;
       border-radius: 12px;
-      background: linear-gradient(130deg, #22c55e, #38bdf8);
+      background: var(--gradient-primary);
       color: #052010;
       font-weight: 700;
       font-size: 1rem;
@@ -92,9 +247,9 @@
       width: 100%;
       padding: 0.85rem;
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.14);
+      border: 1px solid var(--border);
       background: transparent;
-      color: #e8edf4;
+      color: var(--text-primary);
       cursor: pointer;
     }
     .actions {
@@ -151,74 +306,97 @@
 </head>
 
 <body>
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo"><img src="assets/img/geovision-logo.png" alt="GeoVision" /></div>
+      <span class="navbar-brand-text">GEOVISION</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="index.html" class="navbar-link" data-i18n="nav.home">Home</a>
+      <a href="about.html" class="navbar-link" data-i18n="nav.about">About</a>
+      <a href="sectors.html" class="navbar-link" data-i18n="nav.sectors">Sectors</a>
+      <a href="loja.html" class="navbar-link" data-i18n="nav.services">Services</a>
+      <a href="login.html" class="btn-nav active" data-i18n="nav.portal">Portal</a>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" data-lang="pt">PT</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="es">ES</button>
+    </div>
+    <button class="navbar-toggle" id="menu-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
   <div class="shell">
     <div class="brand">
       <img src="assets/img/geovision-logo.png" alt="GeoVision" />
       <div>
-        <div class="title">Entrar</div>
-        <p class="subtitle">Aceda ao painel GeoVision</p>
+        <div class="title" data-i18n="login.title">Sign In</div>
+        <p class="subtitle" data-i18n="login.subtitle">Access the GeoVision portal</p>
       </div>
     </div>
 
     <form id="login-form" class="grid" autocomplete="on">
       <div>
-        <label for="login-email">Email</label>
-        <input type="email" id="login-email" placeholder="utilizador@empresa.com" required />
+        <label for="login-email" data-i18n="login.email">Email</label>
+        <input type="email" id="login-email" data-i18n-placeholder="login.emailPlaceholder" placeholder="user@company.com" required />
       </div>
       <div>
-        <label for="login-password">Senha</label>
-        <input type="password" id="login-password" placeholder="••••••••" required />
+        <label for="login-password" data-i18n="login.password">Password</label>
+        <input type="password" id="login-password" data-i18n-placeholder="login.passwordPlaceholder" placeholder="••••••••" required />
       </div>
       <div class="actions">
-        <button class="btn-primary" type="submit" id="login-submit">Iniciar sessão</button>
+        <button class="btn-primary" type="submit" id="login-submit" data-i18n="login.signin">Sign In</button>
         <button class="google-btn" type="button" id="google-btn">
-          <span>🔑</span> Entrar com Google
+          <span>🔑</span> <span data-i18n="login.google">Sign in with Google</span>
         </button>
         <div class="split">
-          <span class="link" id="forgot-link">Esqueci a senha</span>
-          <span class="link" id="toggle-create" aria-expanded="false">Criar conta</span>
+          <span class="link" id="forgot-link" data-i18n="login.forgot">Forgot password</span>
+          <span class="link" id="toggle-create" aria-expanded="false" data-i18n="login.createAccount">Create account</span>
         </div>
       </div>
     </form>
 
     <form id="create-form" class="grid" style="display:none; margin-top:1rem;" aria-hidden="true">
       <div>
-        <label for="create-email">Email</label>
-        <input type="email" id="create-email" placeholder="novo@exemplo.com" required />
+        <label for="create-email" data-i18n="login.email">Email</label>
+        <input type="email" id="create-email" placeholder="new@example.com" required />
       </div>
       <div>
-        <label for="create-password">Senha</label>
-        <input type="password" id="create-password" placeholder="Escolhe uma senha" required />
+        <label for="create-password" data-i18n="login.password">Password</label>
+        <input type="password" id="create-password" data-i18n-placeholder="login.choosePassword" placeholder="Choose a password" required />
       </div>
       <div>
-        <label for="create-password-confirm">Confirmar senha</label>
-        <input type="password" id="create-password-confirm" placeholder="Repete a senha" required />
+        <label for="create-password-confirm" data-i18n="login.confirmPassword">Confirm password</label>
+        <input type="password" id="create-password-confirm" data-i18n-placeholder="login.repeatPassword" placeholder="Repeat password" required />
       </div>
       <div>
-        <label for="create-sector">Tipo de conta</label>
+        <label for="create-sector" data-i18n="login.accountType">Account Type</label>
         <select id="create-sector" required>
-          <option value="">Seleciona o sector</option>
-          <option value="agro_pecuaria">Agro &amp; Pecuária</option>
-          <option value="mining">Mineração</option>
-          <option value="demining">Desminagem</option>
-          <option value="construction_infra">Construção e Infraestrutura</option>
+          <option value="" data-i18n="login.selectSector">Select sector</option>
+          <option value="agro_pecuaria" data-i18n="loja.filter.agro">Agriculture</option>
+          <option value="mining" data-i18n="loja.filter.mining">Mining</option>
+          <option value="demining" data-i18n="loja.filter.demining">Demining</option>
+          <option value="construction_infra" data-i18n="login.constructionInfra">Construction &amp; Infrastructure</option>
         </select>
       </div>
       <div class="actions">
-        <button id="create-submit" class="btn-primary" type="submit">Criar conta</button>
-        <button id="create-cancel" class="btn-ghost" type="button">Cancelar</button>
+        <button id="create-submit" class="btn-primary" type="submit" data-i18n="login.createAccount">Create account</button>
+        <button id="create-cancel" class="btn-ghost" type="button" data-i18n="login.cancel">Cancel</button>
       </div>
     </form>
 
     <div id="success-box" class="feedback success" role="status" aria-live="polite" aria-hidden="true" tabindex="-1"></div>
     <div id="error-box" class="feedback error" role="alert" aria-live="assertive" aria-hidden="true" tabindex="-1"></div>
 
-    <div class="hint">
-      Demo rápido: teste@admin.com / 123456 → painel admin | teste@cliente.com / 123456 → dashboard
+    <div class="hint" data-i18n="login.demo">
+      Quick demo: test@admin.com / 123456 → admin panel | test@client.com / 123456 → dashboard
     </div>
 
     <div style="margin-top: 0.8rem; text-align:center;">
-      <a href="index.html" class="link">← Voltar ao site</a>
+      <a href="index.html" class="link" data-i18n="login.backToSite">← Back to site</a>
     </div>
   </div>
 
@@ -248,7 +426,7 @@
       hide(errorBox); hide(successBox);
       const email = (document.getElementById("login-email").value || "").trim().toLowerCase();
       const password = (document.getElementById("login-password").value || "").trim();
-      if (!email || !password) { show(errorBox, "Preenche email e senha."); return; }
+      if (!email || !password) { show(errorBox, "Enter email and password."); return; }
       const btn = document.getElementById("login-submit"); btn.disabled = true;
       try {
         const res = await fetch(API_BASE + "/auth/login", {
@@ -256,18 +434,18 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         });
-        if (!res.ok) throw new Error((await res.text()) || "Credenciais inválidas.");
+        if (!res.ok) throw new Error((await res.text()) || "Invalid credentials.");
         const data = await res.json().catch(() => ({}));
         const token = data.access_token || data.token;
-        if (!token) throw new Error("Token não recebido do servidor.");
+        if (!token) throw new Error("Token not received from server.");
         localStorage.setItem("gv_token", token);
         localStorage.setItem("gv_user", JSON.stringify(data.user || { email }));
-        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Login bem-sucedido", type: "success", ts: Date.now() }));
-        const isAdmin = (data.user && data.user.role === "admin") || email === "teste@admin.com";
+        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Login successful", type: "success", ts: Date.now() }));
+        const isAdmin = (data.user && data.user.role === "admin") || email === "test@admin.com";
         window.location.href = isAdmin ? "admin.html" : "dashboard.html";
       } catch (err) {
         console.error("login", err);
-        show(errorBox, err && err.message ? err.message : "Erro no login.");
+        show(errorBox, err && err.message ? err.message : "Login error.");
       } finally {
         btn.disabled = false;
       }
@@ -305,8 +483,8 @@
       const pass = (document.getElementById("create-password").value || "").trim();
       const conf = (document.getElementById("create-password-confirm").value || "").trim();
       const sector = document.getElementById("create-sector").value;
-      if (!email || !pass || !sector) { show(errorBox, "Preenche email, senha e tipo de conta."); return; }
-      if (pass !== conf) { show(errorBox, "As senhas não coincidem."); return; }
+      if (!email || !pass || !sector) { show(errorBox, "Enter email, password and account type."); return; }
+      if (pass !== conf) { show(errorBox, "Passwords do not match."); return; }
       const btn = document.getElementById("create-submit"); btn.disabled = true;
       try {
         const res = await fetch(API_BASE + "/auth/register", {
@@ -314,16 +492,16 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: email, password: pass, sector: sector }),
         });
-        if (!res.ok) throw new Error((await res.text()) || "Registo falhou.");
+        if (!res.ok) throw new Error((await res.text()) || "Registration failed.");
         const data = await res.json().catch(() => ({}));
         const token = data.access_token || data.token;
         if (token) localStorage.setItem("gv_token", token);
-        localStorage.setItem("gv_user", JSON.stringify({ email, sector: sector, role: data.role || "cliente" }));
-        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Conta criada – a redirecionar", type: "success", ts: Date.now() }));
+        localStorage.setItem("gv_user", JSON.stringify({ email, sector: sector, role: data.role || "client" }));
+        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Account created – redirecting", type: "success", ts: Date.now() }));
         window.location.href = (data.role === "admin") ? "admin.html" : "dashboard.html";
       } catch (err) {
         console.error("signup", err);
-        show(errorBox, err && err.message ? err.message : "Erro ao criar conta.");
+        show(errorBox, err && err.message ? err.message : "Error creating account.");
       } finally {
         btn.disabled = false;
       }
@@ -334,7 +512,7 @@
       e.preventDefault();
       hide(successBox); hide(errorBox);
       const email = (document.getElementById("login-email").value || "").trim().toLowerCase();
-      if (!email) { show(errorBox, "Indica o email para recuperar a senha."); return; }
+      if (!email) { show(errorBox, "Enter your email to recover password."); return; }
       try {
         const res = await fetch(API_BASE + "/auth/forgot-password", {
           method: "POST",
@@ -342,14 +520,14 @@
           body: JSON.stringify({ email }),
         });
         if (res.ok) {
-          show(successBox, "Se a conta existir, enviámos um link de redefinição para o email.");
+          show(successBox, "If the account exists, we sent a reset link to your email.");
         } else {
           const txt = await res.text().catch(()=>null);
-          show(errorBox, "Não foi possível enviar o email: " + (txt || res.statusText || res.status));
+          show(errorBox, "Unable to send email: " + (txt || res.statusText || res.status));
         }
       } catch (err) {
         console.error("forgot", err);
-        show(errorBox, "Erro ao contactar o servidor.");
+        show(errorBox, "Error contacting the server.");
       }
     });
 
@@ -358,6 +536,7 @@
       window.location.href = API_BASE + "/auth/google/login";
     });
   </script>
+  <script src="assets/js/i18n.js?v=1"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
 </body>
 </html>
