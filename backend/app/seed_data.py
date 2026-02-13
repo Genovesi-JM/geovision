@@ -63,6 +63,11 @@ DEMO_PRODUCTS: List[dict] = [
 
 DEMO_USERS: List[dict] = [
     {
+        "email": "genovesi.maria@geovision.digital",
+        "password": "Geovision2025!",
+        "role": "admin",
+    },
+    {
         "email": "teste@admin.com",
         "password": "123456",
         "role": "admin",

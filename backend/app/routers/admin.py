@@ -1090,9 +1090,9 @@ async def get_admin_contacts():
     """Get GeoVision admin contact information."""
     
     return [
-        AdminContactOut(type="whatsapp", label="WhatsApp Suporte", value="+244923456789", icon="📱"),
-        AdminContactOut(type="email", label="Email Suporte", value="suporte@geovision.ao", icon="✉️"),
-        AdminContactOut(type="phone", label="Telefone", value="+244923456789", icon="📞"),
-        AdminContactOut(type="sms", label="SMS", value="+244923456789", icon="💬"),
-        AdminContactOut(type="instagram", label="Instagram", value="@geovision.ao", icon="📷"),
+        AdminContactOut(type="whatsapp", label="WhatsApp Suporte", value="+244928917269", icon="📱"),
+        AdminContactOut(type="email", label="Email Suporte", value="suporte@geovision.digital", icon="✉️"),
+        AdminContactOut(type="phone", label="Telefone", value="+244928917269", icon="📞"),
+        AdminContactOut(type="sms", label="SMS", value="+244928917269", icon="💬"),
+        AdminContactOut(type="instagram", label="Instagram", value="@geovision.digital", icon="📷"),
     ]

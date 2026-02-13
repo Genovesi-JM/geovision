@@ -46,14 +46,14 @@ class ContactCreate(BaseModel):
 # ── Default contact methods (seeded if table is empty) ──
 
 DEFAULT_CONTACTS = [
-    {"channel": "whatsapp", "label": "Suporte", "value": "+244923000000", "sort_order": 1},
-    {"channel": "whatsapp", "label": "Vendas", "value": "+244923000001", "sort_order": 2},
+    {"channel": "whatsapp", "label": "Suporte", "value": "+244928917269", "sort_order": 1},
+    {"channel": "whatsapp", "label": "Vendas", "value": "+244928917269", "sort_order": 2},
     {"channel": "instagram", "label": "Instagram", "value": "geovision.digital", "sort_order": 3},
     {"channel": "email", "label": "Suporte", "value": "support@geovision.digital", "sort_order": 4},
     {"channel": "email", "label": "Vendas", "value": "sales@geovision.digital", "sort_order": 5},
     {"channel": "email", "label": "Financeiro", "value": "finance@geovision.digital", "sort_order": 6},
     {"channel": "email", "label": "Info", "value": "info@geovision.digital", "sort_order": 7},
-    {"channel": "phone", "label": "Telefone", "value": "+244923000000", "sort_order": 8},
+    {"channel": "phone", "label": "Telefone", "value": "+244928917269", "sort_order": 8},
 ]
 
 
