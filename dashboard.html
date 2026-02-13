@@ -281,6 +281,18 @@
       gap: 1rem;
     }
 
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-btn {
+      padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.25);
+      background: transparent; color: #9ca3af; font-size: .78rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .lang-btn:hover { background: rgba(255,255,255,0.08); color: #e5e7eb; }
+    .lang-btn.active {
+      background: linear-gradient(135deg,#22c55e,#38bdf8); color: #fff;
+      border-color: transparent;
+    }
+
     .topbar-btn {
       width: 36px;
       height: 36px;
@@ -1146,77 +1158,77 @@
       <div class="sidebar-logo">G</div>
       <div class="sidebar-brand-text">
         <div class="sidebar-brand-name">GEOVISION</div>
-        <div class="sidebar-brand-sub">Painel do Cliente</div>
+        <div class="sidebar-brand-sub" data-i18n="dash.brand">Painel do Cliente</div>
       </div>
       <button class="sidebar-close-btn" id="sidebar-close" aria-label="Fechar menu">✕</button>
     </div>
 
     <!-- Account Switcher -->
     <div class="sidebar-account">
-      <div class="sidebar-account-label">Conta Ativa</div>
+      <div class="sidebar-account-label" data-i18n="dash.activeAccount">Conta Ativa</div>
       <select id="account-switcher" class="sidebar-account-select" aria-label="Selecionar conta"></select>
     </div>
 
     <nav class="sidebar-nav">
       <!-- Principal -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Principal</div>
+        <div class="sidebar-section-title" data-i18n="dash.section.main">Principal</div>
         <a href="#" class="sidebar-link active" data-view="dashboard">
           <span class="sidebar-link-icon">📊</span>
-          Visão Geral
+          <span data-i18n="dash.nav.overview">Visão Geral</span>
         </a>
         <a href="#" class="sidebar-link" data-view="operations">
           <span class="sidebar-link-icon">🚀</span>
-          Operações
+          <span data-i18n="dash.nav.operations">Operações</span>
           <span class="sidebar-link-badge success" id="badge-operations">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="alerts">
           <span class="sidebar-link-icon">🔔</span>
-          Alertas
+          <span data-i18n="dash.nav.alerts">Alertas</span>
           <span class="sidebar-link-badge" id="badge-alerts">0</span>
         </a>
       </div>
 
       <!-- Recursos -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Recursos</div>
+        <div class="sidebar-section-title" data-i18n="dash.section.resources">Recursos</div>
         <a href="#" class="sidebar-link" data-view="hardware">
           <span class="sidebar-link-icon">📡</span>
-          Hardware
+          <span data-i18n="dash.nav.hardware">Hardware</span>
         </a>
         <a href="#" class="sidebar-link" data-view="reports">
           <span class="sidebar-link-icon">📄</span>
-          Relatórios
+          <span data-i18n="dash.nav.reports">Relatórios</span>
         </a>
         <a href="#" class="sidebar-link" data-view="map">
           <span class="sidebar-link-icon">🗺️</span>
-          Mapa / Layers
+          <span data-i18n="dash.nav.map">Mapa / Layers</span>
         </a>
       </div>
 
       <!-- Loja -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Compras</div>
+        <div class="sidebar-section-title" data-i18n="dash.section.purchases">Compras</div>
         <a href="#" class="sidebar-link" data-view="orders">
           <span class="sidebar-link-icon">📦</span>
-          Minhas Compras
+          <span data-i18n="dash.nav.orders">Minhas Compras</span>
         </a>
         <a href="loja.html" class="sidebar-link">
           <span class="sidebar-link-icon">🛒</span>
-          Ir para Loja
+          <span data-i18n="dash.nav.store">Ir para Loja</span>
         </a>
       </div>
 
       <!-- Suporte -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Suporte</div>
+        <div class="sidebar-section-title" data-i18n="dash.section.support">Suporte</div>
         <a href="#" class="sidebar-link" data-view="support">
           <span class="sidebar-link-icon">💬</span>
-          Contactar GeoVision
+          <span data-i18n="dash.nav.contact">Contactar GeoVision</span>
         </a>
         <a href="#" class="sidebar-link" data-view="settings">
           <span class="sidebar-link-icon">⚙️</span>
-          Definições
+          <span data-i18n="dash.nav.settings">Definições</span>
         </a>
       </div>
     </nav>
@@ -1239,16 +1251,21 @@
       <div class="topbar-left">
         <button class="btn-menu-toggle" id="btn-menu-toggle">☰</button>
         <div class="topbar-breadcrumb">
-          Painel / <span id="breadcrumb-current">Visão Geral</span>
+          <span data-i18n="dash.breadcrumb">Painel /</span> <span id="breadcrumb-current" data-i18n="dash.nav.overview">Visão Geral</span>
         </div>
       </div>
       <div class="topbar-right">
-        <button class="btn btn-primary" id="open-account-modal">+ Nova Conta</button>
+        <div class="lang-toggle">
+          <button class="lang-btn" data-lang="pt">PT</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="es">ES</button>
+        </div>
+        <button class="btn btn-primary" id="open-account-modal" data-i18n="dash.newAccount">+ Nova Conta</button>
         <button class="topbar-btn" id="btn-notifications" title="Notificações">
           🔔
           <span class="badge" id="notification-count">0</span>
         </button>
-        <button class="btn-logout" id="logout-btn">Terminar sessão</button>
+        <button class="btn-logout" id="logout-btn" data-i18n="common.logout">Terminar sessão</button>
       </div>
     </header>
 
@@ -1258,9 +1275,9 @@
       <!-- ============ DASHBOARD VIEW ============ -->
       <div class="view-panel active" id="view-dashboard">
         <div class="page-header">
-          <div class="page-eyebrow">Conta Ativa</div>
-          <h1 class="page-title" id="dash-title">Conta GeoVision</h1>
-          <p class="page-subtitle" id="dash-meta">Setor • Tipo de entidade</p>
+          <div class="page-eyebrow" data-i18n="dash.activeAccount">Conta Ativa</div>
+          <h1 class="page-title" id="dash-title" data-i18n="dash.accountTitle">Conta GeoVision</h1>
+          <p class="page-subtitle" id="dash-meta" data-i18n="dash.accountMeta">Setor • Tipo de entidade</p>
         </div>
 
         <!-- Sector Tabs -->
@@ -1269,13 +1286,13 @@
         <!-- Quick Actions -->
         <div class="quick-actions">
           <a href="loja.html" class="quick-action">
-            <span>🛒</span> Encomendar Serviço
+            <span>🛒</span> <span data-i18n="dash.quickAction.order">Encomendar Serviço</span>
           </a>
           <button class="quick-action" onclick="switchView('reports')">
-            <span>📄</span> Ver Relatórios
+            <span>📄</span> <span data-i18n="dash.quickAction.reports">Ver Relatórios</span>
           </button>
           <button class="quick-action" onclick="switchView('support')">
-            <span>💬</span> Contactar Suporte
+            <span>💬</span> <span data-i18n="dash.quickAction.support">Contactar Suporte</span>
           </button>
         </div>
 
@@ -1283,28 +1300,28 @@
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Serviços Ativos</span>
+              <span class="kpi-label" data-i18n="dash.kpi.services">Serviços Ativos</span>
               <span class="kpi-icon">🚀</span>
             </div>
             <div class="kpi-value" id="kpi-services">—</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Hardware Instalado</span>
+              <span class="kpi-label" data-i18n="dash.kpi.hardware">Hardware Instalado</span>
               <span class="kpi-icon">📡</span>
             </div>
             <div class="kpi-value" id="kpi-hardware">—</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Relatórios</span>
+              <span class="kpi-label" data-i18n="dash.kpi.reports">Relatórios</span>
               <span class="kpi-icon">📄</span>
             </div>
             <div class="kpi-value" id="kpi-reports">—</div>
           </div>
           <div class="kpi-card warning" id="kpi-alerts-card">
             <div class="kpi-header">
-              <span class="kpi-label">Alertas</span>
+              <span class="kpi-label" data-i18n="dash.kpi.alerts">Alertas</span>
               <span class="kpi-icon">⚠️</span>
             </div>
             <div class="kpi-value" id="kpi-alerts">—</div>
@@ -1316,25 +1333,25 @@
           <!-- Operations -->
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Operações em Curso</h3>
+              <h3 class="card-title" data-i18n="dash.ops.title">Operações em Curso</h3>
               <span class="badge badge-active" id="services-badge">0 ativos</span>
             </div>
             <div class="card-body">
               <table class="data-table" id="services-table">
                 <thead>
                   <tr>
-                    <th>Tipo</th>
-                    <th>Local</th>
-                    <th>Área (ha)</th>
-                    <th>Estado</th>
+                    <th data-i18n="dash.ops.type">Tipo</th>
+                    <th data-i18n="dash.ops.location">Local</th>
+                    <th data-i18n="dash.ops.area">Área (ha)</th>
+                    <th data-i18n="dash.ops.status">Estado</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
               </table>
               <div class="empty-state" id="services-empty" style="display:none;">
                 <div class="empty-icon">🚀</div>
-                <p>Ainda não existem serviços registados.</p>
-                <a href="loja.html" class="btn btn-primary" style="margin-top:1rem;text-decoration:none;">Encomendar Serviço</a>
+                <p data-i18n="dash.ops.empty">Ainda não existem serviços registados.</p>
+                <a href="loja.html" class="btn btn-primary" style="margin-top:1rem;text-decoration:none;" data-i18n="dash.ops.orderService">Encomendar Serviço</a>
               </div>
             </div>
           </div>
@@ -1386,9 +1403,9 @@
       <!-- ============ ALERTS VIEW ============ -->
       <div class="view-panel" id="view-alerts">
         <div class="page-header">
-          <div class="page-eyebrow">Monitorização</div>
-          <h1 class="page-title">Alertas</h1>
-          <p class="page-subtitle">Alertas e notificações dos seus serviços e hardware.</p>
+          <div class="page-eyebrow" data-i18n="dash.alerts.eyebrow">Monitorização</div>
+          <h1 class="page-title" data-i18n="dash.nav.alerts">Alertas</h1>
+          <p class="page-subtitle" data-i18n="dash.alerts.desc">Alertas e notificações dos seus serviços e hardware.</p>
         </div>
         <div class="card">
           <div class="card-body">
@@ -1402,26 +1419,26 @@
       <!-- ============ HARDWARE VIEW ============ -->
       <div class="view-panel" id="view-hardware">
         <div class="page-header">
-          <div class="page-eyebrow">Recursos</div>
-          <h1 class="page-title">Hardware Instalado</h1>
-          <p class="page-subtitle">Equipamentos instalados nos seus projetos.</p>
+          <div class="page-eyebrow" data-i18n="dash.hw.eyebrow">Recursos</div>
+          <h1 class="page-title" data-i18n="dash.hw.title">Hardware Instalado</h1>
+          <p class="page-subtitle" data-i18n="dash.hw.desc">Equipamentos instalados nos seus projetos.</p>
         </div>
         <div class="card">
           <div class="card-body">
             <table class="data-table" id="hardware-table">
               <thead>
                 <tr>
-                  <th>Equipamento</th>
-                  <th>Local</th>
-                  <th>Estado</th>
-                  <th>Última Comunicação</th>
+                  <th data-i18n="dash.hw.equipment">Equipamento</th>
+                  <th data-i18n="dash.hw.location">Local</th>
+                  <th data-i18n="common.status">Estado</th>
+                  <th data-i18n="dash.hw.lastComm">Última Comunicação</th>
                 </tr>
               </thead>
               <tbody id="hardware-table-body"></tbody>
             </table>
             <div class="empty-state" id="hardware-empty" style="display:none;">
               <div class="empty-icon">📡</div>
-              <p>Nenhum hardware registado na sua conta.</p>
+              <p data-i18n="dash.hw.empty">Nenhum hardware registado na sua conta.</p>
             </div>
           </div>
         </div>
@@ -1430,27 +1447,27 @@
       <!-- ============ REPORTS VIEW ============ -->
       <div class="view-panel" id="view-reports">
         <div class="page-header">
-          <div class="page-eyebrow">Documentos</div>
-          <h1 class="page-title">Relatórios</h1>
-          <p class="page-subtitle">Relatórios e entregáveis dos seus serviços.</p>
+          <div class="page-eyebrow" data-i18n="dash.reports.eyebrow">Documentos</div>
+          <h1 class="page-title" data-i18n="dash.reports.title">Relatórios</h1>
+          <p class="page-subtitle" data-i18n="dash.reports.desc">Relatórios e entregáveis dos seus serviços.</p>
         </div>
         <div class="card">
           <div class="card-body">
             <table class="data-table" id="reports-table">
               <thead>
                 <tr>
-                  <th>Relatório</th>
-                  <th>Serviço</th>
-                  <th>Data</th>
-                  <th>Estado</th>
-                  <th>Ações</th>
+                  <th data-i18n="dash.reports.name">Relatório</th>
+                  <th data-i18n="dash.reports.service">Serviço</th>
+                  <th data-i18n="common.date">Data</th>
+                  <th data-i18n="common.status">Estado</th>
+                  <th data-i18n="common.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="reports-table-body"></tbody>
             </table>
             <div class="empty-state" id="reports-empty" style="display:none;">
               <div class="empty-icon">📄</div>
-              <p>Ainda não existem relatórios prontos.</p>
+              <p data-i18n="dash.reports.empty">Ainda não existem relatórios prontos.</p>
             </div>
           </div>
         </div>
@@ -1459,14 +1476,14 @@
       <!-- ============ MAP VIEW ============ -->
       <div class="view-panel" id="view-map">
         <div class="page-header">
-          <div class="page-eyebrow">Visualização</div>
-          <h1 class="page-title">Mapa / Layers</h1>
-          <p class="page-subtitle">Visualização de camadas, voos e alertas geográficos.</p>
+          <div class="page-eyebrow" data-i18n="dash.map.eyebrow">Visualização</div>
+          <h1 class="page-title" data-i18n="dash.map.title">Mapa / Layers</h1>
+          <p class="page-subtitle" data-i18n="dash.map.desc">Visualização de camadas, voos e alertas geográficos.</p>
         </div>
         <div class="card">
           <div class="card-body">
             <div class="map-container">
-              🗺️ Mapa interativo (em breve)
+              🗺️ <span data-i18n="dash.map.placeholder">Mapa interativo (em breve)</span>
             </div>
           </div>
         </div>
@@ -1475,19 +1492,19 @@
       <!-- ============ ORDERS VIEW ============ -->
       <div class="view-panel" id="view-orders">
         <div class="page-header">
-          <div class="page-eyebrow">Compras</div>
-          <h1 class="page-title">Minhas Compras</h1>
-          <p class="page-subtitle">Acompanhe seus pedidos e faça download dos entregáveis.</p>
+          <div class="page-eyebrow" data-i18n="dash.orders.eyebrow">Compras</div>
+          <h1 class="page-title" data-i18n="dash.orders.title">Minhas Compras</h1>
+          <p class="page-subtitle" data-i18n="dash.orders.desc">Acompanhe seus pedidos e faça download dos entregáveis.</p>
         </div>
         <div class="quick-actions">
           <a href="loja.html" class="quick-action">
-            <span>🛒</span> Ir para Loja
+            <span>🛒</span> <span data-i18n="dash.orders.goStore">Ir para Loja</span>
           </a>
         </div>
         <div id="orders-container">
           <div class="empty-state">
             <div class="spinner"></div>
-            <p style="margin-top:1rem;">Carregando pedidos...</p>
+            <p style="margin-top:1rem;" data-i18n="dash.orders.loading">Carregando pedidos...</p>
           </div>
         </div>
       </div>
@@ -1495,17 +1512,17 @@
       <!-- ============ SUPPORT VIEW ============ -->
       <div class="view-panel" id="view-support">
         <div class="page-header">
-          <div class="page-eyebrow">Suporte</div>
-          <h1 class="page-title">Contactar GeoVision</h1>
-          <p class="page-subtitle">Estamos aqui para ajudar. Escolha o seu canal preferido.</p>
+          <div class="page-eyebrow" data-i18n="dash.support.eyebrow">Suporte</div>
+          <h1 class="page-title" data-i18n="dash.support.title">Contactar GeoVision</h1>
+          <p class="page-subtitle" data-i18n="dash.support.desc">Estamos aqui para ajudar. Escolha o seu canal preferido.</p>
         </div>
         <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;">📱</div>
               <h3 style="margin-bottom:0.5rem;">WhatsApp</h3>
-              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">Resposta rápida via chat</p>
-              <a href="https://wa.me/244923456789" target="_blank" class="btn btn-primary" style="text-decoration:none;">Abrir WhatsApp</a>
+              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;" data-i18n="dash.support.whatsapp">Resposta rápida via chat</p>
+              <a href="https://wa.me/244923456789" target="_blank" class="btn btn-primary" style="text-decoration:none;" data-i18n="dash.support.openWhatsapp">Abrir WhatsApp</a>
             </div>
           </div>
           <div class="card" style="margin-bottom:0;">
@@ -1513,15 +1530,15 @@
               <div style="font-size:2.5rem;margin-bottom:0.75rem;">✉️</div>
               <h3 style="margin-bottom:0.5rem;">Email</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">suporte@geovision.ao</p>
-              <a href="mailto:suporte@geovision.ao" class="btn btn-secondary" style="text-decoration:none;">Enviar Email</a>
+              <a href="mailto:suporte@geovision.ao" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.sendEmail">Enviar Email</a>
             </div>
           </div>
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;">📞</div>
-              <h3 style="margin-bottom:0.5rem;">Telefone</h3>
+              <h3 style="margin-bottom:0.5rem;" data-i18n="dash.support.phone">Telefone</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">+244 923 456 789</p>
-              <a href="tel:+244923456789" class="btn btn-secondary" style="text-decoration:none;">Ligar Agora</a>
+              <a href="tel:+244923456789" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.callNow">Ligar Agora</a>
             </div>
           </div>
         </div>
@@ -1530,13 +1547,13 @@
       <!-- ============ SETTINGS VIEW ============ -->
       <div class="view-panel" id="view-settings">
         <div class="page-header">
-          <div class="page-eyebrow">Conta</div>
-          <h1 class="page-title">Definições</h1>
-          <p class="page-subtitle">Gerir as definições da sua conta.</p>
+          <div class="page-eyebrow" data-i18n="dash.settings.eyebrow">Conta</div>
+          <h1 class="page-title" data-i18n="dash.settings.title">Definições</h1>
+          <p class="page-subtitle" data-i18n="dash.settings.desc">Gerir as definições da sua conta.</p>
         </div>
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Informações da Conta</h3>
+            <h3 class="card-title" data-i18n="dash.settings.info">Informações da Conta</h3>
           </div>
           <div class="card-body">
             <div class="form-group">
@@ -1558,7 +1575,7 @@
   <div class="modal-overlay" id="order-modal">
     <div class="modal" style="max-width:600px;">
       <div class="modal-header">
-        <h2 class="modal-title" id="order-modal-title">Detalhes do Pedido</h2>
+        <h2 class="modal-title" id="order-modal-title" data-i18n="dash.orderDetail">Detalhes do Pedido</h2>
         <button class="modal-close" onclick="closeOrderModal()">×</button>
       </div>
       <div class="modal-body" id="order-modal-content">
@@ -1571,33 +1588,33 @@
   <div class="modal-overlay" id="account-modal">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Criar Workspace</h2>
+        <h2 class="modal-title" data-i18n="dash.modal.createWorkspace">Criar Workspace</h2>
         <button class="modal-close" onclick="closeModal('account-modal')">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Nome da conta *</label>
+          <label class="form-label" data-i18n="dash.modal.accountName">Nome da conta *</label>
           <input type="text" class="form-input" id="account-name-input" placeholder="Ex: Fazenda Rio Kunene" />
         </div>
         <div class="form-group">
-          <label class="form-label">Tipo de entidade</label>
+          <label class="form-label" data-i18n="dash.modal.entityType">Tipo de entidade</label>
           <select class="form-select" id="account-entity-input">
-            <option value="org">Organização</option>
-            <option value="individual">Individual</option>
+            <option value="org" data-i18n="dash.modal.org">Organização</option>
+            <option value="individual" data-i18n="dash.modal.individual">Individual</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Setor</label>
+          <label class="form-label" data-i18n="dash.modal.sector">Setor</label>
           <select class="form-select" id="account-sector-input">
-            <option value="agro">Agro & Pecuária</option>
-            <option value="mining">Mineração</option>
-            <option value="demining">Desminagem</option>
-            <option value="construction">Construção e Infraestrutura</option>
-            <option value="solar">Solar</option>
+            <option value="agro" data-i18n="dash.modal.agro">Agro & Pecuária</option>
+            <option value="mining" data-i18n="dash.modal.mining">Mineração</option>
+            <option value="demining" data-i18n="dash.modal.demining">Desminagem</option>
+            <option value="construction" data-i18n="dash.modal.construction">Construção e Infraestrutura</option>
+            <option value="solar" data-i18n="dash.modal.solar">Solar</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Módulos</label>
+          <label class="form-label" data-i18n="dash.modal.modules">Módulos</label>
           <div class="form-checkboxes" id="account-modules">
             <label><input type="checkbox" value="kpi" checked /> KPIs</label>
             <label><input type="checkbox" value="projects" checked /> Projects</label>
@@ -1607,12 +1624,13 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="account-cancel" onclick="closeModal('account-modal')">Cancelar</button>
-        <button class="btn btn-primary" id="account-create">Criar e usar</button>
+        <button class="btn btn-secondary" id="account-cancel" onclick="closeModal('account-modal')" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" id="account-create" data-i18n="dash.modal.create">Criar e usar</button>
       </div>
     </div>
   </div>
 
+  <script src="assets/js/i18n.js?v=1"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script type="module" src="assets/js/dashboard-client.js"></script>

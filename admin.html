@@ -230,6 +230,18 @@
       gap: 1rem;
     }
 
+    .lang-toggle { display: flex; gap: 4px; }
+    .lang-btn {
+      padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(148,163,184,0.25);
+      background: transparent; color: #9ca3af; font-size: .78rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .lang-btn:hover { background: rgba(255,255,255,0.08); color: #e5e7eb; }
+    .lang-btn.active {
+      background: linear-gradient(135deg,#22c55e,#38bdf8); color: #fff;
+      border-color: transparent;
+    }
+
     .topbar-search {
       position: relative;
     }
@@ -822,84 +834,84 @@
       <div class="sidebar-logo">G</div>
       <div class="sidebar-brand-text">
         <div class="sidebar-brand-name">GEOVISION</div>
-        <div class="sidebar-brand-sub">Admin Panel</div>
+        <div class="sidebar-brand-sub" data-i18n="admin.brand">Admin Panel</div>
       </div>
     </div>
 
     <nav class="sidebar-nav">
       <!-- Dashboard -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Principal</div>
+        <div class="sidebar-section-title" data-i18n="admin.section.main">Principal</div>
         <a href="#" class="sidebar-link active" data-view="dashboard">
           <span class="sidebar-link-icon">📊</span>
-          Dashboard Global
+          <span data-i18n="admin.nav.dashboard">Dashboard Global</span>
         </a>
       </div>
 
       <!-- Gestão -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Gestão</div>
+        <div class="sidebar-section-title" data-i18n="admin.section.management">Gestão</div>
         <a href="#" class="sidebar-link" data-view="clients">
           <span class="sidebar-link-icon">🏢</span>
-          Clientes
+          <span data-i18n="admin.nav.clients">Clientes</span>
           <span class="sidebar-link-badge" id="badge-clients">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="users">
           <span class="sidebar-link-icon">👥</span>
-          Utilizadores
+          <span data-i18n="admin.nav.users">Utilizadores</span>
         </a>
         <a href="#" class="sidebar-link" data-view="sites">
           <span class="sidebar-link-icon">📍</span>
-          Sites / Projetos
+          <span data-i18n="admin.nav.sites">Sites / Projetos</span>
         </a>
         <a href="#" class="sidebar-link" data-view="datasets">
           <span class="sidebar-link-icon">🗄️</span>
-          Datasets
+          <span data-i18n="admin.nav.datasets">Datasets</span>
         </a>
         <a href="#" class="sidebar-link" data-view="documents">
           <span class="sidebar-link-icon">📄</span>
-          Documentos
+          <span data-i18n="admin.nav.documents">Documentos</span>
         </a>
       </div>
 
       <!-- Integrações -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Integrações</div>
+        <div class="sidebar-section-title" data-i18n="admin.section.integrations">Integrações</div>
         <a href="#" class="sidebar-link" data-view="integrations">
           <span class="sidebar-link-icon">🔗</span>
-          Softwares Externos
+          <span data-i18n="admin.nav.software">Softwares Externos</span>
         </a>
       </div>
 
       <!-- Financeiro -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Financeiro</div>
+        <div class="sidebar-section-title" data-i18n="admin.section.financial">Financeiro</div>
         <a href="#" class="sidebar-link" data-view="payments">
           <span class="sidebar-link-icon">💳</span>
-          Pagamentos
+          <span data-i18n="admin.nav.payments">Pagamentos</span>
           <span class="sidebar-link-badge badge-warning" id="badge-payments">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="invoices">
           <span class="sidebar-link-icon">🧾</span>
-          Faturas
+          <span data-i18n="admin.nav.invoices">Faturas</span>
         </a>
       </div>
 
       <!-- Sistema -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title">Sistema</div>
+        <div class="sidebar-section-title" data-i18n="admin.section.system">Sistema</div>
         <a href="#" class="sidebar-link" data-view="alerts">
           <span class="sidebar-link-icon">🔔</span>
-          Alertas
+          <span data-i18n="admin.nav.alerts">Alertas</span>
           <span class="sidebar-link-badge" id="badge-alerts">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="logs">
           <span class="sidebar-link-icon">📜</span>
-          Audit Logs
+          <span data-i18n="admin.nav.auditLogs">Audit Logs</span>
         </a>
         <a href="#" class="sidebar-link" data-view="settings">
           <span class="sidebar-link-icon">⚙️</span>
-          Configurações
+          <span data-i18n="admin.nav.settings">Configurações</span>
         </a>
       </div>
     </nav>
@@ -922,19 +934,24 @@
       <div class="topbar-left">
         <button class="btn-menu-toggle" id="btn-menu-toggle">☰</button>
         <div class="topbar-breadcrumb">
-          Admin / <span id="breadcrumb-current">Dashboard</span>
+          <span data-i18n="admin.breadcrumb">Admin /</span> <span id="breadcrumb-current">Dashboard</span>
         </div>
       </div>
       <div class="topbar-right">
+        <div class="lang-toggle">
+          <button class="lang-btn" data-lang="pt">PT</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="es">ES</button>
+        </div>
         <div class="topbar-search">
-          <input type="text" placeholder="Pesquisar..." id="global-search" />
+          <input type="text" data-i18n-placeholder="common.search" placeholder="Pesquisar..." id="global-search" />
         </div>
         <button class="topbar-btn" id="btn-notifications" title="Notificações">
           🔔
           <span class="badge" id="notification-count">3</span>
         </button>
         <button class="topbar-btn" id="btn-help" title="Ajuda">❓</button>
-        <button class="btn-logout" id="btn-logout">Terminar sessão</button>
+        <button class="btn-logout" id="btn-logout" data-i18n="common.logout">Terminar sessão</button>
       </div>
     </header>
 
@@ -944,24 +961,24 @@
       <!-- ============ DASHBOARD VIEW ============ -->
       <div class="view-panel active" id="view-dashboard">
         <div class="page-header">
-          <div class="page-eyebrow">Visão Geral</div>
-          <h1 class="page-title">Dashboard Global</h1>
-          <p class="page-subtitle">Monitorize todas as operações, clientes e métricas da plataforma GeoVision em tempo real.</p>
+          <div class="page-eyebrow" data-i18n="admin.dash.eyebrow">Visão Geral</div>
+          <h1 class="page-title" data-i18n="admin.dash.title">Dashboard Global</h1>
+          <p class="page-subtitle" data-i18n="admin.dash.desc">Monitorize todas as operações, clientes e métricas da plataforma GeoVision em tempo real.</p>
         </div>
 
         <!-- Quick Actions -->
         <div class="quick-actions">
           <button class="quick-action" onclick="showModal('modal-new-client')">
-            <span>➕</span> Novo Cliente
+            <span>➕</span> <span data-i18n="admin.action.newClient">Novo Cliente</span>
           </button>
           <button class="quick-action" onclick="showModal('modal-new-site')">
-            <span>📍</span> Novo Site
+            <span>📍</span> <span data-i18n="admin.action.newSite">Novo Site</span>
           </button>
           <button class="quick-action" onclick="showModal('modal-upload-doc')">
-            <span>📤</span> Upload Documento
+            <span>📤</span> <span data-i18n="admin.action.uploadDoc">Upload Documento</span>
           </button>
           <button class="quick-action" onclick="exportReport()">
-            <span>📊</span> Exportar Relatório
+            <span>📊</span> <span data-i18n="admin.action.exportReport">Exportar Relatório</span>
           </button>
         </div>
 
@@ -969,7 +986,7 @@
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Total Clientes</span>
+              <span class="kpi-label" data-i18n="admin.kpi.clients">Total Clientes</span>
               <span class="kpi-icon">🏢</span>
             </div>
             <div class="kpi-value" id="kpi-total-clients">0</div>
@@ -977,7 +994,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Sites Ativos</span>
+              <span class="kpi-label" data-i18n="admin.kpi.sites">Sites Ativos</span>
               <span class="kpi-icon">📍</span>
             </div>
             <div class="kpi-value" id="kpi-total-sites">0</div>
@@ -985,7 +1002,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Datasets</span>
+              <span class="kpi-label" data-i18n="admin.kpi.datasets">Datasets</span>
               <span class="kpi-icon">🗄️</span>
             </div>
             <div class="kpi-value" id="kpi-total-datasets">0</div>
@@ -993,7 +1010,7 @@
           </div>
           <div class="kpi-card revenue">
             <div class="kpi-header">
-              <span class="kpi-label">Receita Mensal</span>
+              <span class="kpi-label" data-i18n="admin.kpi.revenue">Receita Mensal</span>
               <span class="kpi-icon">💰</span>
             </div>
             <div class="kpi-value" id="kpi-revenue">0 AOA</div>
@@ -1001,7 +1018,7 @@
           </div>
           <div class="kpi-card warning">
             <div class="kpi-header">
-              <span class="kpi-label">Pagamentos Pendentes</span>
+              <span class="kpi-label" data-i18n="admin.kpi.pendingPayments">Pagamentos Pendentes</span>
               <span class="kpi-icon">⏳</span>
             </div>
             <div class="kpi-value" id="kpi-pending-payments">0</div>
@@ -1009,7 +1026,7 @@
           </div>
           <div class="kpi-card danger">
             <div class="kpi-header">
-              <span class="kpi-label">Alertas Críticos</span>
+              <span class="kpi-label" data-i18n="admin.kpi.criticalAlerts">Alertas Críticos</span>
               <span class="kpi-icon">🚨</span>
             </div>
             <div class="kpi-value" id="kpi-critical-alerts">0</div>
@@ -1017,7 +1034,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Contratos Ativos</span>
+              <span class="kpi-label" data-i18n="admin.kpi.contracts">Contratos Ativos</span>
               <span class="kpi-icon">📋</span>
             </div>
             <div class="kpi-value" id="kpi-contracts">0</div>
@@ -1025,7 +1042,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label">Armazenamento</span>
+              <span class="kpi-label" data-i18n="admin.kpi.storage">Armazenamento</span>
               <span class="kpi-icon">💾</span>
             </div>
             <div class="kpi-value" id="kpi-storage">0 GB</div>
@@ -1037,7 +1054,7 @@
         <div class="charts-grid">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Crescimento Mensal</h3>
+              <h3 class="card-title" data-i18n="admin.chart.growth">Crescimento Mensal</h3>
               <div class="card-actions">
                 <button class="btn btn-sm btn-secondary">6M</button>
                 <button class="btn btn-sm btn-secondary">1A</button>
@@ -1051,7 +1068,7 @@
           </div>
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Receita por Setor</h3>
+              <h3 class="card-title" data-i18n="admin.chart.revenue">Receita por Setor</h3>
             </div>
             <div class="card-body">
               <div class="chart-container" id="chart-revenue-sector">
@@ -1064,20 +1081,20 @@
         <!-- Recent Activity -->
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Atividade Recente</h3>
+            <h3 class="card-title" data-i18n="admin.activity.title">Atividade Recente</h3>
             <div class="card-actions">
-              <button class="btn btn-sm btn-secondary">Ver todos</button>
+              <button class="btn btn-sm btn-secondary" data-i18n="admin.activity.viewAll">Ver todos</button>
             </div>
           </div>
           <div class="card-body">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Hora</th>
-                  <th>Utilizador</th>
-                  <th>Ação</th>
-                  <th>Recurso</th>
-                  <th>Detalhes</th>
+                  <th data-i18n="admin.activity.time">Hora</th>
+                  <th data-i18n="admin.activity.user">Utilizador</th>
+                  <th data-i18n="admin.activity.action">Ação</th>
+                  <th data-i18n="admin.activity.resource">Recurso</th>
+                  <th data-i18n="admin.activity.details">Detalhes</th>
                 </tr>
               </thead>
               <tbody id="activity-table-body">
@@ -1097,32 +1114,32 @@
       <!-- ============ CLIENTS VIEW ============ -->
       <div class="view-panel" id="view-clients">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão de Clientes</div>
-          <h1 class="page-title">Clientes</h1>
-          <p class="page-subtitle">Gerir contas de clientes, planos e acessos.</p>
+          <div class="page-eyebrow" data-i18n="admin.clients.eyebrow">Gestão de Clientes</div>
+          <h1 class="page-title" data-i18n="admin.clients.title">Clientes</h1>
+          <p class="page-subtitle" data-i18n="admin.clients.desc">Gerir contas de clientes, planos e acessos.</p>
         </div>
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-new-client')">
-            <span>➕</span> Novo Cliente
+            <span>➕</span> <span data-i18n="admin.action.newClient">Novo Cliente</span>
           </button>
           <button class="btn btn-secondary">
-            <span>📥</span> Importar
+            <span>📥</span> <span data-i18n="admin.clients.import">Importar</span>
           </button>
           <button class="btn btn-secondary">
-            <span>📤</span> Exportar
+            <span>📤</span> <span data-i18n="admin.clients.export">Exportar</span>
           </button>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Lista de Clientes</h3>
+            <h3 class="card-title" data-i18n="admin.clients.list">Lista de Clientes</h3>
             <div class="card-actions">
               <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
-                <option value="">Todos os status</option>
-                <option value="active">Ativos</option>
-                <option value="trial">Trial</option>
-                <option value="suspended">Suspensos</option>
+                <option value="" data-i18n="admin.clients.allStatus">Todos os status</option>
+                <option value="active" data-i18n="admin.clients.active">Ativos</option>
+                <option value="trial" data-i18n="admin.clients.trial">Trial</option>
+                <option value="suspended" data-i18n="admin.clients.suspended">Suspensos</option>
               </select>
             </div>
           </div>
@@ -1130,13 +1147,13 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Empresa</th>
-                  <th>Email</th>
-                  <th>Plano</th>
-                  <th>Status</th>
-                  <th>Sites</th>
-                  <th>Contacto</th>
-                  <th>Ações</th>
+                  <th data-i18n="admin.clients.company">Empresa</th>
+                  <th data-i18n="common.email">Email</th>
+                  <th data-i18n="admin.clients.plan">Plano</th>
+                  <th data-i18n="common.status">Status</th>
+                  <th data-i18n="admin.nav.sites">Sites</th>
+                  <th data-i18n="admin.clients.contact">Contacto</th>
+                  <th data-i18n="common.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="clients-table-body">
@@ -1150,29 +1167,29 @@
       <!-- ============ DOCUMENTS VIEW ============ -->
       <div class="view-panel" id="view-documents">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão de Documentos</div>
-          <h1 class="page-title">Documentos</h1>
-          <p class="page-subtitle">Upload, organização e controlo de acesso a documentos de clientes.</p>
+          <div class="page-eyebrow" data-i18n="admin.docs.eyebrow">Gestão de Documentos</div>
+          <h1 class="page-title" data-i18n="admin.docs.title">Documentos</h1>
+          <p class="page-subtitle" data-i18n="admin.docs.desc">Upload, organização e controlo de acesso a documentos de clientes.</p>
         </div>
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-upload-doc')">
-            <span>📤</span> Upload Documento
+            <span>📤</span> <span data-i18n="admin.action.uploadDoc">Upload Documento</span>
           </button>
           <button class="btn btn-secondary">
-            <span>🔍</span> Pesquisa Avançada
+            <span>🔍</span> <span data-i18n="admin.docs.advSearch">Pesquisa Avançada</span>
           </button>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Documentos Recentes</h3>
+            <h3 class="card-title" data-i18n="admin.docs.recent">Documentos Recentes</h3>
             <div class="card-actions">
               <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
-                <option value="">Todos os tipos</option>
-                <option value="report">Relatórios</option>
-                <option value="orthomosaic">Ortomosaicos</option>
-                <option value="contract">Contratos</option>
+                <option value="" data-i18n="admin.docs.allTypes">Todos os tipos</option>
+                <option value="report" data-i18n="admin.docs.reports">Relatórios</option>
+                <option value="orthomosaic" data-i18n="admin.docs.ortho">Ortomosaicos</option>
+                <option value="contract" data-i18n="admin.docs.contracts">Contratos</option>
                 <option value="geotiff">GeoTIFF</option>
               </select>
             </div>
@@ -1202,14 +1219,14 @@
       <!-- ============ INTEGRATIONS VIEW ============ -->
       <div class="view-panel" id="view-integrations">
         <div class="page-header">
-          <div class="page-eyebrow">Integrações</div>
-          <h1 class="page-title">Softwares Externos</h1>
-          <p class="page-subtitle">Gerir conexões com DJI Terra, Pix4D, ArcGIS, Procore e outros.</p>
+          <div class="page-eyebrow" data-i18n="admin.integrations.eyebrow">Integrações</div>
+          <h1 class="page-title" data-i18n="admin.integrations.title">Softwares Externos</h1>
+          <p class="page-subtitle" data-i18n="admin.integrations.desc">Gerir conexões com DJI Terra, Pix4D, ArcGIS, Procore e outros.</p>
         </div>
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-new-connector')">
-            <span>🔗</span> Nova Integração
+            <span>🔗</span> <span data-i18n="admin.integrations.new">Nova Integração</span>
           </button>
         </div>
 
@@ -1276,14 +1293,14 @@
       <!-- ============ SETTINGS VIEW ============ -->
       <div class="view-panel" id="view-settings">
         <div class="page-header">
-          <div class="page-eyebrow">Sistema</div>
-          <h1 class="page-title">Configurações</h1>
-          <p class="page-subtitle">Configurações gerais da plataforma, segurança e integrações.</p>
+          <div class="page-eyebrow" data-i18n="admin.settings.eyebrow">Sistema</div>
+          <h1 class="page-title" data-i18n="admin.settings.title">Configurações</h1>
+          <p class="page-subtitle" data-i18n="admin.settings.desc">Configurações gerais da plataforma, segurança e integrações.</p>
         </div>
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Contactos GeoVision</h3>
+            <h3 class="card-title" data-i18n="admin.settings.contacts">Contactos GeoVision</h3>
           </div>
           <div class="card-body">
             <div class="contact-buttons" style="margin-bottom: 1rem;">
@@ -1303,7 +1320,7 @@
                 📷 Instagram
               </a>
             </div>
-            <p style="font-size: 0.85rem; color: #9ca3af;">
+            <p style="font-size: 0.85rem; color: #9ca3af;" data-i18n="admin.settings.contactsDesc">
               Estes contactos são usados para comunicação directa com clientes e suporte.
             </p>
           </div>
@@ -1311,7 +1328,7 @@
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Roles e Permissões</h3>
+            <h3 class="card-title" data-i18n="admin.settings.roles">Roles e Permissões</h3>
           </div>
           <div class="card-body">
             <table class="data-table">
@@ -1363,22 +1380,22 @@
       <!-- Placeholder for other views -->
       <div class="view-panel" id="view-users">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão</div>
-          <h1 class="page-title">Utilizadores</h1>
+          <div class="page-eyebrow" data-i18n="admin.section.management">Gestão</div>
+          <h1 class="page-title" data-i18n="admin.nav.users">Utilizadores</h1>
         </div>
-        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+        <div class="card"><div class="card-body" data-i18n="admin.inDev">Em desenvolvimento...</div></div>
       </div>
 
       <div class="view-panel" id="view-sites">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão</div>
-          <h1 class="page-title">Sites / Projetos</h1>
-          <p class="page-subtitle">Gerir localizações e projetos de clientes.</p>
+          <div class="page-eyebrow" data-i18n="admin.section.management">Gestão</div>
+          <h1 class="page-title" data-i18n="admin.sites.title">Sites / Projetos</h1>
+          <p class="page-subtitle" data-i18n="admin.sites.desc">Gerir localizações e projetos de clientes.</p>
         </div>
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-new-site')">
-            <span>➕</span> Novo Site
+            <span>➕</span> <span data-i18n="admin.action.newSite">Novo Site</span>
           </button>
         </div>
 
@@ -1407,9 +1424,9 @@
 
       <div class="view-panel" id="view-datasets">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão</div>
-          <h1 class="page-title">Datasets</h1>
-          <p class="page-subtitle">Dados de drones, satélite e sensores dos projetos.</p>
+          <div class="page-eyebrow" data-i18n="admin.section.management">Gestão</div>
+          <h1 class="page-title" data-i18n="admin.datasets.title">Datasets</h1>
+          <p class="page-subtitle" data-i18n="admin.datasets.desc">Dados de drones, satélite e sensores dos projetos.</p>
         </div>
 
         <div class="card">
@@ -1446,26 +1463,26 @@
 
       <div class="view-panel" id="view-payments">
         <div class="page-header">
-          <div class="page-eyebrow">Financeiro</div>
-          <h1 class="page-title">Pagamentos</h1>
+          <div class="page-eyebrow" data-i18n="admin.section.financial">Financeiro</div>
+          <h1 class="page-title" data-i18n="admin.nav.payments">Pagamentos</h1>
         </div>
-        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+        <div class="card"><div class="card-body" data-i18n="admin.inDev">Em desenvolvimento...</div></div>
       </div>
 
       <div class="view-panel" id="view-invoices">
         <div class="page-header">
-          <div class="page-eyebrow">Financeiro</div>
-          <h1 class="page-title">Faturas</h1>
+          <div class="page-eyebrow" data-i18n="admin.section.financial">Financeiro</div>
+          <h1 class="page-title" data-i18n="admin.nav.invoices">Faturas</h1>
         </div>
-        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+        <div class="card"><div class="card-body" data-i18n="admin.inDev">Em desenvolvimento...</div></div>
       </div>
 
       <div class="view-panel" id="view-alerts">
         <div class="page-header">
-          <div class="page-eyebrow">Sistema</div>
-          <h1 class="page-title">Alertas</h1>
+          <div class="page-eyebrow" data-i18n="admin.section.system">Sistema</div>
+          <h1 class="page-title" data-i18n="admin.nav.alerts">Alertas</h1>
         </div>
-        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+        <div class="card"><div class="card-body" data-i18n="admin.inDev">Em desenvolvimento...</div></div>
       </div>
 
       <div class="view-panel" id="view-logs">
@@ -1515,7 +1532,7 @@
   <div class="modal-overlay" id="modal-new-client">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Novo Cliente</h2>
+        <h2 class="modal-title" data-i18n="admin.action.newClient">Novo Cliente</h2>
         <button class="modal-close" onclick="closeModal('modal-new-client')">&times;</button>
       </div>
       <div class="modal-body">
@@ -1571,7 +1588,7 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-new-client')">Cancelar</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-new-client')" data-i18n="common.cancel">Cancelar</button>
         <button class="btn btn-primary" onclick="saveNewClient()">Criar Cliente</button>
       </div>
     </div>
@@ -1581,7 +1598,7 @@
   <div class="modal-overlay" id="modal-upload-doc">
     <div class="modal">
       <div class="modal-header">
-        <h2 class="modal-title">Upload Documento</h2>
+        <h2 class="modal-title" data-i18n="admin.action.uploadDoc">Upload Documento</h2>
         <button class="modal-close" onclick="closeModal('modal-upload-doc')">&times;</button>
       </div>
       <div class="modal-body">
@@ -1656,12 +1673,13 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('modal-upload-doc')">Cancelar</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-upload-doc')" data-i18n="common.cancel">Cancelar</button>
         <button class="btn btn-primary" onclick="uploadDocument()">Upload</button>
       </div>
     </div>
   </div>
 
+  <script src="assets/js/i18n.js?v=1"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>
     // ============ VIEW NAVIGATION ============
