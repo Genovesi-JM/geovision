@@ -241,6 +241,7 @@ async function apiPost(path, body, accountId) {
 function renderServices(portfolio) {
   const tbody = document.querySelector("#services-table tbody");
   const empty = document.getElementById("services-empty");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   if (!portfolio.services || !portfolio.services.length) {
@@ -271,6 +272,7 @@ function renderServices(portfolio) {
 function renderHardware(portfolio) {
   const tbody = document.querySelector("#hardware-table tbody");
   const empty = document.getElementById("hardware-empty");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   if (!portfolio.hardware || !portfolio.hardware.length) {
@@ -299,6 +301,7 @@ function renderHardware(portfolio) {
 function renderReports(portfolio) {
   const tbody = document.querySelector("#reports-table tbody");
   const empty = document.getElementById("reports-empty");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   if (!portfolio.reports || !portfolio.reports.length) {
@@ -511,10 +514,13 @@ async function loadOrdersOverrideReports(accountId) {
 }
 
 function toggleModal(show) {
-  const backdrop = document.getElementById("account-modal-backdrop");
-  if (!backdrop) return;
-  backdrop.style.display = show ? "flex" : "none";
-  backdrop.setAttribute("aria-hidden", show ? "false" : "true");
+  const modal = document.getElementById("account-modal");
+  if (!modal) return;
+  if (show) {
+    modal.classList.add("open");
+  } else {
+    modal.classList.remove("open");
+  }
 }
 
 async function handleAccountCreate(currentAccountId, reloadFn) {
@@ -542,6 +548,23 @@ async function handleAccountCreate(currentAccountId, reloadFn) {
 
 async function loadDashboard(accountIdHint, activeSectorHint) {
   requireSession();
+
+  // ── Bind modal & global buttons early (before any render that could throw) ──
+  const openModal = document.getElementById("open-account-modal");
+  const cancelBtn = document.getElementById("account-cancel");
+  const createBtn = document.getElementById("account-create");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  if (logoutBtn && !logoutBtn.dataset.gvBound) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("gv_token");
+      localStorage.removeItem(SESSION_ROLE_KEY);
+      localStorage.removeItem(SESSION_EMAIL_KEY);
+      localStorage.removeItem(SESSION_ACCOUNT_KEY);
+      window.location.href = "index.html";
+    });
+    logoutBtn.dataset.gvBound = "1";
+  }
 
   let currentAccountId = accountIdHint || localStorage.getItem(SESSION_ACCOUNT_KEY) || null;
   let activeSector = activeSectorHint !== undefined ? activeSectorHint : (localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY) || null);
@@ -598,18 +621,6 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   // Enriquecer tabela de relatórios com pedidos reais da loja (se existirem)
   await loadOrdersOverrideReports(currentAccountId);
 
-  const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn && !logoutBtn.dataset.gvBound) {
-    logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("gv_token");
-      localStorage.removeItem(SESSION_ROLE_KEY);
-      localStorage.removeItem(SESSION_EMAIL_KEY);
-      localStorage.removeItem(SESSION_ACCOUNT_KEY);
-      window.location.href = "index.html";
-    });
-    logoutBtn.dataset.gvBound = "1";
-  }
-
   const switcher = document.getElementById("account-switcher");
   if (switcher && !switcher.dataset.gvBound) {
     switcher.addEventListener("change", async (e) => {
@@ -620,10 +631,6 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     });
     switcher.dataset.gvBound = "1";
   }
-
-  const openModal = document.getElementById("open-account-modal");
-  const cancelBtn = document.getElementById("account-cancel");
-  const createBtn = document.getElementById("account-create");
 
   if (openModal && !openModal.dataset.gvBound) {
     openModal.onclick = () => {
