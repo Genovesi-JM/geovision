@@ -540,12 +540,18 @@ async def get_system_stats():
     companies = list(_companies_store.values())
     active_companies = len([c for c in companies if c["status"] == "active"])
     
+    # Site and dataset stats
+    total_sites = len(_sites_store)
+    total_datasets = len(_datasets_store)
+    total_documents = len(_documents_store)
+    total_integrations = len(_integrations_store)
+    
     return SystemStats(
         total_companies=len(companies),
         active_companies=active_companies,
         total_users=sum(c.get("current_users", 0) for c in companies),
-        total_sites=sum(c.get("current_sites", 0) for c in companies),
-        total_datasets=0,  # TODO: Get from datasets store
+        total_sites=total_sites,
+        total_datasets=total_datasets,
         total_storage_gb=sum(c.get("storage_used_gb", 0) for c in companies),
         payments_today=payments_today,
         payments_pending=payments_pending,
@@ -570,3 +576,521 @@ async def health_check():
             "payments_stripe": "ok" if os.getenv("STRIPE_SECRET_KEY") else "not_configured",
         }
     }
+
+
+# ============ ADDITIONAL SCHEMAS ============
+
+class SiteCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=200)
+    description: Optional[str] = None
+    country: str = Field(default="Angola")
+    province: Optional[str] = None
+    municipality: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    area_hectares: Optional[float] = None
+    sector: Optional[str] = None
+
+
+class SiteOut(BaseModel):
+    id: str
+    company_id: str
+    name: str
+    description: Optional[str] = None
+    country: str
+    province: Optional[str] = None
+    municipality: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    area_hectares: Optional[float] = None
+    sector: Optional[str] = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class DatasetCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=200)
+    description: Optional[str] = None
+    data_type: str = Field(default="drone_imagery")
+    source: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+class DatasetOut(BaseModel):
+    id: str
+    site_id: str
+    company_id: str
+    name: str
+    description: Optional[str] = None
+    data_type: str
+    source: Optional[str] = None
+    storage_path: Optional[str] = None
+    size_bytes: int = 0
+    status: str = "pending"
+    created_at: datetime
+    processed_at: Optional[datetime] = None
+
+
+class DocumentCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=200)
+    document_type: str = Field(default="report")
+    description: Optional[str] = None
+    is_confidential: bool = False
+    is_official: bool = False
+
+
+class DocumentOut(BaseModel):
+    id: str
+    company_id: str
+    site_id: Optional[str] = None
+    name: str
+    document_type: str
+    description: Optional[str] = None
+    file_path: Optional[str] = None
+    file_size_bytes: int = 0
+    mime_type: Optional[str] = None
+    status: str = "draft"
+    version: int = 1
+    is_confidential: bool = False
+    is_official: bool = False
+    uploaded_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class IntegrationCreate(BaseModel):
+    connector_type: str
+    name: str = Field(..., max_length=100)
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
+    base_url: Optional[str] = None
+    webhook_url: Optional[str] = None
+    auto_sync_enabled: bool = True
+    sync_interval_hours: int = 24
+
+
+class IntegrationOut(BaseModel):
+    id: str
+    company_id: str
+    connector_type: str
+    name: str
+    base_url: Optional[str] = None
+    is_active: bool
+    auto_sync_enabled: bool
+    sync_interval_hours: int
+    last_sync_at: Optional[datetime] = None
+    sync_status: str = "never"
+    created_at: datetime
+
+
+# ============ IN-MEMORY STORES FOR NEW ENTITIES ============
+
+_sites_store: dict = {}
+_datasets_store: dict = {}
+_documents_store: dict = {}
+_integrations_store: dict = {}
+
+
+# ============ SITES MANAGEMENT ============
+
+@router.post("/companies/{company_id}/sites", response_model=SiteOut)
+async def create_site(company_id: str, data: SiteCreate):
+    """Create a new site/project for a company."""
+    
+    if company_id not in _companies_store:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    company = _companies_store[company_id]
+    
+    # Check site limit
+    if company["current_sites"] >= company["max_sites"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Site limit reached ({company['max_sites']}). Upgrade subscription."
+        )
+    
+    site_id = str(uuid.uuid4())
+    now = datetime.utcnow()
+    
+    site = {
+        "id": site_id,
+        "company_id": company_id,
+        "name": data.name,
+        "description": data.description,
+        "country": data.country,
+        "province": data.province,
+        "municipality": data.municipality,
+        "latitude": data.latitude,
+        "longitude": data.longitude,
+        "area_hectares": data.area_hectares,
+        "sector": data.sector,
+        "is_active": True,
+        "created_at": now,
+        "updated_at": now,
+    }
+    
+    _sites_store[site_id] = site
+    company["current_sites"] += 1
+    
+    # Audit log
+    _audit_log.append({
+        "id": str(uuid.uuid4()),
+        "company_id": company_id,
+        "user_id": None,
+        "action": "site_created",
+        "resource_type": "site",
+        "resource_id": site_id,
+        "details": {"name": data.name, "sector": data.sector},
+        "ip_address": None,
+        "created_at": now,
+    })
+    
+    logger.info(f"Created site {site_id} for company {company_id}")
+    
+    return SiteOut(**site)
+
+
+@router.get("/companies/{company_id}/sites", response_model=List[SiteOut])
+async def list_company_sites(company_id: str):
+    """List all sites for a company."""
+    
+    if company_id not in _companies_store:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    sites = [s for s in _sites_store.values() if s["company_id"] == company_id]
+    return [SiteOut(**s) for s in sites]
+
+
+@router.get("/sites", response_model=List[SiteOut])
+async def list_all_sites(
+    company_id: Optional[str] = Query(None),
+    sector: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+):
+    """List all sites (admin view)."""
+    
+    sites = list(_sites_store.values())
+    
+    if company_id:
+        sites = [s for s in sites if s["company_id"] == company_id]
+    if sector:
+        sites = [s for s in sites if s.get("sector") == sector]
+    if search:
+        search_lower = search.lower()
+        sites = [s for s in sites if search_lower in s["name"].lower()]
+    
+    return [SiteOut(**s) for s in sites]
+
+
+@router.delete("/sites/{site_id}")
+async def delete_site(site_id: str):
+    """Delete a site."""
+    
+    if site_id not in _sites_store:
+        raise HTTPException(status_code=404, detail="Site not found")
+    
+    site = _sites_store[site_id]
+    company_id = site["company_id"]
+    
+    if company_id in _companies_store:
+        _companies_store[company_id]["current_sites"] -= 1
+    
+    del _sites_store[site_id]
+    
+    return {"message": "Site deleted", "site_id": site_id}
+
+
+# ============ DATASETS MANAGEMENT ============
+
+@router.post("/sites/{site_id}/datasets", response_model=DatasetOut)
+async def create_dataset(site_id: str, data: DatasetCreate):
+    """Create a new dataset for a site."""
+    
+    if site_id not in _sites_store:
+        raise HTTPException(status_code=404, detail="Site not found")
+    
+    site = _sites_store[site_id]
+    company_id = site["company_id"]
+    
+    dataset_id = str(uuid.uuid4())
+    now = datetime.utcnow()
+    
+    dataset = {
+        "id": dataset_id,
+        "site_id": site_id,
+        "company_id": company_id,
+        "name": data.name,
+        "description": data.description,
+        "data_type": data.data_type,
+        "source": data.source,
+        "storage_path": None,
+        "size_bytes": 0,
+        "status": "pending",
+        "metadata": data.metadata or {},
+        "created_at": now,
+        "processed_at": None,
+    }
+    
+    _datasets_store[dataset_id] = dataset
+    
+    logger.info(f"Created dataset {dataset_id} for site {site_id}")
+    
+    return DatasetOut(**dataset)
+
+
+@router.get("/datasets", response_model=List[DatasetOut])
+async def list_all_datasets(
+    company_id: Optional[str] = Query(None),
+    site_id: Optional[str] = Query(None),
+    data_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+):
+    """List all datasets (admin view)."""
+    
+    datasets = list(_datasets_store.values())
+    
+    if company_id:
+        datasets = [d for d in datasets if d["company_id"] == company_id]
+    if site_id:
+        datasets = [d for d in datasets if d["site_id"] == site_id]
+    if data_type:
+        datasets = [d for d in datasets if d["data_type"] == data_type]
+    if status:
+        datasets = [d for d in datasets if d["status"] == status]
+    
+    return [DatasetOut(**d) for d in datasets]
+
+
+@router.delete("/datasets/{dataset_id}")
+async def delete_dataset(dataset_id: str):
+    """Delete a dataset."""
+    
+    if dataset_id not in _datasets_store:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    
+    del _datasets_store[dataset_id]
+    
+    return {"message": "Dataset deleted", "dataset_id": dataset_id}
+
+
+# ============ DOCUMENTS MANAGEMENT ============
+
+@router.post("/companies/{company_id}/documents", response_model=DocumentOut)
+async def create_document(company_id: str, data: DocumentCreate, site_id: Optional[str] = Query(None)):
+    """Create a document metadata entry (file upload handled separately)."""
+    
+    if company_id not in _companies_store:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    if site_id and site_id not in _sites_store:
+        raise HTTPException(status_code=404, detail="Site not found")
+    
+    doc_id = str(uuid.uuid4())
+    now = datetime.utcnow()
+    
+    document = {
+        "id": doc_id,
+        "company_id": company_id,
+        "site_id": site_id,
+        "name": data.name,
+        "document_type": data.document_type,
+        "description": data.description,
+        "file_path": None,
+        "file_size_bytes": 0,
+        "mime_type": None,
+        "status": "draft",
+        "version": 1,
+        "is_confidential": data.is_confidential,
+        "is_official": data.is_official,
+        "uploaded_by": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+    
+    _documents_store[doc_id] = document
+    
+    # Audit log
+    _audit_log.append({
+        "id": str(uuid.uuid4()),
+        "company_id": company_id,
+        "user_id": None,
+        "action": "document_created",
+        "resource_type": "document",
+        "resource_id": doc_id,
+        "details": {"name": data.name, "type": data.document_type},
+        "ip_address": None,
+        "created_at": now,
+    })
+    
+    return DocumentOut(**document)
+
+
+@router.get("/documents", response_model=List[DocumentOut])
+async def list_all_documents(
+    company_id: Optional[str] = Query(None),
+    site_id: Optional[str] = Query(None),
+    document_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    is_confidential: Optional[bool] = Query(None),
+):
+    """List all documents (admin view)."""
+    
+    documents = list(_documents_store.values())
+    
+    if company_id:
+        documents = [d for d in documents if d["company_id"] == company_id]
+    if site_id:
+        documents = [d for d in documents if d.get("site_id") == site_id]
+    if document_type:
+        documents = [d for d in documents if d["document_type"] == document_type]
+    if status:
+        documents = [d for d in documents if d["status"] == status]
+    if is_confidential is not None:
+        documents = [d for d in documents if d["is_confidential"] == is_confidential]
+    
+    return [DocumentOut(**d) for d in documents]
+
+
+@router.patch("/documents/{document_id}")
+async def update_document(document_id: str, status: Optional[str] = Query(None), is_official: Optional[bool] = Query(None)):
+    """Update document status."""
+    
+    if document_id not in _documents_store:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    doc = _documents_store[document_id]
+    
+    if status:
+        doc["status"] = status
+    if is_official is not None:
+        doc["is_official"] = is_official
+    
+    doc["updated_at"] = datetime.utcnow()
+    
+    return DocumentOut(**doc)
+
+
+@router.delete("/documents/{document_id}")
+async def delete_document(document_id: str):
+    """Delete a document."""
+    
+    if document_id not in _documents_store:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    del _documents_store[document_id]
+    
+    return {"message": "Document deleted", "document_id": document_id}
+
+
+# ============ INTEGRATIONS MANAGEMENT ============
+
+@router.post("/companies/{company_id}/integrations", response_model=IntegrationOut)
+async def create_integration(company_id: str, data: IntegrationCreate):
+    """Create a software integration for a company."""
+    
+    if company_id not in _companies_store:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    integration_id = str(uuid.uuid4())
+    now = datetime.utcnow()
+    
+    integration = {
+        "id": integration_id,
+        "company_id": company_id,
+        "connector_type": data.connector_type,
+        "name": data.name,
+        "api_key_encrypted": data.api_key,  # Should encrypt in production
+        "api_secret_encrypted": data.api_secret,
+        "base_url": data.base_url,
+        "webhook_url": data.webhook_url,
+        "is_active": True,
+        "auto_sync_enabled": data.auto_sync_enabled,
+        "sync_interval_hours": data.sync_interval_hours,
+        "last_sync_at": None,
+        "sync_status": "never",
+        "created_at": now,
+    }
+    
+    _integrations_store[integration_id] = integration
+    
+    logger.info(f"Created integration {integration_id} ({data.connector_type}) for company {company_id}")
+    
+    return IntegrationOut(**integration)
+
+
+@router.get("/integrations", response_model=List[IntegrationOut])
+async def list_all_integrations(
+    company_id: Optional[str] = Query(None),
+    connector_type: Optional[str] = Query(None),
+    is_active: Optional[bool] = Query(None),
+):
+    """List all integrations (admin view)."""
+    
+    integrations = list(_integrations_store.values())
+    
+    if company_id:
+        integrations = [i for i in integrations if i["company_id"] == company_id]
+    if connector_type:
+        integrations = [i for i in integrations if i["connector_type"] == connector_type]
+    if is_active is not None:
+        integrations = [i for i in integrations if i["is_active"] == is_active]
+    
+    return [IntegrationOut(**i) for i in integrations]
+
+
+@router.post("/integrations/{integration_id}/sync")
+async def trigger_integration_sync(integration_id: str):
+    """Trigger manual sync for an integration."""
+    
+    if integration_id not in _integrations_store:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    integration = _integrations_store[integration_id]
+    
+    if not integration["is_active"]:
+        raise HTTPException(status_code=400, detail="Integration is disabled")
+    
+    # TODO: Trigger actual sync job based on connector_type
+    integration["sync_status"] = "running"
+    integration["last_sync_at"] = datetime.utcnow()
+    
+    return {
+        "message": "Sync triggered",
+        "integration_id": integration_id,
+        "connector_type": integration["connector_type"],
+    }
+
+
+@router.delete("/integrations/{integration_id}")
+async def delete_integration(integration_id: str):
+    """Delete an integration."""
+    
+    if integration_id not in _integrations_store:
+        raise HTTPException(status_code=404, detail="Integration not found")
+    
+    del _integrations_store[integration_id]
+    
+    return {"message": "Integration deleted", "integration_id": integration_id}
+
+
+# ============ ADMIN CONTACTS ============
+
+class AdminContactOut(BaseModel):
+    type: str
+    label: str
+    value: str
+    icon: str
+
+
+@router.get("/contacts", response_model=List[AdminContactOut])
+async def get_admin_contacts():
+    """Get GeoVision admin contact information."""
+    
+    return [
+        AdminContactOut(type="whatsapp", label="WhatsApp Suporte", value="+244923456789", icon="📱"),
+        AdminContactOut(type="email", label="Email Suporte", value="suporte@geovision.ao", icon="✉️"),
+        AdminContactOut(type="phone", label="Telefone", value="+244923456789", icon="📞"),
+        AdminContactOut(type="sms", label="SMS", value="+244923456789", icon="💬"),
+        AdminContactOut(type="instagram", label="Instagram", value="@geovision.ao", icon="📷"),
+    ]

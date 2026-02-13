@@ -2,448 +2,2111 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin – Operações GeoVision</title>
+  <title>Admin – GeoVision Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="assets/css/style.css" />
-
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
     body {
-      margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #020617, #000 60%);
+      background: #050914;
       color: #e5e7eb;
-    }
-
-    .admin-shell {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem 3rem;
-    }
-
-    .admin-topbar {
+      min-height: 100vh;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.6rem;
-      padding: 0.7rem 1rem;
-      border-radius: 18px;
-      background: rgba(15, 23, 42, 0.96);
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.7);
-      margin-bottom: 1.8rem;
     }
 
-    @media (max-width: 768px) {
-      .admin-topbar {
-        flex-direction: column;
-        align-items: stretch;
-        border-radius: 14px;
-        padding: 0.8rem;
-      }
-      .admin-topbar-left {
-        justify-content: center;
-      }
-      .admin-topbar-right {
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .admin-pill {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.5rem;
-      }
-      .btn-logout {
-        padding: 0.4rem 0.7rem;
-        font-size: 0.75rem;
-      }
+    /* ============ SIDEBAR ============ */
+    .admin-sidebar {
+      width: 260px;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+      border-right: 1px solid rgba(148, 163, 184, 0.15);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s ease;
     }
 
-    .admin-topbar-left {
+    .admin-sidebar.collapsed {
+      transform: translateX(-100%);
+    }
+
+    .sidebar-brand {
+      padding: 1.2rem 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
       display: flex;
       align-items: center;
-      gap: 0.7rem;
+      gap: 0.75rem;
     }
 
-    .admin-logo {
-      width: 30px;
-      height: 30px;
+    .sidebar-logo {
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
       background: linear-gradient(135deg, #22c55e, #38bdf8);
-    }
-
-    .admin-brand-main {
-      font-size: 0.9rem;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
-
-    .admin-brand-sub {
-      font-size: 0.75rem;
-      color: #9ca3af;
-    }
-
-    .admin-topbar-right {
       display: flex;
       align-items: center;
-      gap: 0.7rem;
-      font-size: 0.8rem;
+      justify-content: center;
+      font-weight: bold;
+      color: #020617;
+    }
+
+    .sidebar-brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-brand-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .sidebar-brand-sub {
+      font-size: 0.7rem;
       color: #9ca3af;
     }
 
-    .admin-pill {
-      padding: 0.25rem 0.7rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.96);
+    .sidebar-nav {
+      flex: 1;
+      padding: 1rem 0;
+      overflow-y: auto;
     }
 
-    .btn-logout {
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #ef4444, #f97316);
-      color: #020617;
-      padding: 0.45rem 0.85rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      font-weight: 500;
-    }
-
-    .admin-header {
+    .sidebar-section {
       margin-bottom: 1.5rem;
     }
 
-    .admin-eyebrow {
-      font-size: 0.8rem;
-      letter-spacing: 0.18em;
+    .sidebar-section-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: #9ca3af;
-      margin-bottom: 0.35rem;
-    }
-
-    .admin-title {
-      font-size: 1.5rem;
-      margin-bottom: 0.4rem;
-    }
-
-    .admin-subtitle {
-      font-size: 0.9rem;
-      color: #9ca3af;
-      max-width: 700px;
-    }
-
-    .admin-layout {
-      display: grid;
-      gap: 1.4rem;
-    }
-
-    @media (min-width: 900px) {
-      .admin-layout {
-        grid-template-columns: 1.6fr 1fr;
-      }
-    }
-
-    .admin-card {
-      border-radius: 1rem;
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      background: rgba(15, 23, 42, 0.96);
-      padding: 1rem 1.1rem;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
-      font-size: 0.85rem;
-    }
-
-    .admin-card-title {
-      font-size: 0.95rem;
-      font-weight: 500;
+      color: #6b7280;
+      padding: 0 1rem;
       margin-bottom: 0.5rem;
     }
 
-    .admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.8rem;
-    }
-
-    .admin-table th,
-    .admin-table td {
-      padding: 0.45rem 0.35rem;
-      border-bottom: 1px solid rgba(30, 41, 59, 0.9);
-    }
-
-    .admin-table th {
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
       color: #9ca3af;
-      text-align: left;
-      font-weight: 500;
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
     }
 
-    .admin-table tr:last-child td {
-      border-bottom: none;
-    }
-
-    .admin-actions button {
-      margin-left: 0.25rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 1);
+    .sidebar-link:hover {
+      background: rgba(56, 189, 248, 0.08);
       color: #e5e7eb;
-      font-size: 0.75rem;
-      padding: 0.25rem 0.6rem;
+    }
+
+    .sidebar-link.active {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border-left-color: #38bdf8;
+    }
+
+    .sidebar-link-icon {
+      font-size: 1.1rem;
+      width: 24px;
+      text-align: center;
+    }
+
+    .sidebar-link-badge {
+      margin-left: auto;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .sidebar-footer {
+      padding: 1rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sidebar-user-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .sidebar-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sidebar-user-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-user-role {
+      font-size: 0.7rem;
+      color: #9ca3af;
+    }
+
+    /* ============ MAIN CONTENT ============ */
+    .admin-main {
+      flex: 1;
+      margin-left: 260px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============ TOP BAR ============ */
+    .admin-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn-menu-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.4rem;
       cursor: pointer;
     }
 
-    .admin-actions button:hover {
-      border-color: #22c55e;
+    .topbar-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #9ca3af;
     }
 
-    .admin-form {
-      display: grid;
-      gap: 0.6rem;
-      font-size: 0.82rem;
+    .topbar-breadcrumb span {
+      color: #e5e7eb;
     }
 
-    .admin-form-row {
-      display: grid;
-      gap: 0.25rem;
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
 
-    .admin-form label {
-      color: #d1d5db;
+    .topbar-search {
+      position: relative;
     }
 
-    .admin-form input,
-    .admin-form textarea,
-    .admin-form select {
-      border-radius: 0.7rem;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: rgba(15, 23, 42, 0.96);
-      padding: 0.5rem 0.7rem;
+    .topbar-search input {
+      width: 240px;
+      padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(255, 255, 255, 0.05);
       color: #e5e7eb;
       font-size: 0.85rem;
       outline: none;
     }
 
-    .admin-form textarea {
-      resize: vertical;
-      min-height: 70px;
-    }
-
-    .admin-form input:focus,
-    .admin-form textarea:focus,
-    .admin-form select:focus {
+    .topbar-search input:focus {
       border-color: #38bdf8;
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
     }
 
-    .admin-form-actions {
-      margin-top: 0.4rem;
+    .topbar-search::before {
+      content: "🔍";
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.8rem;
+    }
+
+    .topbar-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(255, 255, 255, 0.03);
+      color: #9ca3af;
+      font-size: 1.1rem;
+      cursor: pointer;
       display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .topbar-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e5e7eb;
+    }
+
+    .topbar-btn .badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      font-size: 0.65rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-logout {
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ============ CONTENT AREA ============ */
+    .admin-content {
+      flex: 1;
+      padding: 1.5rem;
+    }
+
+    /* ============ PAGE HEADER ============ */
+    .page-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .page-eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #6b7280;
+      margin-bottom: 0.25rem;
+    }
+
+    .page-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.35rem;
+    }
+
+    .page-subtitle {
+      font-size: 0.9rem;
+      color: #9ca3af;
+      max-width: 600px;
+    }
+
+    /* ============ KPI GRID ============ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .kpi-card {
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(5, 9, 20, 0.95));
+      padding: 1rem 1.2rem;
+      display: flex;
+      flex-direction: column;
       gap: 0.5rem;
     }
 
-    .btn-primary {
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #22c55e, #38bdf8);
-      color: #020617;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.83rem;
-      cursor: pointer;
-      font-weight: 500;
+    .kpi-card.revenue {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(5, 9, 20, 0.95));
+      border-color: rgba(34, 197, 94, 0.3);
     }
 
-    .btn-secondary {
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.7);
-      background: rgba(15, 23, 42, 0.96);
-      color: #e5e7eb;
-      padding: 0.5rem 0.9rem;
-      font-size: 0.83rem;
-      cursor: pointer;
+    .kpi-card.warning {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(5, 9, 20, 0.95));
+      border-color: rgba(251, 191, 36, 0.3);
     }
 
-    .admin-badge {
-      font-size: 0.7rem;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
+    .kpi-card.danger {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(5, 9, 20, 0.95));
+      border-color: rgba(239, 68, 68, 0.3);
     }
 
-    .admin-badge.active {
-      border-color: #22c55e;
-      color: #bbf7d0;
-    }
-
-    .admin-badge.inactive {
-      border-color: #f97316;
-      color: #fed7aa;
-    }
-
-    .admin-hint {
-      font-size: 0.75rem;
-      color: #9ca3af;
-      margin-top: 0.3rem;
-    }
-
-    .admin-kpi-grid {
-      display: grid;
-      gap: 1rem;
-    }
-
-    @media (min-width: 780px) {
-      .admin-kpi-grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-    }
-
-    .admin-kpi {
-      border-radius: 1rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), #020617);
-      padding: 0.9rem 1rem;
-      font-size: 0.82rem;
+    .kpi-header {
       display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
+      align-items: center;
+      justify-content: space-between;
     }
 
-    .admin-kpi span {
-      letter-spacing: 0.12em;
+    .kpi-label {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: #9ca3af;
     }
 
-    .admin-kpi strong {
-      font-size: 1.4rem;
+    .kpi-icon {
+      font-size: 1.2rem;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .kpi-change {
+      font-size: 0.75rem;
+      color: #22c55e;
+    }
+
+    .kpi-change.negative {
+      color: #ef4444;
+    }
+
+    /* ============ CARDS ============ */
+    .card {
+      border-radius: 14px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: rgba(15, 23, 42, 0.7);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
       font-weight: 600;
     }
 
-    .admin-alerts {
-      margin-top: 0.9rem;
-    }
-
-    .admin-alerts-list {
-      list-style: none;
-      padding-left: 0;
+    .card-actions {
       display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
+      gap: 0.5rem;
     }
 
-    .admin-alerts-list li {
-      border-radius: 0.8rem;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      padding: 0.6rem 0.7rem;
-      background: rgba(15, 23, 42, 0.9);
-      font-size: 0.8rem;
+    .card-body {
+      padding: 1rem 1.2rem;
+    }
+
+    /* ============ TABLES ============ */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .data-table th {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+    }
+
+    .data-table tr:hover {
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ============ BADGES ============ */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-active {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .badge-trial {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-suspended {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .badge-pending {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    /* ============ BUTTONS ============ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+
+    .btn-sm {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #22c55e, #38bdf8);
+      color: #020617;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* ============ CONTACT BUTTONS ============ */
+    .contact-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .contact-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.7rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .contact-btn.whatsapp {
+      background: rgba(37, 211, 102, 0.15);
+      color: #25d366;
+      border: 1px solid rgba(37, 211, 102, 0.3);
+    }
+
+    .contact-btn.whatsapp:hover {
+      background: rgba(37, 211, 102, 0.25);
+    }
+
+    .contact-btn.email {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .contact-btn.email:hover {
+      background: rgba(56, 189, 248, 0.25);
+    }
+
+    .contact-btn.phone {
+      background: rgba(168, 85, 247, 0.15);
+      color: #a855f7;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .contact-btn.phone:hover {
+      background: rgba(168, 85, 247, 0.25);
+    }
+
+    .contact-btn.instagram {
+      background: linear-gradient(135deg, rgba(225, 48, 108, 0.15), rgba(131, 58, 180, 0.15));
+      color: #e1306c;
+      border: 1px solid rgba(225, 48, 108, 0.3);
+    }
+
+    .contact-btn.instagram:hover {
+      background: linear-gradient(135deg, rgba(225, 48, 108, 0.25), rgba(131, 58, 180, 0.25));
+    }
+
+    /* ============ CHARTS AREA ============ */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .chart-container {
+      height: 250px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+
+    /* ============ VIEW PANELS ============ */
+    .view-panel {
+      display: none;
+    }
+
+    .view-panel.active {
+      display: block;
+    }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 1024px) {
+      .admin-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .admin-sidebar.open {
+        transform: translateX(0);
+      }
+
+      .admin-main {
+        margin-left: 0;
+      }
+
+      .btn-menu-toggle {
+        display: flex;
+      }
+
+      .topbar-search input {
+        width: 180px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar-search {
+        display: none;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ============ QUICK ACTIONS PANEL ============ */
+    .quick-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+
+    .quick-action {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      color: #e5e7eb;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-action:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    /* ============ MODALS ============ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      width: min(600px, 95vw);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #0f172a;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    /* ============ FORMS ============ */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      color: #d1d5db;
+      margin-bottom: 0.35rem;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .form-select option {
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 640px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
-  <main class="admin-shell">
-    <header class="admin-topbar">
-      <div class="admin-topbar-left">
-        <div class="admin-logo"></div>
-        <div>
-          <div class="admin-brand-main">GEOVISION</div>
-          <div class="admin-brand-sub">Admin · Operações e serviços</div>
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="admin-sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">G</div>
+      <div class="sidebar-brand-text">
+        <div class="sidebar-brand-name">GEOVISION</div>
+        <div class="sidebar-brand-sub">Admin Panel</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- Dashboard -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <a href="#" class="sidebar-link active" data-view="dashboard">
+          <span class="sidebar-link-icon">📊</span>
+          Dashboard Global
+        </a>
+      </div>
+
+      <!-- Gestão -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Gestão</div>
+        <a href="#" class="sidebar-link" data-view="clients">
+          <span class="sidebar-link-icon">🏢</span>
+          Clientes
+          <span class="sidebar-link-badge" id="badge-clients">0</span>
+        </a>
+        <a href="#" class="sidebar-link" data-view="users">
+          <span class="sidebar-link-icon">👥</span>
+          Utilizadores
+        </a>
+        <a href="#" class="sidebar-link" data-view="sites">
+          <span class="sidebar-link-icon">📍</span>
+          Sites / Projetos
+        </a>
+        <a href="#" class="sidebar-link" data-view="datasets">
+          <span class="sidebar-link-icon">🗄️</span>
+          Datasets
+        </a>
+        <a href="#" class="sidebar-link" data-view="documents">
+          <span class="sidebar-link-icon">📄</span>
+          Documentos
+        </a>
+      </div>
+
+      <!-- Integrações -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Integrações</div>
+        <a href="#" class="sidebar-link" data-view="integrations">
+          <span class="sidebar-link-icon">🔗</span>
+          Softwares Externos
+        </a>
+      </div>
+
+      <!-- Financeiro -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Financeiro</div>
+        <a href="#" class="sidebar-link" data-view="payments">
+          <span class="sidebar-link-icon">💳</span>
+          Pagamentos
+          <span class="sidebar-link-badge badge-warning" id="badge-payments">0</span>
+        </a>
+        <a href="#" class="sidebar-link" data-view="invoices">
+          <span class="sidebar-link-icon">🧾</span>
+          Faturas
+        </a>
+      </div>
+
+      <!-- Sistema -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Sistema</div>
+        <a href="#" class="sidebar-link" data-view="alerts">
+          <span class="sidebar-link-icon">🔔</span>
+          Alertas
+          <span class="sidebar-link-badge" id="badge-alerts">0</span>
+        </a>
+        <a href="#" class="sidebar-link" data-view="logs">
+          <span class="sidebar-link-icon">📜</span>
+          Audit Logs
+        </a>
+        <a href="#" class="sidebar-link" data-view="settings">
+          <span class="sidebar-link-icon">⚙️</span>
+          Configurações
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar" id="user-avatar">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="user-name">Admin</div>
+          <div class="sidebar-user-role" id="user-role">Super Admin</div>
         </div>
       </div>
-      <div class="admin-topbar-right">
-        <span id="admin-email" class="admin-pill">admin@geovision</span>
-        <button id="btn-admin-logout" class="btn-logout">Terminar sessão</button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main class="admin-main">
+    <!-- Top Bar -->
+    <header class="admin-topbar">
+      <div class="topbar-left">
+        <button class="btn-menu-toggle" id="btn-menu-toggle">☰</button>
+        <div class="topbar-breadcrumb">
+          Admin / <span id="breadcrumb-current">Dashboard</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-search">
+          <input type="text" placeholder="Pesquisar..." id="global-search" />
+        </div>
+        <button class="topbar-btn" id="btn-notifications" title="Notificações">
+          🔔
+          <span class="badge" id="notification-count">3</span>
+        </button>
+        <button class="topbar-btn" id="btn-help" title="Ajuda">❓</button>
+        <button class="btn-logout" id="btn-logout">Terminar sessão</button>
       </div>
     </header>
 
-    <section class="admin-header">
-      <div class="admin-eyebrow">Operações · Serviços</div>
-      <h1 class="admin-title">Estado das missões, relatórios e clientes GeoVision</h1>
-      <p class="admin-subtitle">
-        Monitorize missões de drones, inspeções de infraestrutura e relatórios prontos para envio. Esta visão
-        foca-se nos serviços em campo e na informação que entregamos aos clientes.
-      </p>
-    </section>
+    <!-- Content Area -->
+    <div class="admin-content">
+      
+      <!-- ============ DASHBOARD VIEW ============ -->
+      <div class="view-panel active" id="view-dashboard">
+        <div class="page-header">
+          <div class="page-eyebrow">Visão Geral</div>
+          <h1 class="page-title">Dashboard Global</h1>
+          <p class="page-subtitle">Monitorize todas as operações, clientes e métricas da plataforma GeoVision em tempo real.</p>
+        </div>
 
-    <section class="admin-layout">
-      <article class="admin-card">
-        <div class="admin-eyebrow">Indicadores rápidos</div>
-        <div class="admin-kpi-grid">
-          <div class="admin-kpi" data-admin-kpi="projects">
-            <span>Projetos ativos</span>
-            <strong id="kpi-projects">0</strong>
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+          <button class="quick-action" onclick="showModal('modal-new-client')">
+            <span>➕</span> Novo Cliente
+          </button>
+          <button class="quick-action" onclick="showModal('modal-new-site')">
+            <span>📍</span> Novo Site
+          </button>
+          <button class="quick-action" onclick="showModal('modal-upload-doc')">
+            <span>📤</span> Upload Documento
+          </button>
+          <button class="quick-action" onclick="exportReport()">
+            <span>📊</span> Exportar Relatório
+          </button>
+        </div>
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Total Clientes</span>
+              <span class="kpi-icon">🏢</span>
+            </div>
+            <div class="kpi-value" id="kpi-total-clients">0</div>
+            <div class="kpi-change">+12% este mês</div>
           </div>
-          <div class="admin-kpi" data-admin-kpi="missions">
-            <span>Missões em voo hoje</span>
-            <strong id="kpi-missions">0</strong>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Sites Ativos</span>
+              <span class="kpi-icon">📍</span>
+            </div>
+            <div class="kpi-value" id="kpi-total-sites">0</div>
+            <div class="kpi-change">+8% este mês</div>
           </div>
-          <div class="admin-kpi" data-admin-kpi="reports">
-            <span>Relatórios prontos</span>
-            <strong id="kpi-reports">0</strong>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Datasets</span>
+              <span class="kpi-icon">🗄️</span>
+            </div>
+            <div class="kpi-value" id="kpi-total-datasets">0</div>
+            <div class="kpi-change">+15% este mês</div>
           </div>
-          <div class="admin-kpi" data-admin-kpi="alerts">
-            <span>Alertas críticos</span>
-            <strong id="kpi-alerts">0</strong>
+          <div class="kpi-card revenue">
+            <div class="kpi-header">
+              <span class="kpi-label">Receita Mensal</span>
+              <span class="kpi-icon">💰</span>
+            </div>
+            <div class="kpi-value" id="kpi-revenue">0 AOA</div>
+            <div class="kpi-change">+22% vs mês anterior</div>
+          </div>
+          <div class="kpi-card warning">
+            <div class="kpi-header">
+              <span class="kpi-label">Pagamentos Pendentes</span>
+              <span class="kpi-icon">⏳</span>
+            </div>
+            <div class="kpi-value" id="kpi-pending-payments">0</div>
+            <div class="kpi-change negative">Requerem atenção</div>
+          </div>
+          <div class="kpi-card danger">
+            <div class="kpi-header">
+              <span class="kpi-label">Alertas Críticos</span>
+              <span class="kpi-icon">🚨</span>
+            </div>
+            <div class="kpi-value" id="kpi-critical-alerts">0</div>
+            <div class="kpi-change negative">Ação imediata</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Contratos Ativos</span>
+              <span class="kpi-icon">📋</span>
+            </div>
+            <div class="kpi-value" id="kpi-contracts">0</div>
+            <div class="kpi-change">Estável</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Armazenamento</span>
+              <span class="kpi-icon">💾</span>
+            </div>
+            <div class="kpi-value" id="kpi-storage">0 GB</div>
+            <div class="kpi-change">De 1 TB</div>
           </div>
         </div>
-      </article>
-    </section>
 
-    <section class="admin-layout">
-      <article class="admin-card">
-        <h2 class="admin-card-title">Pipeline de serviços em campo</h2>
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Cliente</th>
-              <th>Serviço</th>
-              <th>Região</th>
-              <th>Estado</th>
-              <th>Próxima ação</th>
-            </tr>
-          </thead>
-          <tbody id="pipeline-body"></tbody>
-        </table>
-      </article>
-
-      <article class="admin-card">
-        <h2 class="admin-card-title">Relatórios e briefings</h2>
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Cliente</th>
-              <th>Relatório</th>
-              <th>Entrega prevista</th>
-              <th>Responsável</th>
-            </tr>
-          </thead>
-          <tbody id="reports-body"></tbody>
-        </table>
-        <div class="admin-alerts">
-          <h3 style="margin:0.9rem 0 0.4rem;">Alertas e notas</h3>
-          <ul id="alerts-list" class="admin-alerts-list"></ul>
+        <!-- Charts -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Crescimento Mensal</h3>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-secondary">6M</button>
+                <button class="btn btn-sm btn-secondary">1A</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container" id="chart-growth">
+                📈 Gráfico de crescimento (implementar Chart.js)
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Receita por Setor</h3>
+            </div>
+            <div class="card-body">
+              <div class="chart-container" id="chart-revenue-sector">
+                🥧 Gráfico de receita por setor
+              </div>
+            </div>
+          </div>
         </div>
-      </article>
-    </section>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Atividade Recente</h3>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-secondary">Ver todos</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Utilizador</th>
+                  <th>Ação</th>
+                  <th>Recurso</th>
+                  <th>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody id="activity-table-body">
+                <tr>
+                  <td>14:32</td>
+                  <td>admin@geovision.ao</td>
+                  <td><span class="badge badge-active">Login</span></td>
+                  <td>Sistema</td>
+                  <td>Luanda, Angola</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CLIENTS VIEW ============ -->
+      <div class="view-panel" id="view-clients">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão de Clientes</div>
+          <h1 class="page-title">Clientes</h1>
+          <p class="page-subtitle">Gerir contas de clientes, planos e acessos.</p>
+        </div>
+
+        <div class="quick-actions">
+          <button class="btn btn-primary" onclick="showModal('modal-new-client')">
+            <span>➕</span> Novo Cliente
+          </button>
+          <button class="btn btn-secondary">
+            <span>📥</span> Importar
+          </button>
+          <button class="btn btn-secondary">
+            <span>📤</span> Exportar
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Lista de Clientes</h3>
+            <div class="card-actions">
+              <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
+                <option value="">Todos os status</option>
+                <option value="active">Ativos</option>
+                <option value="trial">Trial</option>
+                <option value="suspended">Suspensos</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Empresa</th>
+                  <th>Email</th>
+                  <th>Plano</th>
+                  <th>Status</th>
+                  <th>Sites</th>
+                  <th>Contacto</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="clients-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ DOCUMENTS VIEW ============ -->
+      <div class="view-panel" id="view-documents">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão de Documentos</div>
+          <h1 class="page-title">Documentos</h1>
+          <p class="page-subtitle">Upload, organização e controlo de acesso a documentos de clientes.</p>
+        </div>
+
+        <div class="quick-actions">
+          <button class="btn btn-primary" onclick="showModal('modal-upload-doc')">
+            <span>📤</span> Upload Documento
+          </button>
+          <button class="btn btn-secondary">
+            <span>🔍</span> Pesquisa Avançada
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Documentos Recentes</h3>
+            <div class="card-actions">
+              <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
+                <option value="">Todos os tipos</option>
+                <option value="report">Relatórios</option>
+                <option value="orthomosaic">Ortomosaicos</option>
+                <option value="contract">Contratos</option>
+                <option value="geotiff">GeoTIFF</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Cliente</th>
+                  <th>Site</th>
+                  <th>Tipo</th>
+                  <th>Tamanho</th>
+                  <th>Status</th>
+                  <th>Data</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="documents-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ INTEGRATIONS VIEW ============ -->
+      <div class="view-panel" id="view-integrations">
+        <div class="page-header">
+          <div class="page-eyebrow">Integrações</div>
+          <h1 class="page-title">Softwares Externos</h1>
+          <p class="page-subtitle">Gerir conexões com DJI Terra, Pix4D, ArcGIS, Procore e outros.</p>
+        </div>
+
+        <div class="quick-actions">
+          <button class="btn btn-primary" onclick="showModal('modal-new-connector')">
+            <span>🔗</span> Nova Integração
+          </button>
+        </div>
+
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">DJI Terra</span>
+              <span class="kpi-icon">🛸</span>
+            </div>
+            <div class="kpi-value">3</div>
+            <div class="kpi-change">Conexões ativas</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Pix4D</span>
+              <span class="kpi-icon">📷</span>
+            </div>
+            <div class="kpi-value">5</div>
+            <div class="kpi-change">Conexões ativas</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">ArcGIS</span>
+              <span class="kpi-icon">🗺️</span>
+            </div>
+            <div class="kpi-value">2</div>
+            <div class="kpi-change">Conexões ativas</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-label">Procore</span>
+              <span class="kpi-icon">🏗️</span>
+            </div>
+            <div class="kpi-value">1</div>
+            <div class="kpi-change">Conexões ativas</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Integrações Configuradas</h3>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Software</th>
+                  <th>Nome</th>
+                  <th>Status</th>
+                  <th>Última Sync</th>
+                  <th>Auto-Sync</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="integrations-table-body">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SETTINGS VIEW ============ -->
+      <div class="view-panel" id="view-settings">
+        <div class="page-header">
+          <div class="page-eyebrow">Sistema</div>
+          <h1 class="page-title">Configurações</h1>
+          <p class="page-subtitle">Configurações gerais da plataforma, segurança e integrações.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Contactos GeoVision</h3>
+          </div>
+          <div class="card-body">
+            <div class="contact-buttons" style="margin-bottom: 1rem;">
+              <a href="https://wa.me/244923456789" target="_blank" class="contact-btn whatsapp">
+                📱 WhatsApp
+              </a>
+              <a href="mailto:suporte@geovision.ao" class="contact-btn email">
+                ✉️ Email
+              </a>
+              <a href="tel:+244923456789" class="contact-btn phone">
+                📞 Ligar
+              </a>
+              <a href="sms:+244923456789" class="contact-btn phone">
+                💬 SMS
+              </a>
+              <a href="https://instagram.com/geovision.ao" target="_blank" class="contact-btn instagram">
+                📷 Instagram
+              </a>
+            </div>
+            <p style="font-size: 0.85rem; color: #9ca3af;">
+              Estes contactos são usados para comunicação directa com clientes e suporte.
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Roles e Permissões</h3>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Descrição</th>
+                  <th>Utilizadores</th>
+                  <th>Nível</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge badge-active">Super Admin</span></td>
+                  <td>Acesso total à plataforma</td>
+                  <td>2</td>
+                  <td>Interno GeoVision</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-trial">Admin</span></td>
+                  <td>Funções administrativas</td>
+                  <td>3</td>
+                  <td>Interno GeoVision</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-pending">Manager</span></td>
+                  <td>Operações diárias</td>
+                  <td>5</td>
+                  <td>Interno GeoVision</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-active">Client Admin</span></td>
+                  <td>Admin da organização cliente</td>
+                  <td>15</td>
+                  <td>Cliente</td>
+                </tr>
+                <tr>
+                  <td><span class="badge badge-trial">Client Viewer</span></td>
+                  <td>Apenas leitura</td>
+                  <td>45</td>
+                  <td>Cliente</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Placeholder for other views -->
+      <div class="view-panel" id="view-users">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão</div>
+          <h1 class="page-title">Utilizadores</h1>
+        </div>
+        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+      </div>
+
+      <div class="view-panel" id="view-sites">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão</div>
+          <h1 class="page-title">Sites / Projetos</h1>
+          <p class="page-subtitle">Gerir localizações e projetos de clientes.</p>
+        </div>
+
+        <div class="quick-actions">
+          <button class="btn btn-primary" onclick="showModal('modal-new-site')">
+            <span>➕</span> Novo Site
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Lista de Sites</h3>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Cliente</th>
+                  <th>Província</th>
+                  <th>Setor</th>
+                  <th>Área</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="sites-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-panel" id="view-datasets">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão</div>
+          <h1 class="page-title">Datasets</h1>
+          <p class="page-subtitle">Dados de drones, satélite e sensores dos projetos.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Lista de Datasets</h3>
+            <div class="card-actions">
+              <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
+                <option value="">Todos os tipos</option>
+                <option value="drone_imagery">Drone Imagery</option>
+                <option value="satellite">Satélite</option>
+                <option value="lidar">LiDAR</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Cliente</th>
+                  <th>Site</th>
+                  <th>Tipo</th>
+                  <th>Tamanho</th>
+                  <th>Status</th>
+                  <th>Data</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="datasets-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="view-panel" id="view-payments">
+        <div class="page-header">
+          <div class="page-eyebrow">Financeiro</div>
+          <h1 class="page-title">Pagamentos</h1>
+        </div>
+        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+      </div>
+
+      <div class="view-panel" id="view-invoices">
+        <div class="page-header">
+          <div class="page-eyebrow">Financeiro</div>
+          <h1 class="page-title">Faturas</h1>
+        </div>
+        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+      </div>
+
+      <div class="view-panel" id="view-alerts">
+        <div class="page-header">
+          <div class="page-eyebrow">Sistema</div>
+          <h1 class="page-title">Alertas</h1>
+        </div>
+        <div class="card"><div class="card-body">Em desenvolvimento...</div></div>
+      </div>
+
+      <div class="view-panel" id="view-logs">
+        <div class="page-header">
+          <div class="page-eyebrow">Sistema</div>
+          <h1 class="page-title">Audit Logs</h1>
+          <p class="page-subtitle">Histórico de ações e alterações na plataforma.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Logs de Auditoria</h3>
+            <div class="card-actions">
+              <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
+                <option value="">Todas as ações</option>
+                <option value="company_created">Empresa criada</option>
+                <option value="site_created">Site criado</option>
+                <option value="document_created">Documento criado</option>
+                <option value="login">Login</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Data/Hora</th>
+                  <th>Utilizador</th>
+                  <th>Ação</th>
+                  <th>Recurso</th>
+                  <th>ID</th>
+                  <th>IP</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </main>
 
+  <!-- ============ MODALS ============ -->
+  
+  <!-- New Client Modal -->
+  <div class="modal-overlay" id="modal-new-client">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Novo Cliente</h2>
+        <button class="modal-close" onclick="closeModal('modal-new-client')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-new-client">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nome da Empresa *</label>
+              <input type="text" class="form-input" name="name" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">NIF</label>
+              <input type="text" class="form-input" name="tax_id" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Email *</label>
+              <input type="email" class="form-input" name="email" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Telefone</label>
+              <input type="tel" class="form-input" name="phone" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">WhatsApp</label>
+              <input type="tel" class="form-input" name="whatsapp" placeholder="+244..." />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Plano</label>
+              <select class="form-select" name="subscription_plan">
+                <option value="trial">Trial (14 dias)</option>
+                <option value="starter">Starter</option>
+                <option value="professional">Professional</option>
+                <option value="enterprise">Enterprise</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Setores</label>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agro" /> Agro & Pecuária</label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> Mineração</label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="demining" /> Desminagem</label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> Construção</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Morada</label>
+            <textarea class="form-textarea" name="address" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-new-client')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveNewClient()">Criar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Document Modal -->
+  <div class="modal-overlay" id="modal-upload-doc">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Upload Documento</h2>
+        <button class="modal-close" onclick="closeModal('modal-upload-doc')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-upload-doc">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Cliente *</label>
+              <select class="form-select" name="company_id" required>
+                <option value="">Selecionar cliente...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Site</label>
+              <select class="form-select" name="site_id">
+                <option value="">Selecionar site...</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tipo de Documento *</label>
+              <select class="form-select" name="document_type" required>
+                <option value="report">Relatório</option>
+                <option value="orthomosaic">Ortomosaico</option>
+                <option value="contract">Contrato</option>
+                <option value="invoice">Fatura</option>
+                <option value="geotiff">GeoTIFF</option>
+                <option value="point_cloud">Point Cloud (LAS/LAZ)</option>
+                <option value="shapefile">Shapefile</option>
+                <option value="dxf">DXF</option>
+                <option value="other">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="draft">Rascunho</option>
+                <option value="pending_review">Pendente Revisão</option>
+                <option value="approved">Aprovado</option>
+                <option value="official">Oficial</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nome do Documento *</label>
+            <input type="text" class="form-input" name="name" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ficheiro *</label>
+            <input type="file" class="form-input" name="file" required 
+                   accept=".pdf,.docx,.doc,.tif,.tiff,.las,.laz,.shp,.csv,.dxf,.png,.jpg,.jpeg" />
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.3rem;">
+              Formatos: PDF, DOCX, GeoTIFF, LAS/LAZ, SHP, CSV, DXF, Imagens
+            </p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label style="font-size: 0.85rem;">
+                <input type="checkbox" name="is_confidential" /> Confidencial
+              </label>
+            </div>
+            <div class="form-group">
+              <label style="font-size: 0.85rem;">
+                <input type="checkbox" name="is_official" /> Marcar como Oficial
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descrição</label>
+            <textarea class="form-textarea" name="description" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-upload-doc')">Cancelar</button>
+        <button class="btn btn-primary" onclick="uploadDocument()">Upload</button>
+      </div>
+    </div>
+  </div>
+
   <script src="assets/js/config.js?v=3"></script>
-  <script type="module" src="assets/js/admin-ops.js"></script>
   <script>
-    // Inline fallback logout handler (ensures logout works even if external scripts fail)
-    (function(){
+    // ============ VIEW NAVIGATION ============
+    const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
+    const viewPanels = document.querySelectorAll('.view-panel');
+    const breadcrumb = document.getElementById('breadcrumb-current');
+
+    function switchView(viewId) {
+      // Update sidebar
+      viewLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.view === viewId);
+      });
+
+      // Update panels
+      viewPanels.forEach(panel => {
+        panel.classList.toggle('active', panel.id === `view-${viewId}`);
+      });
+
+      // Update breadcrumb
+      const activeLink = document.querySelector(`.sidebar-link[data-view="${viewId}"]`);
+      if (activeLink) {
+        breadcrumb.textContent = activeLink.textContent.trim();
+      }
+    }
+
+    viewLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchView(link.dataset.view);
+      });
+    });
+
+    // ============ SIDEBAR TOGGLE ============
+    const sidebar = document.getElementById('sidebar');
+    const menuToggle = document.getElementById('btn-menu-toggle');
+
+    menuToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+    });
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 1024) {
+        if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+          sidebar.classList.remove('open');
+        }
+      }
+    });
+
+    // ============ MODALS ============
+    function showModal(modalId) {
+      document.getElementById(modalId).classList.add('open');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('open');
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('open');
+        }
+      });
+    });
+
+    // ============ API CALLS ============
+    const API_BASE = window.GV_CONFIG?.API_BASE || 'http://127.0.0.1:8010';
+
+    async function loadDashboardData() {
       try {
-        const btn = document.getElementById('btn-admin-logout');
-        if (!btn) return;
-        if (btn.dataset && btn.dataset.gvInlineLogout === '1') return;
-        btn.addEventListener('click', function(){
-          try { localStorage.removeItem('gv_token'); } catch(e) {}
-          try { localStorage.removeItem('gv_role'); } catch(e) {}
-          try { localStorage.removeItem('gv_email'); } catch(e) {}
-          window.location.href = 'index.html';
+        const response = await fetch(`${API_BASE}/admin/stats`);
+        if (response.ok) {
+          const stats = await response.json();
+          document.getElementById('kpi-total-clients').textContent = stats.total_companies || 0;
+          document.getElementById('kpi-total-sites').textContent = stats.total_sites || 0;
+          document.getElementById('kpi-total-datasets').textContent = stats.total_datasets || 0;
+          document.getElementById('kpi-pending-payments').textContent = stats.payments_pending || 0;
+          document.getElementById('badge-clients').textContent = stats.total_companies || 0;
+          document.getElementById('badge-payments').textContent = stats.payments_pending || 0;
+        }
+      } catch (err) {
+        console.warn('Could not load admin stats:', err);
+      }
+    }
+
+    async function loadClients() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/companies`);
+        if (response.ok) {
+          const companies = await response.json();
+          const tbody = document.getElementById('clients-table-body');
+          tbody.innerHTML = companies.map(c => `
+            <tr>
+              <td><strong>${c.name}</strong></td>
+              <td>${c.email}</td>
+              <td><span class="badge badge-trial">${c.subscription_plan}</span></td>
+              <td><span class="badge badge-${c.status}">${c.status}</span></td>
+              <td>${c.current_sites} / ${c.max_sites}</td>
+              <td>
+                <div class="contact-buttons">
+                  ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/[^0-9]/g, '')}" target="_blank" class="contact-btn whatsapp">📱</a>` : ''}
+                  <a href="mailto:${c.email}" class="contact-btn email">✉️</a>
+                </div>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-secondary" onclick="editClient('${c.id}')">Editar</button>
+                <button class="btn btn-sm btn-danger" onclick="suspendClient('${c.id}')">Suspender</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (err) {
+        console.warn('Could not load clients:', err);
+      }
+    }
+
+    async function saveNewClient() {
+      const form = document.getElementById('form-new-client');
+      const formData = new FormData(form);
+      
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        tax_id: formData.get('tax_id'),
+        address: formData.get('address'),
+        subscription_plan: formData.get('subscription_plan'),
+        sectors: formData.getAll('sectors'),
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/companies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
         });
-        try { btn.dataset.gvInlineLogout = '1'; } catch(e) {}
-      } catch(e){ console.error('inline admin logout attach failed', e); }
-    })();
+
+        if (response.ok) {
+          closeModal('modal-new-client');
+          form.reset();
+          loadClients();
+          loadDashboardData();
+          alert('Cliente criado com sucesso!');
+        } else {
+          const err = await response.json();
+          alert('Erro: ' + (err.detail || 'Não foi possível criar'));
+        }
+      } catch (err) {
+        alert('Erro de conexão: ' + err.message);
+      }
+    }
+
+    function editClient(clientId) {
+      alert('Editar cliente: ' + clientId);
+    }
+
+    async function suspendClient(clientId) {
+      if (!confirm('Tem certeza que deseja suspender este cliente?')) return;
+      
+      try {
+        const response = await fetch(`${API_BASE}/admin/companies/${clientId}`, {
+          method: 'DELETE',
+        });
+        if (response.ok) {
+          loadClients();
+          loadDashboardData();
+        }
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    function uploadDocument() {
+      alert('Upload de documento - implementar com FormData e endpoint de upload');
+      closeModal('modal-upload-doc');
+    }
+
+    function exportReport() {
+      alert('Exportar relatório - implementar');
+    }
+
+    // ============ SITES ============
+    async function loadSites() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/sites`);
+        if (response.ok) {
+          const sites = await response.json();
+          const tbody = document.getElementById('sites-table-body');
+          if (tbody) {
+            tbody.innerHTML = sites.map(s => `
+              <tr>
+                <td><strong>${s.name}</strong></td>
+                <td>${s.company_id.substring(0, 8)}...</td>
+                <td>${s.province || '-'}</td>
+                <td>${s.sector || '-'}</td>
+                <td>${s.area_hectares ? s.area_hectares.toFixed(1) + ' ha' : '-'}</td>
+                <td><span class="badge ${s.is_active ? 'badge-active' : 'badge-suspended'}">${s.is_active ? 'Ativo' : 'Inativo'}</span></td>
+                <td>
+                  <button class="btn btn-sm btn-secondary" onclick="viewSite('${s.id}')">Ver</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteSite('${s.id}')">Excluir</button>
+                </td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load sites:', err);
+      }
+    }
+
+    async function deleteSite(siteId) {
+      if (!confirm('Tem certeza que deseja excluir este site?')) return;
+      try {
+        await fetch(`${API_BASE}/admin/sites/${siteId}`, { method: 'DELETE' });
+        loadSites();
+        loadDashboardData();
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    function viewSite(siteId) {
+      alert('Ver detalhes do site: ' + siteId);
+    }
+
+    // ============ DOCUMENTS ============
+    async function loadDocuments() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/documents`);
+        if (response.ok) {
+          const docs = await response.json();
+          const tbody = document.getElementById('documents-table-body');
+          if (tbody) {
+            tbody.innerHTML = docs.map(d => `
+              <tr>
+                <td><strong>${d.name}</strong></td>
+                <td>${d.company_id.substring(0, 8)}...</td>
+                <td>${d.site_id ? d.site_id.substring(0, 8) + '...' : '-'}</td>
+                <td><span class="badge badge-trial">${d.document_type}</span></td>
+                <td>${formatBytes(d.file_size_bytes)}</td>
+                <td><span class="badge badge-${d.status === 'approved' ? 'active' : d.status === 'draft' ? 'pending' : 'trial'}">${d.status}</span></td>
+                <td>${new Date(d.created_at).toLocaleDateString('pt-PT')}</td>
+                <td>
+                  <button class="btn btn-sm btn-secondary" onclick="downloadDocument('${d.id}')">📥</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteDocument('${d.id}')">🗑️</button>
+                </td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load documents:', err);
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (!bytes || bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    async function deleteDocument(docId) {
+      if (!confirm('Tem certeza que deseja excluir este documento?')) return;
+      try {
+        await fetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE' });
+        loadDocuments();
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    function downloadDocument(docId) {
+      alert('Download do documento: ' + docId);
+    }
+
+    // ============ INTEGRATIONS ============
+    async function loadIntegrations() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/integrations`);
+        if (response.ok) {
+          const integrations = await response.json();
+          const tbody = document.getElementById('integrations-table-body');
+          if (tbody) {
+            tbody.innerHTML = integrations.map(i => `
+              <tr>
+                <td>${i.company_id.substring(0, 8)}...</td>
+                <td><span class="badge badge-trial">${i.connector_type}</span></td>
+                <td><strong>${i.name}</strong></td>
+                <td><span class="badge ${i.is_active ? 'badge-active' : 'badge-suspended'}">${i.is_active ? 'Ativo' : 'Inativo'}</span></td>
+                <td>${i.last_sync_at ? new Date(i.last_sync_at).toLocaleString('pt-PT') : 'Nunca'}</td>
+                <td>${i.auto_sync_enabled ? '✅' : '❌'}</td>
+                <td>
+                  <button class="btn btn-sm btn-primary" onclick="syncIntegration('${i.id}')">🔄 Sync</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteIntegration('${i.id}')">🗑️</button>
+                </td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load integrations:', err);
+      }
+    }
+
+    async function syncIntegration(integrationId) {
+      try {
+        const response = await fetch(`${API_BASE}/admin/integrations/${integrationId}/sync`, { method: 'POST' });
+        if (response.ok) {
+          alert('Sync iniciado!');
+          loadIntegrations();
+        }
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    async function deleteIntegration(integrationId) {
+      if (!confirm('Tem certeza que deseja excluir esta integração?')) return;
+      try {
+        await fetch(`${API_BASE}/admin/integrations/${integrationId}`, { method: 'DELETE' });
+        loadIntegrations();
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    // ============ DATASETS ============
+    async function loadDatasets() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/datasets`);
+        if (response.ok) {
+          const datasets = await response.json();
+          const tbody = document.getElementById('datasets-table-body');
+          if (tbody) {
+            tbody.innerHTML = datasets.map(d => `
+              <tr>
+                <td><strong>${d.name}</strong></td>
+                <td>${d.company_id.substring(0, 8)}...</td>
+                <td>${d.site_id.substring(0, 8)}...</td>
+                <td><span class="badge badge-trial">${d.data_type}</span></td>
+                <td>${formatBytes(d.size_bytes)}</td>
+                <td><span class="badge badge-${d.status === 'processed' ? 'active' : 'pending'}">${d.status}</span></td>
+                <td>${new Date(d.created_at).toLocaleDateString('pt-PT')}</td>
+                <td>
+                  <button class="btn btn-sm btn-danger" onclick="deleteDataset('${d.id}')">🗑️</button>
+                </td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load datasets:', err);
+      }
+    }
+
+    async function deleteDataset(datasetId) {
+      if (!confirm('Tem certeza que deseja excluir este dataset?')) return;
+      try {
+        await fetch(`${API_BASE}/admin/datasets/${datasetId}`, { method: 'DELETE' });
+        loadDatasets();
+        loadDashboardData();
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    // ============ AUDIT LOGS ============
+    async function loadAuditLogs() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/audit-logs`);
+        if (response.ok) {
+          const logs = await response.json();
+          const tbody = document.getElementById('audit-logs-table-body');
+          if (tbody) {
+            tbody.innerHTML = logs.map(l => `
+              <tr>
+                <td>${new Date(l.created_at).toLocaleString('pt-PT')}</td>
+                <td>${l.user_id || 'Sistema'}</td>
+                <td><span class="badge badge-trial">${l.action}</span></td>
+                <td>${l.resource_type}</td>
+                <td>${l.resource_id ? l.resource_id.substring(0, 8) + '...' : '-'}</td>
+                <td>${l.ip_address || '-'}</td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load audit logs:', err);
+      }
+    }
+
+    // ============ VIEW CHANGE HANDLER ============
+    function onViewChange(viewId) {
+      switch (viewId) {
+        case 'clients':
+          loadClients();
+          break;
+        case 'sites':
+          loadSites();
+          break;
+        case 'documents':
+          loadDocuments();
+          break;
+        case 'integrations':
+          loadIntegrations();
+          break;
+        case 'datasets':
+          loadDatasets();
+          break;
+        case 'logs':
+          loadAuditLogs();
+          break;
+      }
+    }
+
+    // Update switchView to call onViewChange
+    const originalSwitchView = switchView;
+    switchView = function(viewId) {
+      originalSwitchView(viewId);
+      onViewChange(viewId);
+    };
+
+    // ============ LOGOUT ============
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem('gv_token');
+      localStorage.removeItem('gv_role');
+      localStorage.removeItem('gv_email');
+      window.location.href = 'index.html';
+    });
+
+    // ============ INIT ============
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboardData();
+      loadClients();
+
+      // Load user info
+      const email = localStorage.getItem('gv_email') || 'admin@geovision';
+      const role = localStorage.getItem('gv_role') || 'admin';
+      document.getElementById('user-name').textContent = email.split('@')[0];
+      document.getElementById('user-role').textContent = role === 'admin' ? 'Super Admin' : role;
+      document.getElementById('user-avatar').textContent = email.charAt(0).toUpperCase();
+    });
   </script>
 </body>
 </html>
