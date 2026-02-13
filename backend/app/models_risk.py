@@ -223,8 +223,8 @@ class RiskAlert(Base):
     # Recommendations (JSON)
     recommendations: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    # Metadata
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    # Extra Data
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -275,8 +275,8 @@ class AlertEvent(Base):
     user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     actor_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     
-    # Metadata
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    # Extra Data
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

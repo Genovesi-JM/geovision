@@ -241,8 +241,8 @@ class Site(Base):
     # Status
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     
-    # Metadata (JSON)
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Extra Data (JSON)
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -294,8 +294,8 @@ class Dataset(Base):
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
     # pending, processing, ready, error, archived
     
-    # Metadata (JSON) - GSD, overlap, flight params, etc.
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Extra Data (JSON) - GSD, overlap, flight params, etc.
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -344,10 +344,10 @@ class Document(Base):
     is_official: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     download_blocked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     
-    # Metadata
+    # Extra Data
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tags: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON array
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     
     # Versioning
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -412,8 +412,8 @@ class SoftwareConnector(Base):
     auto_sync_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     sync_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
     
-    # Metadata (JSON)
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Extra Data (JSON)
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -450,8 +450,8 @@ class Alert(Base):
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     resolved_by_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     
-    # Metadata
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Extra Data
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 

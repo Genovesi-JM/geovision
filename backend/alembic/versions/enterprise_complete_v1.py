@@ -84,7 +84,7 @@ def upgrade() -> None:
         sa.Column('sector', sa.String(50), nullable=False, default='agro'),
         sa.Column('site_type', sa.String(50), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=False, default=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
@@ -111,7 +111,7 @@ def upgrade() -> None:
         sa.Column('last_sync_error', sa.Text(), nullable=True),
         sa.Column('auto_sync_enabled', sa.Boolean(), nullable=False, default=False),
         sa.Column('sync_interval_minutes', sa.Integer(), nullable=False, default=60),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
@@ -132,7 +132,7 @@ def upgrade() -> None:
         sa.Column('storage_size_mb', sa.Numeric(12, 2), nullable=True),
         sa.Column('file_count', sa.Integer(), nullable=False, default=0),
         sa.Column('status', sa.String(30), nullable=False, default='pending'),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
@@ -158,7 +158,7 @@ def upgrade() -> None:
         sa.Column('download_blocked', sa.Boolean(), nullable=False, default=False),
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('tags', sa.Text(), nullable=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('version', sa.Integer(), nullable=False, default=1),
         sa.Column('previous_version_id', sa.String(36), nullable=True),
         sa.Column('uploaded_by_id', sa.String(36), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
@@ -181,7 +181,7 @@ def upgrade() -> None:
         sa.Column('is_resolved', sa.Boolean(), nullable=False, default=False),
         sa.Column('resolved_at', sa.DateTime(), nullable=True),
         sa.Column('resolved_by_id', sa.String(36), nullable=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
     op.create_index('idx_alerts_severity', 'alerts', ['severity'])
@@ -316,7 +316,7 @@ def upgrade() -> None:
         sa.Column('failure_code', sa.String(50), nullable=True),
         sa.Column('failure_message', sa.Text(), nullable=True),
         sa.Column('description', sa.String(500), nullable=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('refunded_amount', sa.Integer(), nullable=False, default=0),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
@@ -407,7 +407,7 @@ def upgrade() -> None:
         sa.Column('failure_reason', sa.Text(), nullable=True),
         sa.Column('requested_by_id', sa.String(36), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
         sa.Column('approved_by_id', sa.String(36), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
@@ -490,7 +490,7 @@ def upgrade() -> None:
         sa.Column('longitude', sa.Numeric(10, 7), nullable=True),
         sa.Column('affected_area_geojson', sa.Text(), nullable=True),
         sa.Column('recommendations', sa.Text(), nullable=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
@@ -510,7 +510,7 @@ def upgrade() -> None:
         sa.Column('new_status', sa.String(30), nullable=True),
         sa.Column('user_id', sa.String(36), sa.ForeignKey('users.id', ondelete='SET NULL'), nullable=True),
         sa.Column('actor_name', sa.String(200), nullable=True),
-        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.Column('extra_data', sa.Text(), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.func.now()),
     )
     op.create_index('idx_alert_events_type', 'alert_events', ['event_type'])

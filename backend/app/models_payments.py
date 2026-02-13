@@ -210,9 +210,9 @@ class PaymentIntent(Base):
     failure_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     failure_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
-    # Metadata
+    # Extra Data
     description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     
     # Refund tracking
     refunded_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -416,8 +416,8 @@ class PaymentRefund(Base):
     requested_by_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_by_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
-    # Metadata
-    metadata: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
+    # Extra Data
+    extra_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
