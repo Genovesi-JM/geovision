@@ -270,7 +270,7 @@
       text-decoration: underline;
       cursor: pointer;
     }
-    .google-btn {
+    .google-btn, .microsoft-btn {
       width: 100%;
       display: inline-flex;
       gap: 0.65rem;
@@ -284,6 +284,12 @@
       border: none;
       cursor: pointer;
     }
+    .microsoft-btn {
+      background: #2f2f2f;
+      color: #fff;
+      margin-top: 0.5rem;
+    }
+    .microsoft-btn:hover { background: #404040; }
     .feedback {
       display: none;
       margin-top: 0.8rem;
@@ -352,6 +358,9 @@
         <button class="google-btn" type="button" id="google-btn">
           <span>🔑</span> <span data-i18n="login.google">Sign in with Google</span>
         </button>
+        <button class="microsoft-btn" type="button" id="microsoft-btn">
+          <span>🪟</span> <span data-i18n="login.microsoft">Sign in with Microsoft</span>
+        </button>
         <div class="split">
           <span class="link" id="forgot-link" data-i18n="login.forgot">Forgot password</span>
           <span class="link" id="toggle-create" aria-expanded="false" data-i18n="login.createAccount">Create account</span>
@@ -407,5 +416,6 @@
   <script src="assets/js/auth.js?v=1"></script>
   <script src="assets/js/i18n.js?v=1"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
+  <script src="assets/js/contacts.js?v=1"></script>
 </body>
 </html>

@@ -287,6 +287,7 @@ const translations = {
   "login.signin": { pt: "Entrar", en: "Sign In", es: "Iniciar Sesión" },
   "login.submit": { pt: "Entrar", en: "Sign In", es: "Iniciar Sesión" },
   "login.google": { pt: "Entrar com Google", en: "Sign in with Google", es: "Iniciar sesión con Google" },
+  "login.microsoft": { pt: "Entrar com Microsoft", en: "Sign in with Microsoft", es: "Iniciar sesión con Microsoft" },
   "login.forgot": { pt: "Esqueci a senha", en: "Forgot password", es: "Olvidé mi contraseña" },
   "login.createAccount": { pt: "Criar conta", en: "Create account", es: "Crear cuenta" },
   "login.create": { pt: "Criar conta", en: "Create account", es: "Crear cuenta" },

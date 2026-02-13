@@ -11,6 +11,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from app.deps import get_current_user
+
 from app.services.risk_engine import (
     get_risk_engine,
     SectorType,
@@ -22,7 +24,7 @@ from app.services.risk_engine import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/risk", tags=["risk"])
+router = APIRouter(prefix="/risk", tags=["risk"], dependencies=[Depends(get_current_user)])
 
 
 # ============ SCHEMAS ============

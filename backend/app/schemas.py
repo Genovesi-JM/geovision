@@ -73,6 +73,7 @@ class AccountOut(BaseModel):
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: Optional[str] = None
     user: UserOut
     account: Optional[AccountOut] = None
 

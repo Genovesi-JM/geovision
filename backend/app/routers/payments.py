@@ -18,6 +18,9 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Header, Request
 from pydantic import BaseModel, Field
 
+from app.deps import get_current_user, require_admin
+from app.models import User
+
 from app.services.payments import (
     get_payment_orchestrator,
     PaymentProvider,
@@ -106,7 +109,7 @@ class ProviderConfigResponse(BaseModel):
 # ============ ENDPOINTS ============
 
 @router.post("/", response_model=PaymentResponse)
-async def create_payment(request: PaymentCreateRequest):
+async def create_payment(request: PaymentCreateRequest, user: User = Depends(get_current_user)):
     """
     Create a new payment.
     
@@ -153,7 +156,7 @@ async def create_payment(request: PaymentCreateRequest):
 
 
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)
-async def get_payment_status(payment_id: str):
+async def get_payment_status(payment_id: str, user: User = Depends(get_current_user)):
     """Get payment status."""
     
     orchestrator = get_payment_orchestrator()
@@ -183,6 +186,7 @@ async def list_payments(
     status: Optional[PaymentStatus] = Query(None),
     provider: Optional[PaymentProvider] = Query(None),
     limit: int = Query(50, ge=1, le=200),
+    user: User = Depends(get_current_user),
 ):
     """List payments with filters."""
     
@@ -213,7 +217,7 @@ async def list_payments(
 
 
 @router.post("/{payment_id}/refund", response_model=RefundResponse)
-async def refund_payment(payment_id: str, request: RefundRequest):
+async def refund_payment(payment_id: str, request: RefundRequest, admin: User = Depends(require_admin)):
     """
     Refund a payment.
     
@@ -247,7 +251,7 @@ async def refund_payment(payment_id: str, request: RefundRequest):
 # ============ ADMIN ENDPOINTS ============
 
 @router.post("/{payment_id}/confirm-transfer")
-async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest):
+async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, admin: User = Depends(require_admin)):
     """
     **Admin only**: Confirm IBAN bank transfer receipt.
     
@@ -287,6 +291,7 @@ async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest):
 async def list_pending_transfers(
     company_id: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
+    admin: User = Depends(require_admin),
 ):
     """
     **Admin only**: List IBAN transfers awaiting confirmation.
@@ -323,6 +328,7 @@ async def get_reconciliation_report(
     company_id: Optional[str] = Query(None),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
+    admin: User = Depends(require_admin),
 ):
     """
     **Admin only**: Get reconciliation report.

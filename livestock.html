@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoVision - Pecu�ria conectada</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="GeoVision Pecu�ria: drones, GPS e mapas de pastagem para reduzir perdas de gado e melhorar a gest�o do rebanho."
+  />
+  <link rel="stylesheet" href="assets/css/style.css" />
+   <link rel="stylesheet" href="assets/css/chatbot.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="assets/img/geovision-logo.png" alt="GeoVision" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GEOVISION</div>
+        <div class="brand-sub">Intelig�ncia de Campo para Angola</div>
+      </div>
+    </div>
+
+    <nav class="nav-links" id="main-nav">
+      <a href="index.html">In�cio</a>
+      <a href="agriculture.html">Agricultura</a>
+      <a href="livestock.html" class="active">Pecu�ria</a>
+      <a href="mining.html">Minera��o</a>
+      <a href="demining.html">Desminagem</a>
+      <a href="construction.html">Constru��o</a>
+      <a href="infrastructure.html">Infraestruturas</a>
+      <a href="loja.html">Loja</a>
+      <a href="login.html" target="_blank" rel="noopener">Login</a>
+    </nav>
+
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
+  </header>
+
+  <main class="page">
+    <!-- HERO PECU�RIA -->
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-pill">
+          <div class="hero-pill-dot"></div>
+          <span class="hero-pill-text">Mapas de pastagem � Drones t�rmicos � GPS</span>
+        </div>
+
+        <h1 class="hero-title">
+          Pecu�ria conectada
+          <span>para reduzir perdas e localizar o rebanho.</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          GeoVision ajuda a visualizar onde o gado realmente anda, como est� a disponibilidade de
+          pasto e quais �reas est�o mais pressionadas ao longo da �poca seca.
+        </p>
+
+        <p class="hero-meta">
+          Focado em fazendas de corte, leite e cooperativas com rebanhos dispersos por grandes �reas.
+        </p>
+      </div>
+
+      <aside class="hero-map-card">
+        <header class="hero-map-header">
+          <div class="hero-map-label">Mapa demo</div>
+          <div class="hero-map-value">Mapa de pastagem - �poca seca</div>
+        </header>
+
+        <div class="hero-map-image">
+          <div class="hero-map-preview" data-theme="livestock-pasto">
+            <span class="hero-map-pill">Pontos de �gua &amp; press�o de pasto</span>
+            <div class="hero-map-fake"></div>
+          </div>
+        </div>
+
+<footer class="hero-map-footer">
+          <p style="font-size:0.78rem;color:var(--text-muted);">
+            Pontos claros = concentra��es de gado � Gradiente indica uso do pasto ao longo da �poca.
+          </p>
+
+          <div class="sector-mini">
+            <div class="sector-mini-metric" data-mini-metric>
+              Press�o de pastagem � �ltimos 30 dias
+            </div>
+            <div class="sector-mini-tabs">
+              <button
+                class="sector-mini-tab is-active"
+                data-mini-tab
+                data-metric="Press�o de pastagem � �ltimos 30 dias"
+                data-map-title="Mapa de pastagem - �poca seca"
+                data-map-badge="Pontos de �gua &amp; press�o de pasto"
+                data-map-theme="livestock-pasto">
+                Pasto
+              </button>
+              <button
+                class="sector-mini-tab"
+                data-mini-tab
+                data-metric="Dist�ncia m�dia at� pontos de �gua"
+                data-map-title="Dist�ncia at� pontos de �gua"
+                data-map-badge="Rotas at� aguadas"
+                data-map-theme="livestock-agua">
+                �gua
+              </button>
+              <button
+                class="sector-mini-tab"
+                data-mini-tab
+                data-metric="Concentra��es de gado por hectare"
+                data-map-title="Concentra��o de gado por hectare"
+                data-map-badge="Densidade t�rmica do rebanho"
+                data-map-theme="livestock-rebanho">
+                Rebanho
+              </button>
+            </div>
+          </div>
+        </footer>
+
+      </aside>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PECU�RIA</div>
+        <h2 class="section-title">Ver o rebanho como um �sistema� no mapa.</h2>
+        <p class="section-subtitle">
+          O m�dulo de pecu�ria do GeoVision combina dados de drones, GPS e sensores para dar uma vis�o
+          cont�nua do rebanho.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">1. Zonas de uso</h3>
+          <p class="feature-text">
+            Mapear onde o rebanho passa mais tempo e identificar �reas subutilizadas.
+          </p>
+          <div class="feature-tag">Equil�brio do pasto</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">2. Pontos de �gua</h3>
+          <p class="feature-text">
+            Identificar depend�ncia de poucas aguadas e planear abertura de novos pontos estrat�gicos.
+          </p>
+          <div class="feature-tag">Menos stress para o gado</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">3. Drones t�rmicos</h3>
+          <p class="feature-text">
+            Vistorias r�pidas em zonas de dif�cil acesso, procurando animais isolados ou em risco.
+          </p>
+          <div class="feature-tag">Resgate e controlo</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">4. Relat�rios simples</h3>
+          <p class="feature-text">
+            Entrega de mapas e relat�rios f�ceis de partilhar entre gestores, veterin�rios e donos.
+          </p>
+          <div class="feature-tag">Comunica��o clara</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- FORM PECU�RIA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PLANO DEMO</div>
+        <h2 class="section-title">Simular um plano de monitoriza��o do rebanho.</h2>
+        <p class="section-subtitle">
+          Este formul�rio preenche um projecto demo no painel, simulando um pedido de estudo para
+          rebanho em determinada prov�ncia.
+        </p>
+      </div>
+
+      <div class="cta-inner">
+        <div>
+          <h3 class="cta-title">Qual rebanho queres testar?</h3>
+          <p class="cta-text">
+            Usa n�meros aproximados. O objetivo � apenas ver como o pedido apareceria na interface interna.
+          </p>
+        </div>
+
+        <form class="cta-form" id="livestock-form">
+          <div class="form-row">
+            <label for="herd">Tamanho do rebanho</label>
+            <input id="herd" type="number" placeholder="Ex.: 500 cabe�as" />
+          </div>
+
+          <div class="form-row">
+            <label for="prov">Prov�ncia / regi�o principal</label>
+            <input id="prov" type="text" placeholder="Ex.: Hu�la, Cunene..." />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Simular (demo)</button>
+          <p class="form-success">Plano registado (simula��o).</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    GeoVision - Intelig�ncia de Campo para Angola. <span id="year"></span>
+  </footer>
+
+  <script src="assets/js/config.js?v=4"></script>
+  <script src="assets/js/site.js"></script>
+  <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/chatbot.js?v=4"></script>
+  <script src="assets/js/contacts.js?v=1"></script>
+</body>
+</html>

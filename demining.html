@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>GeoVision - Desminagem</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="GeoVision Desminagem: apoio visual e cartogr�fico para programas de desminagem humanit�ria em Angola."
+  />
+  <link rel="stylesheet" href="assets/css/style.css" />
+   <link rel="stylesheet" href="assets/css/chatbot.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="assets/img/geovision-logo.png" alt="GeoVision" class="logo-img" />
+      <div class="brand">
+        <div class="brand-name">GEOVISION</div>
+        <div class="brand-sub">Intelig�ncia de Campo para Angola</div>
+      </div>
+    </div>
+
+        <nav class="nav-links" id="main-nav">
+      <a href="index.html">In�cio</a>
+      <a href="agriculture.html">Agro &amp; Pecu�ria</a>
+      <a href="mining.html">Minera��o</a>
+      <a href="demining.html" class="active">Desminagem</a>
+      <a href="construction.html">Constru��o e Infraestrutura</a>
+      <a href="loja.html">Loja</a>
+      <a href="login.html" target="_blank" rel="noopener">Login</a>
+    </nav>
+
+    <button class="menu-toggle" id="menu-toggle" aria-label="Menu">Menu</button>
+  </header>
+
+  <main class="page">
+    <!-- HERO DESMINAGEM -->
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-pill">
+          <div class="hero-pill-dot"></div>
+          <span class="hero-pill-text">Mapas a�reos � Registo fotogr�fico � Relat�rios</span>
+        </div>
+
+        <h1 class="hero-title">
+          Suporte visual
+          <span>para programas de desminagem.</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          GeoVision n�o substitui o trabalho de campo, mas refor�a o planeamento e registo de
+          �reas trabalhadas, acessos, marcos e zonas de risco.
+        </p>
+
+        <p class="hero-meta">
+          Direcionado a ONGs, equipas humanit�rias e parceiros institucionais envolvidos em
+          desminagem em Angola.
+        </p>
+      </div>
+
+      <aside class="hero-map-card">
+        <header class="hero-map-header">
+          <div class="hero-map-label">Mapa demo</div>
+          <div class="hero-map-value">�rea marcada - risco potencial</div>
+        </header>
+
+        <div class="hero-map-image">
+          <div class="hero-map-preview" data-theme="demining-risco">
+            <span class="hero-map-pill">Zonas vermelhas = �reas cr�ticas</span>
+            <div class="hero-map-fake"></div>
+          </div>
+        </div>
+
+<footer class="hero-map-footer">
+          <p style="font-size:0.78rem;color:var(--text-muted);">
+            O foco � documentar claramente o que j� foi limpo, o que falta e por onde aceder.
+          </p>
+
+          <div class="sector-mini">
+            <div class="sector-mini-metric" data-mini-metric>
+              Zonas vermelhas = �reas com maior risco
+            </div>
+            <div class="sector-mini-tabs">
+              <button
+                class="sector-mini-tab is-active"
+                data-mini-tab
+                data-metric="Zonas vermelhas = �reas com maior risco"
+                data-map-title="�rea marcada - risco potencial"
+                data-map-badge="Zonas vermelhas = �reas cr�ticas"
+                data-map-theme="demining-risco">
+                Risco
+              </button>
+              <button
+                class="sector-mini-tab"
+                data-mini-tab
+                data-metric="Percentagem de �rea j� limpa e verificada"
+                data-map-title="Sec��es j� limpas"
+                data-map-badge="Progresso validado"
+                data-map-theme="demining-progresso">
+                Progresso
+              </button>
+              <button
+                class="sector-mini-tab"
+                data-mini-tab
+                data-metric="Rotas seguras para equipas e viaturas"
+                data-map-title="Rotas seguras e acessos"
+                data-map-badge="Rotas seguras para equipas"
+                data-map-theme="demining-acesso">
+                Acesso
+              </button>
+            </div>
+          </div>
+        </footer>
+
+      </aside>
+    </section>
+
+    <!-- COMO FUNCIONA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">DESMINAGEM</div>
+        <h2 class="section-title">Cartografia clara para opera��es complexas.</h2>
+        <p class="section-subtitle">
+          A plataforma fornece um contexto visual �nico para coordena��o entre campo, coordena��o e financiadores.
+        </p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">1. Delimita��o da �rea</h3>
+          <p class="feature-text">
+            Levantamento a�reo e cria��o de ortofotos que mostram limites, acessos e obst�culos.
+          </p>
+          <div class="feature-tag">Base para planeamento</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">2. Registo de progresso</h3>
+          <p class="feature-text">
+            Marca��o de �reas j� intervencionadas e zonas pendentes, por data e equipa.
+          </p>
+          <div class="feature-tag">Transpar�ncia operacional</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">3. Evid�ncias para relat�rios</h3>
+          <p class="feature-text">
+            Imagens e mapas ajudam a comunicar o impacto para parceiros e financiadores.
+          </p>
+          <div class="feature-tag">Justifica��o de recursos</div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon"></div>
+          <h3 class="feature-title">4. Arquivo hist�rico</h3>
+          <p class="feature-text">
+            Cada �rea limpa fica documentada, reduzindo incertezas no futuro.
+          </p>
+          <div class="feature-tag">Mem�ria do projecto</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- FORM DESMINAGEM -->
+    <section class="section">
+      <div class="section-header">
+        <div class="eyebrow">PLANO DEMO</div>
+        <h2 class="section-title">Simular um mapeamento de �rea de risco.</h2>
+        <p class="section-subtitle">
+          Este formul�rio preenche um projecto demo representando uma �rea de desminagem numa dada
+          prov�ncia e dimens�o aproximada.
+        </p>
+      </div>
+
+      <div class="cta-inner">
+        <div>
+          <h3 class="cta-title">Que �rea queres representar?</h3>
+          <p class="cta-text">
+            Pode ser um exemplo hipot�tico. O importante � demonstrar como o painel mostraria este pedido.
+          </p>
+        </div>
+
+        <form class="cta-form" id="demining-form">
+          <div class="form-row">
+            <label for="provincia">Prov�ncia</label>
+            <input id="provincia" type="text" placeholder="Ex.: Moxico, Cuando Cubango..." />
+          </div>
+
+          <div class="form-row">
+            <label for="area">�rea estimada (km�)</label>
+            <input id="area" type="number" placeholder="Ex.: 15" />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Simular (demo)</button>
+          <p class="form-success">Plano registado (simula��o).</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    GeoVision - Intelig�ncia de Campo para Angola. <span id="year"></span>
+  </footer>
+
+  <script src="assets/js/config.js?v=4"></script>
+  <script src="assets/js/site.js"></script>
+  <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/chatbot.js?v=4"></script>
+  <script src="assets/js/contacts.js?v=1"></script>
+</body>
+</html>

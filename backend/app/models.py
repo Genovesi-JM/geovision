@@ -237,5 +237,114 @@ class OAuthState(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+# ── Auth Identity Linking (Google, Microsoft, etc.) ──
+
+class AuthIdentity(Base):
+    """Links external OAuth providers to local users (prevents duplicates)."""
+    __tablename__ = "auth_identities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False)          # google, microsoft
+    provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)  # sub from OIDC
+    email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    display_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    raw_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)       # JSON dump of userinfo
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User", backref="auth_identities")
+
+    __table_args__ = (
+        # One identity per provider per user
+        # UniqueConstraint handled by index below
+    )
+
+
+class RefreshTokenModel(Base):
+    """Rotatable refresh tokens for persistent sessions."""
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    token_hash: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)  # for rotation detection
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
+
+
+# ── Contact Methods (WhatsApp, Instagram, Email, etc.) ──
+
+class ContactMethod(Base):
+    """Configurable contact channels per environment."""
+    __tablename__ = "contact_methods"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    channel: Mapped[str] = mapped_column(String(50), nullable=False)    # whatsapp, instagram, email, phone, sms
+    label: Mapped[str] = mapped_column(String(100), nullable=False)     # "Suporte", "Vendas", "Financeiro"
+    value: Mapped[str] = mapped_column(String(500), nullable=False)     # phone number, handle, email address
+    environment: Mapped[str] = mapped_column(String(20), nullable=False, default="prod")  # dev, staging, prod
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ── KPI Definitions and Values ──
+
+class KpiDefinition(Base):
+    """Per-sector KPI definitions."""
+    __tablename__ = "kpi_definitions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    sector: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # agro, mining, etc.
+    key: Mapped[str] = mapped_column(String(100), nullable=False)                # ndvi_avg, ore_grade, etc.
+    label: Mapped[str] = mapped_column(String(200), nullable=False)              # Human-readable name
+    unit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)       # %, ha, ton, etc.
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    icon: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)      # CSS icon class
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class KpiValue(Base):
+    """Actual KPI measurements per site/dataset."""
+    __tablename__ = "kpi_values"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    kpi_definition_id: Mapped[str] = mapped_column(String(36), ForeignKey("kpi_definitions.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id: Mapped[str] = mapped_column(String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    dataset_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    value: Mapped[str] = mapped_column(String(500), nullable=False)              # String to support numeric + text KPIs
+    numeric_value: Mapped[Optional[float]] = mapped_column(Numeric(14, 4), nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    definition = relationship("KpiDefinition")
+    account = relationship("Account")
+
+
+# ── Audit Log ──
+
+class AuditLog(Base):
+    """Who did what, when, and where."""
+    __tablename__ = "audit_log"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    user_email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    action: Mapped[str] = mapped_column(String(100), nullable=False)              # login, create_order, update_company, etc.
+    resource_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # user, order, company, etc.
+    resource_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)           # JSON with additional context
+    ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)  # IPv4/IPv6
+    user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
 # Compatibility alias so routers can import Profile per spec
 Profile = UserProfile

@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     google_client_id: Optional[str] = None
     google_client_secret: Optional[str] = None
 
+    # Microsoft OAuth / Entra ID settings (optional)
+    microsoft_client_id: Optional[str] = None
+    microsoft_client_secret: Optional[str] = None
+    microsoft_tenant_id: str = "common"  # "common" for multi-tenant, or specific tenant ID
+
+    # Refresh token settings
+    refresh_token_expires_days: int = 30
+
+    # Encryption key for sensitive data at rest (API keys, connector tokens)
+    encryption_key: Optional[str] = None  # Fernet key, generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
     # Bases de dados
     database_url: str = "sqlite:///./geovision.db"
     accounts_database_url: str = "sqlite:///./accounts.db"

@@ -23,12 +23,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.deps import get_db
+from app.deps import get_db, get_current_user
 from app.services.storage import get_storage_service, detect_file_type, detect_mime_type
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/datasets", tags=["datasets"])
+router = APIRouter(prefix="/datasets", tags=["datasets"], dependencies=[Depends(get_current_user)])
 
 
 # ============ ENUMS ============

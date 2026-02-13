@@ -15,6 +15,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from pydantic import BaseModel, Field
 
+from app.deps import get_current_user, require_admin
+from app.models import User
 from app.services.cart import get_cart_service, seed_demo_products, get_sector_labels
 from app.services.orders import get_order_service, OrderStatus, PaymentMethod, EventType
 
@@ -759,7 +761,7 @@ async def clear_cart(cart_id: str):
 # ============ CHECKOUT ENDPOINTS ============
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
-async def checkout(cart_id: str, request: CheckoutRequest):
+async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(get_current_user)):
     """
     Process checkout and create order.
     
@@ -1006,12 +1008,13 @@ async def cancel_order(order_id: str, request: CancelOrderRequest = Body(default
 @router.get("/me/orders", response_model=List[OrderSummaryResponse])
 async def my_orders(
     status: Optional[str] = Query(None, description="Filter by status"),
+    user: User = Depends(get_current_user),
 ):
     """Get customer's orders (Minhas Compras)."""
     
     order_service = get_order_service()
     orders = order_service.list_orders(
-        user_id="anonymous",  # TODO: Get from auth
+        user_id=str(user.id),
         status=status,
     )
     
@@ -1031,11 +1034,11 @@ async def my_orders(
 
 
 @router.get("/me/deliverables", response_model=List[DeliverableResponse])
-async def my_deliverables():
+async def my_deliverables(user: User = Depends(get_current_user)):
     """Get all deliverables from customer's orders."""
     
     order_service = get_order_service()
-    orders = order_service.list_orders(user_id="anonymous")
+    orders = order_service.list_orders(user_id=str(user.id))
     
     deliverables = []
     for order in orders:
@@ -1067,6 +1070,7 @@ class ConfirmPaymentRequest(BaseModel):
 async def admin_confirm_payment(
     order_id: str,
     request: ConfirmPaymentRequest = Body(default=ConfirmPaymentRequest()),
+    admin: User = Depends(require_admin),
 ):
     """
     Admin: Confirm payment (for IBAN transfers).
@@ -1090,6 +1094,7 @@ async def admin_assign_team(
     order_id: str,
     team_name: str = Body(..., embed=True),
     scheduled_start: Optional[str] = Body(None, embed=True),
+    admin: User = Depends(require_admin),
 ):
     """
     Admin: Assign team for service execution.
@@ -1114,7 +1119,7 @@ async def admin_assign_team(
 
 
 @router.post("/admin/orders/{order_id}/start-service")
-async def admin_start_service(order_id: str):
+async def admin_start_service(order_id: str, admin: User = Depends(require_admin)):
     """
     Admin: Mark service as started (check-in).
     """
@@ -1135,6 +1140,7 @@ class CompleteServiceRequest(BaseModel):
 async def admin_complete_service(
     order_id: str,
     request: CompleteServiceRequest = Body(default=CompleteServiceRequest()),
+    admin: User = Depends(require_admin),
 ):
     """
     Admin: Mark service as completed (check-out).
@@ -1161,6 +1167,7 @@ class ShipOrderRequest(BaseModel):
 async def admin_ship_order(
     order_id: str,
     request: ShipOrderRequest = Body(default=ShipOrderRequest()),
+    admin: User = Depends(require_admin),
 ):
     """
     Admin: Mark physical order as shipped.
@@ -1180,7 +1187,7 @@ async def admin_ship_order(
 
 
 @router.post("/admin/orders/{order_id}/deliver")
-async def admin_deliver_order(order_id: str):
+async def admin_deliver_order(order_id: str, admin: User = Depends(require_admin)):
     """
     Admin: Mark order as delivered.
     """
@@ -1204,6 +1211,7 @@ class AddDeliverableRequest(BaseModel):
 async def admin_add_deliverable(
     order_id: str,
     request: AddDeliverableRequest,
+    admin: User = Depends(require_admin),
 ):
     """
     Admin: Add deliverable file to order.

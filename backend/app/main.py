@@ -10,10 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .database import init_db_engine
+from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRedirectMiddleware
 from .routers import auth, projects, ai, accounts, me, kpi
 from .routers import products, orders, customer_accounts, employees
 from .routers import datasets, risk, payments, admin
-from .routers import shop
+from .routers import shop, contacts
 from .seed_data import (
     seed_demo_products,
     seed_demo_users,
@@ -71,6 +72,11 @@ def create_application() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # Security middleware (order matters: outermost first)
+    application.add_middleware(SecurityHeadersMiddleware)
+    application.add_middleware(RateLimitMiddleware)
+    application.add_middleware(HTTPSRedirectMiddleware)
+
     init_db_engine()
 
     try:
@@ -117,6 +123,7 @@ def create_application() -> FastAPI:
     application.include_router(payments.router)  # /payments
     application.include_router(admin.router)     # /admin
     application.include_router(shop.router)      # /shop (e-commerce)
+    application.include_router(contacts.router)  # /contacts
 
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:

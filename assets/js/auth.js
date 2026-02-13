@@ -89,6 +89,14 @@
       googleBtn.dataset.gvBound = '1';
     }
 
+    const microsoftBtn = document.getElementById('microsoft-btn');
+    if (microsoftBtn && !microsoftBtn.dataset.gvBound) {
+      microsoftBtn.addEventListener('click', () => {
+        window.location.href = `${apiBase()}/auth/microsoft/login`;
+      });
+      microsoftBtn.dataset.gvBound = '1';
+    }
+
     if (forgotLink && !forgotLink.dataset.gvBound) {
       forgotLink.addEventListener('click', async (e) => {
         e.preventDefault();
