@@ -13,7 +13,7 @@ services:
       - key: ENV
         value: prod
       - key: CORS_ORIGINS
-        value: https://genovesi-jm.github.io
+        value: https://genovesi-jm.github.io,https://geovision.digital,https://www.geovision.digital
       # Set these in Render dashboard as Secret values:
       # - SECRET_KEY
       # - FRONTEND_BASE (e.g. https://genovesi-jm.github.io/geovision)
