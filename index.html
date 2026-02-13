@@ -807,7 +807,9 @@
           <div class="map-tabs">
             <button class="map-tab active" data-sector="agri" data-i18n="index.mapTab.agri">Agriculture</button>
             <button class="map-tab" data-sector="mining" data-i18n="index.mapTab.mining">Mining</button>
+            <button class="map-tab" data-sector="construction" data-i18n="index.mapTab.construction">Construction</button>
             <button class="map-tab" data-sector="infra" data-i18n="index.mapTab.infra">Infrastructure</button>
+            <button class="map-tab" data-sector="livestock" data-i18n="index.mapTab.livestock">Livestock</button>
             <button class="map-tab" data-sector="demining" data-i18n="index.mapTab.demining">Demining</button>
           </div>
         </div>
@@ -836,20 +838,38 @@
           <span class="sector-link" data-i18n="index.exploreModule">Explore Module →</span>
         </a>
 
-        <a href="sectors.html#infrastructure" class="sector-card">
-          <div class="sector-icon">🏗️</div>
-          <h3 class="sector-name" data-i18n="index.sector.infra.name">Infrastructure</h3>
-          <p class="sector-desc" data-i18n="index.sector.infra.desc">
-            Construction progress, digital twins, earthworks analysis and site oversight.
+        <a href="sectors.html#agriculture" class="sector-card">
+          <div class="sector-icon">🌾</div>
+          <h3 class="sector-name" data-i18n="index.sector.agri2.name">Agriculture</h3>
+          <p class="sector-desc" data-i18n="index.sector.agri2.desc">
+            NDVI crop health, precision spraying, soil analysis and yield prediction.
           </p>
           <span class="sector-link" data-i18n="index.exploreModule">Explore Module →</span>
         </a>
 
-        <a href="sectors.html#agriculture" class="sector-card">
-          <div class="sector-icon">🌾</div>
-          <h3 class="sector-name" data-i18n="index.sector.agri.name">Agriculture & Livestock</h3>
-          <p class="sector-desc" data-i18n="index.sector.agri.desc">
-            NDVI crop health, precision spraying, livestock counting and land management.
+        <a href="sectors.html#livestock" class="sector-card">
+          <div class="sector-icon">🐄</div>
+          <h3 class="sector-name" data-i18n="index.sector.livestock.name">Livestock</h3>
+          <p class="sector-desc" data-i18n="index.sector.livestock.desc">
+            GPS herd tracking, grazing analysis, automated counting and loss prevention.
+          </p>
+          <span class="sector-link" data-i18n="index.exploreModule">Explore Module →</span>
+        </a>
+
+        <a href="sectors.html#construction" class="sector-card">
+          <div class="sector-icon">🏗️</div>
+          <h3 class="sector-name" data-i18n="index.sector.construction2.name">Construction</h3>
+          <p class="sector-desc" data-i18n="index.sector.construction2.desc">
+            Progress tracking, volumetric analysis, as-built documentation and site oversight.
+          </p>
+          <span class="sector-link" data-i18n="index.exploreModule">Explore Module →</span>
+        </a>
+
+        <a href="sectors.html#infrastructure" class="sector-card">
+          <div class="sector-icon">🛣️</div>
+          <h3 class="sector-name" data-i18n="index.sector.infra2.name">Infrastructure</h3>
+          <p class="sector-desc" data-i18n="index.sector.infra2.desc">
+            Roads, dams, transmission lines and corridor monitoring with condition assessment.
           </p>
           <span class="sector-link" data-i18n="index.exploreModule">Explore Module →</span>
         </a>
@@ -967,13 +987,88 @@
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // Map tabs interaction
-    document.querySelectorAll('.map-tab').forEach(tab => {
+    // Map tabs interaction + auto-rotation
+    const mapTabs = document.querySelectorAll('.map-tab');
+    const heroMap = document.getElementById('hero-map');
+    let autoRotateInterval;
+    let currentTabIndex = 0;
+
+    // Sector-specific visual configurations
+    const sectorVisuals = {
+      agri: {
+        gradient: 'radial-gradient(circle at 30% 40%, rgba(34, 197, 94, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 60%, rgba(14, 165, 233, 0.15) 0%, transparent 35%)',
+        overlay: '🌾 NDVI Analysis Active'
+      },
+      mining: {
+        gradient: 'radial-gradient(circle at 50% 30%, rgba(249, 115, 22, 0.25) 0%, transparent 40%), radial-gradient(circle at 30% 70%, rgba(239, 68, 68, 0.15) 0%, transparent 35%)',
+        overlay: '⛏️ 3D Terrain Scan'
+      },
+      construction: {
+        gradient: 'radial-gradient(circle at 40% 50%, rgba(168, 85, 247, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 30%, rgba(249, 115, 22, 0.15) 0%, transparent 35%)',
+        overlay: '🏗️ Progress Tracking'
+      },
+      infra: {
+        gradient: 'radial-gradient(circle at 60% 40%, rgba(14, 165, 233, 0.25) 0%, transparent 40%), radial-gradient(circle at 25% 65%, rgba(6, 182, 212, 0.15) 0%, transparent 35%)',
+        overlay: '🛣️ Corridor Monitoring'
+      },
+      livestock: {
+        gradient: 'radial-gradient(circle at 45% 55%, rgba(34, 197, 94, 0.2) 0%, transparent 40%), radial-gradient(circle at 65% 30%, rgba(249, 115, 22, 0.2) 0%, transparent 35%)',
+        overlay: '🐄 Herd Tracking Active'
+      },
+      demining: {
+        gradient: 'radial-gradient(circle at 35% 50%, rgba(239, 68, 68, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 35%, rgba(249, 115, 22, 0.15) 0%, transparent 35%)',
+        overlay: '💣 Anomaly Detection'
+      }
+    };
+
+    function activateTab(index) {
+      mapTabs.forEach(t => t.classList.remove('active'));
+      const tab = mapTabs[index];
+      tab.classList.add('active');
+      const sector = tab.dataset.sector;
+      const visual = sectorVisuals[sector];
+      if (heroMap && visual) {
+        heroMap.style.background = visual.gradient + ', linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(5, 9, 20, 0.95))';
+        heroMap.style.transition = 'background 1s ease';
+        // Update overlay indicator
+        let overlay = heroMap.querySelector('.map-overlay-label');
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.className = 'map-overlay-label';
+          overlay.style.cssText = 'position:absolute;bottom:16px;left:16px;font-size:0.75rem;color:rgba(241,245,249,0.7);letter-spacing:0.1em;font-weight:600;z-index:2;transition:opacity 0.5s;';
+          heroMap.appendChild(overlay);
+        }
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.textContent = visual.overlay;
+          overlay.style.opacity = '1';
+        }, 300);
+      }
+    }
+
+    mapTabs.forEach((tab, i) => {
       tab.addEventListener('click', () => {
-        document.querySelectorAll('.map-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
+        currentTabIndex = i;
+        activateTab(i);
+        resetAutoRotate();
       });
     });
+
+    function startAutoRotate() {
+      autoRotateInterval = setInterval(() => {
+        currentTabIndex = (currentTabIndex + 1) % mapTabs.length;
+        activateTab(currentTabIndex);
+      }, 4000);
+    }
+
+    function resetAutoRotate() {
+      clearInterval(autoRotateInterval);
+      startAutoRotate();
+    }
+
+    // Initialize
+    activateTab(0);
+    startAutoRotate();
 
     // Mobile menu toggle
     const navToggle = document.querySelector('.navbar-toggle');
