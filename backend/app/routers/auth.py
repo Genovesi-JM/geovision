@@ -36,13 +36,74 @@ DEFAULT_MODULES = ["kpi", "projects", "store", "alerts"]
 ALLOWED_SECTORS = {"agro", "mining", "demining", "construction", "infrastructure", "solar"}
 
 
+def _ensure_profile(db: Session, user: User, full_name: str | None = None, org_name: str | None = None) -> UserProfile:
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    if profile:
+        # Best-effort backfill missing fields
+        changed = False
+        if full_name and not getattr(profile, "full_name", None):
+            profile.full_name = full_name
+            changed = True
+        if org_name and not getattr(profile, "org_name", None):
+            profile.org_name = org_name
+            changed = True
+        if changed:
+            db.add(profile)
+            db.commit()
+            db.refresh(profile)
+        return profile
+
+    profile = UserProfile(
+        user_id=user.id,
+        full_name=full_name,
+        org_name=org_name,
+        entity_type="individual",
+    )
+    db.add(profile)
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+def _ensure_default_account(db: Session, user: User) -> Account:
+    membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+    if membership:
+        account = db.query(Account).filter(Account.id == membership.account_id).first()
+        if account:
+            return account
+
+    # Create a default account for first-time logins (incl. Google)
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    email = (user.email or "").strip().lower()
+    account_name = None
+    if profile:
+        account_name = (profile.org_name or profile.company or None)
+    if not account_name:
+        account_name = (email.split("@")[0] if "@" in email else (email or "geovision")) + " workspace"
+
+    account = Account(
+        name=account_name,
+        sector_focus="agro",
+        entity_type=(getattr(profile, "entity_type", None) or "individual") if profile else "individual",
+        org_name=(getattr(profile, "org_name", None) if profile else None),
+        modules_enabled=json.dumps(DEFAULT_MODULES),
+    )
+    db.add(account)
+    db.flush()
+
+    membership = AccountMember(account_id=account.id, user_id=user.id, role="owner")
+    db.add(membership)
+    db.commit()
+    db.refresh(account)
+    return account
+
+
 def resolve_role(user: User) -> str:
-    role = getattr(user, "role", None)
-    if role:
-        return role
-    if user.email.lower() in ADMIN_EMAILS:
+    email = (getattr(user, "email", "") or "").strip().lower()
+    if email in ADMIN_EMAILS:
         return "admin"
-    return "cliente"
+    role = getattr(user, "role", None)
+    return role or "cliente"
 
 
 def create_token(user: User, role: str) -> str:
@@ -62,7 +123,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
 
-    user = User(email=email, password_hash=hash_password(payload.password), role="cliente", is_active=True)
+    role = "admin" if email in ADMIN_EMAILS else "cliente"
+    user = User(email=email, password_hash=hash_password(payload.password), role=role, is_active=True)
     db.add(user)
     db.flush()
 
@@ -125,17 +187,28 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
             detail="Password incorreta. Usa 'Esqueceu a senha?' para redefinir."
         )
 
+    # Ensure DB role is consistent (admin emails should be admin in DB)
+    desired_role = "admin" if email in ADMIN_EMAILS else (user.role or "cliente")
+    if user.role != desired_role:
+        user.role = desired_role
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Ensure the user always has an account/membership.
+    # This prevents returning users (esp. Google users) from being forced
+    # through onboarding to create a new account.
+    _ensure_profile(db, user)
+    account = _ensure_default_account(db, user)
+
+    # Resolve token role consistently
+    role = resolve_role(user)
     token = create_access_token({
         "sub": user.email,
         "email": user.email,
-        "role": user.role,
+        "role": role,
         "uid": user.id,
     })
-
-    membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
-    account = None
-    if membership:
-        account = db.query(Account).filter(Account.id == membership.account_id).first()
 
     return AuthResponse(
         access_token=token,
@@ -263,11 +336,11 @@ def google_login(db: Session = Depends(get_db)):
     }
     url = "https://accounts.google.com/o/oauth2/v2/auth"
     req = requests.Request("GET", url, params=params).prepare()
-    return RedirectResponse(req.url)
+    return RedirectResponse(str(req.url))
 
 
 @router.get("/google/callback")
-def google_callback(code: str = None, state: str = None, db: Session = Depends(get_db)):
+def google_callback(code: str | None = None, state: str | None = None, db: Session = Depends(get_db)):
     """Handle Google OAuth2 callback and return an app JWT."""
     try:
         if not code:
@@ -370,7 +443,7 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
             insertion_error = None
             fallback_error = None
             try:
-                new_user = User(email=email, password_hash=hashed, role="cliente", is_active=True)
+                new_user = User(email=email, password_hash=hashed, role=("admin" if email.lower() in ADMIN_EMAILS else "cliente"), is_active=True)
                 db.add(new_user)
                 db.commit()
                 user_id = new_user.id
@@ -384,7 +457,7 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
                             text(
                                 "INSERT INTO users (email, password_hash, role, is_active, created_at, updated_at) VALUES (:email, :password_hash, :role, 1, :now, :now)"
                             ),
-                            {"email": email, "password_hash": hashed, "role": "cliente", "now": now_iso},
+                            {"email": email, "password_hash": hashed, "role": ("admin" if email.lower() in ADMIN_EMAILS else "cliente"), "now": now_iso},
                         )
                     insertion_error = None
                 except Exception as exc2:
@@ -406,23 +479,38 @@ def google_callback(code: str = None, state: str = None, db: Session = Depends(g
                     details.append(str(fallback_error))
                 raise HTTPException(status_code=500, detail=("Falha a criar/utilizar utilizador. " + " | ".join(details)))
             user_id = user_row[0]
-            role = "cliente"
+            role = "admin" if email.lower() in ADMIN_EMAILS else "cliente"
 
-    # token JWT com email como "sub" e id em "uid",
-    # para ser compatível com o fluxo de onboarding Google.
-        token = create_access_token({"sub": email, "role": role, "uid": user_id})
-        # Se o utilizador ainda não tiver conta associada, envia para onboarding
-        membership = db.query(AccountMember).filter(AccountMember.user_id == user_id).first()
-        redirect_path = "/admin.html" if role == "admin" else "/dashboard.html"
-        if not membership:
-            redirect_path = "/onboarding.html"
+        # Load ORM user and ensure profile/account are provisioned.
+        user = db.query(User).filter(User.email == email).first()
+        if not user and user_id:
+            user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=500, detail="Falha ao carregar utilizador após OAuth.")
+
+        # Keep DB role aligned for admin emails
+        desired_role = "admin" if email.lower() in ADMIN_EMAILS else (user.role or "cliente")
+        if user.role != desired_role:
+            user.role = desired_role
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
+        _ensure_profile(db, user, full_name=name)
+        account = _ensure_default_account(db, user)
+
+        # token JWT com email como "sub" e id em "uid"
+        token = create_access_token({"sub": email, "role": resolve_role(user), "uid": user.id})
+
+        redirect_path = "/admin.html" if resolve_role(user) == "admin" else "/dashboard.html"
 
         frontend_base = settings.frontend_base.rstrip("/")
         callback_url = f"{frontend_base}/auth-callback.html"
         params = urlencode({
             "token": token,
             "email": email,
-            "role": role,
+            "role": resolve_role(user),
+            "account_id": getattr(account, "id", ""),
             "redirect": redirect_path,
         })
         return RedirectResponse(f"{callback_url}?{params}")

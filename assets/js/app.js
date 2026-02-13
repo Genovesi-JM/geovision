@@ -3,9 +3,6 @@
 const DEFAULT_API_BASE = "http://127.0.0.1:8010";
 const API_BASE = (typeof window !== "undefined" && window.API_BASE) ? window.API_BASE : DEFAULT_API_BASE;
 if (typeof window !== "undefined") window.API_BASE = API_BASE;
-const DEMO_EMAIL = "teste@demo.com";
-const DEMO_PASSWORD = "123456";
-const DEMO_TOKEN = "demo-token";
 
 /* ---------- HELPERS JWT ---------- */
 
@@ -26,6 +23,8 @@ function gvClearToken() {
 async function gvApi(path, options = {}) {
   const url = `${API_BASE}${path}`;
   const token = gvGetToken();
+  let accountId = null;
+  try { accountId = localStorage.getItem('gv_account_id'); } catch (e) {}
 
   const headers = {
     "Content-Type": "application/json",
@@ -34,6 +33,11 @@ async function gvApi(path, options = {}) {
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Pass account context when available (backend uses this for scoping)
+  if (accountId && !headers["X-Account-ID"]) {
+    headers["X-Account-ID"] = accountId;
   }
 
   const resp = await fetch(url, {
@@ -97,77 +101,8 @@ function initCommonUI() {
   });
 }
 
-/* ---------- LOGIN / DEMO (SEM BACKEND) ---------- */
-
-function initLoginPage() {
-  const form = document.querySelector("#login-form");
-  if (!form) return;
-
-  const emailInput = document.getElementById("login-email");
-  const passwordInput = document.getElementById("login-password");
-  const errorEl = document.getElementById("login-error");
-  const successEl = document.getElementById("login-success");
-
-  function showError(msg) {
-    if (errorEl) {
-      errorEl.textContent = msg;
-      errorEl.style.display = "block";
-    }
-    if (successEl) {
-      successEl.textContent = "";
-      successEl.style.display = "none";
-    }
-  }
-
-  function showSuccess(msg) {
-    if (successEl) {
-      successEl.textContent = msg;
-      successEl.style.display = "block";
-    }
-    if (errorEl) {
-      errorEl.textContent = "";
-      errorEl.style.display = "none";
-    }
-  }
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-
-    const email = (emailInput.value || "").trim().toLowerCase();
-    const password = (passwordInput.value || "").trim();
-
-    if (!email || !password) {
-      showError("Preenche o email e a palavra-passe.");
-      return;
-    }
-
-    // DEMO – regras de redirecção
-    if (email === "teste@demo.com") {
-      // utilizador admin
-      localStorage.setItem("gv_role", "admin");
-      showSuccess("Login de admin bem sucedido. A redireccionar…");
-      setTimeout(() => {
-        window.location.href = "admin.html";
-      }, 700);
-      return;
-    }
-
-    if (email === "teste@cliente" || email === "teste@cliente.com") {
-      // utilizador cliente
-      localStorage.setItem("gv_role", "cliente");
-      showSuccess("Login de cliente bem sucedido. A redireccionar…");
-      setTimeout(() => {
-        window.location.href = "dashboard.html";
-      }, 700);
-      return;
-    }
-
-    // qualquer outro email: erro
-    showError(
-      "Credenciais demo inválidas. Usa teste@demo.com (admin) ou teste@cliente (cliente)."
-    );
-  });
-}
+/* ---------- LOGIN ---------- */
+// Login is handled by the dedicated page script (assets/js/auth.js).
 
 /* ---------- ADMIN / PROJECTOS ---------- */
 
@@ -282,7 +217,6 @@ function initSectorForms() {
 document.addEventListener("DOMContentLoaded", () => {
   initCommonUI?.();
   initToasts?.();
-  initLoginPage?.();
   initAdminPage?.();
   initSectorForms?.();
   initMapTabs();
@@ -300,6 +234,9 @@ function initLogoutButtons() {
       el.addEventListener('click', () => {
         try { gvClearToken(); } catch (e) {}
         try { localStorage.removeItem('gv_user'); } catch (e) {}
+        try { localStorage.removeItem('gv_account_id'); } catch (e) {}
+        try { localStorage.removeItem('gv_role'); } catch (e) {}
+        try { localStorage.removeItem('gv_email'); } catch (e) {}
         window.location.href = 'login.html';
       });
       try { el.dataset.gvLogoutAttached = '1'; } catch (e) {}

@@ -1,6 +1,15 @@
 // assets/js/admin.js
 
-const API_BASE = "http://localhost:8090";
+const API_BASE = (typeof window !== 'undefined' && window.API_BASE) ? window.API_BASE : 'http://127.0.0.1:8010';
+
+function adminAuthHeaders() {
+  const token = localStorage.getItem('gv_token');
+  const accountId = localStorage.getItem('gv_account_id');
+  const h = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
+  if (accountId) h['X-Account-ID'] = accountId;
+  return h;
+}
 
 let products = [];
 
@@ -18,11 +27,8 @@ function requireAdmin() {
 }
 
 async function fetchProducts() {
-  const token = localStorage.getItem("gv_token");
   const res = await fetch(`${API_BASE}/products/`, {
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
+    headers: adminAuthHeaders(),
   });
   if (!res.ok) {
     throw new Error("Falha ao carregar produtos");
@@ -100,13 +106,9 @@ async function saveProduct(e) {
   const method = id ? "PUT" : "POST";
   const url = id ? `${API_BASE}/products/${id}` : `${API_BASE}/products/`;
 
-  const token = localStorage.getItem("gv_token");
   const res = await fetch(url, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
+    headers: adminAuthHeaders(),
     body: JSON.stringify(payload),
   });
 
@@ -122,12 +124,9 @@ async function saveProduct(e) {
 async function deleteProduct(id) {
   if (!confirm("Tem a certeza que quer apagar este produto?")) return;
 
-  const token = localStorage.getItem("gv_token");
   const res = await fetch(`${API_BASE}/products/${id}`, {
     method: "DELETE",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
+    headers: adminAuthHeaders(),
   });
 
   if (!res.ok) {
@@ -164,6 +163,8 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem("gv_token");
     localStorage.removeItem("gv_role");
     localStorage.removeItem("gv_email");
+    localStorage.removeItem("gv_user");
+    localStorage.removeItem("gv_account_id");
     window.location.href = "index.html";
   });
 });

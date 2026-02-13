@@ -376,10 +376,12 @@
         <label for="create-sector" data-i18n="login.accountType">Account Type</label>
         <select id="create-sector" required>
           <option value="" data-i18n="login.selectSector">Select sector</option>
-          <option value="agro_pecuaria" data-i18n="loja.filter.agro">Agriculture</option>
+          <option value="agro" data-i18n="loja.filter.agro">Agriculture</option>
           <option value="mining" data-i18n="loja.filter.mining">Mining</option>
           <option value="demining" data-i18n="loja.filter.demining">Demining</option>
-          <option value="construction_infra" data-i18n="login.constructionInfra">Construction &amp; Infrastructure</option>
+          <option value="construction" data-i18n="login.construction">Construction</option>
+          <option value="infrastructure" data-i18n="login.infrastructure">Infrastructure</option>
+          <option value="solar" data-i18n="login.solar">Solar</option>
         </select>
       </div>
       <div class="actions">
@@ -392,7 +394,7 @@
     <div id="error-box" class="feedback error" role="alert" aria-live="assertive" aria-hidden="true" tabindex="-1"></div>
 
     <div class="hint" data-i18n="login.demo">
-      Quick demo: test@admin.com / 123456 → admin panel | test@client.com / 123456 → dashboard
+      Use as suas credenciais para aceder ao portal.
     </div>
 
     <div style="margin-top: 0.8rem; text-align:center;">
@@ -402,140 +404,7 @@
 
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script>
-    const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
-    const successBox = document.getElementById("success-box");
-    const errorBox = document.getElementById("error-box");
-
-    function show(box, msg) {
-      if (!box) return;
-      box.textContent = msg;
-      box.style.display = "block";
-      box.setAttribute("aria-hidden", "false");
-    }
-    function hide(box) {
-      if (!box) return;
-      box.style.display = "none";
-      box.textContent = "";
-      box.setAttribute("aria-hidden", "true");
-    }
-
-    // Login handler
-    document.getElementById("login-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      hide(errorBox); hide(successBox);
-      const email = (document.getElementById("login-email").value || "").trim().toLowerCase();
-      const password = (document.getElementById("login-password").value || "").trim();
-      if (!email || !password) { show(errorBox, "Enter email and password."); return; }
-      const btn = document.getElementById("login-submit"); btn.disabled = true;
-      try {
-        const res = await fetch(API_BASE + "/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        if (!res.ok) throw new Error((await res.text()) || "Invalid credentials.");
-        const data = await res.json().catch(() => ({}));
-        const token = data.access_token || data.token;
-        if (!token) throw new Error("Token not received from server.");
-        localStorage.setItem("gv_token", token);
-        localStorage.setItem("gv_user", JSON.stringify(data.user || { email }));
-        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Login successful", type: "success", ts: Date.now() }));
-        const isAdmin = (data.user && data.user.role === "admin") || email === "test@admin.com";
-        window.location.href = isAdmin ? "admin.html" : "dashboard.html";
-      } catch (err) {
-        console.error("login", err);
-        show(errorBox, err && err.message ? err.message : "Login error.");
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    // Toggle create form
-    (function(){
-      const toggle = document.getElementById("toggle-create");
-      const createForm = document.getElementById("create-form");
-      if (!toggle || !createForm) return;
-      toggle.addEventListener("click", () => {
-        const open = createForm.style.display !== "none";
-        if (open) {
-          createForm.style.display = "none";
-          createForm.setAttribute("aria-hidden","true");
-          toggle.setAttribute("aria-expanded","false");
-        } else {
-          createForm.style.display = "grid";
-          createForm.setAttribute("aria-hidden","false");
-          toggle.setAttribute("aria-expanded","true");
-        }
-      });
-      document.getElementById("create-cancel").addEventListener("click", () => {
-        createForm.style.display = "none";
-        createForm.setAttribute("aria-hidden","true");
-        toggle.setAttribute("aria-expanded","false");
-      });
-    })();
-
-    // Signup handler
-    document.getElementById("create-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      hide(errorBox); hide(successBox);
-      const email = (document.getElementById("create-email").value || "").trim().toLowerCase();
-      const pass = (document.getElementById("create-password").value || "").trim();
-      const conf = (document.getElementById("create-password-confirm").value || "").trim();
-      const sector = document.getElementById("create-sector").value;
-      if (!email || !pass || !sector) { show(errorBox, "Enter email, password and account type."); return; }
-      if (pass !== conf) { show(errorBox, "Passwords do not match."); return; }
-      const btn = document.getElementById("create-submit"); btn.disabled = true;
-      try {
-        const res = await fetch(API_BASE + "/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email, password: pass, sector: sector }),
-        });
-        if (!res.ok) throw new Error((await res.text()) || "Registration failed.");
-        const data = await res.json().catch(() => ({}));
-        const token = data.access_token || data.token;
-        if (token) localStorage.setItem("gv_token", token);
-        localStorage.setItem("gv_user", JSON.stringify({ email, sector: sector, role: data.role || "client" }));
-        localStorage.setItem("gv_toast", JSON.stringify({ msg: "Account created – redirecting", type: "success", ts: Date.now() }));
-        window.location.href = (data.role === "admin") ? "admin.html" : "dashboard.html";
-      } catch (err) {
-        console.error("signup", err);
-        show(errorBox, err && err.message ? err.message : "Error creating account.");
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    // Forgot password
-    document.getElementById("forgot-link").addEventListener("click", async (e) => {
-      e.preventDefault();
-      hide(successBox); hide(errorBox);
-      const email = (document.getElementById("login-email").value || "").trim().toLowerCase();
-      if (!email) { show(errorBox, "Enter your email to recover password."); return; }
-      try {
-        const res = await fetch(API_BASE + "/auth/forgot-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        if (res.ok) {
-          show(successBox, "If the account exists, we sent a reset link to your email.");
-        } else {
-          const txt = await res.text().catch(()=>null);
-          show(errorBox, "Unable to send email: " + (txt || res.statusText || res.status));
-        }
-      } catch (err) {
-        console.error("forgot", err);
-        show(errorBox, "Error contacting the server.");
-      }
-    });
-
-    // Google login placeholder
-    document.getElementById("google-btn").addEventListener("click", () => {
-      window.location.href = API_BASE + "/auth/google/login";
-    });
-  </script>
+  <script src="assets/js/auth.js?v=1"></script>
   <script src="assets/js/i18n.js?v=1"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
 </body>

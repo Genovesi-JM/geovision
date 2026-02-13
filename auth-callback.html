@@ -25,10 +25,11 @@
           token: p.get('token'),
           email: p.get('email'),
           role: p.get('role') || 'cliente',
+          accountId: p.get('account_id') || '',
           redirect: p.get('redirect') || '/dashboard.html',
         };
       }
-      const { token, email, role, redirect } = getParams();
+      const { token, email, role, accountId, redirect } = getParams();
       if (!token) {
         document.getElementById('msg').textContent = 'Token ausente. Volta ao login.';
         setTimeout(() => window.location.replace('login.html'), 1200);
@@ -37,6 +38,7 @@
       try {
         localStorage.setItem('gv_token', token);
         localStorage.setItem('gv_user', JSON.stringify({ email: email || '', role }));
+        if (accountId) localStorage.setItem('gv_account_id', accountId);
         localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Login com Google concluído', type: 'success', ts: Date.now() }));
       } catch (e) { /* ignore */ }
       // Handle redirect - if it starts with /, make it relative to current directory

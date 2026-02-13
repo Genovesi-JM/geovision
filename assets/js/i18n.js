@@ -306,7 +306,10 @@ const translations = {
   "login.choosePassword": { pt: "Escolha uma senha", en: "Choose a password", es: "Elija una contraseña" },
   "login.repeatPassword": { pt: "Repetir senha", en: "Repeat password", es: "Repetir contraseña" },
   "login.constructionInfra": { pt: "Construção e Infraestrutura", en: "Construction & Infrastructure", es: "Construcción e Infraestructura" },
-  "login.demo": { pt: "Demo rápido: teste@admin.com / 123456 → painel admin | teste@cliente.com / 123456 → dashboard", en: "Quick demo: test@admin.com / 123456 → admin panel | test@client.com / 123456 → dashboard", es: "Demo rápido: test@admin.com / 123456 → panel admin | test@client.com / 123456 → dashboard" },
+  "login.demo": { pt: "Use as suas credenciais para aceder ao portal.", en: "Use your credentials to access the portal.", es: "Use sus credenciales para acceder al portal." },
+  "login.construction": { pt: "Construção", en: "Construction", es: "Construcción" },
+  "login.infrastructure": { pt: "Infraestruturas", en: "Infrastructure", es: "Infraestructura" },
+  "login.solar": { pt: "Solar", en: "Solar", es: "Solar" },
   "login.back": { pt: "← Voltar ao site", en: "← Back to site", es: "← Volver al sitio" },
   "login.backToSite": { pt: "← Voltar ao site", en: "← Back to site", es: "← Volver al sitio" },
 

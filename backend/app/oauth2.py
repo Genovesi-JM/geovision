@@ -1,23 +1,8 @@
-"""Lightweight oauth2 helpers for demo purposes.
+"""OAuth2/JWT helper utilities for token creation and validation.
 
-This module provides a tiny dependency that checks for an Authorization
-header and returns a simple user dict. Replace with a real implementation
-using OAuth2PasswordBearer / JWT verification for production.
+Keep this module focused on JWT encode/decode.
+Request authentication dependencies live in `app.deps`.
 """
-from fastapi import HTTPException, Security
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from typing import Dict
-
-security = HTTPBearer()
-
-
-def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)) -> Dict:
-    token = credentials.credentials if credentials else None
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    # For development, accept any token and return a simple user object
-    return {"email": "dev@example.com", "token": token}
-"""OAuth2 helper utilities for token creation and validation."""
 
 from datetime import datetime, timedelta
 from typing import Any, Optional, Dict
@@ -43,3 +28,6 @@ def verify_access_token(token: str) -> Dict[str, Any]:
     except JWTError as exc:  # pragma: no cover
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
     return payload
+
+
+__all__ = ["create_access_token", "verify_access_token"]

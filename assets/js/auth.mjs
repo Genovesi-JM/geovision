@@ -52,6 +52,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = url;
   }
 
+  async function readErrorMessage(res) {
+    const text = await res.text().catch(() => '');
+    if (!text) return `Erro (${res.status})`;
+    try {
+      const data = JSON.parse(text);
+      return data.detail || data.message || text;
+    } catch {
+      return text;
+    }
+  }
+
   // Google login handler: ensure we hit the backend over HTTP instead of file://
   const googleLink = document.getElementById('google-login');
   if (googleLink && !googleLink.dataset.gvGoogle) {
@@ -92,37 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!res.ok) {
-        const DEMO_USERS = {
-          'teste@admin.com': { password: '123456', role: 'admin' },
-          'teste@clientes.com': { password: '123456', role: 'cliente' },
-        };
-        const demo = DEMO_USERS[email];
-        if (!demo || demo.password !== password) {
-          const txt = await res.text().catch(() => '');
-          throw new Error(txt || 'Credenciais incorretas ou servidor indisponível.');
-        }
-        localStorage.setItem('gv_token', 'demo-token');
-        localStorage.setItem('gv_user', JSON.stringify({ email, role: demo.role }));
-        // persist a toast and navigate immediately; the toast will display on the next page
-        setToastAndNavigate('Credenciais corretas! A abrir o painel…', 'success', demo.role === 'admin' ? 'admin.html' : 'dashboard.html');
-        return;
-      }
+      if (!res.ok) throw new Error(await readErrorMessage(res));
 
       const data = await res.json().catch(() => ({}));
       const token = data.access_token || data.token;
       if (!token) throw new Error('Token não recebido do servidor.');
 
-  localStorage.setItem('gv_token', token);
-  localStorage.setItem('gv_user', JSON.stringify(data.user || { email }));
-          try { if (data.account && data.account.id) localStorage.setItem('gv_account_id', data.account.id); } catch(e) {}
-  try { if (data.account && data.account.id) localStorage.setItem('gv_account_id', data.account.id); } catch(e) {}
-  try { localStorage.setItem('gv_email', email); } catch(e) {}
-  try { localStorage.setItem('gv_role', (data.user && data.user.role) || (email === 'teste@admin.com' ? 'admin' : 'cliente')); } catch(e) {}
+      localStorage.setItem('gv_token', token);
+      localStorage.setItem('gv_user', JSON.stringify(data.user || { email }));
+      try { if (data.account && data.account.id) localStorage.setItem('gv_account_id', data.account.id); } catch(e) {}
+      try { localStorage.setItem('gv_email', (data.user && data.user.email) || email); } catch(e) {}
+      try { if (data.user && data.user.role) localStorage.setItem('gv_role', data.user.role); } catch(e) {}
 
-  // persist a toast and navigate immediately; the toast will display on the next page
-  const isAdmin = email === 'teste@admin.com' || (data.user && data.user.role === 'admin');
-  setToastAndNavigate('Login bem-sucedido! A abrir o painel…', 'success', isAdmin ? 'admin.html' : 'dashboard.html');
+      const isAdmin = (data.user && data.user.role === 'admin');
+      setToastAndNavigate('Login bem-sucedido! A abrir o painel…', 'success', isAdmin ? 'admin.html' : 'dashboard.html');
     } catch (err) {
       console.error(err);
       show(errorBox, err.message || 'Erro no login.');
@@ -171,15 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
           });
-          if (!res.ok) {
-            // fallback: create demo account locally
-            localStorage.setItem('gv_token', 'demo-token');
-            localStorage.setItem('gv_user', JSON.stringify({ email, role: 'cliente' }));
-            try { localStorage.setItem('gv_email', email); } catch(e) {}
-            try { localStorage.setItem('gv_role', 'cliente'); } catch(e) {}
-            setToastAndNavigate('Conta criada (modo demo). A redirecionar…', 'success', 'dashboard.html');
-            return;
-          }
+          if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(()=>({}));
           const token = data.access_token || data.token || data.token_access;
           if (!token) {

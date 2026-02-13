@@ -204,6 +204,9 @@
         if (data.user) {
           localStorage.setItem("gv_user", JSON.stringify(data.user));
         }
+        try {
+          if (data.account && data.account.id) localStorage.setItem('gv_account_id', data.account.id);
+        } catch (_) {}
         localStorage.setItem("gv_toast", JSON.stringify({
           msg: "Conta configurada com sucesso.",
           type: "success",
