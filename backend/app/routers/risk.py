@@ -281,7 +281,7 @@ async def get_sector_thresholds(sector: SectorType):
 @router.post("/simulate")
 async def simulate_assessment(
     sector: SectorType = Query(...),
-    scenario: str = Query("normal", regex="^(normal|warning|critical)$"),
+    scenario: str = Query("normal", pattern="^(normal|warning|critical)$"),
 ):
     """
     Simulate a risk assessment with predefined scenarios.

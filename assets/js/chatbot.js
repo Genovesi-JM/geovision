@@ -115,6 +115,55 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  /* ─── Page Navigation Map (PT / EN / ES) ─── */
+  const NAV_PAGES = [
+    { url: "index.html",          keys: ["inicio","home","pagina principal","página principal","landing","homepage"] },
+    { url: "loja.html",           keys: ["loja","shop","store","tienda","comprar","compras","produtos","products","productos"] },
+    { url: "sectors.html",        keys: ["sectores","sectors","setores","sectores","demo board"] },
+    { url: "agriculture.html",    keys: ["agricultura","agriculture","agro","farming","cultivo"] },
+    { url: "livestock.html",      keys: ["pecuaria","pecuária","livestock","gado","cattle"] },
+    { url: "mining.html",         keys: ["mineracao","mineração","mining","minas","mineria"] },
+    { url: "construction.html",   keys: ["construcao","construção","construction","obras","building"] },
+    { url: "infrastructure.html", keys: ["infraestrutura","infraestruturas","infrastructure","infra"] },
+    { url: "demining.html",       keys: ["desminagem","demining","minas terrestres","landmines"] },
+    { url: "dashboard.html",      keys: ["dashboard","painel","panel","painel de controlo"] },
+    { url: "login.html",          keys: ["login","entrar","iniciar sessao","iniciar sessão","sign in","signin"] },
+    { url: "onboarding.html",     keys: ["registo","registro","register","cadastro","criar conta","sign up","signup","onboarding"] },
+    { url: "admin.html",          keys: ["admin","administracao","administração","backoffice","back office"] },
+    { url: "about.html",          keys: ["sobre","about","quem somos","about us","acerca"] },
+  ];
+
+  const NAV_INTENTS = [
+    "leva-me","leva me","levar","ir para","vai para","vai à","vai a","vai ao",
+    "abre","abrir","mostra","mostrar","show me","go to","take me","navigate",
+    "open","navegar","llévame","ir a","abrir","mudar para","switch to"
+  ];
+
+  /**
+   * If the user's message is a navigation request, redirect them and return true.
+   */
+  function tryNavigate(text) {
+    const lower = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const hasIntent = NAV_INTENTS.some(i => lower.includes(i.normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
+    if (!hasIntent) return false;
+
+    for (const pg of NAV_PAGES) {
+      for (const key of pg.keys) {
+        const normKey = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (lower.includes(normKey)) {
+          history.push({
+            role: "assistant",
+            content: `A redirecionar para ${pg.keys[0]}... 🚀`
+          });
+          renderMessages();
+          setTimeout(() => { window.location.href = pg.url; }, 800);
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   renderMessages();
 
   toggle.addEventListener("click", () => {
@@ -129,6 +178,9 @@ document.addEventListener("DOMContentLoaded", () => {
     history.push({ role: "user", content: text });
     inputEl.value = "";
     renderMessages();
+
+    /* Check for navigation intent first */
+    if (tryNavigate(text)) return;
 
     history.push({ role: "assistant", content: "A pensar..." });
     renderMessages();

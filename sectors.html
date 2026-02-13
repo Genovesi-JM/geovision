@@ -580,6 +580,16 @@
     @media (max-width: 768px) {
       .navbar-nav, .lang-toggle { display: none; }
       .navbar-toggle { display: flex; }
+      .navbar-nav.show {
+        display: flex; flex-direction: column; position: absolute;
+        top: 100%; right: 0; background: #0b1428;
+        border-radius: 12px; border: 1px solid rgba(95,212,255,0.3);
+        padding: 0.5rem 0; min-width: 200px; z-index: 9999;
+        box-shadow: 0 14px 36px rgba(0,0,0,0.8);
+      }
+      .navbar-nav.show a { display: block; padding: 0.9rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+      .navbar-nav.show a:last-child { border-bottom: none; }
+      .lang-toggle.show { display: flex; position: absolute; top: calc(100% + 8px); right: 16px; z-index: 9999; }
 
       .sector-header {
         flex-direction: column;

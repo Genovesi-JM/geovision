@@ -37,8 +37,8 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     addresses = relationship("UserAddress", back_populates="user", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user")
-    account_members = relationship("AccountMember", back_populates="user", cascade="all, delete-orphan")
-    accounts = relationship("Account", secondary="account_members", back_populates="users")
+    account_members = relationship("AccountMember", back_populates="user", cascade="all, delete-orphan", overlaps="accounts,users")
+    accounts = relationship("Account", secondary="account_members", back_populates="users", overlaps="account_members,members")
 
     @property
     def memberships(self):
@@ -94,8 +94,8 @@ class Account(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    members = relationship("AccountMember", back_populates="account", cascade="all, delete-orphan")
-    users = relationship("User", secondary="account_members", back_populates="accounts")
+    members = relationship("AccountMember", back_populates="account", cascade="all, delete-orphan", overlaps="accounts,users")
+    users = relationship("User", secondary="account_members", back_populates="accounts", overlaps="account_members,members")
 
 
 class AccountMember(Base):
@@ -106,8 +106,8 @@ class AccountMember(Base):
     role: Mapped[str] = mapped_column(String, nullable=False, default="member")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    account = relationship("Account", back_populates="members")
-    user = relationship("User", back_populates="account_members")
+    account = relationship("Account", back_populates="members", overlaps="accounts,users")
+    user = relationship("User", back_populates="account_members", overlaps="accounts,users")
 
 class Category(Base):
     __tablename__ = "categories"

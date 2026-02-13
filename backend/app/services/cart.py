@@ -9,7 +9,10 @@ Manages shopping cart operations:
 """
 import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 
@@ -619,8 +622,8 @@ def seed_demo_products():
     ]
     
     for p in products:
-        p["created_at"] = datetime.utcnow()
-        p["updated_at"] = datetime.utcnow()
+        p["created_at"] = _utcnow()
+        p["updated_at"] = _utcnow()
         _products_store[p["id"]] = p
     
     # Demo coupons
@@ -684,7 +687,7 @@ class CartService:
         
         # Create new cart
         cart_id = str(uuid.uuid4())
-        now = datetime.utcnow()
+        now = _utcnow()
         
         cart = {
             "id": cart_id,
@@ -954,7 +957,7 @@ class CartService:
             raise ValueError("Cart not found")
         
         cart["site_id"] = site_id
-        cart["updated_at"] = datetime.utcnow()
+        cart["updated_at"] = _utcnow()
         
         return self._cart_to_data(cart)
     
@@ -988,7 +991,7 @@ class CartService:
         cart["subtotal"] = subtotal
         cart["tax_amount"] = tax_amount
         cart["total"] = max(0, total)
-        cart["updated_at"] = datetime.utcnow()
+        cart["updated_at"] = _utcnow()
     
     def _cart_to_data(self, cart: dict) -> CartData:
         """Convert cart dict to CartData."""
@@ -1031,8 +1034,8 @@ class CartService:
             delivery_method=cart.get("delivery_method"),
             total=cart.get("total", 0),
             currency=cart.get("currency", "AOA"),
-            created_at=cart.get("created_at", datetime.utcnow()),
-            updated_at=cart.get("updated_at", datetime.utcnow()),
+            created_at=cart.get("created_at", _utcnow()),
+            updated_at=cart.get("updated_at", _utcnow()),
         )
     
     def list_products(self) -> List[dict]:

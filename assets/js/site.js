@@ -10,9 +10,21 @@
 
   function initMenuToggle() {
     const menuToggle = document.getElementById("menu-toggle");
-    const nav = document.getElementById("main-nav");
+    // Support both navbar patterns: #main-nav (.nav-links) and .navbar-nav
+    const nav = document.getElementById("main-nav") || document.querySelector(".navbar-nav");
+    const langToggle = document.querySelector(".lang-toggle");
     if (!menuToggle || !nav) return;
-    menuToggle.addEventListener("click", () => nav.classList.toggle("show"));
+    menuToggle.addEventListener("click", () => {
+      nav.classList.toggle("show");
+      if (langToggle) langToggle.classList.toggle("show");
+    });
+    // Close menu when clicking a nav link (mobile UX)
+    nav.querySelectorAll("a").forEach((a) => {
+      a.addEventListener("click", () => {
+        nav.classList.remove("show");
+        if (langToggle) langToggle.classList.remove("show");
+      });
+    });
   }
 
   function initSmoothAnchors() {

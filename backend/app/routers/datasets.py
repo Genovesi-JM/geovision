@@ -20,7 +20,7 @@ from enum import Enum
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_current_user
@@ -102,9 +102,7 @@ class DatasetOut(BaseModel):
     total_size_bytes: int = 0
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class DatasetCreate(BaseModel):
