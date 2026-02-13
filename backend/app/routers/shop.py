@@ -15,7 +15,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from pydantic import BaseModel, Field
 
-from app.services.cart import get_cart_service, seed_demo_products
+from app.services.cart import get_cart_service, seed_demo_products, get_sector_labels
 from app.services.orders import get_order_service, OrderStatus, PaymentMethod, EventType
 
 logger = logging.getLogger(__name__)
@@ -191,8 +191,10 @@ class ProductResponse(BaseModel):
     id: str
     name: str
     description: Optional[str]
+    short_description: Optional[str] = None
     product_type: str
     category: Optional[str]
+    execution_type: Optional[str] = None  # pontual / recorrente
     sectors: List[str]
     sku: Optional[str]
     price: int
@@ -200,7 +202,28 @@ class ProductResponse(BaseModel):
     unit_label: Optional[str]
     is_active: bool
     requires_site: bool
+    requires_scheduling: Optional[bool] = False
+    min_area_ha: Optional[int] = None
+    duration_hours: Optional[int] = None
+    deliverables: Optional[List[str]] = None
     image_url: Optional[str]
+    is_featured: Optional[bool] = False
+
+
+class SectorMismatchWarning(BaseModel):
+    warning: bool
+    sector_mismatch: bool
+    product_sector: str
+    product_sector_label: str
+    account_sector: str
+    account_sector_label: str
+    message: str
+    suggestion: str
+
+
+class SectorLabel(BaseModel):
+    key: str
+    label: str
 
 
 # ============ STATUS LABELS ============
@@ -255,8 +278,10 @@ async def list_products(
             id=p["id"],
             name=p["name"],
             description=p.get("description"),
+            short_description=p.get("short_description"),
             product_type=p.get("product_type", "service"),
             category=p.get("category"),
+            execution_type=p.get("execution_type"),
             sectors=p.get("sectors", []),
             sku=p.get("sku"),
             price=p["price"],
@@ -264,7 +289,12 @@ async def list_products(
             unit_label=p.get("unit_label"),
             is_active=p.get("is_active", True),
             requires_site=p.get("requires_site", False),
+            requires_scheduling=p.get("requires_scheduling", False),
+            min_area_ha=p.get("min_area_ha"),
+            duration_hours=p.get("duration_hours"),
+            deliverables=p.get("deliverables"),
             image_url=p.get("image_url"),
+            is_featured=p.get("is_featured", False),
         )
         for p in products
     ]
@@ -283,8 +313,10 @@ async def get_product(product_id: str):
         id=product["id"],
         name=product["name"],
         description=product.get("description"),
+        short_description=product.get("short_description"),
         product_type=product.get("product_type", "service"),
         category=product.get("category"),
+        execution_type=product.get("execution_type"),
         sectors=product.get("sectors", []),
         sku=product.get("sku"),
         price=product["price"],
@@ -292,8 +324,59 @@ async def get_product(product_id: str):
         unit_label=product.get("unit_label"),
         is_active=product.get("is_active", True),
         requires_site=product.get("requires_site", False),
+        requires_scheduling=product.get("requires_scheduling", False),
+        min_area_ha=product.get("min_area_ha"),
+        duration_hours=product.get("duration_hours"),
+        deliverables=product.get("deliverables"),
         image_url=product.get("image_url"),
+        is_featured=product.get("is_featured", False),
     )
+
+
+# ============ SECTOR ENDPOINTS ============
+
+@router.get("/sectors", response_model=List[SectorLabel])
+async def list_sectors():
+    """List available sectors with labels."""
+    sector_labels = get_sector_labels()
+    return [
+        SectorLabel(key=k, label=v)
+        for k, v in sector_labels.items()
+    ]
+
+
+@router.post("/check-sector-mismatch")
+async def check_sector_mismatch(
+    product_id: str = Body(..., embed=True),
+    account_sector: Optional[str] = Body(None, embed=True),
+):
+    """
+    Check if a product sector matches the account sector.
+    Returns warning info if mismatch - does NOT block purchase.
+    """
+    cart_service = get_cart_service()
+    warning = cart_service.check_sector_mismatch(product_id, account_sector)
+    
+    if warning:
+        return warning
+    
+    return {"warning": False, "sector_mismatch": False}
+
+
+@router.get("/cart/{cart_id}/with-warnings")
+async def get_cart_with_warnings(
+    cart_id: str,
+    account_sector: Optional[str] = Query(None, description="Account sector for mismatch checking"),
+):
+    """
+    Get cart with sector mismatch warnings for each item.
+    Warnings are informational only - purchase is not blocked.
+    """
+    cart_service = get_cart_service()
+    try:
+        return cart_service.get_cart_with_warnings(cart_id, account_sector)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 # ============ CART ENDPOINTS ============

@@ -14,6 +14,19 @@ const API_URL = window.API_BASE || "http://127.0.0.1:8010";
 let allProducts = [];
 let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
 let currentCart = null;
+let currentSectorFilter = "all";
+let currentTypeFilter = "all";
+let pendingAddProduct = null;
+
+// Sector labels for display
+const SECTOR_LABELS = {
+  "mining": "Mineração",
+  "infrastructure": "Construção e Infraestrutura",
+  "agro": "Agro & Pecuária",
+  "demining": "Desminagem Humanitária",
+  "solar": "Solar & Energia",
+  "livestock": "Pecuária",
+};
 
 // Guardar cartId no localStorage
 function generateCartId() {
@@ -164,6 +177,73 @@ function renderCart() {
 
 // ============ ADICIONAR AO CARRINHO ============
 
+async function handleAddToCart(productId) {
+  // Check for sector mismatch before adding
+  try {
+    const res = await fetch(`${API_URL}/shop/check-sector-mismatch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cart_id: cartId,
+        product_id: productId,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.warning) {
+        // Show warning modal but don't block
+        pendingAddProduct = productId;
+        showSectorWarning(data);
+        return;
+      }
+    }
+  } catch (err) {
+    // If check fails, proceed anyway (non-blocking)
+    console.warn("Sector mismatch check failed:", err);
+  }
+
+  // No mismatch or check failed - proceed with add
+  await addToCart(productId);
+}
+
+function showSectorWarning(data) {
+  const modal = document.getElementById("sector-warning-modal");
+  const msgEl = document.getElementById("sector-warning-message");
+  
+  if (!modal || !msgEl) return;
+  
+  const productSectorLabels = data.product_sectors.map(s => SECTOR_LABELS[s] || s).join(", ");
+  const userSectorLabel = SECTOR_LABELS[data.user_sector] || data.user_sector || "não definido";
+  
+  msgEl.innerHTML = `
+    <p><strong>Atenção:</strong> Este produto pertence ao(s) setor(es) <strong>${productSectorLabels}</strong>, 
+    mas a sua conta está registada no setor <strong>${userSectorLabel}</strong>.</p>
+    <p>Deseja continuar assim mesmo?</p>
+  `;
+  
+  modal.style.display = "flex";
+}
+
+function closeSectorWarning() {
+  const modal = document.getElementById("sector-warning-modal");
+  if (modal) modal.style.display = "none";
+  pendingAddProduct = null;
+}
+
+async function continueAddToCart() {
+  closeSectorWarning();
+  if (pendingAddProduct) {
+    await addToCart(pendingAddProduct);
+    pendingAddProduct = null;
+  }
+}
+
+function redirectToCreateAccount() {
+  closeSectorWarning();
+  window.location.href = "login.html?mode=register";
+}
+
 async function addToCart(productId) {
   try {
     const res = await fetch(`${API_URL}/shop/cart/${cartId}/items`, {
@@ -263,6 +343,7 @@ function mapCategoryLabel(category) {
     "monitoring": "Monitorização",
     "hardware": "Hardware & IoT",
     "supplies": "Insumos",
+    "flight": "Voo",
   };
   return mapping[category] || category || "Serviço";
 }
@@ -270,13 +351,17 @@ function mapCategoryLabel(category) {
 function mapFilterKey(product) {
   const type = product.product_type;
   if (type === "service") return "servico";
-  if (type === "subscription") return "servico";
+  if (type === "subscription") return "subscription";
   if (type === "physical" && product.category === "hardware") return "hardware";
-  if (type === "physical" && product.category === "supplies") return "insumo";
+  if (type === "physical" && product.category === "supplies") return "hardware";
   return "servico";
 }
 
-function renderProducts(filterKey = "all") {
+function getSectorBadgeClass(sector) {
+  return `sector-badge ${sector}`;
+}
+
+function renderProducts() {
   const grid = document.getElementById("loja-grid");
   const empty = document.getElementById("loja-empty");
 
@@ -285,8 +370,17 @@ function renderProducts(filterKey = "all") {
   grid.innerHTML = "";
 
   let filtered = allProducts;
-  if (filterKey !== "all") {
-    filtered = allProducts.filter((p) => mapFilterKey(p) === filterKey);
+  
+  // Apply sector filter
+  if (currentSectorFilter !== "all") {
+    filtered = filtered.filter((p) => 
+      (p.sectors || []).includes(currentSectorFilter)
+    );
+  }
+  
+  // Apply type filter
+  if (currentTypeFilter !== "all") {
+    filtered = filtered.filter((p) => mapFilterKey(p) === currentTypeFilter);
   }
 
   if (!filtered.length) {
@@ -295,30 +389,69 @@ function renderProducts(filterKey = "all") {
   }
   empty.style.display = "none";
 
+  // Sort: featured first, then by price
+  filtered.sort((a, b) => {
+    if (a.is_featured && !b.is_featured) return -1;
+    if (!a.is_featured && b.is_featured) return 1;
+    return 0;
+  });
+
   filtered.forEach((p) => {
     const card = document.createElement("article");
     card.className = "loja-card";
 
     const catLabel = mapCategoryLabel(p.category);
+    
+    // Sector badges
     const sectorBadges = (p.sectors || []).map(s => 
-      `<span class="sector-badge">${s}</span>`
-    ).join(" ");
+      `<span class="${getSectorBadgeClass(s)}">${SECTOR_LABELS[s] || s}</span>`
+    ).join("");
+
+    // Execution type badge
+    const execBadge = p.execution_type 
+      ? `<span class="execution-badge ${p.execution_type}">${p.execution_type === 'pontual' ? 'Pontual' : 'Recorrente'}</span>`
+      : '';
+
+    // Meta info
+    let metaHtml = '';
+    if (p.duration_hours) {
+      metaHtml += `<span>⏱️ ${p.duration_hours}h</span>`;
+    }
+    if (p.min_area_ha) {
+      metaHtml += `<span>📐 Min ${p.min_area_ha}ha</span>`;
+    }
+
+    // Deliverables preview
+    let deliverablesHtml = '';
+    if (p.deliverables && p.deliverables.length > 0) {
+      const preview = p.deliverables.slice(0, 3).join(", ");
+      const more = p.deliverables.length > 3 ? ` +${p.deliverables.length - 3}` : '';
+      deliverablesHtml = `<div class="deliverables-preview">📦 ${preview}${more}</div>`;
+    }
+
+    // Featured badge
+    const featuredBadge = p.is_featured 
+      ? '<span class="featured-badge">Destaque</span>' 
+      : '';
 
     card.innerHTML = `
+      ${featuredBadge}
       <div>
-        <div class="loja-card-tag">${catLabel}</div>
+        <div class="loja-card-tag">${catLabel} ${execBadge}</div>
         <h3 class="loja-card-title">${p.name}</h3>
         <p class="loja-card-desc">
-          ${p.description || "Serviço GeoVision integrado."}
+          ${p.short_description || p.description || "Serviço GeoVision integrado."}
         </p>
         <div class="loja-card-sectors">${sectorBadges}</div>
+        ${metaHtml ? `<div class="loja-card-meta">${metaHtml}</div>` : ''}
+        ${deliverablesHtml}
       </div>
       <div class="loja-card-footer">
         <div class="loja-price">
           ${formatAOA(p.price)}
           ${p.unit_label ? `<span>/${p.unit_label}</span>` : ""}
         </div>
-        <button class="btn-add" onclick="addToCart('${p.id}')">
+        <button class="btn-add" onclick="handleAddToCart('${p.id}')">
           Adicionar
         </button>
       </div>
@@ -328,13 +461,25 @@ function renderProducts(filterKey = "all") {
 }
 
 function setupFilters() {
-  const buttons = document.querySelectorAll(".loja-filter-btn");
-  buttons.forEach((btn) => {
+  // Sector filter buttons
+  const sectorButtons = document.querySelectorAll(".loja-sector-btn");
+  sectorButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
-      buttons.forEach((b) => b.classList.remove("active"));
+      sectorButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      const key = btn.getAttribute("data-filter");
-      renderProducts(key);
+      currentSectorFilter = btn.getAttribute("data-sector");
+      renderProducts();
+    });
+  });
+
+  // Type filter buttons (services, hardware, subscriptions)
+  const typeButtons = document.querySelectorAll(".loja-filter-btn");
+  typeButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      typeButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentTypeFilter = btn.getAttribute("data-filter");
+      renderProducts();
     });
   });
 }
@@ -647,6 +792,7 @@ function showToast(message) {
 // ============ EXPOR FUNÇÕES GLOBAIS ============
 
 window.addToCart = addToCart;
+window.handleAddToCart = handleAddToCart;
 window.removeFromCart = removeFromCart;
 window.clearCart = clearCart;
 window.applyCoupon = applyCoupon;
@@ -654,6 +800,9 @@ window.openCheckoutModal = openCheckoutModal;
 window.closeCheckoutModal = closeCheckoutModal;
 window.processCheckout = processCheckout;
 window.selectPayment = selectPayment;
+window.closeSectorWarning = closeSectorWarning;
+window.continueAddToCart = continueAddToCart;
+window.redirectToCreateAccount = redirectToCreateAccount;
 
 // ============ SELECT PAYMENT ============
 

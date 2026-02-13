@@ -89,105 +89,502 @@ _products_store: Dict[str, dict] = {}  # Product cache
 _coupons_store: Dict[str, dict] = {}
 
 
+# ============ SECTOR LABELS ============
+
+SECTOR_LABELS = {
+    "mining": "Mineração",
+    "infrastructure": "Construção e Infraestrutura",
+    "agro": "Agro & Pecuária",
+    "demining": "Desminagem Humanitária",
+    "solar": "Solar & Energia",
+    "livestock": "Pecuária",
+}
+
+
 # ============ SEED DEMO PRODUCTS ============
 
 def seed_demo_products():
-    """Seed demo products for the shop."""
+    """Seed comprehensive flight services for all sectors."""
     products = [
+        # ==========================================
+        # MINING SECTOR
+        # ==========================================
         {
-            "id": "prod_ndvi_basic",
-            "name": "Análise NDVI Básica",
-            "slug": "ndvi-basico",
-            "description": "Análise de saúde vegetal com índice NDVI para áreas até 50 hectares.",
-            "short_description": "NDVI até 50ha",
+            "id": "prod_mining_volumetric",
+            "name": "Voo Volumétrico de Mina",
+            "slug": "voo-volumetrico-mina",
+            "description": "Levantamento volumétrico de alta precisão para cálculo de stockpiles, cavas e movimentação de material. Entrega: Modelo 3D, Relatório de Volume, Ortomosaico.",
+            "short_description": "Cálculo de volumes de stockpiles",
             "product_type": "service",
-            "category": "analysis",
-            "price": 15000000,  # 150.000 AOA
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 95000000,  # 950.000 AOA
             "currency": "AOA",
             "tax_rate": 0.14,
-            "duration_hours": 24,
+            "duration_hours": 72,
             "requires_site": True,
-            "sectors": ["agro"],
-            "image_url": "/assets/img/products/ndvi.jpg",
+            "min_area_ha": 10,
+            "sectors": ["mining"],
+            "deliverables": ["Modelo 3D", "Relatório de Volume PDF", "Ortomosaico GeoTIFF", "Nuvem de Pontos LAS"],
+            "image_url": "/assets/img/products/mining-volumetric.jpg",
             "is_active": True,
             "is_featured": True,
         },
         {
-            "id": "prod_ndvi_premium",
-            "name": "Análise NDVI Premium",
-            "slug": "ndvi-premium",
-            "description": "Análise completa de saúde vegetal com relatório detalhado e recomendações.",
-            "short_description": "NDVI completo + relatório",
+            "id": "prod_mining_topo_3d",
+            "name": "Topografia 3D de Mina",
+            "slug": "topografia-3d-mina",
+            "description": "Mapeamento topográfico completo com LiDAR ou fotogrametria. Ideal para planeamento de escavação e conformidade regulatória.",
+            "short_description": "Topografia LiDAR/Fotogrametria",
             "product_type": "service",
-            "category": "analysis",
-            "price": 35000000,  # 350.000 AOA
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 125000000,  # 1.250.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 96,
+            "requires_site": True,
+            "min_area_ha": 20,
+            "sectors": ["mining"],
+            "deliverables": ["DTM/DEM", "Curvas de Nível", "Ortomosaico", "Relatório Técnico"],
+            "image_url": "/assets/img/products/mining-topo.jpg",
+            "is_active": True,
+            "is_featured": True,
+        },
+        {
+            "id": "prod_mining_slope_monitoring",
+            "name": "Monitorização de Taludes",
+            "slug": "monitorizacao-taludes",
+            "description": "Análise de estabilidade de taludes com detecção de movimentação e riscos geotécnicos. Serviço recorrente recomendado.",
+            "short_description": "Estabilidade e risco geotécnico",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 65000000,  # 650.000 AOA por voo
             "currency": "AOA",
             "tax_rate": 0.14,
             "duration_hours": 48,
             "requires_site": True,
-            "sectors": ["agro"],
-            "image_url": "/assets/img/products/ndvi-premium.jpg",
+            "sectors": ["mining"],
+            "deliverables": ["Mapa de Risco", "Análise de Deformação", "Relatório de Estabilidade"],
+            "image_url": "/assets/img/products/mining-slope.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_mining_environmental",
+            "name": "Monitorização Ambiental Mineira",
+            "slug": "monitorizacao-ambiental-mina",
+            "description": "Monitorização de impacto ambiental: barragens de rejeitos, revegetação, qualidade de água.",
+            "short_description": "Compliance ambiental",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 85000000,  # 850.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 72,
+            "requires_site": True,
+            "sectors": ["mining"],
+            "deliverables": ["Ortomosaico Multiespectral", "Relatório Ambiental", "Mapa de Vegetação"],
+            "image_url": "/assets/img/products/mining-environmental.jpg",
+            "is_active": True,
+        },
+        
+        # ==========================================
+        # INFRASTRUCTURE / CONSTRUCTION SECTOR
+        # ==========================================
+        {
+            "id": "prod_infra_progress",
+            "name": "Monitorização de Progresso de Obra",
+            "slug": "monitorizacao-progresso-obra",
+            "description": "Acompanhamento visual e volumétrico do progresso de construção. Ideal para relatórios a stakeholders e conformidade.",
+            "short_description": "Tracking de progresso de obra",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 55000000,  # 550.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 48,
+            "requires_site": True,
+            "sectors": ["infrastructure", "construction"],
+            "deliverables": ["Ortomosaico", "Modelo 3D", "Relatório de Progresso", "Vídeo Timelapse"],
+            "image_url": "/assets/img/products/infra-progress.jpg",
             "is_active": True,
             "is_featured": True,
         },
         {
-            "id": "prod_mapping_3d",
-            "name": "Mapeamento 3D",
-            "slug": "mapeamento-3d",
-            "description": "Modelo 3D de alta resolução com ortomosaico e nuvem de pontos.",
-            "short_description": "Modelo 3D + Ortomosaico",
+            "id": "prod_infra_earthworks",
+            "name": "Análise de Earthworks",
+            "slug": "analise-earthworks",
+            "description": "Cálculo preciso de movimentação de terra: corte, aterro, compactação. Comparação com projecto original.",
+            "short_description": "Corte & Aterro volumétrico",
             "product_type": "service",
-            "category": "mapping",
+            "category": "flight",
+            "execution_type": "pontual",
             "price": 75000000,  # 750.000 AOA
             "currency": "AOA",
             "tax_rate": 0.14,
             "duration_hours": 72,
             "requires_site": True,
-            "sectors": ["construction", "mining", "infrastructure"],
-            "image_url": "/assets/img/products/mapping-3d.jpg",
+            "sectors": ["infrastructure", "construction"],
+            "deliverables": ["Relatório Cut/Fill", "Modelo 3D", "Comparação Design vs As-Built"],
+            "image_url": "/assets/img/products/infra-earthworks.jpg",
             "is_active": True,
             "is_featured": True,
         },
         {
-            "id": "prod_spraying",
+            "id": "prod_infra_digital_twin",
+            "name": "Digital Twin de Infraestrutura",
+            "slug": "digital-twin-infraestrutura",
+            "description": "Modelo digital completo da infraestrutura para gestão de activos, planeamento e manutenção.",
+            "short_description": "Gémeo digital completo",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 185000000,  # 1.850.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 168,
+            "requires_site": True,
+            "sectors": ["infrastructure", "construction"],
+            "deliverables": ["Modelo BIM", "Visualização 3D Web", "Plataforma de Gestão"],
+            "image_url": "/assets/img/products/infra-digital-twin.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_infra_inspection",
+            "name": "Inspeção de Estruturas",
+            "slug": "inspecao-estruturas",
+            "description": "Inspeção visual detalhada de pontes, viadutos, torres e edifícios. Detecção de fissuras e degradação.",
+            "short_description": "Inspeção de pontes e estruturas",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 45000000,  # 450.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 24,
+            "requires_site": True,
+            "sectors": ["infrastructure"],
+            "deliverables": ["Relatório de Inspeção", "Fotos HD Anotadas", "Vídeo 4K"],
+            "image_url": "/assets/img/products/infra-inspection.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_infra_corridor",
+            "name": "Mapeamento de Corredores",
+            "slug": "mapeamento-corredores",
+            "description": "Mapeamento linear de estradas, pipelines, linhas de transmissão. Até 100km por missão.",
+            "short_description": "Estradas, pipelines, linhas TX",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 120000000,  # 1.200.000 AOA por 50km
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 96,
+            "requires_site": True,
+            "sectors": ["infrastructure"],
+            "deliverables": ["Ortomosaico Linear", "Perfil de Elevação", "Relatório de Condição"],
+            "image_url": "/assets/img/products/infra-corridor.jpg",
+            "is_active": True,
+        },
+        
+        # ==========================================
+        # AGRICULTURE & LIVESTOCK SECTOR
+        # ==========================================
+        {
+            "id": "prod_agro_ndvi",
+            "name": "Análise NDVI Agrícola",
+            "slug": "analise-ndvi-agricola",
+            "description": "Mapeamento de saúde vegetal com índice NDVI. Detecção de stress hídrico, pragas e deficiências nutricionais.",
+            "short_description": "NDVI saúde vegetal",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 25000000,  # 250.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 48,
+            "requires_site": True,
+            "min_area_ha": 20,
+            "sectors": ["agro"],
+            "deliverables": ["Mapa NDVI", "Relatório de Saúde", "Zonas de Gestão", "Recomendações"],
+            "image_url": "/assets/img/products/agro-ndvi.jpg",
+            "is_active": True,
+            "is_featured": True,
+        },
+        {
+            "id": "prod_agro_spraying",
             "name": "Pulverização por Drone",
             "slug": "pulverizacao-drone",
-            "description": "Serviço de pulverização agrícola com drone DJI Agras. Inclui produto fitossanitário.",
+            "description": "Aplicação precisa de fitossanitários, fertilizantes ou sementes com drones DJI Agras. Até 100ha/dia.",
             "short_description": "Pulverização até 100ha/dia",
             "product_type": "service",
-            "category": "spraying",
+            "category": "flight",
+            "execution_type": "pontual",
             "price": 5000000,  # 50.000 AOA por hectare
             "currency": "AOA",
             "tax_rate": 0.14,
             "duration_hours": 8,
             "requires_site": True,
             "requires_scheduling": True,
+            "min_area_ha": 5,
             "sectors": ["agro"],
-            "image_url": "/assets/img/products/spraying.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_monitoring_monthly",
-            "name": "Monitorização Mensal",
-            "slug": "monitorizacao-mensal",
-            "description": "Subscrição mensal com 2 voos, relatórios NDVI e alertas automáticos.",
-            "short_description": "2 voos/mês + alertas",
-            "product_type": "subscription",
-            "category": "monitoring",
-            "price": 25000000,  # 250.000 AOA/mês
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "requires_site": True,
-            "sectors": ["agro", "mining"],
-            "image_url": "/assets/img/products/monitoring.jpg",
+            "deliverables": ["Relatório de Aplicação", "Mapa de Cobertura", "Certificado"],
+            "image_url": "/assets/img/products/agro-spraying.jpg",
             "is_active": True,
             "is_featured": True,
         },
         {
+            "id": "prod_agro_livestock_count",
+            "name": "Contagem de Rebanho",
+            "slug": "contagem-rebanho",
+            "description": "Contagem automática de gado com IA. Ideal para fazendas de grande escala e gestão de inventário.",
+            "short_description": "Contagem automática de gado",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 35000000,  # 350.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 24,
+            "requires_site": True,
+            "sectors": ["agro", "livestock"],
+            "deliverables": ["Relatório de Contagem", "Mapa de Distribuição", "Vídeo HD"],
+            "image_url": "/assets/img/products/agro-livestock.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_agro_irrigation",
+            "name": "Análise de Irrigação",
+            "slug": "analise-irrigacao",
+            "description": "Mapeamento térmico para detecção de falhas de irrigação, fugas e optimização de recursos hídricos.",
+            "short_description": "Thermal irrigation analysis",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 45000000,  # 450.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 48,
+            "requires_site": True,
+            "sectors": ["agro"],
+            "deliverables": ["Mapa Térmico", "Relatório de Irrigação", "Recomendações"],
+            "image_url": "/assets/img/products/agro-irrigation.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_agro_crop_mapping",
+            "name": "Mapeamento de Culturas",
+            "slug": "mapeamento-culturas",
+            "description": "Classificação e mapeamento de diferentes culturas. Estimativa de produtividade e planeamento de colheita.",
+            "short_description": "Classificação de culturas",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 55000000,  # 550.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 72,
+            "requires_site": True,
+            "min_area_ha": 50,
+            "sectors": ["agro"],
+            "deliverables": ["Mapa de Culturas", "Estimativa de Produção", "Ortomosaico"],
+            "image_url": "/assets/img/products/agro-crop-mapping.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_agro_monitoring_sub",
+            "name": "Monitorização Agrícola Mensal",
+            "slug": "monitorizacao-agricola-mensal",
+            "description": "Assinatura mensal com 2 voos NDVI, alertas automáticos e relatórios de evolução.",
+            "short_description": "2 voos/mês + alertas",
+            "product_type": "subscription",
+            "category": "monitoring",
+            "execution_type": "recorrente",
+            "price": 45000000,  # 450.000 AOA/mês
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "requires_site": True,
+            "sectors": ["agro"],
+            "deliverables": ["Voos Mensais", "Relatórios", "Alertas", "Dashboard"],
+            "image_url": "/assets/img/products/agro-monitoring.jpg",
+            "is_active": True,
+            "is_featured": True,
+        },
+        
+        # ==========================================
+        # DEMINING SECTOR
+        # ==========================================
+        {
+            "id": "prod_demining_thermal",
+            "name": "Mapeamento Térmico para Desminagem",
+            "slug": "mapeamento-termico-desminagem",
+            "description": "Detecção de anomalias térmicas no solo que podem indicar presença de objectos enterrados. Suporte a operações de limpeza.",
+            "short_description": "Detecção térmica de anomalias",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 85000000,  # 850.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 72,
+            "requires_site": True,
+            "sectors": ["demining"],
+            "deliverables": ["Mapa Térmico", "Mapa de Anomalias", "Relatório de Risco", "Coordenadas GPS"],
+            "image_url": "/assets/img/products/demining-thermal.jpg",
+            "is_active": True,
+            "is_featured": True,
+        },
+        {
+            "id": "prod_demining_multispectral",
+            "name": "Análise Multiespectral de Solo",
+            "slug": "analise-multiespectral-desminagem",
+            "description": "Detecção de alterações no solo usando sensores multiespectrais. Identificação de áreas de risco para equipas de desminagem.",
+            "short_description": "Multiespectral solo alterado",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 95000000,  # 950.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 96,
+            "requires_site": True,
+            "sectors": ["demining"],
+            "deliverables": ["Análise Espectral", "Mapa de Risco", "Relatório Técnico"],
+            "image_url": "/assets/img/products/demining-multispectral.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_demining_baseline",
+            "name": "Mapeamento Baseline de Área Contaminada",
+            "slug": "mapeamento-baseline-desminagem",
+            "description": "Ortomosaico e modelo 3D de alta resolução para planeamento de operações de desminagem e documentação.",
+            "short_description": "Baseline ortomosaico 3D",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 65000000,  # 650.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 48,
+            "requires_site": True,
+            "sectors": ["demining"],
+            "deliverables": ["Ortomosaico HD", "Modelo 3D", "Mapa de Planeamento"],
+            "image_url": "/assets/img/products/demining-baseline.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_demining_progress",
+            "name": "Monitorização de Progresso de Limpeza",
+            "slug": "monitorizacao-progresso-desminagem",
+            "description": "Acompanhamento visual do progresso de desminagem para relatórios a doadores e stakeholders.",
+            "short_description": "Tracking de limpeza",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 45000000,  # 450.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 24,
+            "requires_site": True,
+            "sectors": ["demining"],
+            "deliverables": ["Ortomosaico", "Relatório de Progresso", "Comparativo Temporal"],
+            "image_url": "/assets/img/products/demining-progress.jpg",
+            "is_active": True,
+        },
+        
+        # ==========================================
+        # SOLAR & ENERGY SECTOR
+        # ==========================================
+        {
+            "id": "prod_solar_thermal_inspection",
+            "name": "Inspeção Térmica de Painéis Solares",
+            "slug": "inspecao-termica-solar",
+            "description": "Detecção de hotspots, células defeituosas e anomalias em parques solares usando câmaras térmicas de alta resolução.",
+            "short_description": "Thermal inspection painéis",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 55000000,  # 550.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 48,
+            "requires_site": True,
+            "sectors": ["solar"],
+            "deliverables": ["Mapa Térmico", "Relatório de Defeitos", "Lista de Painéis Afectados", "Recomendações"],
+            "image_url": "/assets/img/products/solar-thermal.jpg",
+            "is_active": True,
+            "is_featured": True,
+        },
+        {
+            "id": "prod_solar_monitoring",
+            "name": "Monitorização de Parque Solar",
+            "slug": "monitorizacao-parque-solar",
+            "description": "Monitorização regular de parques fotovoltaicos com análise de performance e detecção precoce de problemas.",
+            "short_description": "Monitoring recorrente solar",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "recorrente",
+            "price": 75000000,  # 750.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 72,
+            "requires_site": True,
+            "sectors": ["solar"],
+            "deliverables": ["Relatório de Performance", "Análise de Degradação", "Mapa de Sujidade"],
+            "image_url": "/assets/img/products/solar-monitoring.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_solar_site_assessment",
+            "name": "Avaliação de Terreno para Solar",
+            "slug": "avaliacao-terreno-solar",
+            "description": "Análise topográfica e de sombreamento para planeamento de novos parques solares.",
+            "short_description": "Site assessment solar",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 95000000,  # 950.000 AOA
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 96,
+            "requires_site": True,
+            "sectors": ["solar"],
+            "deliverables": ["Modelo 3D", "Análise de Sombreamento", "Estudo de Viabilidade"],
+            "image_url": "/assets/img/products/solar-site.jpg",
+            "is_active": True,
+        },
+        {
+            "id": "prod_energy_transmission",
+            "name": "Inspeção de Linhas de Transmissão",
+            "slug": "inspecao-linhas-transmissao",
+            "description": "Inspeção visual e térmica de linhas de transmissão elétrica. Detecção de danos, vegetação invasora e pontos quentes.",
+            "short_description": "Inspeção linhas TX elétrica",
+            "product_type": "service",
+            "category": "flight",
+            "execution_type": "pontual",
+            "price": 125000000,  # 1.250.000 AOA por 50km
+            "currency": "AOA",
+            "tax_rate": 0.14,
+            "duration_hours": 72,
+            "requires_site": True,
+            "sectors": ["solar", "infrastructure"],
+            "deliverables": ["Relatório de Inspeção", "Mapa de Defeitos", "Vídeo HD", "Fotos Anotadas"],
+            "image_url": "/assets/img/products/energy-transmission.jpg",
+            "is_active": True,
+        },
+        
+        # ==========================================
+        # HARDWARE & SUPPLIES (Multi-sector)
+        # ==========================================
+        {
             "id": "prod_sensor_soil",
             "name": "Sensor de Solo IoT",
             "slug": "sensor-solo-iot",
-            "description": "Sensor de humidade, temperatura e pH do solo com conectividade LoRa.",
+            "description": "Sensor de humidade, temperatura e pH do solo com conectividade LoRa. Inclui 1 ano de dados na plataforma.",
             "short_description": "Sensor solo + 1 ano dados",
             "product_type": "physical",
             "category": "hardware",
@@ -197,41 +594,26 @@ def seed_demo_products():
             "track_inventory": True,
             "stock_quantity": 50,
             "sectors": ["agro"],
+            "deliverables": ["Sensor", "Manual", "Acesso Plataforma 1 Ano"],
             "image_url": "/assets/img/products/sensor-soil.jpg",
             "is_active": True,
         },
         {
-            "id": "prod_seeds_maize",
-            "name": "Sementes de Milho Certificadas",
-            "slug": "sementes-milho",
-            "description": "Sementes de milho híbrido de alta produtividade. Saco de 25kg.",
-            "short_description": "Saco 25kg",
+            "id": "prod_weather_station",
+            "name": "Estação Meteorológica IoT",
+            "slug": "estacao-meteo-iot",
+            "description": "Estação meteorológica completa com sensores de temperatura, humidade, vento, precipitação e radiação solar.",
+            "short_description": "Estação meteo completa",
             "product_type": "physical",
-            "category": "supplies",
-            "price": 4500000,  # 45.000 AOA
+            "category": "hardware",
+            "price": 85000000,  # 850.000 AOA
             "currency": "AOA",
             "tax_rate": 0.14,
             "track_inventory": True,
-            "stock_quantity": 200,
-            "sectors": ["agro"],
-            "image_url": "/assets/img/products/seeds.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_feed_cattle",
-            "name": "Ração Bovino Premium",
-            "slug": "racao-bovino",
-            "description": "Ração balanceada para gado bovino. Saco de 50kg.",
-            "short_description": "Saco 50kg",
-            "product_type": "physical",
-            "category": "supplies",
-            "price": 7500000,  # 75.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "track_inventory": True,
-            "stock_quantity": 150,
-            "sectors": ["livestock"],
-            "image_url": "/assets/img/products/feed.jpg",
+            "stock_quantity": 20,
+            "sectors": ["agro", "solar", "mining"],
+            "deliverables": ["Estação", "Instalação", "1 Ano Plataforma"],
+            "image_url": "/assets/img/products/weather-station.jpg",
             "is_active": True,
         },
     ]
@@ -660,6 +1042,102 @@ class CartService:
     def get_product(self, product_id: str) -> Optional[dict]:
         """Get product by ID."""
         return _products_store.get(product_id)
+    
+    def check_sector_mismatch(
+        self,
+        product_id: str,
+        account_sector: Optional[str],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Check if product sector matches account sector.
+        Returns warning info if mismatch, None if OK.
+        Non-blocking: allows purchase but warns user.
+        """
+        if not account_sector:
+            return None
+        
+        product = _products_store.get(product_id)
+        if not product:
+            return None
+        
+        product_sectors = product.get("sectors", [])
+        if not product_sectors:
+            return None
+        
+        # Check if account sector is in product's allowed sectors
+        if account_sector in product_sectors:
+            return None
+        
+        # Mismatch detected - return warning (non-blocking)
+        product_sector_label = SECTOR_LABELS.get(product_sectors[0], product_sectors[0])
+        account_sector_label = SECTOR_LABELS.get(account_sector, account_sector)
+        
+        return {
+            "warning": True,
+            "sector_mismatch": True,
+            "product_sector": product_sectors[0],
+            "product_sector_label": product_sector_label,
+            "account_sector": account_sector,
+            "account_sector_label": account_sector_label,
+            "message": f"Este serviço é destinado ao sector {product_sector_label}. A sua conta está configurada para {account_sector_label}.",
+            "suggestion": f"Pode continuar com a compra ou criar uma nova conta {product_sector_label}."
+        }
+    
+    def get_cart_with_warnings(
+        self,
+        cart_id: str,
+        account_sector: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get cart data with sector mismatch warnings for each item.
+        """
+        cart = self._find_cart(cart_id)
+        if not cart:
+            raise ValueError("Cart not found")
+        
+        cart_data = self._cart_to_data(cart)
+        
+        items_with_warnings = []
+        has_warnings = False
+        
+        for item in cart_data.items:
+            warning = self.check_sector_mismatch(item.product_id, account_sector)
+            item_dict = {
+                "id": item.id,
+                "product_id": item.product_id,
+                "product_name": item.product_name,
+                "product_type": item.product_type,
+                "quantity": item.quantity,
+                "unit_price": item.unit_price,
+                "total_price": item.total_price,
+                "tax_amount": item.tax_amount,
+                "product_image": item.product_image,
+                "warning": warning,
+            }
+            if warning:
+                has_warnings = True
+            items_with_warnings.append(item_dict)
+        
+        return {
+            "cart": {
+                "id": cart_data.id,
+                "user_id": cart_data.user_id,
+                "item_count": cart_data.item_count,
+                "subtotal": cart_data.subtotal,
+                "discount_amount": cart_data.discount_amount,
+                "tax_amount": cart_data.tax_amount,
+                "delivery_cost": cart_data.delivery_cost,
+                "total": cart_data.total,
+                "currency": cart_data.currency,
+            },
+            "items": items_with_warnings,
+            "has_sector_warnings": has_warnings,
+        }
+
+
+def get_sector_labels() -> Dict[str, str]:
+    """Get sector labels for display."""
+    return SECTOR_LABELS.copy()
 
 
 # Singleton
