@@ -336,8 +336,8 @@ class Order(Base):
     completed_at = Column(DateTime)
     cancelled_at = Column(DateTime)
     
-    # Metadata
-    metadata = Column(JSON, default=dict)
+    # Extra data
+    extra_data = Column(JSON, default=dict)
     
     # Relationships
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -406,7 +406,7 @@ class OrderEvent(Base):
     actor_name = Column(String(200))  # "Sistema", "João Silva", etc.
     
     # Data
-    metadata = Column(JSON, default=dict)
+    extra_data = Column(JSON, default=dict)
     
     # Visibility
     is_customer_visible = Column(Boolean, default=True)
