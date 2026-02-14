@@ -27,6 +27,6 @@ services:
       # Set these in Render dashboard as Secret values:
       # - SECRET_KEY
       # - FRONTEND_BASE (e.g. https://genovesi-jm.github.io/geovision)
-      # - BACKEND_BASE (e.g. https://geovision-backend.onrender.com)
+      # - BACKEND_BASE (e.g. https://geovision-backend-db2f.onrender.com)
       # - GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (optional)
       # - OPENAI_API_KEY (optional)

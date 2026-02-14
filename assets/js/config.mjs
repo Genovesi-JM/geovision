@@ -1,7 +1,7 @@
 // assets/js/config.mjs
 const LOCAL_DEFAULT = "http://127.0.0.1:8010";
-// Production backend URL
-const PROD_DEFAULT = "https://api.geovisionops.com";
+// Production backend URL (use direct Render URL until api.geovisionops.com SSL is ready)
+const PROD_DEFAULT = "https://geovision-backend-db2f.onrender.com";
 
 const isProduction =
 	typeof window !== "undefined" &&
