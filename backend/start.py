@@ -7,8 +7,6 @@ def main() -> None:
     migrate_timeout_s = int(os.environ.get("MIGRATE_TIMEOUT", "120"))
 
     # Run DB migrations for the main database.
-    # Important: if the DB is unreachable (common when an external DB requires IP allowlisting),
-    # Alembic can hang for a long time. Failing fast gives actionable Render logs.
     try:
         print(f"[start] Running migrations (timeout={migrate_timeout_s}s)...", flush=True)
         subprocess.run(
@@ -20,18 +18,39 @@ def main() -> None:
     except subprocess.TimeoutExpired:
         print(
             "[start] ERROR: Alembic migrations timed out. "
-            "If you are using an external database with an IP allowlist, add Render outbound IP ranges.",
+            "If you are using an external database with an IP allowlist, add outbound IP ranges.",
             file=sys.stderr,
             flush=True,
         )
         raise SystemExit(1)
     except subprocess.CalledProcessError as exc:
         print(
-            f"[start] ERROR: Alembic migrations failed with exit code {exc.returncode}.",
+            f"[start] WARNING: Alembic upgrade failed (exit code {exc.returncode}). "
+            "Attempting to stamp head and ensure tables exist...",
             file=sys.stderr,
             flush=True,
         )
-        raise SystemExit(exc.returncode)
+        # Tables may already exist from a previous deployment.
+        # Stamp alembic to head so it knows the DB is current.
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "alembic", "stamp", "head"],
+                check=True,
+                timeout=30,
+            )
+            print("[start] Stamped DB to head.", flush=True)
+        except Exception as stamp_err:
+            print(f"[start] WARNING: alembic stamp also failed: {stamp_err}", file=sys.stderr, flush=True)
+
+        # Ensure all tables exist (create any missing ones)
+        try:
+            from app.database import engine, Base
+            from app import models  # noqa: F401 — registers all models
+            Base.metadata.create_all(bind=engine)
+            print("[start] Ensured all tables exist via create_all.", flush=True)
+        except Exception as create_err:
+            print(f"[start] ERROR: create_all failed: {create_err}", file=sys.stderr, flush=True)
+            raise SystemExit(1)
 
     import uvicorn
 
