@@ -23,7 +23,7 @@ services:
   envs:
   - key: DATABASE_URL
     scope: RUN_TIME
-    value: ${production-database.DATABASE_URL}
+    value: ${db-postgresql-ams3-28118.DATABASE_URL}
   - key: ENV
     scope: RUN_AND_BUILD_TIME
     value: prod
