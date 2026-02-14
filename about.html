@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <title>About Us — GeoVision | Operational Intelligence for Strategic Assets</title>
@@ -752,6 +753,7 @@
       justify-content: center;
       font-size: 1.3rem;
       flex-shrink: 0;
+      color: #38bdf8;
     }
 
     .tech-item-content h4 {
@@ -785,6 +787,85 @@
       gap: 2rem;
       max-width: 1100px;
       margin: 0 auto;
+    }
+
+    /* ============ SOFTWARE SECTION ============ */
+    .software-section {
+      padding: 6rem 2rem;
+      background: linear-gradient(180deg, rgba(34, 197, 94, 0.02) 0%, var(--bg-dark) 100%);
+    }
+
+    .software-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .software-card {
+      padding: 2rem;
+      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+
+    .software-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(34, 197, 94, 0.3);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .software-card.featured {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, var(--bg-card) 100%);
+      grid-column: 1 / -1;
+    }
+
+    .software-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: var(--gradient-glow);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    .software-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .software-category {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1rem;
+    }
+
+    .software-desc {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+
+    .software-desc:last-child {
+      margin-bottom: 0;
+    }
+
+    .software-desc strong {
+      color: var(--text-primary);
     }
 
     .why-card {
@@ -1117,6 +1198,14 @@
       .why-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+
+      .software-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .software-card.featured {
+        grid-column: auto;
+      }
     }
 
     @media (max-width: 768px) {
@@ -1330,7 +1419,7 @@
 
     <div class="mv-grid">
       <div class="mv-card">
-        <div class="mv-icon">🎯</div>
+        <div class="mv-icon"><i class="fa-solid fa-crosshairs"></i></div>
         <h3 class="mv-title" data-i18n="about.ourMission">Our Mission</h3>
         <p class="mv-text" data-i18n="about.mission.text2">
           To enhance operational visibility, risk management and territorial intelligence through advanced aerial technologies and structured analytical frameworks.
@@ -1338,7 +1427,7 @@
       </div>
 
       <div class="mv-card">
-        <div class="mv-icon">🔭</div>
+        <div class="mv-icon"><i class="fa-solid fa-binoculars"></i></div>
         <h3 class="mv-title" data-i18n="about.ourVision">Our Vision</h3>
         <p class="mv-text" data-i18n="about.vision.text2">
           To become a leading operational intelligence platform across Africa, integrating aerial monitoring, infrastructure oversight and sector-specific risk modeling into strategic decision-making environments.
@@ -1356,25 +1445,25 @@
 
     <div class="values-grid">
       <div class="value-card">
-        <div class="value-icon">🎯</div>
+        <div class="value-icon"><i class="fa-solid fa-crosshairs"></i></div>
         <h4 class="value-title" data-i18n="about.value.precision">Precision</h4>
         <p class="value-text" data-i18n="about.value.precision2.desc">Centimeter-accurate data capture and rigorous analytical standards in every deliverable.</p>
       </div>
 
       <div class="value-card">
-        <div class="value-icon">⚙️</div>
+        <div class="value-icon"><i class="fa-solid fa-gear"></i></div>
         <h4 class="value-title">Operational Integrity</h4>
         <p class="value-text">End-to-end accountability from mission planning through final delivery and support.</p>
       </div>
 
       <div class="value-card">
-        <div class="value-icon">🛡️</div>
+        <div class="value-icon"><i class="fa-solid fa-shield-halved"></i></div>
         <h4 class="value-title">Security & Compliance</h4>
         <p class="value-text">Enterprise-grade data protection and full regulatory adherence across all operations.</p>
       </div>
 
       <div class="value-card">
-        <div class="value-icon">💡</div>
+        <div class="value-icon"><i class="fa-solid fa-lightbulb"></i></div>
         <h4 class="value-title">Innovation Applied</h4>
         <p class="value-text">Cutting-edge technology deployed for real operational challenges, not innovation for its own sake.</p>
       </div>
@@ -1394,7 +1483,7 @@
 
       <div class="sectors-grid">
         <div class="sector-card">
-          <div class="sector-icon">⛏️</div>
+          <div class="sector-icon"><i class="fa-solid fa-gem"></i></div>
           <h3 class="sector-name">Mining Operations Intelligence</h3>
           <p class="sector-desc">
             3D topographic mapping, volumetric analysis, slope stability monitoring and comprehensive mine site intelligence.
@@ -1403,7 +1492,7 @@
         </div>
 
         <div class="sector-card">
-          <div class="sector-icon">🏗️</div>
+          <div class="sector-icon"><i class="fa-solid fa-helmet-safety"></i></div>
           <h3 class="sector-name">Infrastructure & Construction</h3>
           <p class="sector-desc">
             Progress monitoring, digital twins, earthworks analysis and construction site oversight.
@@ -1412,7 +1501,7 @@
         </div>
 
         <div class="sector-card">
-          <div class="sector-icon">🌾</div>
+          <div class="sector-icon"><i class="fa-solid fa-seedling"></i></div>
           <h3 class="sector-name">Agriculture & Livestock</h3>
           <p class="sector-desc">
             NDVI crop health analysis, precision spraying, livestock counting and land management.
@@ -1421,7 +1510,7 @@
         </div>
 
         <div class="sector-card">
-          <div class="sector-icon">💣</div>
+          <div class="sector-icon"><i class="fa-solid fa-shield-halved"></i></div>
           <h3 class="sector-name">Demining & Territorial Safety</h3>
           <p class="sector-desc">
             Thermal mapping, anomaly detection and operational support for humanitarian demining programs.
@@ -1430,7 +1519,7 @@
         </div>
 
         <div class="sector-card">
-          <div class="sector-icon">☀️</div>
+          <div class="sector-icon"><i class="fa-solid fa-solar-panel"></i></div>
           <h3 class="sector-name">Solar & Energy Inspection</h3>
           <p class="sector-desc">
             Thermal panel inspection, solar farm monitoring and energy infrastructure assessment.
@@ -1527,7 +1616,7 @@
       <div class="tech-grid">
         <div class="tech-list">
           <div class="tech-item">
-            <div class="tech-icon">🚁</div>
+            <div class="tech-icon"><i class="fa-solid fa-helicopter"></i></div>
             <div class="tech-item-content">
               <h4>Advanced Drone Platforms</h4>
               <p>Industrial-grade UAVs with multispectral, thermal and LiDAR payloads.</p>
@@ -1535,7 +1624,7 @@
           </div>
 
           <div class="tech-item">
-            <div class="tech-icon">🗺️</div>
+            <div class="tech-icon"><i class="fa-solid fa-map-location-dot"></i></div>
             <div class="tech-item-content">
               <h4>GIS Systems</h4>
               <p>Full geospatial stack for mapping, analysis and spatial intelligence.</p>
@@ -1543,7 +1632,7 @@
           </div>
 
           <div class="tech-item">
-            <div class="tech-icon">📊</div>
+            <div class="tech-icon"><i class="fa-solid fa-chart-column"></i></div>
             <div class="tech-item-content">
               <h4>Monitoring Dashboards</h4>
               <p>Real-time visualization and alerting for continuous operational oversight.</p>
@@ -1551,7 +1640,7 @@
           </div>
 
           <div class="tech-item">
-            <div class="tech-icon">⚠️</div>
+            <div class="tech-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="tech-item-content">
               <h4>Risk Scoring Models</h4>
               <p>Proprietary algorithms for sector-specific risk assessment and prediction.</p>
@@ -1559,7 +1648,7 @@
           </div>
 
           <div class="tech-item">
-            <div class="tech-icon">🔗</div>
+            <div class="tech-icon"><i class="fa-solid fa-link"></i></div>
             <div class="tech-item-content">
               <h4>Enterprise Integration</h4>
               <p>API connectivity and data pipelines for existing enterprise systems.</p>
@@ -1582,6 +1671,131 @@
     </div>
   </section>
 
+  <!-- ============ OUR SOFTWARE PLATFORMS ============ -->
+  <section class="section software-section">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="about.software.eyebrow">Nossos Softwares</div>
+      <h2 class="section-title" data-i18n="about.software.title">Software & Plataformas que Utilizamos</h2>
+      <p class="section-desc" data-i18n="about.software.subtitle">
+        A GeoVision utiliza um ecossistema integrado de software profissional e de nível empresarial para garantir precisão, eficiência e resultados confiáveis em todas as operações.
+      </p>
+    </div>
+
+    <div class="software-grid">
+      <!-- Pix4D -->
+      <div class="software-card">
+        <div class="software-icon"><i class="fa-solid fa-cube"></i></div>
+        <h4 class="software-title">Pix4D / Agisoft Metashape</h4>
+        <p class="software-category">Fotogrametria & Mapeamento 3D</p>
+        <p class="software-desc" data-i18n="about.software.pix4d.desc">
+          <strong>O que é:</strong> Software profissional de fotogrametria que transforma imagens aéreas capturadas por drones em modelos 3D, ortomosaicos e modelos digitais de elevação de alta precisão.
+        </p>
+        <p class="software-desc" data-i18n="about.software.pix4d.usage">
+          <strong>Como usar:</strong> As imagens capturadas pelo drone são carregadas no software, que processa automaticamente os dados para gerar mapas topográficos, modelos volumétricos e documentação visual do terreno.
+        </p>
+        <p class="software-desc" data-i18n="about.software.pix4d.importance">
+          <strong>Importância:</strong> Fundamental para cálculos volumétricos em mineração, monitoramento de progresso em construção e documentação precisa de sítios operacionais. Reduz o tempo de levantamento de semanas para horas.
+        </p>
+      </div>
+
+      <!-- QGIS / ArcGIS -->
+      <div class="software-card">
+        <div class="software-icon"><i class="fa-solid fa-layer-group"></i></div>
+        <h4 class="software-title">QGIS / ArcGIS</h4>
+        <p class="software-category">Análise Geoespacial (GIS)</p>
+        <p class="software-desc" data-i18n="about.software.gis.desc">
+          <strong>O que é:</strong> Plataformas de Sistema de Informação Geográfica que permitem a análise, visualização e gestão de dados espaciais em múltiplas camadas.
+        </p>
+        <p class="software-desc" data-i18n="about.software.gis.usage">
+          <strong>Como usar:</strong> Os dados processados dos drones são importados e sobrepostos com dados existentes (cadastro, infraestrutura, vegetação). Geram-se análises espaciais, mapas temáticos e relatórios georreferenciados.
+        </p>
+        <p class="software-desc" data-i18n="about.software.gis.importance">
+          <strong>Importância:</strong> Base essencial para tomada de decisão baseada em dados geográficos. Permite visualizar padrões, calcular áreas, planear intervenções e monitorar mudanças ao longo do tempo.
+        </p>
+      </div>
+
+      <!-- NDVI -->
+      <div class="software-card">
+        <div class="software-icon"><i class="fa-solid fa-seedling"></i></div>
+        <h4 class="software-title">Pix4Dfields / DJI Terra</h4>
+        <p class="software-category">Análise NDVI & Multiespectral</p>
+        <p class="software-desc" data-i18n="about.software.ndvi.desc">
+          <strong>O que é:</strong> Software especializado na análise de imagens multiespectrais para gerar índices de vegetação (NDVI), mapas de stress hídrico e diagnósticos de saúde vegetal.
+        </p>
+        <p class="software-desc" data-i18n="about.software.ndvi.usage">
+          <strong>Como usar:</strong> Sensores multiespectrais no drone captam bandas de luz invisíveis ao olho humano. O software processa estas imagens e cria mapas coloridos que indicam a saúde de cada zona da plantação.
+        </p>
+        <p class="software-desc" data-i18n="about.software.ndvi.importance">
+          <strong>Importância:</strong> Permite agricultura de precisão — identificar precocemente doenças, otimizar irrigação e aplicação de fertilizantes, e aumentar a produtividade com menos desperdício de recursos.
+        </p>
+      </div>
+
+      <!-- DJI FlightHub -->
+      <div class="software-card">
+        <div class="software-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+        <h4 class="software-title">DJI FlightHub 2</h4>
+        <p class="software-category">Gestão de Frota de Drones</p>
+        <p class="software-desc" data-i18n="about.software.flighthub.desc">
+          <strong>O que é:</strong> Plataforma cloud de gestão de frota que permite planear missões, monitorar voos em tempo real e gerir múltiplos drones simultaneamente.
+        </p>
+        <p class="software-desc" data-i18n="about.software.flighthub.usage">
+          <strong>Como usar:</strong> Os operadores planeiam rotas de voo no mapa, definem parâmetros de captura e monitoram a telemetria de cada drone ao vivo. Todas as missões ficam registadas com logs completos.
+        </p>
+        <p class="software-desc" data-i18n="about.software.flighthub.importance">
+          <strong>Importância:</strong> Garante operações seguras, eficientes e em conformidade com regulamentações aéreas. Essencial para coordenação em projetos de grande escala com múltiplas equipas no terreno.
+        </p>
+      </div>
+
+      <!-- LiDAR -->
+      <div class="software-card">
+        <div class="software-icon"><i class="fa-solid fa-mountain-sun"></i></div>
+        <h4 class="software-title">CloudCompare / LAStools</h4>
+        <p class="software-category">Processamento LiDAR</p>
+        <p class="software-desc" data-i18n="about.software.lidar.desc">
+          <strong>O que é:</strong> Ferramentas especializadas no processamento de nuvens de pontos LiDAR, permitindo classificação de terreno, filtragem de vegetação e modelagem 3D de alta resolução.
+        </p>
+        <p class="software-desc" data-i18n="about.software.lidar.usage">
+          <strong>Como usar:</strong> Os dados brutos do sensor LiDAR são importados, filtrados e classificados automaticamente. O resultado é um modelo digital de terreno extremamente preciso, penetrando mesmo sob coberto vegetal denso.
+        </p>
+        <p class="software-desc" data-i18n="about.software.lidar.importance">
+          <strong>Importância:</strong> Crítico para cálculos volumétricos em mineração, inspeção de infraestruturas, e mapeamento de terrenos difíceis onde a fotogrametria convencional não consegue resultados fiáveis.
+        </p>
+      </div>
+
+      <!-- Thermal -->
+      <div class="software-card">
+        <div class="software-icon"><i class="fa-solid fa-temperature-high"></i></div>
+        <h4 class="software-title">FLIR Tools / DJI Thermal</h4>
+        <p class="software-category">Análise Térmica</p>
+        <p class="software-desc" data-i18n="about.software.thermal.desc">
+          <strong>O que é:</strong> Software de análise de imagens térmicas que identifica variações de temperatura, assinaturas de calor e anomalias invisíveis a olho nu.
+        </p>
+        <p class="software-desc" data-i18n="about.software.thermal.usage">
+          <strong>Como usar:</strong> Câmaras térmicas montadas nos drones captam radiação infravermelha. O software processa estas imagens e gera mapas de temperatura com pontos de interesse assinalados automaticamente.
+        </p>
+        <p class="software-desc" data-i18n="about.software.thermal.importance">
+          <strong>Importância:</strong> Essencial para deteção de anomalias em operações de desminagem, inspeção de painéis solares, monitoramento de infraestruturas elétricas e verificação de isolamento térmico em edifícios.
+        </p>
+      </div>
+
+      <!-- GeoVision Dashboard -->
+      <div class="software-card featured">
+        <div class="software-icon"><i class="fa-solid fa-chart-column"></i></div>
+        <h4 class="software-title">GeoVision Dashboard</h4>
+        <p class="software-category">Plataforma Própria de Monitoramento</p>
+        <p class="software-desc" data-i18n="about.software.dashboard.desc">
+          <strong>O que é:</strong> A plataforma web proprietária da GeoVision que centraliza todos os dados operacionais, relatórios, alertas e visualizações num único painel de controlo seguro.
+        </p>
+        <p class="software-desc" data-i18n="about.software.dashboard.usage">
+          <strong>Como usar:</strong> Os clientes acedem via browser com autenticação segura. Podem visualizar operações em tempo real, consultar relatórios, receber alertas e fazer download dos entregáveis directamente na plataforma.
+        </p>
+        <p class="software-desc" data-i18n="about.software.dashboard.importance">
+          <strong>Importância:</strong> Ponto único de verdade para toda a inteligência operacional. Elimina a necessidade de múltiplos sistemas, reduz tempo de resposta e garante que todos os stakeholders têm acesso à informação mais recente.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ WHY GEOVISION ============ -->
   <section class="section why-section">
     <div class="section-header">
@@ -1591,7 +1805,7 @@
 
     <div class="why-grid">
       <div class="why-card">
-        <div class="why-icon">🎯</div>
+        <div class="why-icon"><i class="fa-solid fa-crosshairs"></i></div>
         <h4 class="why-title">Multi-Sector Capability</h4>
         <p class="why-text">
           Proven expertise across mining, infrastructure, agriculture, demining and energy sectors.
@@ -1599,7 +1813,7 @@
       </div>
 
       <div class="why-card">
-        <div class="why-icon">🏢</div>
+        <div class="why-icon"><i class="fa-solid fa-building"></i></div>
         <h4 class="why-title">Enterprise-Ready Systems</h4>
         <p class="why-text">
           Industrial-grade platforms with robust security, compliance and scalability.
@@ -1607,7 +1821,7 @@
       </div>
 
       <div class="why-card">
-        <div class="why-icon">🔐</div>
+        <div class="why-icon"><i class="fa-solid fa-lock"></i></div>
         <h4 class="why-title">Secure Data Management</h4>
         <p class="why-text">
           End-to-end encryption, access controls and compliant data handling protocols.
@@ -1615,7 +1829,7 @@
       </div>
 
       <div class="why-card">
-        <div class="why-icon">📈</div>
+        <div class="why-icon"><i class="fa-solid fa-chart-line"></i></div>
         <h4 class="why-title">Structured Risk Modeling</h4>
         <p class="why-text">
           Proprietary risk frameworks tailored to sector-specific operational challenges.
@@ -1623,7 +1837,7 @@
       </div>
 
       <div class="why-card">
-        <div class="why-icon">💳</div>
+        <div class="why-icon"><i class="fa-solid fa-credit-card"></i></div>
         <h4 class="why-title">Flexible Payment Options</h4>
         <p class="why-text">
           Adaptable payment infrastructure supporting diverse enterprise requirements.
@@ -1631,7 +1845,7 @@
       </div>
 
       <div class="why-card">
-        <div class="why-icon">🇦🇴</div>
+        <div class="why-icon"><i class="fa-solid fa-map-location-dot"></i></div>
         <h4 class="why-title">Local Operational Expertise</h4>
         <p class="why-text">
           Deep understanding of Angolan terrain, regulations and operational contexts.
@@ -1643,7 +1857,7 @@
   <!-- ============ STRATEGIC COMMITMENT ============ -->
   <section class="commitment-section">
     <div class="commitment-content">
-      <div class="commitment-flag">🌍</div>
+      <div class="commitment-flag"><i class="fa-solid fa-earth-africa"></i></div>
       <h2 class="section-title">Strategic Commitment to Africa</h2>
       <p class="section-desc" style="max-width: 800px; margin: 0 auto;">
         GeoVision is committed to supporting sustainable development, operational transparency and infrastructure modernization across Angola and emerging African markets. Our mission extends beyond service delivery to actively contributing to the technological advancement of the continent.
@@ -1681,13 +1895,13 @@
 
     <div class="contact-info">
       <div class="contact-item">
-        <span>📍</span> Luanda, Angola
+        <span><i class="fa-solid fa-location-dot"></i></span> Luanda, Angola
       </div>
       <div class="contact-item">
-        <span>🌐</span> geovision.africa
+        <span><i class="fa-solid fa-globe"></i></span> geovision.africa
       </div>
       <div class="contact-item">
-        <span>✉️</span> operations@geovision.africa
+        <span><i class="fa-solid fa-envelope"></i></span> operations@geovision.africa
       </div>
     </div>
 

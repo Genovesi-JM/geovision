@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (lower.includes(normKey)) {
           history.push({
             role: "assistant",
-            content: `A redirecionar para ${pg.keys[0]}... 🚀`
+            content: `A redirecionar para ${pg.keys[0]}...`
           });
           renderMessages();
           setTimeout(() => { window.location.href = pg.url; }, 800);

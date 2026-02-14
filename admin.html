@@ -2,6 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <title>Admin – GeoVision Platform</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -263,7 +264,9 @@
     }
 
     .topbar-search::before {
-      content: "🔍";
+      content: "\f002";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
       position: absolute;
       left: 0.75rem;
       top: 50%;
@@ -844,7 +847,7 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="admin.section.main">Principal</div>
         <a href="#" class="sidebar-link active" data-view="dashboard">
-          <span class="sidebar-link-icon">📊</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-chart-column"></i></span>
           <span data-i18n="admin.nav.dashboard">Dashboard Global</span>
         </a>
       </div>
@@ -853,24 +856,24 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="admin.section.management">Gestão</div>
         <a href="#" class="sidebar-link" data-view="clients">
-          <span class="sidebar-link-icon">🏢</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-building"></i></span>
           <span data-i18n="admin.nav.clients">Clientes</span>
           <span class="sidebar-link-badge" id="badge-clients">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="users">
-          <span class="sidebar-link-icon">👥</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-users"></i></span>
           <span data-i18n="admin.nav.users">Utilizadores</span>
         </a>
         <a href="#" class="sidebar-link" data-view="sites">
-          <span class="sidebar-link-icon">📍</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-location-dot"></i></span>
           <span data-i18n="admin.nav.sites">Sites / Projetos</span>
         </a>
         <a href="#" class="sidebar-link" data-view="datasets">
-          <span class="sidebar-link-icon">🗄️</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-database"></i></span>
           <span data-i18n="admin.nav.datasets">Datasets</span>
         </a>
         <a href="#" class="sidebar-link" data-view="documents">
-          <span class="sidebar-link-icon">📄</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-file-lines"></i></span>
           <span data-i18n="admin.nav.documents">Documentos</span>
         </a>
       </div>
@@ -879,7 +882,7 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="admin.section.integrations">Integrações</div>
         <a href="#" class="sidebar-link" data-view="integrations">
-          <span class="sidebar-link-icon">🔗</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-link"></i></span>
           <span data-i18n="admin.nav.software">Softwares Externos</span>
         </a>
       </div>
@@ -888,12 +891,12 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="admin.section.financial">Financeiro</div>
         <a href="#" class="sidebar-link" data-view="payments">
-          <span class="sidebar-link-icon">💳</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-credit-card"></i></span>
           <span data-i18n="admin.nav.payments">Pagamentos</span>
           <span class="sidebar-link-badge badge-warning" id="badge-payments">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="invoices">
-          <span class="sidebar-link-icon">🧾</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-file-invoice"></i></span>
           <span data-i18n="admin.nav.invoices">Faturas</span>
         </a>
       </div>
@@ -902,16 +905,16 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="admin.section.system">Sistema</div>
         <a href="#" class="sidebar-link" data-view="alerts">
-          <span class="sidebar-link-icon">🔔</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-bell"></i></span>
           <span data-i18n="admin.nav.alerts">Alertas</span>
           <span class="sidebar-link-badge" id="badge-alerts">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="logs">
-          <span class="sidebar-link-icon">📜</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-scroll"></i></span>
           <span data-i18n="admin.nav.auditLogs">Audit Logs</span>
         </a>
         <a href="#" class="sidebar-link" data-view="settings">
-          <span class="sidebar-link-icon">⚙️</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-gear"></i></span>
           <span data-i18n="admin.nav.settings">Configurações</span>
         </a>
       </div>
@@ -948,10 +951,10 @@
           <input type="text" data-i18n-placeholder="common.search" placeholder="Pesquisar..." id="global-search" />
         </div>
         <button class="topbar-btn" id="btn-notifications" title="Notificações">
-          🔔
+          <i class="fa-solid fa-bell"></i>
           <span class="badge" id="notification-count">3</span>
         </button>
-        <button class="topbar-btn" id="btn-help" title="Ajuda">❓</button>
+        <button class="topbar-btn" id="btn-help" title="Ajuda"><i class="fa-solid fa-circle-question"></i></button>
         <button class="btn-logout" id="btn-logout" data-i18n="common.logout">Terminar sessão</button>
       </div>
     </header>
@@ -970,16 +973,16 @@
         <!-- Quick Actions -->
         <div class="quick-actions">
           <button class="quick-action" onclick="showModal('modal-new-client')">
-            <span>➕</span> <span data-i18n="admin.action.newClient">Novo Cliente</span>
+            <span><i class="fa-solid fa-plus"></i></span> <span data-i18n="admin.action.newClient">Novo Cliente</span>
           </button>
           <button class="quick-action" onclick="showModal('modal-new-site')">
-            <span>📍</span> <span data-i18n="admin.action.newSite">Novo Site</span>
+            <span><i class="fa-solid fa-location-dot"></i></span> <span data-i18n="admin.action.newSite">Novo Site</span>
           </button>
           <button class="quick-action" onclick="showModal('modal-upload-doc')">
-            <span>📤</span> <span data-i18n="admin.action.uploadDoc">Upload Documento</span>
+            <span><i class="fa-solid fa-upload"></i></span> <span data-i18n="admin.action.uploadDoc">Upload Documento</span>
           </button>
           <button class="quick-action" onclick="exportReport()">
-            <span>📊</span> <span data-i18n="admin.action.exportReport">Exportar Relatório</span>
+            <span><i class="fa-solid fa-chart-column"></i></span> <span data-i18n="admin.action.exportReport">Exportar Relatório</span>
           </button>
         </div>
 
@@ -988,7 +991,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.clients">Total Clientes</span>
-              <span class="kpi-icon">🏢</span>
+              <span class="kpi-icon"><i class="fa-solid fa-building"></i></span>
             </div>
             <div class="kpi-value" id="kpi-total-clients">0</div>
             <div class="kpi-change">+12% este mês</div>
@@ -996,7 +999,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.sites">Sites Ativos</span>
-              <span class="kpi-icon">📍</span>
+              <span class="kpi-icon"><i class="fa-solid fa-location-dot"></i></span>
             </div>
             <div class="kpi-value" id="kpi-total-sites">0</div>
             <div class="kpi-change">+8% este mês</div>
@@ -1004,7 +1007,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.datasets">Datasets</span>
-              <span class="kpi-icon">🗄️</span>
+              <span class="kpi-icon"><i class="fa-solid fa-database"></i></span>
             </div>
             <div class="kpi-value" id="kpi-total-datasets">0</div>
             <div class="kpi-change">+15% este mês</div>
@@ -1012,7 +1015,7 @@
           <div class="kpi-card revenue">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.revenue">Receita Mensal</span>
-              <span class="kpi-icon">💰</span>
+              <span class="kpi-icon"><i class="fa-solid fa-dollar-sign"></i></span>
             </div>
             <div class="kpi-value" id="kpi-revenue">0 AOA</div>
             <div class="kpi-change">+22% vs mês anterior</div>
@@ -1020,7 +1023,7 @@
           <div class="kpi-card warning">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.pendingPayments">Pagamentos Pendentes</span>
-              <span class="kpi-icon">⏳</span>
+              <span class="kpi-icon"><i class="fa-solid fa-hourglass-half"></i></span>
             </div>
             <div class="kpi-value" id="kpi-pending-payments">0</div>
             <div class="kpi-change negative">Requerem atenção</div>
@@ -1028,7 +1031,7 @@
           <div class="kpi-card danger">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.criticalAlerts">Alertas Críticos</span>
-              <span class="kpi-icon">🚨</span>
+              <span class="kpi-icon"><i class="fa-solid fa-circle-exclamation"></i></span>
             </div>
             <div class="kpi-value" id="kpi-critical-alerts">0</div>
             <div class="kpi-change negative">Ação imediata</div>
@@ -1036,7 +1039,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.contracts">Contratos Ativos</span>
-              <span class="kpi-icon">📋</span>
+              <span class="kpi-icon"><i class="fa-solid fa-clipboard"></i></span>
             </div>
             <div class="kpi-value" id="kpi-contracts">0</div>
             <div class="kpi-change">Estável</div>
@@ -1044,7 +1047,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="admin.kpi.storage">Armazenamento</span>
-              <span class="kpi-icon">💾</span>
+              <span class="kpi-icon"><i class="fa-solid fa-hard-drive"></i></span>
             </div>
             <div class="kpi-value" id="kpi-storage">0 GB</div>
             <div class="kpi-change">De 1 TB</div>
@@ -1063,7 +1066,7 @@
             </div>
             <div class="card-body">
               <div class="chart-container" id="chart-growth">
-                📈 Gráfico de crescimento (implementar Chart.js)
+                <i class="fa-solid fa-chart-line"></i> Gráfico de crescimento (implementar Chart.js)
               </div>
             </div>
           </div>
@@ -1122,13 +1125,13 @@
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-new-client')">
-            <span>➕</span> <span data-i18n="admin.action.newClient">Novo Cliente</span>
+            <span><i class="fa-solid fa-plus"></i></span> <span data-i18n="admin.action.newClient">Novo Cliente</span>
           </button>
           <button class="btn btn-secondary">
-            <span>📥</span> <span data-i18n="admin.clients.import">Importar</span>
+            <span><i class="fa-solid fa-download"></i></span> <span data-i18n="admin.clients.import">Importar</span>
           </button>
           <button class="btn btn-secondary">
-            <span>📤</span> <span data-i18n="admin.clients.export">Exportar</span>
+            <span><i class="fa-solid fa-upload"></i></span> <span data-i18n="admin.clients.export">Exportar</span>
           </button>
         </div>
 
@@ -1175,10 +1178,10 @@
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-upload-doc')">
-            <span>📤</span> <span data-i18n="admin.action.uploadDoc">Upload Documento</span>
+            <span><i class="fa-solid fa-upload"></i></span> <span data-i18n="admin.action.uploadDoc">Upload Documento</span>
           </button>
           <button class="btn btn-secondary">
-            <span>🔍</span> <span data-i18n="admin.docs.advSearch">Pesquisa Avançada</span>
+            <span><i class="fa-solid fa-magnifying-glass"></i></span> <span data-i18n="admin.docs.advSearch">Pesquisa Avançada</span>
           </button>
         </div>
 
@@ -1227,7 +1230,7 @@
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-new-connector')">
-            <span>🔗</span> <span data-i18n="admin.integrations.new">Nova Integração</span>
+            <span><i class="fa-solid fa-link"></i></span> <span data-i18n="admin.integrations.new">Nova Integração</span>
           </button>
         </div>
 
@@ -1235,7 +1238,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">DJI Terra</span>
-              <span class="kpi-icon">🛸</span>
+              <span class="kpi-icon"><i class="fa-solid fa-satellite"></i></span>
             </div>
             <div class="kpi-value">3</div>
             <div class="kpi-change">Conexões ativas</div>
@@ -1243,7 +1246,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">Pix4D</span>
-              <span class="kpi-icon">📷</span>
+              <span class="kpi-icon"><i class="fa-solid fa-camera"></i></span>
             </div>
             <div class="kpi-value">5</div>
             <div class="kpi-change">Conexões ativas</div>
@@ -1251,7 +1254,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">ArcGIS</span>
-              <span class="kpi-icon">🗺️</span>
+              <span class="kpi-icon"><i class="fa-solid fa-map-location-dot"></i></span>
             </div>
             <div class="kpi-value">2</div>
             <div class="kpi-change">Conexões ativas</div>
@@ -1259,7 +1262,7 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label">Procore</span>
-              <span class="kpi-icon">🏗️</span>
+              <span class="kpi-icon"><i class="fa-solid fa-helmet-safety"></i></span>
             </div>
             <div class="kpi-value">1</div>
             <div class="kpi-change">Conexões ativas</div>
@@ -1306,19 +1309,19 @@
           <div class="card-body">
             <div class="contact-buttons" style="margin-bottom: 1rem;">
               <a href="https://wa.me/244928917269" target="_blank" class="contact-btn whatsapp">
-                📱 WhatsApp
+                <i class="fa-solid fa-mobile-screen-button"></i> WhatsApp
               </a>
               <a href="mailto:suporte@geovisionops.com" class="contact-btn email">
-                ✉️ Email
+                <i class="fa-solid fa-envelope"></i> Email
               </a>
               <a href="tel:+244928917269" class="contact-btn phone">
-                📞 Ligar
+                <i class="fa-solid fa-phone"></i> Ligar
               </a>
               <a href="sms:+244928917269" class="contact-btn phone">
-                💬 SMS
+                <i class="fa-solid fa-comments"></i> SMS
               </a>
               <a href="https://instagram.com/Geovision.operations" target="_blank" class="contact-btn instagram">
-                📷 Instagram
+                <i class="fa-brands fa-instagram"></i> Instagram
               </a>
             </div>
             <p style="font-size: 0.85rem; color: #9ca3af;" data-i18n="admin.settings.contactsDesc">
@@ -1396,7 +1399,7 @@
 
         <div class="quick-actions">
           <button class="btn btn-primary" onclick="showModal('modal-new-site')">
-            <span>➕</span> <span data-i18n="admin.action.newSite">Novo Site</span>
+            <span><i class="fa-solid fa-plus"></i></span> <span data-i18n="admin.action.newSite">Novo Site</span>
           </button>
         </div>
 
@@ -1783,8 +1786,8 @@
               <td>${c.current_sites} / ${c.max_sites}</td>
               <td>
                 <div class="contact-buttons">
-                  ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/[^0-9]/g, '')}" target="_blank" class="contact-btn whatsapp">📱</a>` : ''}
-                  <a href="mailto:${c.email}" class="contact-btn email">✉️</a>
+                  ${c.phone ? `<a href="https://wa.me/${c.phone.replace(/[^0-9]/g, '')}" target="_blank" class="contact-btn whatsapp"><i class="fa-solid fa-mobile-screen-button"></i></a>` : ''}
+                  <a href="mailto:${c.email}" class="contact-btn email"><i class="fa-solid fa-envelope"></i></a>
                 </div>
               </td>
               <td>
@@ -1926,8 +1929,8 @@
                 <td><span class="badge badge-${d.status === 'approved' ? 'active' : d.status === 'draft' ? 'pending' : 'trial'}">${d.status}</span></td>
                 <td>${new Date(d.created_at).toLocaleDateString('pt-PT')}</td>
                 <td>
-                  <button class="btn btn-sm btn-secondary" onclick="downloadDocument('${d.id}')">📥</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteDocument('${d.id}')">🗑️</button>
+                  <button class="btn btn-sm btn-secondary" onclick="downloadDocument('${d.id}')"><i class="fa-solid fa-download"></i></button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteDocument('${d.id}')"><i class="fa-solid fa-trash"></i></button>
                 </td>
               </tr>
             `).join('');
@@ -1975,10 +1978,10 @@
                 <td><strong>${i.name}</strong></td>
                 <td><span class="badge ${i.is_active ? 'badge-active' : 'badge-suspended'}">${i.is_active ? 'Ativo' : 'Inativo'}</span></td>
                 <td>${i.last_sync_at ? new Date(i.last_sync_at).toLocaleString('pt-PT') : 'Nunca'}</td>
-                <td>${i.auto_sync_enabled ? '✅' : '❌'}</td>
+                <td>${i.auto_sync_enabled ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-xmark"></i>'}</td>
                 <td>
-                  <button class="btn btn-sm btn-primary" onclick="syncIntegration('${i.id}')">🔄 Sync</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteIntegration('${i.id}')">🗑️</button>
+                  <button class="btn btn-sm btn-primary" onclick="syncIntegration('${i.id}')"><i class="fa-solid fa-rotate"></i> Sync</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteIntegration('${i.id}')"><i class="fa-solid fa-trash"></i></button>
                 </td>
               </tr>
             `).join('');
@@ -2029,7 +2032,7 @@
                 <td><span class="badge badge-${d.status === 'processed' ? 'active' : 'pending'}">${d.status}</span></td>
                 <td>${new Date(d.created_at).toLocaleDateString('pt-PT')}</td>
                 <td>
-                  <button class="btn btn-sm btn-danger" onclick="deleteDataset('${d.id}')">🗑️</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteDataset('${d.id}')"><i class="fa-solid fa-trash"></i></button>
                 </td>
               </tr>
             `).join('');

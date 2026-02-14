@@ -458,7 +458,7 @@ async function loadAlerts(accountId, activeSector) {
           <span class="alert-title">${alert.title}</span>
         </div>
         <div class="alert-description">${alert.description}</div>
-        ${alert.location ? `<div class="alert-location">📍 ${alert.location}</div>` : ""}
+        ${alert.location ? `<div class="alert-location"><i class="fa-solid fa-location-dot"></i> ${alert.location}</div>` : ""}
       `;
       container.appendChild(div);
     });

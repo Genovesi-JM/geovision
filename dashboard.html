@@ -2,6 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <title>Painel — GeoVision</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -450,6 +451,7 @@
 
     .kpi-icon {
       font-size: 1.2rem;
+      color: #38bdf8;
     }
 
     .kpi-value {
@@ -1175,16 +1177,16 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="dash.section.main">Principal</div>
         <a href="#" class="sidebar-link active" data-view="dashboard">
-          <span class="sidebar-link-icon">📊</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-chart-column"></i></span>
           <span data-i18n="dash.nav.overview">Visão Geral</span>
         </a>
         <a href="#" class="sidebar-link" data-view="operations">
-          <span class="sidebar-link-icon">🚀</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-rocket"></i></span>
           <span data-i18n="dash.nav.operations">Operações</span>
           <span class="sidebar-link-badge success" id="badge-operations">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="alerts">
-          <span class="sidebar-link-icon">🔔</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-bell"></i></span>
           <span data-i18n="dash.nav.alerts">Alertas</span>
           <span class="sidebar-link-badge" id="badge-alerts">0</span>
         </a>
@@ -1194,15 +1196,15 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="dash.section.resources">Recursos</div>
         <a href="#" class="sidebar-link" data-view="hardware">
-          <span class="sidebar-link-icon">📡</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-satellite-dish"></i></span>
           <span data-i18n="dash.nav.hardware">Hardware</span>
         </a>
         <a href="#" class="sidebar-link" data-view="reports">
-          <span class="sidebar-link-icon">📄</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-file-lines"></i></span>
           <span data-i18n="dash.nav.reports">Relatórios</span>
         </a>
         <a href="#" class="sidebar-link" data-view="map">
-          <span class="sidebar-link-icon">🗺️</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-map-location-dot"></i></span>
           <span data-i18n="dash.nav.map">Mapa / Layers</span>
         </a>
       </div>
@@ -1211,11 +1213,11 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="dash.section.purchases">Compras</div>
         <a href="#" class="sidebar-link" data-view="orders">
-          <span class="sidebar-link-icon">📦</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-box"></i></span>
           <span data-i18n="dash.nav.orders">Minhas Compras</span>
         </a>
         <a href="loja.html" class="sidebar-link">
-          <span class="sidebar-link-icon">🛒</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-cart-shopping"></i></span>
           <span data-i18n="dash.nav.store">Ir para Loja</span>
         </a>
       </div>
@@ -1224,11 +1226,11 @@
       <div class="sidebar-section">
         <div class="sidebar-section-title" data-i18n="dash.section.support">Suporte</div>
         <a href="#" class="sidebar-link" data-view="support">
-          <span class="sidebar-link-icon">💬</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-comments"></i></span>
           <span data-i18n="dash.nav.contact">Contactar GeoVision</span>
         </a>
         <a href="#" class="sidebar-link" data-view="settings">
-          <span class="sidebar-link-icon">⚙️</span>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-gear"></i></span>
           <span data-i18n="dash.nav.settings">Definições</span>
         </a>
       </div>
@@ -1263,7 +1265,7 @@
         </div>
         <button class="btn btn-primary" id="open-account-modal" data-i18n="dash.newAccount">+ Nova Conta</button>
         <button class="topbar-btn" id="btn-notifications" title="Notificações">
-          🔔
+          <i class="fa-solid fa-bell"></i>
           <span class="badge" id="notification-count">0</span>
         </button>
         <button class="btn-logout" id="logout-btn" data-i18n="common.logout">Terminar sessão</button>
@@ -1287,13 +1289,13 @@
         <!-- Quick Actions -->
         <div class="quick-actions">
           <a href="loja.html" class="quick-action">
-            <span>🛒</span> <span data-i18n="dash.quickAction.order">Encomendar Serviço</span>
+            <span><i class="fa-solid fa-cart-shopping"></i></span> <span data-i18n="dash.quickAction.order">Encomendar Serviço</span>
           </a>
           <button class="quick-action" onclick="switchView('reports')">
-            <span>📄</span> <span data-i18n="dash.quickAction.reports">Ver Relatórios</span>
+            <span><i class="fa-solid fa-file-lines"></i></span> <span data-i18n="dash.quickAction.reports">Ver Relatórios</span>
           </button>
           <button class="quick-action" onclick="switchView('support')">
-            <span>💬</span> <span data-i18n="dash.quickAction.support">Contactar Suporte</span>
+            <span><i class="fa-solid fa-comments"></i></span> <span data-i18n="dash.quickAction.support">Contactar Suporte</span>
           </button>
         </div>
 
@@ -1302,28 +1304,28 @@
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="dash.kpi.services">Serviços Ativos</span>
-              <span class="kpi-icon">🚀</span>
+              <span class="kpi-icon"><i class="fa-solid fa-rocket"></i></span>
             </div>
             <div class="kpi-value" id="kpi-services">—</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="dash.kpi.hardware">Hardware Instalado</span>
-              <span class="kpi-icon">📡</span>
+              <span class="kpi-icon"><i class="fa-solid fa-satellite-dish"></i></span>
             </div>
             <div class="kpi-value" id="kpi-hardware">—</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="dash.kpi.reports">Relatórios</span>
-              <span class="kpi-icon">📄</span>
+              <span class="kpi-icon"><i class="fa-solid fa-file-lines"></i></span>
             </div>
             <div class="kpi-value" id="kpi-reports">—</div>
           </div>
           <div class="kpi-card warning" id="kpi-alerts-card">
             <div class="kpi-header">
               <span class="kpi-label" data-i18n="dash.kpi.alerts">Alertas</span>
-              <span class="kpi-icon">⚠️</span>
+              <span class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
             </div>
             <div class="kpi-value" id="kpi-alerts">—</div>
           </div>
@@ -1350,7 +1352,7 @@
                 <tbody></tbody>
               </table>
               <div class="empty-state" id="services-empty" style="display:none;">
-                <div class="empty-icon">🚀</div>
+                <div class="empty-icon"><i class="fa-solid fa-rocket"></i></div>
                 <p data-i18n="dash.ops.empty">Ainda não existem serviços registados.</p>
                 <a href="loja.html" class="btn btn-primary" style="margin-top:1rem;text-decoration:none;" data-i18n="dash.ops.orderService">Encomendar Serviço</a>
               </div>
@@ -1438,7 +1440,7 @@
               <tbody id="hardware-table-body"></tbody>
             </table>
             <div class="empty-state" id="hardware-empty" style="display:none;">
-              <div class="empty-icon">📡</div>
+              <div class="empty-icon"><i class="fa-solid fa-satellite-dish"></i></div>
               <p data-i18n="dash.hw.empty">Nenhum hardware registado na sua conta.</p>
             </div>
           </div>
@@ -1467,7 +1469,7 @@
               <tbody id="reports-table-body"></tbody>
             </table>
             <div class="empty-state" id="reports-empty" style="display:none;">
-              <div class="empty-icon">📄</div>
+              <div class="empty-icon"><i class="fa-solid fa-file-lines"></i></div>
               <p data-i18n="dash.reports.empty">Ainda não existem relatórios prontos.</p>
             </div>
           </div>
@@ -1484,7 +1486,7 @@
         <div class="card">
           <div class="card-body">
             <div class="map-container">
-              🗺️ <span data-i18n="dash.map.placeholder">Mapa interativo (em breve)</span>
+              <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="dash.map.placeholder">Mapa interativo (em breve)</span>
             </div>
           </div>
         </div>
@@ -1499,7 +1501,7 @@
         </div>
         <div class="quick-actions">
           <a href="loja.html" class="quick-action">
-            <span>🛒</span> <span data-i18n="dash.orders.goStore">Ir para Loja</span>
+            <span><i class="fa-solid fa-cart-shopping"></i></span> <span data-i18n="dash.orders.goStore">Ir para Loja</span>
           </a>
         </div>
         <div id="orders-container">
@@ -1520,7 +1522,7 @@
         <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
-              <div style="font-size:2.5rem;margin-bottom:0.75rem;">📱</div>
+              <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-mobile-screen-button"></i></div>
               <h3 style="margin-bottom:0.5rem;">WhatsApp</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;" data-i18n="dash.support.whatsapp">Resposta rápida via chat</p>
               <a href="https://wa.me/244928917269" target="_blank" class="btn btn-primary" style="text-decoration:none;" data-i18n="dash.support.openWhatsapp">Abrir WhatsApp</a>
@@ -1528,7 +1530,7 @@
           </div>
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
-              <div style="font-size:2.5rem;margin-bottom:0.75rem;">✉️</div>
+              <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-envelope"></i></div>
               <h3 style="margin-bottom:0.5rem;">Email</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">suporte@geovisionops.com</p>
               <a href="mailto:suporte@geovisionops.com" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.sendEmail">Enviar Email</a>
@@ -1536,7 +1538,7 @@
           </div>
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
-              <div style="font-size:2.5rem;margin-bottom:0.75rem;">📞</div>
+              <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-phone"></i></div>
               <h3 style="margin-bottom:0.5rem;" data-i18n="dash.support.phone">Telefone</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">+244 928 917 269</p>
               <a href="tel:+244928917269" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.callNow">Ligar Agora</a>
@@ -1765,7 +1767,7 @@
         if (!token) {
           container.innerHTML = `
             <div class="empty-state">
-              <div class="empty-icon">🔐</div>
+              <div class="empty-icon"><i class="fa-solid fa-lock"></i></div>
               <h3>Inicia sessão para ver os teus pedidos</h3>
               <a href="login.html?redirect=dashboard.html?view=orders" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">Iniciar Sessão</a>
             </div>
@@ -1791,7 +1793,7 @@
         if (!orders.length) {
           container.innerHTML = `
             <div class="empty-state">
-              <div class="empty-icon">📦</div>
+              <div class="empty-icon"><i class="fa-solid fa-box"></i></div>
               <h3>Ainda não tens pedidos</h3>
               <p>Explora a nossa loja e faz o teu primeiro pedido.</p>
               <a href="loja.html" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">Ir para a Loja</a>
@@ -1826,7 +1828,7 @@
         console.error("Erro ao carregar pedidos:", err);
         container.innerHTML = `
           <div class="empty-state">
-            <div class="empty-icon">⚠️</div>
+            <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <h3>Erro ao carregar pedidos</h3>
             <p>${err.message}</p>
             <button class="btn btn-primary" onclick="loadOrders()">Tentar Novamente</button>

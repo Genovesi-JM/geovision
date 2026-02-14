@@ -418,7 +418,7 @@ function renderProducts() {
       metaHtml += `<span>⏱️ ${p.duration_hours}h</span>`;
     }
     if (p.min_area_ha) {
-      metaHtml += `<span>📐 Min ${p.min_area_ha}ha</span>`;
+      metaHtml += `<span><i class="fa-solid fa-ruler-combined"></i> Min ${p.min_area_ha}ha</span>`;
     }
 
     // Deliverables preview
@@ -426,7 +426,7 @@ function renderProducts() {
     if (p.deliverables && p.deliverables.length > 0) {
       const preview = p.deliverables.slice(0, 3).join(", ");
       const more = p.deliverables.length > 3 ? ` +${p.deliverables.length - 3}` : '';
-      deliverablesHtml = `<div class="deliverables-preview">📦 ${preview}${more}</div>`;
+      deliverablesHtml = `<div class="deliverables-preview"><i class="fa-solid fa-box"></i> ${preview}${more}</div>`;
     }
 
     // Featured badge
