@@ -1608,21 +1608,21 @@ textarea {
 
 /* ——————————————— DESMINAGEM ——————————————— */
 .hero-map-preview[data-theme="demining-progresso"] .hero-map-fake {
-  background-image: url("../img/DESMINAGEM (DASHBOARD COMPLETO).png");
+  background-image: url("../img/DESMINAGEM (DASHBOARD COMPLETO.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .hero-map-preview[data-theme="demining-acesso"] .hero-map-fake {
-  background-image: url("../img/DESMINAGEM (CORREDOR SEGURO : SAFE CORRIDOR).png");
+  background-image: url("../img/DESMINAGEM (CORREDOR SEGURO _ SAFE CORRIDOR.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .hero-map-preview[data-theme="demining-risco"] .hero-map-fake {
-  background-image: url("../img/DESMINAGEM (Mapa Técnico + Heatmap de Risco).png");
+  background-image: url("../img/DESMINAGEM (Mapa Técnico + Heatmap de Risco.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -1637,7 +1637,7 @@ textarea {
 }
 
 .hero-map-preview[data-theme="construction-seguranca"] .hero-map-fake {
-  background-image: url("../img/Deteção de Fissuras : Geotecnia.png");
+  background-image: url("../img/Deteção de Fissuras _ Geotecnia.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -1652,14 +1652,14 @@ textarea {
 
 /* ——————————————— INFRAESTRUTURAS ——————————————— */
 .hero-map-preview[data-theme="infra-pavimento"] .hero-map-fake {
-  background-image: url("../img/Mapa LIDAR : DSM : DTM com Drone Industrial.png");
+  background-image: url("../img/Mapa LIDAR _ DSM _ DTM com Drone Industrial.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .hero-map-preview[data-theme="infra-pontes"] .hero-map-fake {
-  background-image: url("../img/INSPEÇÃO DE INFRAESTRUTURA : PONTE2.png");
+  background-image: url("../img/INSPEÇÃO DE INFRAESTRUTURA _ PONTE2.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -1711,12 +1711,12 @@ textarea {
 }
 
 .hero-map-card .hero-map-preview[data-theme="mining"] {
-  background: url("../img/MINERAÇÃO (Dashboard TÉCNICO COMPLETO).png")
+  background: url("../img/MINERAÇÃO (Dashboard Técnico Completo.png")
               center/cover no-repeat;
 }
 
 .hero-map-card .hero-map-preview[data-theme="demining"] {
-  background: url("../img/DESMINAGEM (DASHBOARD COMPLETO).png")
+  background: url("../img/DESMINAGEM (DASHBOARD COMPLETO.png")
               center/cover no-repeat;
 }
 
@@ -1776,16 +1776,16 @@ textarea {
 
 /* DESMINAGEM */
 .hero-map-preview[data-theme="demining-progresso"] {
-  background: url("../img/DESMINAGEM (DASHBOARD COMPLETO).png") center/cover no-repeat;
+  background: url("../img/DESMINAGEM (DASHBOARD COMPLETO.png") center/cover no-repeat;
 }
 
 .hero-map-preview[data-theme="demining-acesso"] {
-  background: url("../img/DESMINAGEM (CORREDOR SEGURO : SAFE CORRIDOR).png")
+  background: url("../img/DESMINAGEM (CORREDOR SEGURO _ SAFE CORRIDOR.png")
               center/cover no-repeat;
 }
 
 .hero-map-preview[data-theme="demining-risco"] {
-  background: url("../img/DESMINAGEM (Mapa Técnico + Heatmap de Risco).png")
+  background: url("../img/DESMINAGEM (Mapa Técnico + Heatmap de Risco.png")
               center/cover no-repeat;
 }
 
@@ -1795,7 +1795,7 @@ textarea {
 }
 
 .hero-map-preview[data-theme="construction-seguranca"] {
-  background: url("../img/Deteção de Fissuras : Geotecnia.png") center/cover no-repeat;
+  background: url("../img/Deteção de Fissuras _ Geotecnia.png") center/cover no-repeat;
 }
 
 .hero-map-preview[data-theme="construction-qualidade"] {
@@ -1804,12 +1804,12 @@ textarea {
 
 /* INFRAESTRUTURAS */
 .hero-map-preview[data-theme="infra-pavimento"] {
-  background: url("../img/Mapa LIDAR : DSM : DTM com Drone Industrial.png")
+  background: url("../img/Mapa LIDAR _ DSM _ DTM com Drone Industrial.png")
               center/cover no-repeat;
 }
 
 .hero-map-preview[data-theme="infra-pontes"] {
-  background: url("../img/INSPEÇÃO DE INFRAESTRUTURA : PONTE2.png")
+  background: url("../img/INSPEÇÃO DE INFRAESTRUTURA _ PONTE2.png")
               center/cover no-repeat;
 }
 
