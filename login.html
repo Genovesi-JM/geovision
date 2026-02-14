@@ -353,6 +353,84 @@
       font-size: 0.9rem;
       color: #cbd5e1;
     }
+
+    /* Forgot email modal */
+    .forgot-email-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .forgot-email-overlay.show { display: flex; }
+    .forgot-email-card {
+      background: #0f1729;
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+    }
+    .forgot-email-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+      color: #f1f5f9;
+    }
+    .forgot-email-card p {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 1.25rem;
+      line-height: 1.6;
+    }
+    .forgot-email-card .support-options {
+      display: grid;
+      gap: 0.6rem;
+      margin-bottom: 1.25rem;
+    }
+    .forgot-email-card .support-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.15);
+      background: rgba(255,255,255,0.03);
+      text-decoration: none;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .forgot-email-card .support-option:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(56,189,248,0.3);
+    }
+    .forgot-email-card .support-option i {
+      font-size: 1.1rem;
+      color: #38bdf8;
+      width: 20px;
+      text-align: center;
+    }
+    .forgot-email-card .hint-text {
+      font-size: 0.82rem;
+      color: #64748b;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+    .forgot-email-card .close-modal {
+      background: none;
+      border: 1px solid rgba(148,163,184,0.25);
+      color: #94a3b8;
+      padding: 0.5rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: color 0.2s;
+    }
+    .forgot-email-card .close-modal:hover { color: #e2e8f0; }
   </style>
 </head>
 
@@ -411,6 +489,7 @@
         </button>
         <div class="split">
           <span class="link" id="forgot-link" data-i18n="login.forgot">Forgot password</span>
+          <span class="link" id="forgot-email-link" data-i18n="login.forgotEmail">Forgot email?</span>
           <span class="link" id="toggle-create" aria-expanded="false" data-i18n="login.createAccount">Create account</span>
         </div>
       </div>
@@ -465,6 +544,34 @@
     </div>
   </div>
 
+  <!-- Forgot Email Modal -->
+  <div class="forgot-email-overlay" id="forgot-email-overlay">
+    <div class="forgot-email-card">
+      <h3 data-i18n="login.forgotEmail.title">Esqueceu o seu email?</h3>
+      <p data-i18n="login.forgotEmail.desc">
+        Se não se lembra do email utilizado no registo, tente iniciar sessão com Google ou Microsoft — a sua conta será encontrada automaticamente. Caso contrário, contacte a nossa equipa de suporte:
+      </p>
+      <div class="support-options">
+        <a href="https://wa.me/244928917269" target="_blank" class="support-option">
+          <i class="fa-brands fa-whatsapp"></i>
+          <span>WhatsApp — +244 928 917 269</span>
+        </a>
+        <a href="tel:+244928917269" class="support-option">
+          <i class="fa-solid fa-phone"></i>
+          <span>Ligar — +244 928 917 269</span>
+        </a>
+        <a href="mailto:suporte@geovisionops.com" class="support-option">
+          <i class="fa-solid fa-envelope"></i>
+          <span>suporte@geovisionops.com</span>
+        </a>
+      </div>
+      <p class="hint-text" data-i18n="login.forgotEmail.hint">
+        A equipa irá verificar a sua identidade e fornecer o email associado à sua conta.
+      </p>
+      <button class="close-modal" id="close-forgot-email" data-i18n="login.forgotEmail.close">Fechar</button>
+    </div>
+  </div>
+
   <script>
     document.querySelectorAll('.toggle-password').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -473,6 +580,17 @@
         input.type = isPassword ? 'text' : 'password';
         btn.innerHTML = isPassword ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
       });
+    });
+
+    // Forgot email modal
+    document.getElementById('forgot-email-link').addEventListener('click', () => {
+      document.getElementById('forgot-email-overlay').classList.add('show');
+    });
+    document.getElementById('close-forgot-email').addEventListener('click', () => {
+      document.getElementById('forgot-email-overlay').classList.remove('show');
+    });
+    document.getElementById('forgot-email-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
     });
   </script>
   <script src="assets/js/site.js"></script>
