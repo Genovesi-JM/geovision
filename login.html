@@ -306,23 +306,35 @@
     .google-btn, .microsoft-btn {
       width: 100%;
       display: inline-flex;
-      gap: 0.65rem;
+      gap: 0.75rem;
       align-items: center;
       justify-content: center;
-      padding: 0.9rem;
+      padding: 0.85rem 1.2rem;
       border-radius: 12px;
       background: #fff;
-      color: #111827;
-      font-weight: 600;
-      border: none;
+      color: #3c4043;
+      font-weight: 500;
+      font-size: 0.95rem;
+      border: 1px solid #dadce0;
       cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .google-btn:hover {
+      background: #f7f8f8;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .google-btn img, .microsoft-btn img {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
     }
     .microsoft-btn {
       background: #2f2f2f;
       color: #fff;
       margin-top: 0.5rem;
+      border-color: #2f2f2f;
     }
-    .microsoft-btn:hover { background: #404040; }
+    .microsoft-btn:hover { background: #404040; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
     .feedback {
       display: none;
       margin-top: 0.8rem;
@@ -392,10 +404,10 @@
       <div class="actions">
         <button class="btn-primary" type="submit" id="login-submit" data-i18n="login.signin">Sign In</button>
         <button class="google-btn" type="button" id="google-btn">
-          <span><i class="fa-brands fa-google"></i></span> <span data-i18n="login.google">Sign in with Google</span>
+          <img src="assets/img/google-logo.svg" alt="Google" /> <span data-i18n="login.google">Sign in with Google</span>
         </button>
         <button class="microsoft-btn" type="button" id="microsoft-btn">
-          <span>🪟</span> <span data-i18n="login.microsoft">Sign in with Microsoft</span>
+          <img src="assets/img/microsoft-logo.svg" alt="Microsoft" /> <span data-i18n="login.microsoft">Sign in with Microsoft</span>
         </button>
         <div class="split">
           <span class="link" id="forgot-link" data-i18n="login.forgot">Forgot password</span>
