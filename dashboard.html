@@ -1337,7 +1337,7 @@
           <div class="card">
             <div class="card-header">
               <h3 class="card-title" data-i18n="dash.ops.title">Operações em Curso</h3>
-              <span class="badge badge-active" id="services-badge">0 ativos</span>
+              <span class="badge badge-active" id="services-badge" data-i18n="dash.ops.activeBadge">0 ativos</span>
             </div>
             <div class="card-body">
               <table class="data-table" id="services-table">
@@ -1362,8 +1362,8 @@
           <!-- Alerts -->
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Alertas & Atenção</h3>
-              <span class="badge badge-danger">Ao vivo</span>
+              <h3 class="card-title" data-i18n="dash.alerts.title">Alertas & Atenção</h3>
+              <span class="badge badge-danger" data-i18n="dash.alerts.live">Ao vivo</span>
             </div>
             <div class="card-body">
               <div id="alerts-list" class="alerts-list">
@@ -1377,24 +1377,24 @@
       <!-- ============ OPERATIONS VIEW ============ -->
       <div class="view-panel" id="view-operations">
         <div class="page-header">
-          <div class="page-eyebrow">Recursos</div>
-          <h1 class="page-title">Operações</h1>
-          <p class="page-subtitle">Acompanhe todas as operações e serviços em curso.</p>
+          <div class="page-eyebrow" data-i18n="dash.opsView.eyebrow">Recursos</div>
+          <h1 class="page-title" data-i18n="dash.opsView.title">Operações</h1>
+          <p class="page-subtitle" data-i18n="dash.opsView.desc">Acompanhe todas as operações e serviços em curso.</p>
         </div>
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title">Lista de Operações</h3>
+            <h3 class="card-title" data-i18n="dash.opsView.listTitle">Lista de Operações</h3>
           </div>
           <div class="card-body">
             <table class="data-table" id="operations-table">
               <thead>
                 <tr>
-                  <th>Tipo</th>
-                  <th>Local</th>
-                  <th>Área (ha)</th>
-                  <th>Data Início</th>
-                  <th>Estado</th>
-                  <th>Ações</th>
+                  <th data-i18n="dash.ops.type">Tipo</th>
+                  <th data-i18n="dash.ops.location">Local</th>
+                  <th data-i18n="dash.ops.area">Área (ha)</th>
+                  <th data-i18n="dash.ops.startDate">Data Início</th>
+                  <th data-i18n="dash.ops.status">Estado</th>
+                  <th data-i18n="common.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="operations-table-body"></tbody>
@@ -1523,7 +1523,7 @@
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-mobile-screen-button"></i></div>
-              <h3 style="margin-bottom:0.5rem;">WhatsApp</h3>
+              <h3 style="margin-bottom:0.5rem;" data-i18n="dash.support.whatsappTitle">WhatsApp</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;" data-i18n="dash.support.whatsapp">Resposta rápida via chat</p>
               <a href="https://wa.me/244928917269" target="_blank" class="btn btn-primary" style="text-decoration:none;" data-i18n="dash.support.openWhatsapp">Abrir WhatsApp</a>
             </div>
@@ -1531,7 +1531,7 @@
           <div class="card" style="margin-bottom:0;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-envelope"></i></div>
-              <h3 style="margin-bottom:0.5rem;">Email</h3>
+              <h3 style="margin-bottom:0.5rem;" data-i18n="dash.support.emailTitle">Email</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">suporte@geovisionops.com</p>
               <a href="mailto:suporte@geovisionops.com" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.sendEmail">Enviar Email</a>
             </div>
@@ -1560,11 +1560,11 @@
           </div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">Email</label>
+              <label class="form-label" data-i18n="dash.settings.emailLabel">Email</label>
               <input type="email" class="form-input" id="settings-email" readonly />
             </div>
             <div class="form-group">
-              <label class="form-label">Conta Ativa</label>
+              <label class="form-label" data-i18n="dash.settings.activeAccount">Conta Ativa</label>
               <input type="text" class="form-input" id="settings-account" readonly />
             </div>
           </div>
@@ -1619,10 +1619,10 @@
         <div class="form-group">
           <label class="form-label" data-i18n="dash.modal.modules">Módulos</label>
           <div class="form-checkboxes" id="account-modules">
-            <label><input type="checkbox" value="kpi" checked /> KPIs</label>
-            <label><input type="checkbox" value="projects" checked /> Projects</label>
-            <label><input type="checkbox" value="store" checked /> Store</label>
-            <label><input type="checkbox" value="alerts" checked /> Alerts</label>
+            <label><input type="checkbox" value="kpi" checked /> <span data-i18n="dash.modal.moduleKpi">KPIs</span></label>
+            <label><input type="checkbox" value="projects" checked /> <span data-i18n="dash.modal.moduleProjects">Projects</span></label>
+            <label><input type="checkbox" value="store" checked /> <span data-i18n="dash.modal.moduleStore">Store</span></label>
+            <label><input type="checkbox" value="alerts" checked /> <span data-i18n="dash.modal.moduleAlerts">Alerts</span></label>
           </div>
         </div>
       </div>

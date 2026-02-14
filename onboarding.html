@@ -99,30 +99,30 @@
 </head>
 <body>
   <div class="shell">
-    <h1 class="title">Configurar tipo de conta</h1>
-    <p class="subtitle" id="welcome-text">Bem-vindo ao GeoVision.</p>
+    <h1 class="title" data-i18n="onboarding.title">Configurar tipo de conta</h1>
+    <p class="subtitle" id="welcome-text" data-i18n="onboarding.welcome">Bem-vindo ao GeoVision.</p>
 
     <form id="onboarding-form" class="grid">
       <div>
-        <label>Setores de atuação (seleciona todos os que se aplicam)</label>
+        <label data-i18n="onboarding.sectorsLabel">Setores de atuação (seleciona todos os que se aplicam)</label>
         <div class="checkbox-grid" id="sectors-group">
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="agro" /> Agro &amp; Pecuária</label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="mining" /> Mineração</label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="demining" /> Desminagem</label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="construction" /> Construção</label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="infrastructure" /> Infraestruturas</label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="solar" /> Solar</label>
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="agro" /> <span data-i18n="onboarding.sector.agro">Agro &amp; Pecuária</span></label>
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="mining" /> <span data-i18n="onboarding.sector.mining">Mineração</span></label>
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="demining" /> <span data-i18n="onboarding.sector.demining">Desminagem</span></label>
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="construction" /> <span data-i18n="onboarding.sector.construction">Construção</span></label>
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="infrastructure" /> <span data-i18n="onboarding.sector.infrastructure">Infraestruturas</span></label>
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="solar" /> <span data-i18n="onboarding.sector.solar">Solar</span></label>
         </div>
       </div>
       <div>
-        <label for="org-name">Nome da organização (opcional)</label>
-        <input id="org-name" type="text" placeholder="Nome da empresa / fazenda" />
+        <label for="org-name" data-i18n="onboarding.orgLabel">Nome da organização (opcional)</label>
+        <input id="org-name" type="text" placeholder="Nome da empresa / fazenda" data-i18n-placeholder="onboarding.orgPlaceholder" />
       </div>
       <div>
-        <label for="account-name">Nome do espaço de trabalho (opcional)</label>
-        <input id="account-name" type="text" placeholder="Ex.: GeoVision – Operações Agro" />
+        <label for="account-name" data-i18n="onboarding.workspaceLabel">Nome do espaço de trabalho (opcional)</label>
+        <input id="account-name" type="text" placeholder="Ex.: GeoVision – Operações Agro" data-i18n-placeholder="onboarding.workspacePlaceholder" />
       </div>
-      <button type="submit" class="btn-primary" id="submit-btn">Guardar e continuar</button>
+      <button type="submit" class="btn-primary" id="submit-btn" data-i18n="onboarding.submit">Guardar e continuar</button>
     </form>
 
     <div id="success-box" class="feedback success" role="status" aria-live="polite" aria-hidden="true"></div>

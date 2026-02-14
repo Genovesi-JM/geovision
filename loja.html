@@ -1061,21 +1061,21 @@
 
       <div class="loja-demo-panel">
         <div class="loja-demo-header">
-          <div class="loja-demo-title">Real-time Demo</div>
-          <div class="loja-demo-status" id="demo-status">Awaiting submission...</div>
+          <div class="loja-demo-title" data-i18n="loja.demo.title">Real-time Demo</div>
+          <div class="loja-demo-status" id="demo-status" data-i18n="loja.demo.status">Awaiting submission...</div>
         </div>
-        <p class="loja-subtitle" style="margin-bottom:0.8rem;">
+        <p class="loja-subtitle" style="margin-bottom:0.8rem;" data-i18n="loja.demo.description">
           When you click "Submit Order", we display the payload sent and the response returned by FastAPI below.
         </p>
 
         <div class="loja-demo-grid">
           <div class="loja-demo-block">
-            <div class="loja-card-tag">Payload Sent</div>
-            <pre class="loja-demo-pre" id="demo-request">No order data yet.</pre>
+            <div class="loja-card-tag" data-i18n="loja.demo.payloadSent">Payload Sent</div>
+            <pre class="loja-demo-pre" id="demo-request" data-i18n="loja.demo.noData">No order data yet.</pre>
           </div>
           <div class="loja-demo-block">
-            <div class="loja-card-tag">Backend Response</div>
-            <pre class="loja-demo-pre" id="demo-response">Awaiting first response.</pre>
+            <div class="loja-card-tag" data-i18n="loja.demo.backendResponse">Backend Response</div>
+            <pre class="loja-demo-pre" id="demo-response" data-i18n="loja.demo.awaitingResponse">Awaiting first response.</pre>
           </div>
         </div>
       </div>
@@ -1149,27 +1149,27 @@
   <div id="sector-warning-modal" class="checkout-modal">
     <div class="checkout-modal-content" style="max-width: 450px;">
       <div class="checkout-header">
-        <h3 class="checkout-title"><i class="fa-solid fa-triangle-exclamation"></i> Service outside account sector</h3>
+        <h3 class="checkout-title" data-i18n="loja.sectorWarning.title"><i class="fa-solid fa-triangle-exclamation"></i> Service outside account sector</h3>
         <button class="checkout-close" onclick="closeSectorWarning()">×</button>
       </div>
       <div class="checkout-section" style="text-align:center;">
         <div style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 0.8rem; padding: 1rem; margin-bottom: 1rem;">
-          <p id="sector-warning-message" style="color: #fbbf24; font-size: 0.9rem;">
+          <p id="sector-warning-message" style="color: #fbbf24; font-size: 0.9rem;" data-i18n="loja.sectorWarning.message">
             This service is intended for another sector.
           </p>
         </div>
-        <p id="sector-warning-suggestion" style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 1.5rem;">
+        <p id="sector-warning-suggestion" style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 1.5rem;" data-i18n="loja.sectorWarning.suggestion">
           You can continue with the purchase or create a new account.
         </p>
         <div style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;">
-          <button id="sector-warning-continue" class="checkout-btn" style="background: linear-gradient(135deg, #22c55e, #38bdf8); min-width: 150px;">
+          <button id="sector-warning-continue" class="checkout-btn" style="background: linear-gradient(135deg, #22c55e, #38bdf8); min-width: 150px;" data-i18n="loja.sectorWarning.continue">
             Continue
           </button>
-          <button class="checkout-btn" onclick="closeSectorWarning(); location.href='dashboard.html'" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); min-width: 150px;">
+          <button class="checkout-btn" onclick="closeSectorWarning(); location.href='dashboard.html'" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); min-width: 150px;" data-i18n="loja.sectorWarning.newAccount">
             Create New Account
           </button>
         </div>
-        <p style="font-size: 0.72rem; color: #6b7280; margin-top: 1rem;">
+        <p style="font-size: 0.72rem; color: #6b7280; margin-top: 1rem;" data-i18n="loja.sectorWarning.info">
           This warning is informational only. The purchase is not blocked.
         </p>
       </div>
@@ -1180,23 +1180,23 @@
   <div id="checkout-modal" class="checkout-modal">
     <div class="checkout-modal-content">
       <div class="checkout-header">
-        <h3 class="checkout-title">Complete Purchase</h3>
+        <h3 class="checkout-title" data-i18n="loja.checkout.title">Complete Purchase</h3>
         <button class="checkout-close" onclick="closeCheckoutModal()">×</button>
       </div>
       
       <!-- Auth Choice Section -->
       <div id="checkout-auth-choice" style="display:none;">
         <div class="checkout-section" style="text-align:center;">
-          <p style="color:#9ca3af;margin-bottom:1rem;">To continue, choose an option:</p>
+          <p style="color:#9ca3af;margin-bottom:1rem;" data-i18n="loja.checkout.chooseOption">To continue, choose an option:</p>
           <div style="display:flex;flex-direction:column;gap:0.8rem;max-width:300px;margin:0 auto;">
-            <a href="login.html?redirect=loja.html" class="checkout-btn" style="text-decoration:none;text-align:center;background:linear-gradient(135deg,#22c55e,#38bdf8);">
+            <a href="login.html?redirect=loja.html" class="checkout-btn" style="text-decoration:none;text-align:center;background:linear-gradient(135deg,#22c55e,#38bdf8);" data-i18n="loja.checkout.signIn">
               Sign In
             </a>
-            <button class="checkout-btn" onclick="continueAsGuest()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);">
+            <button class="checkout-btn" onclick="continueAsGuest()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);" data-i18n="loja.checkout.guest">
               Continue as Guest
             </button>
           </div>
-          <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem;">
+          <p style="font-size:0.75rem;color:#6b7280;margin-top:1rem;" data-i18n="loja.checkout.signInNote">
             By signing in, you can track your orders in the Dashboard.
           </p>
         </div>
@@ -1204,56 +1204,56 @@
 
       <div id="checkout-content">
         <div class="checkout-section">
-          <h4>Billing Details</h4>
-          <input type="text" id="billing-name" class="checkout-input" placeholder="Full name" required />
-          <input type="email" id="billing-email" class="checkout-input" placeholder="Email" required />
-          <input type="text" id="billing-phone" class="checkout-input" placeholder="Phone (+244...)" />
-          <input type="text" id="billing-company" class="checkout-input" placeholder="Company (optional)" />
-          <input type="text" id="billing-nif" class="checkout-input" placeholder="Tax ID (optional)" />
+          <h4 data-i18n="loja.checkout.billingDetails">Billing Details</h4>
+          <input type="text" id="billing-name" class="checkout-input" placeholder="Full name" data-i18n-placeholder="loja.checkout.fullName" required />
+          <input type="email" id="billing-email" class="checkout-input" placeholder="Email" data-i18n-placeholder="loja.checkout.email" required />
+          <input type="text" id="billing-phone" class="checkout-input" placeholder="Phone (+244...)" data-i18n-placeholder="loja.checkout.phone" />
+          <input type="text" id="billing-company" class="checkout-input" placeholder="Company (optional)" data-i18n-placeholder="loja.checkout.company" />
+          <input type="text" id="billing-nif" class="checkout-input" placeholder="Tax ID (optional)" data-i18n-placeholder="loja.checkout.taxId" />
         </div>
 
         <div class="checkout-section">
-          <h4>Payment Method</h4>
+          <h4 data-i18n="loja.checkout.paymentMethod">Payment Method</h4>
           <div class="payment-methods">
             <label class="payment-option" onclick="selectPayment('multicaixa_express')">
               <input type="radio" name="payment" value="multicaixa_express" checked />
               <div>
-                <div class="payment-label">Multicaixa Express</div>
-                <div class="payment-desc">Payment by QR code or reference</div>
+                <div class="payment-label" data-i18n="loja.payment.multicaixa">Multicaixa Express</div>
+                <div class="payment-desc" data-i18n="loja.payment.multicaixaDesc">Payment by QR code or reference</div>
               </div>
             </label>
             <label class="payment-option" onclick="selectPayment('visa_mastercard')">
               <input type="radio" name="payment" value="visa_mastercard" />
               <div>
-                <div class="payment-label">Visa / Mastercard</div>
-                <div class="payment-desc">International credit/debit card</div>
+                <div class="payment-label" data-i18n="loja.payment.visa">Visa / Mastercard</div>
+                <div class="payment-desc" data-i18n="loja.payment.visaDesc">International credit/debit card</div>
               </div>
             </label>
             <label class="payment-option" onclick="selectPayment('iban_angola')">
               <input type="radio" name="payment" value="iban_angola" />
               <div>
-                <div class="payment-label">IBAN Transfer (Angola)</div>
-                <div class="payment-desc">Local AOA bank transfer</div>
+                <div class="payment-label" data-i18n="loja.payment.ibanAngola">IBAN Transfer (Angola)</div>
+                <div class="payment-desc" data-i18n="loja.payment.ibanAngolaDesc">Local AOA bank transfer</div>
               </div>
             </label>
             <label class="payment-option" onclick="selectPayment('iban_international')">
               <input type="radio" name="payment" value="iban_international" />
               <div>
-                <div class="payment-label">IBAN Transfer (International)</div>
-                <div class="payment-desc">SWIFT/SEPA in EUR</div>
+                <div class="payment-label" data-i18n="loja.payment.ibanIntl">IBAN Transfer (International)</div>
+                <div class="payment-desc" data-i18n="loja.payment.ibanIntlDesc">SWIFT/SEPA in EUR</div>
               </div>
             </label>
           </div>
         </div>
 
         <div class="checkout-section">
-          <h4>Order Summary</h4>
+          <h4 data-i18n="loja.checkout.orderSummary">Order Summary</h4>
           <div class="checkout-summary" id="checkout-summary">
             <!-- Filled by JS -->
           </div>
         </div>
 
-        <button class="checkout-btn" id="confirm-checkout-btn" onclick="processCheckout()">
+        <button class="checkout-btn" id="confirm-checkout-btn" onclick="processCheckout()" data-i18n="loja.checkout.confirm">
           Confirm Order
         </button>
       </div>
