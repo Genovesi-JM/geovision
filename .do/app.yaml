@@ -1,0 +1,60 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
+databases:
+- cluster_name: db-postgresql-ams3-28118
+  engine: PG
+  name: db-postgresql-ams3-28118
+  production: true
+features:
+- buildpack-stack=ubuntu-22
+ingress:
+  rules:
+  - component:
+      name: geovision
+    match:
+      path:
+        prefix: /
+name: geovisionops
+region: ams
+services:
+- build_command: pip install --upgrade pip && pip install -r requirements.deploy.txt
+  environment_slug: python
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${production-database.DATABASE_URL}
+  - key: ENV
+    scope: RUN_AND_BUILD_TIME
+    value: prod
+  - key: PORT
+    scope: RUN_TIME
+    value: "8080"
+  - key: CORS_ORIGINS
+    scope: RUN_TIME
+    value: https://genovesi-jm.github.io,https://geovisionops.com,https://www.geovisionops.com
+  - key: FRONTEND_BASE
+    scope: RUN_TIME
+    value: https://genovesi-jm.github.io/geovision
+  - key: BACKEND_BASE
+    scope: RUN_TIME
+    type: SECRET
+  - key: SECRET_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: GOOGLE_CLIENT_ID
+    scope: RUN_TIME
+    type: SECRET
+  - key: GOOGLE_CLIENT_SECRET
+    scope: RUN_TIME
+    type: SECRET
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: Genovesi-JM/geovision
+  http_port: 8080
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-2gb
+  name: geovision
+  run_command: python start.py
+  source_dir: /backend
