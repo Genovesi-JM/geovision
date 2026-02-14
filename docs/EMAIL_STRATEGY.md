@@ -174,7 +174,7 @@ JoÃ£o Silva
 Especialista em OperaÃ§Ãµes de Voo
 
 ðŸ“§ joao.silva@geovisionops.com
-ðŸ“ž +244 923 000 000
+ðŸ"ž +244 928 917 269
 ðŸŒ www.geovisionops.com
 
 GeoVision â€” InteligÃªncia AÃ©rea para Angola
@@ -188,7 +188,7 @@ Mining | Infrastructure | Agriculture | Demining | Solar
 ```html
 --
 JoÃ£o Silva | GeoVision
-ðŸ“§ joao.silva@geovisionops.com | ðŸ“ž +244 923 000 000
+ðŸ"§ joao.silva@geovisionops.com | ðŸ"ž +244 928 917 269
 ```
 
 ---
