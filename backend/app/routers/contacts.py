@@ -48,7 +48,7 @@ class ContactCreate(BaseModel):
 DEFAULT_CONTACTS = [
     {"channel": "whatsapp", "label": "Suporte", "value": "+244928917269", "sort_order": 1},
     {"channel": "whatsapp", "label": "Vendas", "value": "+244928917269", "sort_order": 2},
-    {"channel": "instagram", "label": "Instagram", "value": "geovisionops", "sort_order": 3},
+    {"channel": "instagram", "label": "Instagram", "value": "Geovision.operations", "sort_order": 3},
     {"channel": "email", "label": "Suporte", "value": "support@geovisionops.com", "sort_order": 4},
     {"channel": "email", "label": "Vendas", "value": "sales@geovisionops.com", "sort_order": 5},
     {"channel": "email", "label": "Financeiro", "value": "finance@geovisionops.com", "sort_order": 6},
@@ -90,26 +90,46 @@ def _build_link(channel: str, value: str, name: str = "", company: str = "", con
 
 
 def _seed_defaults(db: Session):
-    """Seed default contacts if table is empty."""
+    """Seed default contacts if table is empty, or fix stale values."""
     count = db.query(ContactMethod).count()
-    if count > 0:
+    if count == 0:
+        # Fresh seed
+        env = settings.env or "prod"
+        for c in DEFAULT_CONTACTS:
+            cm = ContactMethod(
+                channel=c["channel"],
+                label=c["label"],
+                value=c["value"],
+                environment=env,
+                is_public=True,
+                sort_order=c["sort_order"],
+            )
+            db.add(cm)
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
         return
 
-    env = settings.env or "prod"
-    for c in DEFAULT_CONTACTS:
-        cm = ContactMethod(
-            channel=c["channel"],
-            label=c["label"],
-            value=c["value"],
-            environment=env,
-            is_public=True,
-            sort_order=c["sort_order"],
-        )
-        db.add(cm)
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
+    # Fix stale values from old domain / placeholder numbers
+    _FIXES = {
+        "geovision.digital": "geovisionops.com",
+        "+244923000000": "+244928917269",
+        "+244923000001": "+244928917269",
+        "geovisionops": "Geovision.operations",  # instagram handle
+    }
+    rows = db.query(ContactMethod).all()
+    changed = False
+    for row in rows:
+        for old_val, new_val in _FIXES.items():
+            if old_val in row.value:
+                row.value = row.value.replace(old_val, new_val)
+                changed = True
+    if changed:
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
 
 
 # ── Public Endpoints ──
