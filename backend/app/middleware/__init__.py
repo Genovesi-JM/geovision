@@ -46,7 +46,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
         "img-src 'self' data: https: blob:",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-        "connect-src 'self' https://api.geovisionops.com https://geovision-backend-db2f.onrender.com https://accounts.google.com https://login.microsoftonline.com https://graph.microsoft.com https://wa.me",
+        "connect-src 'self' https://api.geovisionops.com https://geovisionops-sqknb.ondigitalocean.app https://accounts.google.com https://login.microsoftonline.com https://graph.microsoft.com https://wa.me",
         "frame-src 'self' https://accounts.google.com https://login.microsoftonline.com https://www.youtube.com https://youtube.com",
         "media-src 'self' https: blob:",
         "object-src 'none'",

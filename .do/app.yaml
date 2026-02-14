@@ -38,7 +38,7 @@ services:
     value: https://genovesi-jm.github.io/geovision
   - key: BACKEND_BASE
     scope: RUN_TIME
-    type: SECRET
+    value: https://geovisionops-sqknb.ondigitalocean.app
   - key: SECRET_KEY
     scope: RUN_TIME
     type: SECRET
