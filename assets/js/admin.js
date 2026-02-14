@@ -16,7 +16,7 @@ let products = [];
 function requireAdmin() {
   const token = localStorage.getItem("gv_token");
   const role = localStorage.getItem("gv_role");
-  const email = localStorage.getItem("gv_email") || "admin@geovision";
+  const email = localStorage.getItem("gv_email") || "—";
 
   document.getElementById("admin-email").textContent = email;
 

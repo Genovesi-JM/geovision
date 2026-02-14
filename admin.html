@@ -1066,7 +1066,7 @@
             </div>
             <div class="card-body">
               <div class="chart-container" id="chart-growth">
-                <i class="fa-solid fa-chart-line"></i> Gráfico de crescimento (implementar Chart.js)
+                <p style="text-align:center;color:var(--text-muted);padding:2rem 0;"><i class="fa-solid fa-chart-line"></i> Sem dados de crescimento disponíveis.</p>
               </div>
             </div>
           </div>
@@ -1076,7 +1076,7 @@
             </div>
             <div class="card-body">
               <div class="chart-container" id="chart-revenue-sector">
-                🥧 Gráfico de receita por setor
+                <p style="text-align:center;color:var(--text-muted);padding:2rem 0;"><i class="fa-solid fa-chart-pie"></i> Sem dados de receita disponíveis.</p>
               </div>
             </div>
           </div>
@@ -1102,13 +1102,7 @@
                 </tr>
               </thead>
               <tbody id="activity-table-body">
-                <tr>
-                  <td>14:32</td>
-                  <td>admin@geovisionops.com</td>
-                  <td><span class="badge badge-active">Login</span></td>
-                  <td>Sistema</td>
-                  <td>Luanda, Angola</td>
-                </tr>
+                <!-- Activity rows populated dynamically -->
               </tbody>
             </table>
           </div>
@@ -1859,12 +1853,12 @@
     }
 
     function uploadDocument() {
-      alert('Upload de documento - implementar com FormData e endpoint de upload');
+      // TODO: integrate FormData upload endpoint
       closeModal('modal-upload-doc');
     }
 
     function exportReport() {
-      alert('Exportar relatório - implementar');
+      // TODO: integrate report export endpoint
     }
 
     // ============ SITES ============
@@ -2124,7 +2118,7 @@
       loadClients();
 
       // Load user info
-      const email = localStorage.getItem('gv_email') || 'admin@geovision';
+      const email = localStorage.getItem('gv_email') || '—';
       const role = localStorage.getItem('gv_role') || 'admin';
       document.getElementById('user-name').textContent = email.split('@')[0];
       document.getElementById('user-role').textContent = role === 'admin' ? 'Super Admin' : role;

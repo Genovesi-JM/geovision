@@ -17,9 +17,7 @@ from .routers import datasets, risk, payments, admin
 from .routers import shop, contacts
 from .seed_data import (
     seed_demo_products,
-    seed_demo_users,
-    seed_demo_customer_accounts,
-    seed_demo_employees,
+    seed_admin_users,
 )
 
 
@@ -81,20 +79,13 @@ def create_application() -> FastAPI:
 
     try:
         inserted_products = seed_demo_products()
-        inserted_users = seed_demo_users()
-        inserted_customers = seed_demo_customer_accounts()
-        inserted_employees = seed_demo_employees()
+        inserted_users = seed_admin_users()
         if inserted_products:
-            print(f"[GeoVision] Produtos demo inseridos: {inserted_products}")
+            print(f"[GeoVision] Produtos inseridos: {inserted_products}")
         if inserted_users:
-            print(f"[GeoVision] Utilizadores demo criados: {inserted_users}")
-        if inserted_customers:
-            print(f"[GeoVision] Contas de clientes demo criadas: {inserted_customers}")
-        if inserted_employees:
-            print(f"[GeoVision] Funcionários demo criados: {inserted_employees}")
+            print(f"[GeoVision] Utilizadores admin criados: {inserted_users}")
     except Exception as exc:
-        # Não travar a app se a seed falhar, apenas registar.
-        print(f"[GeoVision] Falha ao semear dados demo: {exc}")
+        print(f"[GeoVision] Falha ao semear dados: {exc}")
 
     # Routers principais existentes
     # The `auth` router already sets its own prefix (prefix="/auth"), so

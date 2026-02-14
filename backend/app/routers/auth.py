@@ -43,7 +43,7 @@ from ..utils import hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-ADMIN_EMAILS: Set[str] = {"genovesi.maria@geovisionops.com", "teste@admin.com"}
+ADMIN_EMAILS: Set[str] = {"genovesi.maria@geovisionops.com"}
 DEFAULT_MODULES = ["kpi", "projects", "store", "alerts"]
 ALLOWED_SECTORS = {"agro", "mining", "demining", "construction", "infrastructure", "solar"}
 

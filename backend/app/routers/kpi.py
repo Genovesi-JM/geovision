@@ -27,16 +27,16 @@ def _now_minus(minutes: int) -> datetime:
 
 def get_agro_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="ndvi_avg", label="NDVI Medio", value=0.72, unit="", status="ok", trend="up",
+        KPIItem(id="ndvi_avg", label="NDVI Medio", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(30), sector="agro",
                 description="Indice de vegetacao medio das areas monitoradas. Valores acima de 0.6 indicam vegetacao saudavel."),
-        KPIItem(id="water_stress", label="Stress Hidrico", value=12, unit="%", status="ok", trend="down",
+        KPIItem(id="water_stress", label="Stress Hidrico", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(45), sector="agro",
                 description="Percentagem da area com indicadores de stress hidrico. Abaixo de 20% e considerado normal."),
-        KPIItem(id="hectares_monitored", label="Hectares Monitorados", value=275, unit="ha", status="ok", trend="stable",
+        KPIItem(id="hectares_monitored", label="Hectares Monitorados", value=0, unit="ha", status="ok", trend="stable",
                 updated_at=_now_minus(60), sector="agro",
                 description="Total de area agricola sob monitorizacao ativa por drone e sensores."),
-        KPIItem(id="yield_estimate", label="Produtividade Estimada", value=4.2, unit="ton/ha", status="ok", trend="up",
+        KPIItem(id="yield_estimate", label="Produtividade Estimada", value=0, unit="ton/ha", status="ok", trend="stable",
                 updated_at=_now_minus(120), sector="agro",
                 description="Estimativa de produtividade baseada em analise multispectral e historico."),
     ]
@@ -44,16 +44,16 @@ def get_agro_kpis() -> List[KPIItem]:
 
 def get_mining_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="extraction_volume", label="Volume Extraido", value=12500, unit="m3", status="ok", trend="up",
+        KPIItem(id="extraction_volume", label="Volume Extraido", value=0, unit="m3", status="ok", trend="stable",
                 updated_at=_now_minus(60), sector="mining",
                 description="Volume total de material extraido no periodo atual."),
-        KPIItem(id="slope_stability", label="Estabilidade Taludes", value=94, unit="%", status="ok", trend="stable",
+        KPIItem(id="slope_stability", label="Estabilidade Taludes", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(15), sector="mining",
                 description="Indice de estabilidade dos taludes principais. Valores acima de 90% sao seguros."),
-        KPIItem(id="sensors_active", label="Sensores Ativos", value=18, unit="", status="ok", trend="stable",
+        KPIItem(id="sensors_active", label="Sensores Ativos", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(5), sector="mining",
                 description="Numero de sensores geotecnicos a transmitir dados em tempo real."),
-        KPIItem(id="geotechnical_alerts", label="Alertas Geotecnicos", value=2, unit="", status="warning", trend="up",
+        KPIItem(id="geotechnical_alerts", label="Alertas Geotecnicos", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(10), sector="mining",
                 description="Alertas ativos relacionados com movimentacao de terreno ou instabilidade."),
     ]
@@ -61,16 +61,16 @@ def get_mining_kpis() -> List[KPIItem]:
 
 def get_construction_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="progress_percent", label="Progresso Obra", value=67, unit="%", status="ok", trend="up",
+        KPIItem(id="progress_percent", label="Progresso Obra", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(120), sector="construction",
                 description="Percentagem de conclusao da obra principal baseada em levantamentos topograficos."),
-        KPIItem(id="conformity_index", label="Conformidade Projeto", value=96, unit="%", status="ok", trend="stable",
+        KPIItem(id="conformity_index", label="Conformidade Projeto", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(180), sector="construction",
                 description="Indice de conformidade entre o executado e o projeto original."),
-        KPIItem(id="pending_inspections", label="Inspecoes Pendentes", value=3, unit="", status="warning", trend="up",
+        KPIItem(id="pending_inspections", label="Inspecoes Pendentes", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(60), sector="construction",
                 description="Numero de inspecoes de drone agendadas mas ainda nao realizadas."),
-        KPIItem(id="volume_earthwork", label="Volume Terraplanagem", value=8400, unit="m3", status="ok", trend="up",
+        KPIItem(id="volume_earthwork", label="Volume Terraplanagem", value=0, unit="m3", status="ok", trend="stable",
                 updated_at=_now_minus(240), sector="construction",
                 description="Volume de terraplanagem executado medido por fotogrametria."),
     ]
@@ -78,16 +78,16 @@ def get_construction_kpis() -> List[KPIItem]:
 
 def get_infrastructure_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="km_monitored", label="Km Monitorados", value=145, unit="km", status="ok", trend="stable",
+        KPIItem(id="km_monitored", label="Km Monitorados", value=0, unit="km", status="ok", trend="stable",
                 updated_at=_now_minus(60), sector="infrastructure",
                 description="Extensao total de infraestrutura linear (estradas, linhas) sob monitorizacao."),
-        KPIItem(id="structural_integrity", label="Integridade Estrutural", value=98, unit="%", status="ok", trend="stable",
+        KPIItem(id="structural_integrity", label="Integridade Estrutural", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(30), sector="infrastructure",
                 description="Indice medio de integridade das estruturas inspecionadas (pontes, viadutos)."),
-        KPIItem(id="vibration_sensors", label="Sensores Vibracao", value=12, unit="", status="ok", trend="stable",
+        KPIItem(id="vibration_sensors", label="Sensores Vibracao", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(5), sector="infrastructure",
                 description="Sensores de vibracao ativos em pontes e estruturas criticas."),
-        KPIItem(id="maintenance_alerts", label="Alertas Manutencao", value=1, unit="", status="warning", trend="down",
+        KPIItem(id="maintenance_alerts", label="Alertas Manutencao", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(15), sector="infrastructure",
                 description="Alertas ativos que requerem intervencao de manutencao."),
     ]
@@ -95,16 +95,16 @@ def get_infrastructure_kpis() -> List[KPIItem]:
 
 def get_solar_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="panel_efficiency", label="Eficiencia Paineis", value=87, unit="%", status="ok", trend="stable",
+        KPIItem(id="panel_efficiency", label="Eficiencia Paineis", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(30), sector="solar",
                 description="Eficiencia media dos paineis solares baseada em inspecao termica."),
-        KPIItem(id="irradiance_avg", label="Irradiancia Media", value=5.8, unit="kWh/m2", status="ok", trend="up",
+        KPIItem(id="irradiance_avg", label="Irradiancia Media", value=0, unit="kWh/m2", status="ok", trend="stable",
                 updated_at=_now_minus(15), sector="solar",
                 description="Irradiancia solar media diaria medida pelos sensores."),
-        KPIItem(id="anomaly_panels", label="Paineis com Anomalia", value=4, unit="", status="warning", trend="down",
+        KPIItem(id="anomaly_panels", label="Paineis com Anomalia", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(60), sector="solar",
                 description="Paineis identificados com hotspots ou anomalias termicas."),
-        KPIItem(id="energy_generated", label="Energia Gerada", value=1240, unit="MWh", status="ok", trend="up",
+        KPIItem(id="energy_generated", label="Energia Gerada", value=0, unit="MWh", status="ok", trend="stable",
                 updated_at=_now_minus(120), sector="solar",
                 description="Energia total gerada no mes atual."),
     ]
@@ -112,16 +112,16 @@ def get_solar_kpis() -> List[KPIItem]:
 
 def get_demining_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="area_cleared", label="Area Verificada", value=12500, unit="m2", status="ok", trend="up",
+        KPIItem(id="area_cleared", label="Area Verificada", value=0, unit="m2", status="ok", trend="stable",
                 updated_at=_now_minus(60), sector="demining",
                 description="Area total verificada e declarada segura."),
-        KPIItem(id="objects_detected", label="Objetos Detectados", value=23, unit="", status="warning", trend="up",
+        KPIItem(id="objects_detected", label="Objetos Detectados", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(30), sector="demining",
                 description="Total de objetos metalicos detectados que requerem verificacao manual."),
-        KPIItem(id="progress_rate", label="Taxa de Progresso", value=850, unit="m2/dia", status="ok", trend="stable",
+        KPIItem(id="progress_rate", label="Taxa de Progresso", value=0, unit="m2/dia", status="ok", trend="stable",
                 updated_at=_now_minus(120), sector="demining",
                 description="Taxa media de area verificada por dia de operacao."),
-        KPIItem(id="priority_zones", label="Zonas Prioritarias", value=3, unit="", status="warning", trend="stable",
+        KPIItem(id="priority_zones", label="Zonas Prioritarias", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(180), sector="demining",
                 description="Numero de zonas identificadas como alta prioridade para verificacao."),
     ]
@@ -129,16 +129,16 @@ def get_demining_kpis() -> List[KPIItem]:
 
 def get_generic_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="services_active", label="Servicos Ativos", value=4, unit="", status="ok", trend="up",
+        KPIItem(id="services_active", label="Servicos Ativos", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(10), sector="generic",
                 description="Numero de servicos GeoVision atualmente em execucao."),
-        KPIItem(id="hardware_active", label="Hardware Instalado", value=6, unit="", status="ok", trend="stable",
+        KPIItem(id="hardware_active", label="Hardware Instalado", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(5), sector="generic",
                 description="Equipamentos IoT e sensores instalados e operacionais."),
-        KPIItem(id="reports_ready", label="Relatorios Disponiveis", value=3, unit="", status="ok", trend="up",
+        KPIItem(id="reports_ready", label="Relatorios Disponiveis", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(15), sector="generic",
                 description="Relatorios prontos para download ou visualizacao."),
-        KPIItem(id="alerts_open", label="Alertas Abertos", value=1, unit="", status="watch", trend="down",
+        KPIItem(id="alerts_open", label="Alertas Abertos", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(2), sector="generic",
                 description="Alertas ativos que podem requerer atencao."),
     ]
@@ -170,74 +170,9 @@ def get_kpis_for_sectors(sectors: List[str]) -> List[KPIItem]:
 # ============================================================================
 
 def get_sector_alerts(sectors: List[str]) -> List[AlertItem]:
-    """Get demo alerts for sectors."""
-    alerts = []
-    
-    if "agro" in sectors:
-        alerts.extend([
-            AlertItem(id="agro-1", severity="warning", sector="agro",
-                      title="Stress hidrico detectado",
-                      description="Zona de stress hidrico detectada no talhao 3. Recomenda-se verificar sistema de irrigacao.",
-                      location="Talhao 3, Huambo", created_at=_now_minus(120)),
-            AlertItem(id="agro-2", severity="info", sector="agro",
-                      title="Voo NDVI agendado",
-                      description="Proximo voo de monitorizacao NDVI agendado para amanha as 06:30.",
-                      location="Fazenda Rio Kunene", created_at=_now_minus(60)),
-        ])
-    
-    if "mining" in sectors:
-        alerts.extend([
-            AlertItem(id="mining-1", severity="warning", sector="mining",
-                      title="Movimento detectado",
-                      description="Sensor geotecnico detectou movimento acima do limiar na frente 2. Monitorizar.",
-                      location="Frente 2, Mina Catoca", created_at=_now_minus(45)),
-            AlertItem(id="mining-2", severity="critical", sector="mining",
-                      title="Sensor offline",
-                      description="Sensor estrutural Pilha Norte esta offline ha 2 horas.",
-                      location="Pilha Norte", created_at=_now_minus(120)),
-        ])
-    
-    if "construction" in sectors:
-        alerts.extend([
-            AlertItem(id="const-1", severity="info", sector="construction",
-                      title="Inspecao concluida",
-                      description="Levantamento topografico da fase 2 concluido. Relatorio em processamento.",
-                      location="Obra Talatona", created_at=_now_minus(180)),
-        ])
-    
-    if "infrastructure" in sectors:
-        alerts.extend([
-            AlertItem(id="infra-1", severity="warning", sector="infrastructure",
-                      title="Vibracao anomala",
-                      description="Niveis de vibracao ligeiramente acima do normal detectados na ponte principal.",
-                      location="Ponte Luena", created_at=_now_minus(30)),
-        ])
-    
-    if "solar" in sectors:
-        alerts.extend([
-            AlertItem(id="solar-1", severity="warning", sector="solar",
-                      title="Hotspot detectado",
-                      description="Painel B12 apresenta temperatura elevada. Verificar conexoes.",
-                      location="Parque Solar Namibe", created_at=_now_minus(60)),
-        ])
-    
-    if "demining" in sectors:
-        alerts.extend([
-            AlertItem(id="demine-1", severity="critical", sector="demining",
-                      title="Objeto prioritario",
-                      description="Objeto metalico grande detectado em zona de alta prioridade. Requer verificacao urgente.",
-                      location="Cuito Cuanavale, Zona A", created_at=_now_minus(15)),
-        ])
-    
-    if not alerts:
-        alerts.append(
-            AlertItem(id="generic-1", severity="info", sector="generic",
-                      title="Sem alertas criticos",
-                      description="Todos os sistemas a funcionar normalmente.",
-                      location="Sistema GeoVision", created_at=_now_minus(5))
-        )
-    
-    return alerts
+    """Get alerts for sectors. Returns empty list when no real data is available."""
+    # When real alerting is integrated, this will query the alerts database.
+    return []
 
 
 # ============================================================================
@@ -386,11 +321,11 @@ def kpi_details(
 ):
     """Get system/platform level KPIs."""
     items: List[KPIItem] = [
-        KPIItem(id="uptime", label="Disponibilidade", value=99.4, unit="%", status="ok", trend="up",
+        KPIItem(id="uptime", label="Disponibilidade", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(30), description="Disponibilidade dos servicos GeoVision."),
-        KPIItem(id="sla", label="SLA Atingido", value=97.0, unit="%", status="ok", trend="stable",
+        KPIItem(id="sla", label="SLA Atingido", value=0, unit="%", status="ok", trend="stable",
                 updated_at=_now_minus(60), description="Percentagem de cumprimento dos SLAs acordados."),
-        KPIItem(id="tickets", label="Tickets em Aberto", value=2, unit="", status="watch", trend="up",
+        KPIItem(id="tickets", label="Tickets em Aberto", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(12), description="Pedidos de suporte em processamento."),
     ]
     return KPIResponse(items=items)

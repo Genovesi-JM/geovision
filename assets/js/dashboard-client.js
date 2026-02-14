@@ -22,110 +22,13 @@ function getSectorsFromAccount(account) {
   return [raw];
 }
 
+/* ── Empty portfolio — real data comes from backend APIs ── */
 function buildDemoPortfolioForSector(sector, accountName) {
-  if (sector === "agro") {
-    return {
-      name: accountName || "Operações Agro",
-      services: [
-        { type: "NDVI + Pulverização", location: "Huambo", hectares: 180, status: "em campo" },
-        { type: "Mapeamento de talhão", location: "Benguela", hectares: 95, status: "processamento" },
-      ],
-      hardware: [
-        { name: "Gateway IoT Pasto Norte", location: "Fazenda Rio Kunene", status: "online" },
-      ],
-      reports: [
-        { title: "Relatório NDVI – Lote A", service: "NDVI", eta: "Hoje", status: "a enviar" },
-      ],
-      alerts: ["Zona de stress hídrico detectada no talhão 3."],
-    };
-  }
-
-  if (sector === "mining") {
-    return {
-      name: accountName || "Operações Mining",
-      services: [
-        { type: "Levantamento LIDAR", location: "Mina Catoca", hectares: "-", status: "planeado" },
-      ],
-      hardware: [
-        { name: "Sensor estrutural", location: "Pilha Norte", status: "online" },
-      ],
-      reports: [
-        { title: "Modelo 3D talude", service: "LIDAR", eta: "+3 dias", status: "em processamento" },
-      ],
-      alerts: ["Aviso: movimento acima do limiar na frente 2."],
-    };
-  }
-
-  if (sector === "construction") {
-    return {
-      name: accountName || "Operações Construção",
-      services: [
-        { type: "Levantamento topográfico", location: "Obra Talatona", hectares: 12, status: "em campo" },
-        { type: "Inspeção estrutural", location: "Edifício Central", hectares: "-", status: "processamento" },
-      ],
-      hardware: [
-        { name: "Sensor estrutural", location: "Torre Sul", status: "online" },
-      ],
-      reports: [
-        { title: "Relatório topográfico", service: "Topografia", eta: "+2 dias", status: "em processamento" },
-      ],
-      alerts: ["Verificar estabilidade torre sul."],
-    };
-  }
-
-  if (sector === "infrastructure") {
-    return {
-      name: accountName || "Infraestruturas",
-      services: [
-        { type: "Inspeção ponte", location: "Luena", hectares: "-", status: "processamento" },
-        { type: "Monitorização estradas", location: "EN-100", hectares: "-", status: "em campo" },
-      ],
-      hardware: [
-        { name: "Sensor vibração", location: "Ponte principal", status: "online" },
-      ],
-      reports: [],
-      alerts: ["Sem alertas críticos no momento."],
-    };
-  }
-
-  if (sector === "solar") {
-    return {
-      name: accountName || "Operações Solar",
-      services: [
-        { type: "Inspeção térmica painéis", location: "Parque Solar Namibe", hectares: 85, status: "planeado" },
-      ],
-      hardware: [
-        { name: "Sensor irradiância", location: "Estação central", status: "online" },
-      ],
-      reports: [
-        { title: "Análise eficiência Q4", service: "Térmico", eta: "+5 dias", status: "em processamento" },
-      ],
-      alerts: ["Painel B12 com temperatura elevada."],
-    };
-  }
-
-  if (sector === "demining") {
-    return {
-      name: accountName || "Operações Desminagem",
-      services: [
-        { type: "Levantamento área", location: "Cuito Cuanavale", hectares: 45, status: "em campo" },
-      ],
-      hardware: [
-        { name: "Drone deteção", location: "Base operacional", status: "online" },
-      ],
-      reports: [],
-      alerts: ["Área prioridade alta identificada."],
-    };
-  }
-
   return {
-    name: accountName || "Conta GeoVision",
-    services: [
-      { type: "Missão drone", location: "Cliente GeoVision", hectares: "-", status: "planeado" },
-    ],
+    services: [],
     hardware: [],
     reports: [],
-    alerts: ["Sem alertas críticos no momento."],
+    alerts: [],
   };
 }
 
@@ -600,7 +503,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   const dashTitle = document.getElementById("dash-title");
 
   if (meData && meData.user) {
-    const email = meData.user.email || "cliente@geovision";
+    const email = meData.user.email || "—";
     if (emailPill) emailPill.textContent = email;
     localStorage.setItem(SESSION_EMAIL_KEY, email);
 
@@ -611,7 +514,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     const active = accounts.find((a) => a.id === currentAccountId) || accounts[0];
     if (active) renderAccountMeta(active);
   } else {
-    const email = localStorage.getItem(SESSION_EMAIL_KEY) || "cliente@geovision";
+    const email = localStorage.getItem(SESSION_EMAIL_KEY) || "—";
     if (emailPill) emailPill.textContent = email;
     if (dashTitle) dashTitle.textContent = `Olá, ${email}`;
   }

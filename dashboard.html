@@ -1486,7 +1486,7 @@
         <div class="card">
           <div class="card-body">
             <div class="map-container">
-              <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="dash.map.placeholder">Mapa interativo (em breve)</span>
+              <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="dash.map.placeholder">Mapa interativo</span>
             </div>
           </div>
         </div>
@@ -1597,7 +1597,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label" data-i18n="dash.modal.accountName">Nome da conta *</label>
-          <input type="text" class="form-input" id="account-name-input" placeholder="Ex: Fazenda Rio Kunene" />
+          <input type="text" class="form-input" id="account-name-input" placeholder="Ex: Minha Operação" />
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="dash.modal.entityType">Tipo de entidade</label>
@@ -1938,7 +1938,7 @@
 
     // ============ INIT ============
     document.addEventListener('DOMContentLoaded', () => {
-      const email = localStorage.getItem('gv_email') || 'cliente@geovision';
+      const email = localStorage.getItem('gv_email') || '—';
       document.getElementById('user-name').textContent = email.split('@')[0];
       document.getElementById('user-avatar').textContent = email.charAt(0).toUpperCase();
       document.getElementById('settings-email').value = email;

@@ -3,8 +3,6 @@ import { API_BASE as MODULE_API_BASE } from './config.mjs';
 
 const API_BASE = MODULE_API_BASE || window.API_BASE || 'http://127.0.0.1:8010';
 
-console.log('auth.mjs loaded (module) ✅');
-
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('login-form');
   if (!form) return;
