@@ -17,13 +17,14 @@ from pydantic import BaseModel, Field
 
 from app.deps import get_current_user, require_admin
 from app.models import User
-from app.services.cart import get_cart_service, seed_demo_products, get_sector_labels
+from sqlalchemy.orm import Session
+from app.deps import get_db
+from app.services.cart import get_cart_service, get_sector_labels
 from app.services.orders import get_order_service, OrderStatus, PaymentMethod, EventType
 
 logger = logging.getLogger(__name__)
 
-# Initialize demo products
-seed_demo_products()
+# Products are seeded via main.py startup
 
 router = APIRouter(prefix="/shop", tags=["Shop"])
 
@@ -254,11 +255,12 @@ async def list_products(
     sector: Optional[str] = Query(None, description="Filter by sector (e.g., agriculture, mining)"),
     product_type: Optional[str] = Query(None, description="Filter by type (physical, digital, service, subscription)"),
     search: Optional[str] = Query(None, description="Search by name"),
+    db: Session = Depends(get_db),
 ):
     """
     List available products with optional filtering.
     """
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     products = cart_service.list_products()
     
     # Apply filters
@@ -303,9 +305,9 @@ async def list_products(
 
 
 @router.get("/products/{product_id}", response_model=ProductResponse)
-async def get_product(product_id: str):
+async def get_product(product_id: str, db: Session = Depends(get_db)):
     """Get product details."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     product = cart_service.get_product(product_id)
     
     if not product:
@@ -351,12 +353,13 @@ async def list_sectors():
 async def check_sector_mismatch(
     product_id: str = Body(..., embed=True),
     account_sector: Optional[str] = Body(None, embed=True),
+    db: Session = Depends(get_db),
 ):
     """
     Check if a product sector matches the account sector.
     Returns warning info if mismatch - does NOT block purchase.
     """
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     warning = cart_service.check_sector_mismatch(product_id, account_sector)
     
     if warning:
@@ -369,12 +372,13 @@ async def check_sector_mismatch(
 async def get_cart_with_warnings(
     cart_id: str,
     account_sector: Optional[str] = Query(None, description="Account sector for mismatch checking"),
+    db: Session = Depends(get_db),
 ):
     """
     Get cart with sector mismatch warnings for each item.
     Warnings are informational only - purchase is not blocked.
     """
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     try:
         return cart_service.get_cart_with_warnings(cart_id, account_sector)
     except ValueError as e:
@@ -384,9 +388,9 @@ async def get_cart_with_warnings(
 # ============ CART ENDPOINTS ============
 
 @router.get("/cart/{cart_id}", response_model=CartResponse)
-async def get_cart(cart_id: str):
+async def get_cart(cart_id: str, db: Session = Depends(get_db)):
     """Get cart contents."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart = cart_service.get_or_create_cart(session_id=cart_id)
     
     return CartResponse(
@@ -425,9 +429,9 @@ async def get_cart(cart_id: str):
 
 
 @router.post("/cart/{cart_id}/items", response_model=CartResponse)
-async def add_to_cart(cart_id: str, request: AddToCartRequest):
+async def add_to_cart(cart_id: str, request: AddToCartRequest, db: Session = Depends(get_db)):
     """Add item to cart."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     
     scheduled = None
     if request.scheduled_date:
@@ -483,9 +487,9 @@ async def add_to_cart(cart_id: str, request: AddToCartRequest):
 
 
 @router.put("/cart/{cart_id}/items/{item_id}", response_model=CartResponse)
-async def update_cart_item(cart_id: str, item_id: str, request: UpdateCartItemRequest):
+async def update_cart_item(cart_id: str, item_id: str, request: UpdateCartItemRequest, db: Session = Depends(get_db)):
     """Update cart item quantity."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart = cart_service.update_item_quantity(cart_id, item_id, request.quantity)
     
     if not cart:
@@ -527,9 +531,9 @@ async def update_cart_item(cart_id: str, item_id: str, request: UpdateCartItemRe
 
 
 @router.delete("/cart/{cart_id}/items/{item_id}", response_model=CartResponse)
-async def remove_cart_item(cart_id: str, item_id: str):
+async def remove_cart_item(cart_id: str, item_id: str, db: Session = Depends(get_db)):
     """Remove item from cart."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart = cart_service.remove_item(cart_id, item_id)
     
     if not cart:
@@ -571,9 +575,9 @@ async def remove_cart_item(cart_id: str, item_id: str):
 
 
 @router.post("/cart/{cart_id}/coupon", response_model=CartResponse)
-async def apply_coupon(cart_id: str, request: ApplyCouponRequest):
+async def apply_coupon(cart_id: str, request: ApplyCouponRequest, db: Session = Depends(get_db)):
     """Apply coupon to cart."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     result = cart_service.apply_coupon(cart_id, request.code)
     
     if not result.valid:
@@ -619,9 +623,9 @@ async def apply_coupon(cart_id: str, request: ApplyCouponRequest):
 
 
 @router.delete("/cart/{cart_id}/coupon", response_model=CartResponse)
-async def remove_coupon(cart_id: str):
+async def remove_coupon(cart_id: str, db: Session = Depends(get_db)):
     """Remove coupon from cart."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart = cart_service.remove_coupon(cart_id)
     
     if not cart:
@@ -663,9 +667,9 @@ async def remove_coupon(cart_id: str):
 
 
 @router.post("/cart/{cart_id}/delivery", response_model=CartResponse)
-async def set_delivery(cart_id: str, request: SetDeliveryRequest):
+async def set_delivery(cart_id: str, request: SetDeliveryRequest, db: Session = Depends(get_db)):
     """Set delivery method for cart."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart = cart_service.set_delivery(cart_id, request.delivery_method)
     
     if not cart:
@@ -707,9 +711,9 @@ async def set_delivery(cart_id: str, request: SetDeliveryRequest):
 
 
 @router.post("/cart/{cart_id}/site", response_model=CartResponse)
-async def set_cart_site(cart_id: str, request: SetSiteRequest):
+async def set_cart_site(cart_id: str, request: SetSiteRequest, db: Session = Depends(get_db)):
     """Set site for service products."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart = cart_service.set_site(cart_id, request.site_id)
     
     if not cart:
@@ -751,9 +755,9 @@ async def set_cart_site(cart_id: str, request: SetSiteRequest):
 
 
 @router.delete("/cart/{cart_id}")
-async def clear_cart(cart_id: str):
+async def clear_cart(cart_id: str, db: Session = Depends(get_db)):
     """Clear cart contents."""
-    cart_service = get_cart_service()
+    cart_service = get_cart_service(db)
     cart_service.clear_cart(cart_id)
     return {"message": "Carrinho limpo com sucesso"}
 
@@ -761,7 +765,7 @@ async def clear_cart(cart_id: str):
 # ============ CHECKOUT ENDPOINTS ============
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
-async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(get_current_user)):
+async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Process checkout and create order.
     
@@ -781,7 +785,7 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(
             detail=f"Método de pagamento inválido: {request.payment_method}"
         )
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     
     result = await order_service.checkout(
         cart_id=cart_id,
@@ -808,10 +812,11 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(
 async def list_orders(
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
 ):
     """List customer orders."""
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     orders = order_service.list_orders(
         user_id="anonymous",  # TODO: Get from auth
         status=status,
@@ -834,10 +839,10 @@ async def list_orders(
 
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str):
+async def get_order(order_id: str, db: Session = Depends(get_db)):
     """Get full order details with timeline."""
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     order = order_service.get_order(order_id)
     
     if not order:
@@ -909,10 +914,10 @@ async def get_order(order_id: str):
 
 
 @router.get("/orders/number/{order_number}", response_model=OrderResponse)
-async def get_order_by_number(order_number: str):
+async def get_order_by_number(order_number: str, db: Session = Depends(get_db)):
     """Get order by order number (e.g., GV-2025-000001)."""
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     order = order_service.get_order_by_number(order_number)
     
     if not order:
@@ -987,10 +992,10 @@ class CancelOrderRequest(BaseModel):
     reason: Optional[str] = None
 
 @router.post("/orders/{order_id}/cancel")
-async def cancel_order(order_id: str, request: CancelOrderRequest = Body(default=CancelOrderRequest())):
+async def cancel_order(order_id: str, request: CancelOrderRequest = Body(default=CancelOrderRequest()), db: Session = Depends(get_db)):
     """Cancel an order."""
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.cancel_order(
         order_id=order_id,
         reason=request.reason,
@@ -1009,10 +1014,11 @@ async def cancel_order(order_id: str, request: CancelOrderRequest = Body(default
 async def my_orders(
     status: Optional[str] = Query(None, description="Filter by status"),
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """Get customer's orders (Minhas Compras)."""
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     orders = order_service.list_orders(
         user_id=str(user.id),
         status=status,
@@ -1034,10 +1040,10 @@ async def my_orders(
 
 
 @router.get("/me/deliverables", response_model=List[DeliverableResponse])
-async def my_deliverables(user: User = Depends(get_current_user)):
+async def my_deliverables(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all deliverables from customer's orders."""
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     orders = order_service.list_orders(user_id=str(user.id))
     
     deliverables = []
@@ -1071,12 +1077,13 @@ async def admin_confirm_payment(
     order_id: str,
     request: ConfirmPaymentRequest = Body(default=ConfirmPaymentRequest()),
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     Admin: Confirm payment (for IBAN transfers).
     """
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.confirm_payment(
         order_id=order_id,
         payment_reference=request.payment_reference,
@@ -1095,6 +1102,7 @@ async def admin_assign_team(
     team_name: str = Body(..., embed=True),
     scheduled_start: Optional[str] = Body(None, embed=True),
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     Admin: Assign team for service execution.
@@ -1104,7 +1112,7 @@ async def admin_assign_team(
     if scheduled_start:
         scheduled = datetime.fromisoformat(scheduled_start.replace("Z", "+00:00"))
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.assign_team(
         order_id=order_id,
         team_name=team_name,
@@ -1119,12 +1127,12 @@ async def admin_assign_team(
 
 
 @router.post("/admin/orders/{order_id}/start-service")
-async def admin_start_service(order_id: str, admin: User = Depends(require_admin)):
+async def admin_start_service(order_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """
     Admin: Mark service as started (check-in).
     """
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.start_service(order_id, started_by="Equipa")
     
     if not success:
@@ -1141,12 +1149,13 @@ async def admin_complete_service(
     order_id: str,
     request: CompleteServiceRequest = Body(default=CompleteServiceRequest()),
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     Admin: Mark service as completed (check-out).
     """
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.complete_service(
         order_id=order_id,
         completed_by="Equipa",
@@ -1168,12 +1177,13 @@ async def admin_ship_order(
     order_id: str,
     request: ShipOrderRequest = Body(default=ShipOrderRequest()),
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     Admin: Mark physical order as shipped.
     """
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.ship_order(
         order_id=order_id,
         tracking_number=request.tracking_number,
@@ -1187,12 +1197,12 @@ async def admin_ship_order(
 
 
 @router.post("/admin/orders/{order_id}/deliver")
-async def admin_deliver_order(order_id: str, admin: User = Depends(require_admin)):
+async def admin_deliver_order(order_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """
     Admin: Mark order as delivered.
     """
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     success = await order_service.deliver_order(order_id, delivered_by="Transportadora")
     
     if not success:
@@ -1212,12 +1222,13 @@ async def admin_add_deliverable(
     order_id: str,
     request: AddDeliverableRequest,
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     Admin: Add deliverable file to order.
     """
     
-    order_service = get_order_service()
+    order_service = get_order_service(db)
     deliverable_id = await order_service.add_deliverable(
         order_id=order_id,
         name=request.name,

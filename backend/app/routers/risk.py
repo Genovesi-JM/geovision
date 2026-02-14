@@ -5,13 +5,15 @@ Endpoints for risk assessment using rule-based engine.
 Sectors: Mining, Infrastructure, Construction, Agriculture, Demining
 """
 import logging
+import uuid as _uuid
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-from app.deps import get_current_user
+from app.deps import get_current_user, get_db
 
 from app.services.risk_engine import (
     get_risk_engine,
@@ -46,71 +48,33 @@ class RiskHistoryResponse(BaseModel):
     avg_score_30d: float
 
 
-# ============ IN-MEMORY HISTORY (replace with DB) ============
-
-_assessment_history: dict = {}  # site_id -> List[assessment]
+# ============ DB-backed (no more in-memory store) ============
 
 
 # ============ ENDPOINTS ============
 
 @router.post("/assess", response_model=RiskAssessmentResponse)
-async def assess_risk(request: RiskAssessmentRequest):
-    """
-    Run risk assessment on a site.
-    
-    Input data format depends on sector:
-    
-    **Mining:**
-    ```json
-    {
-      "tailings_level_pct": 75,
-      "terrain_displacement_mm": 15,
-      "esg_score": 82,
-      "dust_concentration_ppm": 45,
-      "water_quality_index": 85,
-      "extraction_efficiency_pct": 88
-    }
-    ```
-    
-    **Infrastructure:**
-    ```json
-    {
-      "structural_health_index": 92,
-      "timeline_delay_days": 5,
-      "budget_overrun_pct": 8,
-      "safety_incidents_30d": 0,
-      "material_quality_pass_rate": 98
-    }
-    ```
-    """
+async def assess_risk(request: RiskAssessmentRequest, db: Session = Depends(get_db)):
     engine = get_risk_engine()
-    
-    result = engine.assess(
-        site_id=request.site_id,
-        sector=request.sector,
-        data=request.data
+    result = engine.assess(site_id=request.site_id, sector=request.sector, data=request.data)
+
+    # Persist to DB
+    from app.models import RiskAssessment as RAModel
+    import json as _json
+    ra = RAModel(
+        id=result.assessment_id, site_id=result.site_id,
+        sector=result.sector.value, risk_score=result.risk_score,
+        risk_level=result.risk_level.value,
+        triggered_count=len(result.triggered_rules),
+        details_json=_json.dumps({
+            "triggered_rules": [r.rule_id for r in result.triggered_rules],
+            "recommendations": result.recommendations,
+        }),
     )
-    
-    # Store in history
-    if request.site_id not in _assessment_history:
-        _assessment_history[request.site_id] = []
-    
-    _assessment_history[request.site_id].append({
-        "assessment_id": result.assessment_id,
-        "risk_score": result.risk_score,
-        "risk_level": result.risk_level.value,
-        "triggered_count": len(result.triggered_rules),
-        "assessed_at": result.assessed_at,
-    })
-    
-    # Keep only last 100
-    _assessment_history[request.site_id] = _assessment_history[request.site_id][-100:]
-    
-    logger.info(
-        f"Risk assessment for site {request.site_id}: "
-        f"score={result.risk_score}, level={result.risk_level.value}"
-    )
-    
+    db.add(ra); db.commit()
+
+    logger.info(f"Risk assessment for site {request.site_id}: score={result.risk_score}, level={result.risk_level.value}")
+
     return RiskAssessmentResponse(
         assessment_id=result.assessment_id,
         site_id=result.site_id,
@@ -118,31 +82,16 @@ async def assess_risk(request: RiskAssessmentRequest):
         risk_score=result.risk_score,
         risk_level=result.risk_level.value,
         triggered_rules=[
-            RuleResultSchema(
-                rule_id=r.rule_id,
-                rule_name=r.rule_name,
-                triggered=r.triggered,
-                score_contribution=r.score_contribution,
-                message=r.message,
-                severity=r.severity.value,
-                data=r.data,
-            )
+            RuleResultSchema(rule_id=r.rule_id, rule_name=r.rule_name, triggered=r.triggered,
+                             score_contribution=r.score_contribution, message=r.message,
+                             severity=r.severity.value, data=r.data)
             for r in result.triggered_rules
         ],
         alerts=[
-            RiskAlertSchema(
-                id=a.id,
-                title=a.title,
-                message=a.message,
-                severity=a.severity.value,
-                sector=a.sector.value,
-                source=a.source,
-                metric_name=a.metric_name,
-                metric_value=a.metric_value,
-                threshold=a.threshold,
-                recommendation=a.recommendation,
-                created_at=a.created_at,
-            )
+            RiskAlertSchema(id=a.id, title=a.title, message=a.message, severity=a.severity.value,
+                            sector=a.sector.value, source=a.source, metric_name=a.metric_name,
+                            metric_value=a.metric_value, threshold=a.threshold,
+                            recommendation=a.recommendation, created_at=a.created_at)
             for a in result.alerts
         ],
         recommendations=result.recommendations,
@@ -155,64 +104,40 @@ async def get_risk_history(
     site_id: str,
     sector: SectorType = Query(...),
     days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
 ):
-    """Get risk assessment history for a site."""
-    from datetime import timedelta
-    
-    history = _assessment_history.get(site_id, [])
-    
-    # Filter by date
+    from app.models import RiskAssessment as RAModel
     cutoff = datetime.utcnow() - timedelta(days=days)
-    history = [a for a in history if a["assessed_at"] >= cutoff]
-    
-    if not history:
-        return RiskHistoryResponse(
-            site_id=site_id,
-            sector=sector.value,
-            assessments=[],
-            trend="stable",
-            avg_score_7d=0,
-            avg_score_30d=0,
-        )
-    
-    # Calculate averages
+    rows = (db.query(RAModel)
+            .filter(RAModel.site_id == site_id, RAModel.created_at >= cutoff)
+            .order_by(RAModel.created_at.asc()).all())
+
+    if not rows:
+        return RiskHistoryResponse(site_id=site_id, sector=sector.value,
+                                   assessments=[], trend="stable", avg_score_7d=0, avg_score_30d=0)
+
     cutoff_7d = datetime.utcnow() - timedelta(days=7)
-    scores_7d = [a["risk_score"] for a in history if a["assessed_at"] >= cutoff_7d]
-    scores_30d = [a["risk_score"] for a in history]
-    
+    scores_7d = [r.risk_score for r in rows if r.created_at >= cutoff_7d]
+    scores_30d = [r.risk_score for r in rows]
+
     avg_7d = sum(scores_7d) / len(scores_7d) if scores_7d else 0
     avg_30d = sum(scores_30d) / len(scores_30d) if scores_30d else 0
-    
-    # Determine trend
+
     if len(scores_7d) >= 2:
         recent_avg = sum(scores_7d[-3:]) / min(3, len(scores_7d))
         earlier_avg = sum(scores_7d[:3]) / min(3, len(scores_7d))
-        
-        if recent_avg < earlier_avg - 5:
-            trend = "improving"
-        elif recent_avg > earlier_avg + 5:
-            trend = "worsening"
-        else:
-            trend = "stable"
+        trend = "improving" if recent_avg < earlier_avg - 5 else ("worsening" if recent_avg > earlier_avg + 5 else "stable")
     else:
         trend = "stable"
-    
+
     return RiskHistoryResponse(
-        site_id=site_id,
-        sector=sector.value,
+        site_id=site_id, sector=sector.value,
         assessments=[
-            RiskHistoryItem(
-                assessment_id=a["assessment_id"],
-                risk_score=a["risk_score"],
-                risk_level=a["risk_level"],
-                triggered_count=a["triggered_count"],
-                assessed_at=a["assessed_at"],
-            )
-            for a in history
+            RiskHistoryItem(assessment_id=r.id, risk_score=r.risk_score, risk_level=r.risk_level,
+                            triggered_count=r.triggered_count or 0, assessed_at=r.created_at)
+            for r in rows
         ],
-        trend=trend,
-        avg_score_7d=round(avg_7d, 1),
-        avg_score_30d=round(avg_30d, 1),
+        trend=trend, avg_score_7d=round(avg_7d, 1), avg_score_30d=round(avg_30d, 1),
     )
 
 

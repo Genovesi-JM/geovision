@@ -1,5 +1,5 @@
 """
-Order Service
+Order Service — DB-backed
 
 Manages order lifecycle:
 - Checkout: Cart → Order
@@ -8,17 +8,21 @@ Manages order lifecycle:
 - Timeline events
 - Deliverables management
 """
+import json
 import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from enum import Enum
 
-from app.services.cart import get_cart_service, CartData
-from app.services.payments import get_payment_orchestrator, PaymentProvider, Currency
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
+
+def _utcnow():
+    return datetime.now(timezone.utc)
 
 
 # ============ ENUMS ============
@@ -65,7 +69,7 @@ class EventType(str, Enum):
     NOTE_ADDED = "note_added"
 
 
-# ============ DATA CLASSES ============
+# ============ DATA CLASSES (unchanged API) ============
 
 @dataclass
 class OrderItemData:
@@ -152,678 +156,363 @@ class CheckoutResult:
     error: Optional[str] = None
 
 
-# ============ IN-MEMORY STORES ============
-
-_orders_store: Dict[str, dict] = {}
-_order_counter = 0
-
-
-def _generate_order_number() -> str:
-    """Generate unique order number."""
-    global _order_counter
-    _order_counter += 1
-    year = datetime.utcnow().year
-    return f"GV-{year}-{_order_counter:06d}"
-
-
 # ============ ORDER SERVICE ============
 
 class OrderService:
-    """Order management service."""
-    
-    async def checkout(
-        self,
-        cart_id: str,
-        user_id: str,
-        payment_method: PaymentMethod,
-        billing_info: Optional[Dict[str, Any]] = None,
-        customer_notes: Optional[str] = None,
-    ) -> CheckoutResult:
-        """
-        Convert cart to order and initiate payment.
-        
-        This is the "check-in" process.
-        """
-        
-        cart_service = get_cart_service()
-        cart = cart_service.get_cart(cart_id)
-        
+    """Order management service — DB-backed."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def _models(self):
+        from app.models import Order, OrderItem, OrderEvent, Deliverable
+        return Order, OrderItem, OrderEvent, Deliverable
+
+    def _generate_order_number(self) -> str:
+        OM = self._models()[0]
+        year = _utcnow().year
+        prefix = f"GV-{year}-"
+        last = (self.db.query(OM.order_number)
+                .filter(OM.order_number.like(f"{prefix}%"))
+                .order_by(OM.order_number.desc()).first())
+        if last and last[0]:
+            try:
+                seq = int(last[0].split("-")[-1]) + 1
+            except ValueError:
+                seq = 1
+        else:
+            seq = 1
+        return f"{prefix}{seq:06d}"
+
+    def _add_event(self, order_id, event_type, title, description=None,
+                   actor_name="Sistema", is_customer_visible=True, metadata=None):
+        _, _, OE, _ = self._models()
+        ev = OE(id=str(uuid.uuid4()), order_id=order_id, event_type=event_type,
+                title=title, description=description, actor_name=actor_name,
+                is_customer_visible=is_customer_visible,
+                metadata_json=json.dumps(metadata or {}))
+        self.db.add(ev)
+        return ev
+
+    async def checkout(self, cart_id: str, user_id: str, payment_method: PaymentMethod,
+                       billing_info: Optional[Dict[str, Any]] = None,
+                       customer_notes: Optional[str] = None) -> CheckoutResult:
+        from app.services.cart import get_cart_service
+        from app.services.payments import get_payment_orchestrator, PaymentProvider, Currency
+
+        cart_svc = get_cart_service(self.db)
+        cart = cart_svc.get_cart(cart_id)
         if not cart:
             return CheckoutResult(success=False, error="Carrinho não encontrado")
-        
         if not cart.items:
             return CheckoutResult(success=False, error="Carrinho vazio")
-        
-        # Create order
+
+        OM, OIM, _, _ = self._models()
         order_id = str(uuid.uuid4())
-        order_number = _generate_order_number()
-        now = datetime.utcnow()
-        
-        # Convert cart items to order items
-        items = []
-        for item in cart.items:
-            order_item = {
-                "id": str(uuid.uuid4()),
-                "product_id": item.product_id,
-                "product_name": item.product_name,
-                "product_type": item.product_type,
-                "sku": item.sku,
-                "quantity": item.quantity,
-                "unit_price": item.unit_price,
-                "total_price": item.total_price,
-                "tax_rate": item.tax_rate,
-                "tax_amount": item.tax_amount,
-                "scheduled_date": item.scheduled_date,
-                "custom_options": item.custom_options,
-                "status": "pending",
-            }
-            items.append(order_item)
-        
-        # Generate payment reference for IBAN
+        order_number = self._generate_order_number()
+        now = _utcnow()
+
         payment_reference = None
         if payment_method in [PaymentMethod.IBAN_ANGOLA, PaymentMethod.IBAN_INTERNATIONAL]:
             payment_reference = f"GV{order_number.replace('-', '')}"
-        
-        order = {
-            "id": order_id,
-            "order_number": order_number,
-            "user_id": user_id,
-            "company_id": cart.company_id,
-            "site_id": cart.site_id,
-            "project_name": None,
-            "status": OrderStatus.CREATED.value,
-            "payment_method": payment_method.value,
-            "payment_intent_id": None,
-            "payment_reference": payment_reference,
-            "payment_confirmed_at": None,
-            "currency": cart.currency,
-            "subtotal": cart.subtotal,
-            "discount_amount": cart.discount_amount,
-            "coupon_code": cart.coupon_code,
-            "tax_amount": cart.tax_amount,
-            "delivery_cost": cart.delivery_cost,
-            "total": cart.total,
-            "items": items,
-            "events": [],
-            "deliverables": [],
-            "invoices": [],
-            "delivery_method": cart.delivery_method,
-            "delivery_address": None,  # From billing_info
-            "delivery_notes": None,
-            "estimated_delivery": None,
-            "actual_delivery": None,
-            "assigned_team": None,
-            "scheduled_start": None,
-            "scheduled_end": None,
-            "actual_start": None,
-            "actual_end": None,
-            "customer_notes": customer_notes,
-            "internal_notes": None,
-            "billing_info": billing_info,
-            "created_at": now,
-            "updated_at": now,
-            "completed_at": None,
-            "cancelled_at": None,
-            "metadata": {},
-        }
-        
-        # Add creation event
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.ORDER_CREATED.value,
-            "title": "Pedido criado",
-            "description": f"Pedido {order_number} criado com sucesso.",
-            "actor_name": "Sistema",
-            "is_customer_visible": True,
-            "metadata": {},
-            "created_at": now,
-        })
-        
-        _orders_store[order_id] = order
-        
-        # Clear cart
-        cart_service.clear_cart(cart_id)
-        
-        # Initiate payment
+
+        order = OM(
+            id=order_id, order_number=order_number, user_id=user_id,
+            company_id=cart.company_id, site_id=cart.site_id,
+            status=OrderStatus.CREATED.value, payment_method=payment_method.value,
+            payment_reference=payment_reference, currency=cart.currency,
+            subtotal=cart.subtotal, discount_amount=cart.discount_amount,
+            coupon_code=cart.coupon_code, tax_amount=cart.tax_amount,
+            delivery_cost=cart.delivery_cost, total=cart.total,
+            delivery_method=cart.delivery_method, customer_notes=customer_notes,
+            billing_info_json=json.dumps(billing_info) if billing_info else None,
+        )
+        self.db.add(order)
+
+        for item in cart.items:
+            oi = OIM(
+                id=str(uuid.uuid4()), order_id=order_id,
+                product_id=item.product_id, product_name=item.product_name,
+                product_type=item.product_type, sku=item.sku,
+                quantity=item.quantity, unit_price=item.unit_price,
+                total_price=item.total_price, tax_rate=item.tax_rate,
+                tax_amount=item.tax_amount, status="pending",
+                scheduled_date=item.scheduled_date,
+            )
+            self.db.add(oi)
+
+        self._add_event(order_id, EventType.ORDER_CREATED.value,
+                        "Pedido criado", f"Pedido {order_number} criado com sucesso.")
+
+        self.db.flush()
+
+        cart_svc.clear_cart(cart_id)
+
         payment_data = await self._initiate_payment(order, payment_method)
-        
-        # Update order status
-        order["status"] = OrderStatus.AWAITING_PAYMENT.value
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.PAYMENT_INITIATED.value,
-            "title": "Aguardando pagamento",
-            "description": f"Pagamento via {payment_method.value} iniciado.",
-            "actor_name": "Sistema",
-            "is_customer_visible": True,
-            "metadata": payment_data or {},
-            "created_at": datetime.utcnow(),
-        })
-        
+
+        order.status = OrderStatus.AWAITING_PAYMENT.value
+        self._add_event(order_id, EventType.PAYMENT_INITIATED.value,
+                        "Aguardando pagamento",
+                        f"Pagamento via {payment_method.value} iniciado.",
+                        metadata=payment_data or {})
+
         if payment_data:
-            order["payment_intent_id"] = payment_data.get("payment_id")
-        
+            order.payment_intent_id = payment_data.get("payment_id")
+
+        self.db.commit()
         logger.info(f"Checkout completed: order {order_number}, payment {payment_method.value}")
-        
+
         return CheckoutResult(
-            success=True,
-            order_id=order_id,
-            order_number=order_number,
-            payment_required=True,
-            payment_method=payment_method.value,
+            success=True, order_id=order_id, order_number=order_number,
+            payment_required=True, payment_method=payment_method.value,
             payment_data=payment_data,
         )
-    
-    async def _initiate_payment(
-        self,
-        order: dict,
-        payment_method: PaymentMethod
-    ) -> Optional[Dict[str, Any]]:
-        """Initiate payment with orchestrator."""
-        
-        orchestrator = get_payment_orchestrator()
-        
-        # Map payment method to provider
+
+    async def _initiate_payment(self, order, payment_method: PaymentMethod):
+        from app.services.payments import get_payment_orchestrator, PaymentProvider, Currency
+        orchestrator = get_payment_orchestrator(self.db)
         provider_map = {
             PaymentMethod.MULTICAIXA_EXPRESS: PaymentProvider.MULTICAIXA_EXPRESS,
             PaymentMethod.VISA_MASTERCARD: PaymentProvider.VISA_MASTERCARD,
             PaymentMethod.IBAN_ANGOLA: PaymentProvider.IBAN_TRANSFER,
             PaymentMethod.IBAN_INTERNATIONAL: PaymentProvider.IBAN_TRANSFER,
         }
-        
         provider = provider_map.get(payment_method)
         if not provider:
             return None
-        
         result = await orchestrator.create_payment(
-            company_id=order.get("company_id") or "default",
-            order_id=order["id"],
-            amount=order["total"],
-            currency=Currency.AOA,
-            provider=provider,
-            description=f"Pedido {order['order_number']}",
-            idempotency_key=f"order-{order['id']}",
+            company_id=order.company_id or "default",
+            order_id=order.id, amount=order.total,
+            currency=Currency.AOA, provider=provider,
+            description=f"Pedido {order.order_number}",
+            idempotency_key=f"order-{order.id}",
         )
-        
         return {
-            "payment_id": result.payment_id,
-            "status": result.status.value,
+            "payment_id": result.payment_id, "status": result.status.value,
             "provider_reference": result.provider_reference,
-            "qr_code": result.qr_code,
-            "redirect_url": result.redirect_url,
+            "qr_code": result.qr_code, "redirect_url": result.redirect_url,
             "transfer_details": result.raw_response.get("transfer_details") if result.raw_response else None,
         }
-    
-    async def confirm_payment(
-        self,
-        order_id: str,
-        payment_reference: Optional[str] = None,
-        confirmed_by: Optional[str] = None,
-    ) -> bool:
-        """
-        Confirm payment for an order.
-        
-        Called by webhook or admin for IBAN confirmation.
-        """
-        
-        order = _orders_store.get(order_id)
+
+    async def confirm_payment(self, order_id: str, payment_reference=None, confirmed_by=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.PAID.value
-        order["payment_confirmed_at"] = now
-        order["updated_at"] = now
-        
+        now = _utcnow()
+        order.status = OrderStatus.PAID.value
+        order.payment_confirmed_at = now
+        order.updated_at = now
         if payment_reference:
-            order["payment_reference"] = payment_reference
-        
-        # Add event
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.PAYMENT_CONFIRMED.value,
-            "title": "Pagamento confirmado",
-            "description": "O pagamento foi confirmado com sucesso.",
-            "actor_name": confirmed_by or "Sistema",
-            "is_customer_visible": True,
-            "metadata": {"reference": payment_reference},
-            "created_at": now,
-        })
-        
-        logger.info(f"Payment confirmed for order {order['order_number']}")
-        
-        # Auto-transition to processing
+            order.payment_reference = payment_reference
+        self._add_event(order_id, EventType.PAYMENT_CONFIRMED.value,
+                        "Pagamento confirmado", "O pagamento foi confirmado com sucesso.",
+                        actor_name=confirmed_by or "Sistema",
+                        metadata={"reference": payment_reference})
+        self.db.commit()
         await self.start_processing(order_id)
-        
         return True
-    
+
     async def start_processing(self, order_id: str) -> bool:
-        """Start processing the order."""
-        
-        order = _orders_store.get(order_id)
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.PROCESSING.value
-        order["updated_at"] = now
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.ORDER_PROCESSING.value,
-            "title": "Em processamento",
-            "description": "O seu pedido está a ser processado.",
-            "actor_name": "Sistema",
-            "is_customer_visible": True,
-            "metadata": {},
-            "created_at": now,
-        })
-        
+        order.status = OrderStatus.PROCESSING.value
+        order.updated_at = _utcnow()
+        self._add_event(order_id, EventType.ORDER_PROCESSING.value,
+                        "Em processamento", "O seu pedido está a ser processado.")
+        self.db.commit()
         return True
-    
-    async def assign_team(
-        self,
-        order_id: str,
-        team_name: str,
-        scheduled_start: Optional[datetime] = None,
-        scheduled_end: Optional[datetime] = None,
-        assigned_by: Optional[str] = None,
-    ) -> bool:
-        """Assign team for service execution."""
-        
-        order = _orders_store.get(order_id)
+
+    async def assign_team(self, order_id: str, team_name: str,
+                          scheduled_start=None, scheduled_end=None, assigned_by=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.ASSIGNED.value
-        order["assigned_team"] = team_name
-        order["scheduled_start"] = scheduled_start
-        order["scheduled_end"] = scheduled_end
-        order["updated_at"] = now
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.TEAM_ASSIGNED.value,
-            "title": "Equipa atribuída",
-            "description": f"Equipa {team_name} foi atribuída ao seu pedido.",
-            "actor_name": assigned_by or "Admin",
-            "is_customer_visible": True,
-            "metadata": {"team": team_name},
-            "created_at": now,
-        })
-        
+        now = _utcnow()
+        order.status = OrderStatus.ASSIGNED.value
+        order.assigned_team = team_name
+        order.scheduled_start = scheduled_start
+        order.scheduled_end = scheduled_end
+        order.updated_at = now
+        self._add_event(order_id, EventType.TEAM_ASSIGNED.value,
+                        "Equipa atribuída", f"Equipa {team_name} foi atribuída ao seu pedido.",
+                        actor_name=assigned_by or "Admin", metadata={"team": team_name})
         if scheduled_start:
-            order["events"].append({
-                "id": str(uuid.uuid4()),
-                "event_type": EventType.SERVICE_SCHEDULED.value,
-                "title": "Serviço agendado",
-                "description": f"Agendado para {scheduled_start.strftime('%d/%m/%Y %H:%M')}.",
-                "actor_name": "Sistema",
-                "is_customer_visible": True,
-                "metadata": {"scheduled_start": scheduled_start.isoformat()},
-                "created_at": now,
-            })
-        
+            self._add_event(order_id, EventType.SERVICE_SCHEDULED.value,
+                            "Serviço agendado",
+                            f"Agendado para {scheduled_start.strftime('%d/%m/%Y %H:%M')}.",
+                            metadata={"scheduled_start": scheduled_start.isoformat()})
+        self.db.commit()
         return True
-    
-    async def start_service(self, order_id: str, started_by: Optional[str] = None) -> bool:
-        """Mark service as started (check-in field)."""
-        
-        order = _orders_store.get(order_id)
+
+    async def start_service(self, order_id: str, started_by=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.IN_PROGRESS.value
-        order["actual_start"] = now
-        order["updated_at"] = now
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.SERVICE_STARTED.value,
-            "title": "Serviço iniciado",
-            "description": "A equipa iniciou o serviço.",
-            "actor_name": started_by or "Equipa",
-            "is_customer_visible": True,
-            "metadata": {},
-            "created_at": now,
-        })
-        
+        now = _utcnow()
+        order.status = OrderStatus.IN_PROGRESS.value
+        order.actual_start = now
+        order.updated_at = now
+        self._add_event(order_id, EventType.SERVICE_STARTED.value,
+                        "Serviço iniciado", "A equipa iniciou o serviço.",
+                        actor_name=started_by or "Equipa")
+        self.db.commit()
         return True
-    
-    async def complete_service(
-        self,
-        order_id: str,
-        completed_by: Optional[str] = None,
-        notes: Optional[str] = None,
-    ) -> bool:
-        """
-        Mark service as completed (check-out).
-        
-        This is the delivery confirmation for services.
-        """
-        
-        order = _orders_store.get(order_id)
+
+    async def complete_service(self, order_id: str, completed_by=None, notes=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.COMPLETED.value
-        order["actual_end"] = now
-        order["completed_at"] = now
-        order["updated_at"] = now
-        
+        now = _utcnow()
+        order.status = OrderStatus.COMPLETED.value
+        order.actual_end = now
+        order.completed_at = now
+        order.updated_at = now
         if notes:
-            order["internal_notes"] = (order.get("internal_notes") or "") + f"\n{notes}"
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.SERVICE_COMPLETED.value,
-            "title": "Serviço concluído",
-            "description": "O serviço foi concluído com sucesso.",
-            "actor_name": completed_by or "Equipa",
-            "is_customer_visible": True,
-            "metadata": {"notes": notes},
-            "created_at": now,
-        })
-        
-        logger.info(f"Service completed for order {order['order_number']}")
-        
+            order.internal_notes = (order.internal_notes or "") + f"\n{notes}"
+        self._add_event(order_id, EventType.SERVICE_COMPLETED.value,
+                        "Serviço concluído", "O serviço foi concluído com sucesso.",
+                        actor_name=completed_by or "Equipa", metadata={"notes": notes})
+        self.db.commit()
+        logger.info(f"Service completed for order {order.order_number}")
         return True
-    
-    async def ship_order(
-        self,
-        order_id: str,
-        tracking_number: Optional[str] = None,
-        carrier: Optional[str] = None,
-    ) -> bool:
-        """Mark physical order as shipped."""
-        
-        order = _orders_store.get(order_id)
+
+    async def ship_order(self, order_id: str, tracking_number=None, carrier=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.DISPATCHED.value
-        order["updated_at"] = now
-        
-        description = "O seu pedido foi enviado."
+        now = _utcnow()
+        order.status = OrderStatus.DISPATCHED.value
+        order.updated_at = now
+        desc = "O seu pedido foi enviado."
         if tracking_number:
-            description += f" Código de rastreio: {tracking_number}"
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.SHIPPED.value,
-            "title": "Pedido enviado",
-            "description": description,
-            "actor_name": "Sistema",
-            "is_customer_visible": True,
-            "metadata": {"tracking": tracking_number, "carrier": carrier},
-            "created_at": now,
-        })
-        
+            desc += f" Código de rastreio: {tracking_number}"
+        self._add_event(order_id, EventType.SHIPPED.value,
+                        "Pedido enviado", desc,
+                        metadata={"tracking": tracking_number, "carrier": carrier})
+        self.db.commit()
         return True
-    
-    async def deliver_order(self, order_id: str, delivered_by: Optional[str] = None) -> bool:
-        """Mark order as delivered (physical products)."""
-        
-        order = _orders_store.get(order_id)
+
+    async def deliver_order(self, order_id: str, delivered_by=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.DELIVERED.value
-        order["actual_delivery"] = now
-        order["completed_at"] = now
-        order["updated_at"] = now
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.DELIVERED.value,
-            "title": "Pedido entregue",
-            "description": "O seu pedido foi entregue com sucesso.",
-            "actor_name": delivered_by or "Transportadora",
-            "is_customer_visible": True,
-            "metadata": {},
-            "created_at": now,
-        })
-        
+        now = _utcnow()
+        order.status = OrderStatus.DELIVERED.value
+        order.actual_delivery = now
+        order.completed_at = now
+        order.updated_at = now
+        self._add_event(order_id, EventType.DELIVERED.value,
+                        "Pedido entregue", "O seu pedido foi entregue com sucesso.",
+                        actor_name=delivered_by or "Transportadora")
+        self.db.commit()
         return True
-    
-    async def add_deliverable(
-        self,
-        order_id: str,
-        name: str,
-        deliverable_type: str,
-        storage_key: Optional[str] = None,
-        download_url: Optional[str] = None,
-        file_size: Optional[int] = None,
-        mime_type: Optional[str] = None,
-        description: Optional[str] = None,
-    ) -> Optional[str]:
-        """Add a deliverable file to the order."""
-        
-        order = _orders_store.get(order_id)
+
+    async def add_deliverable(self, order_id: str, name: str, deliverable_type: str,
+                              storage_key=None, download_url=None,
+                              file_size=None, mime_type=None, description=None):
+        OM = self._models()[0]
+        _, _, _, DM = self._models()
+        order = self.db.get(OM, order_id)
         if not order:
             return None
-        
-        now = datetime.utcnow()
-        deliverable_id = str(uuid.uuid4())
-        
-        deliverable = {
-            "id": deliverable_id,
-            "order_item_id": None,
-            "name": name,
-            "description": description,
-            "deliverable_type": deliverable_type,
-            "storage_key": storage_key,
-            "download_url": download_url,
-            "file_size": file_size,
-            "mime_type": mime_type,
-            "download_count": 0,
-            "is_ready": True,
-            "generated_at": now,
-            "created_at": now,
-        }
-        
-        order["deliverables"].append(deliverable)
-        order["updated_at"] = now
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.DELIVERABLE_READY.value,
-            "title": "Ficheiro disponível",
-            "description": f"O ficheiro '{name}' está pronto para download.",
-            "actor_name": "Sistema",
-            "is_customer_visible": True,
-            "metadata": {"deliverable_id": deliverable_id, "name": name},
-            "created_at": now,
-        })
-        
-        return deliverable_id
-    
-    async def cancel_order(
-        self,
-        order_id: str,
-        reason: Optional[str] = None,
-        cancelled_by: Optional[str] = None,
-    ) -> bool:
-        """Cancel an order."""
-        
-        order = _orders_store.get(order_id)
+        did = str(uuid.uuid4())
+        d = DM(id=did, order_id=order_id, name=name, deliverable_type=deliverable_type,
+               storage_key=storage_key, download_url=download_url,
+               file_size=file_size, is_ready=True)
+        self.db.add(d)
+        order.updated_at = _utcnow()
+        self._add_event(order_id, EventType.DELIVERABLE_READY.value,
+                        "Ficheiro disponível", f"O ficheiro '{name}' está pronto para download.",
+                        metadata={"deliverable_id": did, "name": name})
+        self.db.commit()
+        return did
+
+    async def cancel_order(self, order_id: str, reason=None, cancelled_by=None) -> bool:
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
         if not order:
             return False
-        
-        # Can only cancel if not completed
-        if order["status"] in [OrderStatus.COMPLETED.value, OrderStatus.DELIVERED.value]:
+        if order.status in [OrderStatus.COMPLETED.value, OrderStatus.DELIVERED.value]:
             return False
-        
-        now = datetime.utcnow()
-        
-        order["status"] = OrderStatus.CANCELLED.value
-        order["cancelled_at"] = now
-        order["updated_at"] = now
-        
-        order["events"].append({
-            "id": str(uuid.uuid4()),
-            "event_type": EventType.CANCELLED.value,
-            "title": "Pedido cancelado",
-            "description": reason or "O pedido foi cancelado.",
-            "actor_name": cancelled_by or "Sistema",
-            "is_customer_visible": True,
-            "metadata": {"reason": reason},
-            "created_at": now,
-        })
-        
-        # TODO: Trigger refund if paid
-        
+        now = _utcnow()
+        order.status = OrderStatus.CANCELLED.value
+        order.cancelled_at = now
+        order.updated_at = now
+        self._add_event(order_id, EventType.CANCELLED.value,
+                        "Pedido cancelado", reason or "O pedido foi cancelado.",
+                        actor_name=cancelled_by or "Sistema", metadata={"reason": reason})
+        self.db.commit()
         return True
-    
+
     def get_order(self, order_id: str) -> Optional[OrderData]:
-        """Get order by ID."""
-        
-        order = _orders_store.get(order_id)
-        if not order:
-            return None
-        
-        return self._order_to_data(order)
-    
+        OM = self._models()[0]
+        order = self.db.get(OM, order_id)
+        return self._to_data(order) if order else None
+
     def get_order_by_number(self, order_number: str) -> Optional[OrderData]:
-        """Get order by order number."""
-        
-        order = next(
-            (o for o in _orders_store.values() if o["order_number"] == order_number),
-            None
-        )
-        if not order:
-            return None
-        
-        return self._order_to_data(order)
-    
-    def list_orders(
-        self,
-        user_id: Optional[str] = None,
-        company_id: Optional[str] = None,
-        site_id: Optional[str] = None,
-        status: Optional[str] = None,
-        limit: int = 50,
-    ) -> List[OrderData]:
-        """List orders with filtering."""
-        
-        orders = list(_orders_store.values())
-        
+        OM = self._models()[0]
+        order = self.db.query(OM).filter(OM.order_number == order_number).first()
+        return self._to_data(order) if order else None
+
+    def list_orders(self, user_id=None, company_id=None, site_id=None,
+                    status=None, limit=50) -> List[OrderData]:
+        OM = self._models()[0]
+        q = self.db.query(OM)
         if user_id:
-            orders = [o for o in orders if o["user_id"] == user_id]
+            q = q.filter(OM.user_id == user_id)
         if company_id:
-            orders = [o for o in orders if o.get("company_id") == company_id]
+            q = q.filter(OM.company_id == company_id)
         if site_id:
-            orders = [o for o in orders if o.get("site_id") == site_id]
+            q = q.filter(OM.site_id == site_id)
         if status:
-            orders = [o for o in orders if o["status"] == status]
-        
-        # Sort by created_at descending
-        orders.sort(key=lambda o: o["created_at"], reverse=True)
-        
-        return [self._order_to_data(o) for o in orders[:limit]]
-    
-    def _order_to_data(self, order: dict) -> OrderData:
-        """Convert order dict to OrderData."""
-        
-        items = [
-            OrderItemData(
-                id=i["id"],
-                product_id=i["product_id"],
-                product_name=i["product_name"],
-                product_type=i["product_type"],
-                sku=i.get("sku"),
-                quantity=i["quantity"],
-                unit_price=i["unit_price"],
-                total_price=i["total_price"],
-                tax_rate=i.get("tax_rate", 0),
-                tax_amount=i.get("tax_amount", 0),
-                status=i.get("status", "pending"),
-                scheduled_date=i.get("scheduled_date"),
-                custom_options=i.get("custom_options", {}),
-            )
-            for i in order.get("items", [])
-        ]
-        
-        events = [
-            OrderEventData(
-                id=e["id"],
-                event_type=e["event_type"],
-                title=e["title"],
-                description=e.get("description"),
-                actor_name=e.get("actor_name"),
-                is_customer_visible=e.get("is_customer_visible", True),
-                created_at=e["created_at"],
-                metadata=e.get("metadata", {}),
-            )
-            for e in order.get("events", [])
-        ]
-        
-        deliverables = [
-            DeliverableData(
-                id=d["id"],
-                name=d["name"],
-                description=d.get("description"),
-                deliverable_type=d["deliverable_type"],
-                file_size=d.get("file_size"),
-                mime_type=d.get("mime_type"),
-                download_url=d.get("download_url"),
-                is_ready=d.get("is_ready", False),
-                created_at=d["created_at"],
-            )
-            for d in order.get("deliverables", [])
-        ]
-        
+            q = q.filter(OM.status == status)
+        q = q.order_by(OM.created_at.desc()).limit(limit)
+        return [self._to_data(o) for o in q.all()]
+
+    def _to_data(self, order) -> OrderData:
+        items = [OrderItemData(
+            id=i.id, product_id=i.product_id, product_name=i.product_name,
+            product_type=i.product_type, sku=i.sku, quantity=i.quantity,
+            unit_price=i.unit_price, total_price=i.total_price,
+            tax_rate=float(i.tax_rate or 0), tax_amount=i.tax_amount or 0,
+            status=i.status or "pending", scheduled_date=i.scheduled_date)
+            for i in order.order_items]
+        events = [OrderEventData(
+            id=e.id, event_type=e.event_type, title=e.title,
+            description=e.description, actor_name=e.actor_name,
+            is_customer_visible=e.is_customer_visible, created_at=e.created_at,
+            metadata=json.loads(e.metadata_json or "{}"))
+            for e in order.order_events]
+        deliverables = [DeliverableData(
+            id=d.id, name=d.name, description=None,
+            deliverable_type=d.deliverable_type, file_size=d.file_size,
+            mime_type=None, download_url=d.download_url,
+            is_ready=d.is_ready, created_at=d.created_at)
+            for d in order.deliverables]
         return OrderData(
-            id=order["id"],
-            order_number=order["order_number"],
-            user_id=order["user_id"],
-            company_id=order.get("company_id"),
-            site_id=order.get("site_id"),
-            project_name=order.get("project_name"),
-            status=order["status"],
-            payment_method=order.get("payment_method"),
-            payment_reference=order.get("payment_reference"),
-            currency=order.get("currency", "AOA"),
-            subtotal=order["subtotal"],
-            discount_amount=order.get("discount_amount", 0),
-            coupon_code=order.get("coupon_code"),
-            tax_amount=order.get("tax_amount", 0),
-            delivery_cost=order.get("delivery_cost", 0),
-            total=order["total"],
-            items=items,
-            events=events,
-            deliverables=deliverables,
-            delivery_method=order.get("delivery_method"),
-            delivery_address=order.get("delivery_address"),
-            assigned_team=order.get("assigned_team"),
-            scheduled_start=order.get("scheduled_start"),
-            estimated_delivery=order.get("estimated_delivery"),
-            customer_notes=order.get("customer_notes"),
-            created_at=order["created_at"],
-            updated_at=order["updated_at"],
-            completed_at=order.get("completed_at"),
-        )
+            id=order.id, order_number=order.order_number, user_id=order.user_id,
+            company_id=order.company_id, site_id=order.site_id,
+            project_name=None, status=order.status,
+            payment_method=order.payment_method, payment_reference=order.payment_reference,
+            currency=order.currency or "AOA", subtotal=order.subtotal,
+            discount_amount=order.discount_amount or 0, coupon_code=order.coupon_code,
+            tax_amount=order.tax_amount or 0, delivery_cost=order.delivery_cost or 0,
+            total=order.total, items=items, events=events, deliverables=deliverables,
+            delivery_method=order.delivery_method, delivery_address=None,
+            assigned_team=order.assigned_team, scheduled_start=order.scheduled_start,
+            estimated_delivery=order.estimated_delivery, customer_notes=order.customer_notes,
+            created_at=order.created_at, updated_at=order.updated_at,
+            completed_at=order.completed_at)
 
 
-# Singleton
-_order_service: Optional[OrderService] = None
-
-
-def get_order_service() -> OrderService:
-    """Get order service instance."""
-    global _order_service
-    if _order_service is None:
-        _order_service = OrderService()
-    return _order_service
+def get_order_service(db: Session) -> OrderService:
+    """Get order service instance (requires db session)."""
+    return OrderService(db)

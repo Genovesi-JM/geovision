@@ -13,6 +13,7 @@ Supported file types:
 - PDF reports, CSV, Shapefiles, GeoJSON, DXF/DWG
 """
 import uuid
+import json
 import logging
 from datetime import datetime
 from typing import Optional, List
@@ -141,11 +142,22 @@ class DatasetListResponse(BaseModel):
     per_page: int
 
 
-# ============ IN-MEMORY STORE (replace with DB) ============
-# For now, using in-memory store until DB migration is run
+# ============ DB-backed (no more in-memory store) ============
 
-_datasets_store: dict = {}
-_files_store: dict = {}
+def _ds_out(ds) -> DatasetOut:
+    """Convert Dataset ORM object to DatasetOut schema."""
+    files = []
+    for f in ds.files:
+        files.append(DatasetFileOut(
+            id=f.id, filename=f.filename, file_type=detect_file_type(f.filename),
+            size_bytes=f.file_size or 0, storage_key=f.storage_key,
+            created_at=f.created_at))
+    return DatasetOut(
+        id=ds.id, company_id=ds.company_id, site_id=ds.site_id, name=ds.name,
+        source_tool=ds.source_tool, status=ds.status, sector=ds.sector,
+        files=files, file_count=ds.file_count or 0,
+        total_size_bytes=sum(f.size_bytes for f in files),
+        created_at=ds.created_at, updated_at=ds.updated_at)
 
 
 # ============ ENDPOINTS ============
@@ -154,39 +166,17 @@ _files_store: dict = {}
 async def create_dataset(
     data: DatasetCreate,
     company_id: str = Query(..., description="Company ID"),
+    db: Session = Depends(get_db),
 ):
-    """
-    Create a new dataset record.
-    
-    After creating, use /datasets/{id}/upload or /datasets/{id}/presigned-url
-    to upload files.
-    """
+    from app.models import Dataset as DSModel
     dataset_id = str(uuid.uuid4())
-    now = datetime.utcnow()
-    
-    dataset = {
-        "id": dataset_id,
-        "company_id": company_id,
-        "site_id": data.site_id,
-        "name": data.name,
-        "description": data.description,
-        "source_tool": data.source_tool.value,
-        "status": DatasetStatus.UPLOADING.value,
-        "sector": data.sector,
-        "capture_date": data.capture_date,
-        "metadata": data.metadata or {},
-        "files": [],
-        "file_count": 0,
-        "total_size_bytes": 0,
-        "created_at": now,
-        "updated_at": now,
-    }
-    
-    _datasets_store[dataset_id] = dataset
-    
+    ds = DSModel(id=dataset_id, company_id=company_id, site_id=data.site_id,
+                 name=data.name, source_tool=data.source_tool.value,
+                 status=DatasetStatus.UPLOADING.value, sector=data.sector,
+                 metadata_json=json.dumps(data.metadata or {}))
+    db.add(ds); db.commit(); db.refresh(ds)
     logger.info(f"Created dataset {dataset_id} for company {company_id}")
-    
-    return DatasetOut(**dataset)
+    return _ds_out(ds)
 
 
 @router.get("/", response_model=DatasetListResponse)
@@ -198,337 +188,161 @@ async def list_datasets(
     source_tool: Optional[SourceTool] = Query(None),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
 ):
-    """List datasets with filtering."""
-    
-    # Filter datasets
-    datasets = [d for d in _datasets_store.values() if d["company_id"] == company_id]
-    
-    if site_id:
-        datasets = [d for d in datasets if d["site_id"] == site_id]
-    if sector:
-        datasets = [d for d in datasets if d.get("sector") == sector]
-    if status:
-        datasets = [d for d in datasets if d["status"] == status.value]
-    if source_tool:
-        datasets = [d for d in datasets if d["source_tool"] == source_tool.value]
-    
-    total = len(datasets)
-    
-    # Paginate
-    start = (page - 1) * per_page
-    end = start + per_page
-    datasets = datasets[start:end]
-    
-    return DatasetListResponse(
-        datasets=[DatasetOut(**d) for d in datasets],
-        total=total,
-        page=page,
-        per_page=per_page
-    )
+    from app.models import Dataset as DSModel
+    q = db.query(DSModel).filter(DSModel.company_id == company_id)
+    if site_id: q = q.filter(DSModel.site_id == site_id)
+    if sector: q = q.filter(DSModel.sector == sector)
+    if status: q = q.filter(DSModel.status == status.value)
+    if source_tool: q = q.filter(DSModel.source_tool == source_tool.value)
+    total = q.count()
+    datasets = q.offset((page-1)*per_page).limit(per_page).all()
+    return DatasetListResponse(datasets=[_ds_out(d) for d in datasets],
+                               total=total, page=page, per_page=per_page)
 
 
 @router.get("/{dataset_id}", response_model=DatasetOut)
-async def get_dataset(dataset_id: str):
-    """Get dataset by ID."""
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    return DatasetOut(**_datasets_store[dataset_id])
+async def get_dataset(dataset_id: str, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
+    return _ds_out(ds)
 
 
 @router.patch("/{dataset_id}", response_model=DatasetOut)
-async def update_dataset(dataset_id: str, data: DatasetUpdate):
-    """Update dataset metadata."""
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    if data.name is not None:
-        dataset["name"] = data.name
-    if data.description is not None:
-        dataset["description"] = data.description
-    if data.status is not None:
-        dataset["status"] = data.status.value
-    if data.capture_date is not None:
-        dataset["capture_date"] = data.capture_date
+async def update_dataset(dataset_id: str, data: DatasetUpdate, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
+    if data.name is not None: ds.name = data.name
+    if data.status is not None: ds.status = data.status.value
     if data.metadata is not None:
-        dataset["metadata"].update(data.metadata)
-    
-    dataset["updated_at"] = datetime.utcnow()
-    
-    return DatasetOut(**dataset)
+        existing = json.loads(ds.metadata_json or "{}")
+        existing.update(data.metadata)
+        ds.metadata_json = json.dumps(existing)
+    ds.updated_at = datetime.utcnow()
+    db.commit(); db.refresh(ds)
+    return _ds_out(ds)
 
 
 @router.delete("/{dataset_id}")
-async def delete_dataset(dataset_id: str):
-    """Delete dataset and all files."""
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    # Delete files from storage
+async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel, DatasetFile as DFModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
     storage = get_storage_service()
-    for file_info in dataset.get("files", []):
-        try:
-            storage.delete_file(file_info["storage_key"])
-        except Exception as e:
-            logger.warning(f"Failed to delete file {file_info['storage_key']}: {e}")
-    
-    # Remove from store
-    del _datasets_store[dataset_id]
-    
+    for f in ds.files:
+        try: storage.delete_file(f.storage_key)
+        except Exception as e: logger.warning(f"Failed to delete file {f.storage_key}: {e}")
+    db.query(DFModel).filter(DFModel.dataset_id == dataset_id).delete()
+    db.delete(ds); db.commit()
     return {"message": "Dataset deleted", "id": dataset_id}
 
 
 @router.post("/{dataset_id}/upload", response_model=DatasetFileOut)
-async def upload_file(
-    dataset_id: str,
-    file: UploadFile = File(...),
-):
-    """
-    Direct file upload to dataset.
-    
-    For large files (>100MB), use presigned URL instead.
-    """
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    # Validate file size (max 500MB for direct upload)
-    MAX_SIZE = 500 * 1024 * 1024  # 500MB
+async def upload_file(dataset_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel, DatasetFile as DFModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
+    MAX_SIZE = 500 * 1024 * 1024
     content = await file.read()
-    
     if len(content) > MAX_SIZE:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Max {MAX_SIZE // (1024*1024)}MB for direct upload. Use presigned URL for larger files."
-        )
-    
-    # Upload to S3
+        raise HTTPException(413, f"File too large. Max {MAX_SIZE // (1024*1024)}MB for direct upload.")
     storage = get_storage_service()
-    
     filename = file.filename or f"upload_{dataset_id}"
-    
-    storage_key = storage.generate_key(
-        company_id=dataset["company_id"],
-        site_id=dataset["site_id"],
-        dataset_id=dataset_id,
-        filename=filename
-    )
-    
+    storage_key = storage.generate_key(company_id=ds.company_id, site_id=ds.site_id,
+                                        dataset_id=dataset_id, filename=filename)
     from io import BytesIO
     key, size_bytes, md5_hash, sha256_hash = storage.upload_bytes(
-        data=content,
-        key=storage_key,
+        data=content, key=storage_key,
         content_type=file.content_type or detect_mime_type(filename),
-        metadata={
-            "dataset_id": dataset_id,
-            "original_filename": file.filename,
-            "source_tool": dataset["source_tool"],
-        }
-    )
-    
-    # Create file record
+        metadata={"dataset_id": dataset_id, "original_filename": file.filename, "source_tool": ds.source_tool})
     file_id = str(uuid.uuid4())
     file_type = detect_file_type(filename)
-    
-    file_record = {
-        "id": file_id,
-        "filename": filename,
-        "file_type": file_type,
-        "size_bytes": size_bytes,
-        "storage_key": storage_key,
-        "md5_hash": md5_hash,
-        "sha256_hash": sha256_hash,
-        "created_at": datetime.utcnow(),
-    }
-    
-    # Update dataset
-    dataset["files"].append(file_record)
-    dataset["file_count"] = len(dataset["files"])
-    dataset["total_size_bytes"] = sum(f["size_bytes"] for f in dataset["files"])
-    dataset["updated_at"] = datetime.utcnow()
-    
-    # Auto-update status if first file
-    if dataset["status"] == DatasetStatus.UPLOADING.value:
-        dataset["status"] = DatasetStatus.PROCESSING.value
-    
-    logger.info(f"Uploaded file {file.filename} to dataset {dataset_id}")
-    
-    return DatasetFileOut(**file_record)
+    df = DFModel(id=file_id, dataset_id=dataset_id, filename=filename,
+                 storage_key=storage_key, file_size=size_bytes, mime_type=file.content_type)
+    db.add(df)
+    ds.file_count = len(ds.files) + 1
+    if ds.status == DatasetStatus.UPLOADING.value:
+        ds.status = DatasetStatus.PROCESSING.value
+    ds.updated_at = datetime.utcnow()
+    db.commit(); db.refresh(df)
+    logger.info(f"Uploaded file {filename} to dataset {dataset_id}")
+    return DatasetFileOut(id=df.id, filename=df.filename, file_type=file_type,
+                          size_bytes=df.file_size or 0, storage_key=df.storage_key,
+                          created_at=df.created_at)
 
 
 @router.post("/{dataset_id}/presigned-url", response_model=PresignedUrlResponse)
-async def get_upload_url(
-    dataset_id: str,
-    request: PresignedUrlRequest,
-):
-    """
-    Get presigned URL for direct upload to S3.
-    
-    Use this for large files (>100MB) to upload directly from client.
-    """
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
+async def get_upload_url(dataset_id: str, request: PresignedUrlRequest, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
     storage = get_storage_service()
-    
-    storage_key = storage.generate_key(
-        company_id=dataset["company_id"],
-        site_id=dataset["site_id"],
-        dataset_id=dataset_id,
-        filename=request.filename
-    )
-    
-    upload_url = storage.get_presigned_url(
-        key=storage_key,
-        expires_in=3600,
-        for_upload=True
-    )
-    
-    return PresignedUrlResponse(
-        upload_url=upload_url,
-        storage_key=storage_key,
-        expires_in=3600
-    )
+    storage_key = storage.generate_key(company_id=ds.company_id, site_id=ds.site_id,
+                                        dataset_id=dataset_id, filename=request.filename)
+    upload_url = storage.get_presigned_url(key=storage_key, expires_in=3600, for_upload=True)
+    return PresignedUrlResponse(upload_url=upload_url, storage_key=storage_key, expires_in=3600)
 
 
 @router.post("/{dataset_id}/confirm-upload")
-async def confirm_upload(
-    dataset_id: str,
-    storage_key: str = Form(...),
-    filename: str = Form(...),
-    size_bytes: int = Form(...),
-):
-    """
-    Confirm upload after using presigned URL.
-    
-    Call this after successful direct upload to S3 to register the file.
-    """
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    # Verify file exists in S3
+async def confirm_upload(dataset_id: str, storage_key: str = Form(...),
+                          filename: str = Form(...), size_bytes: int = Form(...),
+                          db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel, DatasetFile as DFModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
     storage = get_storage_service()
     if not storage.file_exists(storage_key):
-        raise HTTPException(status_code=400, detail="File not found in storage")
-    
-    # Create file record
+        raise HTTPException(400, "File not found in storage")
     file_id = str(uuid.uuid4())
     file_type = detect_file_type(filename)
-    
-    file_record = {
-        "id": file_id,
-        "filename": filename,
-        "file_type": file_type,
-        "size_bytes": size_bytes,
-        "storage_key": storage_key,
-        "md5_hash": None,
-        "created_at": datetime.utcnow(),
-    }
-    
-    # Update dataset
-    dataset["files"].append(file_record)
-    dataset["file_count"] = len(dataset["files"])
-    dataset["total_size_bytes"] = sum(f["size_bytes"] for f in dataset["files"])
-    dataset["updated_at"] = datetime.utcnow()
-    
-    return DatasetFileOut(**file_record)
+    df = DFModel(id=file_id, dataset_id=dataset_id, filename=filename,
+                 storage_key=storage_key, file_size=size_bytes)
+    db.add(df); ds.file_count = len(ds.files) + 1; ds.updated_at = datetime.utcnow()
+    db.commit(); db.refresh(df)
+    return DatasetFileOut(id=df.id, filename=df.filename, file_type=file_type,
+                          size_bytes=df.file_size or 0, storage_key=df.storage_key,
+                          created_at=df.created_at)
 
 
 @router.get("/{dataset_id}/files/{file_id}/download")
-async def get_download_url(dataset_id: str, file_id: str):
-    """Get presigned download URL for a file."""
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    # Find file
-    file_record = next((f for f in dataset["files"] if f["id"] == file_id), None)
-    if not file_record:
-        raise HTTPException(status_code=404, detail="File not found")
-    
+async def get_download_url(dataset_id: str, file_id: str, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel, DatasetFile as DFModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
+    df = db.get(DFModel, file_id)
+    if not df or df.dataset_id != dataset_id: raise HTTPException(404, "File not found")
     storage = get_storage_service()
-    download_url = storage.get_presigned_url(
-        key=file_record["storage_key"],
-        expires_in=3600,
-        for_upload=False
-    )
-    
-    return {
-        "download_url": download_url,
-        "filename": file_record["filename"],
-        "expires_in": 3600,
-    }
+    download_url = storage.get_presigned_url(key=df.storage_key, expires_in=3600, for_upload=False)
+    return {"download_url": download_url, "filename": df.filename, "expires_in": 3600}
 
 
 @router.delete("/{dataset_id}/files/{file_id}")
-async def delete_file(dataset_id: str, file_id: str):
-    """Delete a file from dataset."""
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    # Find file
-    file_record = next((f for f in dataset["files"] if f["id"] == file_id), None)
-    if not file_record:
-        raise HTTPException(status_code=404, detail="File not found")
-    
-    # Delete from S3
+async def delete_file(dataset_id: str, file_id: str, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel, DatasetFile as DFModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
+    df = db.get(DFModel, file_id)
+    if not df or df.dataset_id != dataset_id: raise HTTPException(404, "File not found")
     storage = get_storage_service()
-    storage.delete_file(file_record["storage_key"])
-    
-    # Remove from dataset
-    dataset["files"] = [f for f in dataset["files"] if f["id"] != file_id]
-    dataset["file_count"] = len(dataset["files"])
-    dataset["total_size_bytes"] = sum(f["size_bytes"] for f in dataset["files"])
-    dataset["updated_at"] = datetime.utcnow()
-    
+    storage.delete_file(df.storage_key)
+    db.delete(df); ds.file_count = max(0, (ds.file_count or 0) - 1)
+    ds.updated_at = datetime.utcnow(); db.commit()
     return {"message": "File deleted", "id": file_id}
 
 
 @router.post("/{dataset_id}/finalize", response_model=DatasetOut)
-async def finalize_dataset(dataset_id: str):
-    """
-    Mark dataset as ready after all files are uploaded.
-    
-    This triggers any post-processing (e.g., thumbnail generation, metadata extraction).
-    """
-    
-    if dataset_id not in _datasets_store:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    
-    dataset = _datasets_store[dataset_id]
-    
-    if not dataset["files"]:
-        raise HTTPException(status_code=400, detail="Dataset has no files")
-    
-    dataset["status"] = DatasetStatus.READY.value
-    dataset["updated_at"] = datetime.utcnow()
-    
-    # TODO: Trigger async processing (thumbnails, metadata extraction, etc.)
-    
-    logger.info(f"Finalized dataset {dataset_id} with {dataset['file_count']} files")
-    
-    return DatasetOut(**dataset)
+async def finalize_dataset(dataset_id: str, db: Session = Depends(get_db)):
+    from app.models import Dataset as DSModel
+    ds = db.get(DSModel, dataset_id)
+    if not ds: raise HTTPException(404, "Dataset not found")
+    if not ds.files: raise HTTPException(400, "Dataset has no files")
+    ds.status = DatasetStatus.READY.value; ds.updated_at = datetime.utcnow()
+    db.commit(); db.refresh(ds)
+    logger.info(f"Finalized dataset {dataset_id} with {ds.file_count} files")
+    return _ds_out(ds)
 
 
 # ============ CONNECTOR WEBHOOKS ============

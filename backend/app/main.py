@@ -16,9 +16,9 @@ from .routers import products, orders, customer_accounts, employees
 from .routers import datasets, risk, payments, admin
 from .routers import shop, contacts
 from .seed_data import (
-    seed_demo_products,
     seed_admin_users,
 )
+from .services.cart import seed_shop_products
 
 
 def create_application() -> FastAPI:
@@ -78,12 +78,15 @@ def create_application() -> FastAPI:
     init_db_engine()
 
     try:
-        inserted_products = seed_demo_products()
-        inserted_users = seed_admin_users()
-        if inserted_products:
-            print(f"[GeoVision] Produtos inseridos: {inserted_products}")
-        if inserted_users:
-            print(f"[GeoVision] Utilizadores admin criados: {inserted_users}")
+        from .database import SessionLocal
+        db = SessionLocal()
+        try:
+            seed_shop_products(db)
+            inserted_users = seed_admin_users()
+            if inserted_users:
+                print(f"[GeoVision] Utilizadores admin criados: {inserted_users}")
+        finally:
+            db.close()
     except Exception as exc:
         print(f"[GeoVision] Falha ao semear dados: {exc}")
 

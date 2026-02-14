@@ -180,6 +180,30 @@ class Order(Base):
     shipping_address_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+    # Extended order fields
+    order_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, unique=True, index=True)
+    payment_method: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    payment_intent_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    payment_reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    payment_confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    coupon_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    tax_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    delivery_method: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    delivery_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    estimated_delivery: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    actual_delivery: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    assigned_team: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    scheduled_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    scheduled_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    actual_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    actual_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    customer_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    internal_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    billing_info_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -344,6 +368,366 @@ class AuditLog(Base):
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)  # IPv4/IPv6
     user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ── Company / Client ──
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    tax_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sectors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")  # JSON list
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
+    subscription_plan: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
+    max_users: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    max_sites: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
+    max_storage_gb: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    current_users: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    current_sites: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    storage_used_gb: Mapped[float] = mapped_column(Numeric(10, 2), default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    sites = relationship("Site", back_populates="company", cascade="all, delete-orphan")
+    connectors = relationship("Connector", back_populates="company", cascade="all, delete-orphan")
+    company_users = relationship("CompanyUser", back_populates="company", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="company", cascade="all, delete-orphan")
+    integrations = relationship("Integration", back_populates="company", cascade="all, delete-orphan")
+
+
+class CompanyUser(Base):
+    """Users assigned to a company (admin panel concept)."""
+    __tablename__ = "company_users"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String, nullable=False)
+    name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    role: Mapped[str] = mapped_column(String(30), nullable=False, default="viewer")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="company_users")
+
+
+# ── Site / Project Location ──
+
+class Site(Base):
+    __tablename__ = "sites"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    country: Mapped[str] = mapped_column(String(100), nullable=False, default="Angola")
+    province: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    municipality: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Numeric(10, 6), nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Numeric(10, 6), nullable=True)
+    area_hectares: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), nullable=True)
+    sector: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="sites")
+
+
+# ── Connector ──
+
+class Connector(Base):
+    __tablename__ = "connectors"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    connector_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    api_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    api_secret: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    base_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    webhook_secret: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    config_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    last_sync: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="never")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="connectors")
+
+
+# ── Document ──
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    document_type: Mapped[str] = mapped_column(String(50), nullable=False, default="report")
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    file_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    file_size_bytes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    is_confidential: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_official: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    uploaded_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="documents")
+
+
+# ── Integration ──
+
+class Integration(Base):
+    __tablename__ = "integrations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    connector_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    api_key_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    api_secret_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    base_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    webhook_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    auto_sync_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    sync_interval_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
+    last_sync_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="never")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="integrations")
+
+
+# ── Dataset (multi-tenant) ──
+
+class Dataset(Base):
+    __tablename__ = "datasets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_tool: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    data_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="drone_imagery")
+    source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    sector: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    capture_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+    storage_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    file_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_size_bytes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    files = relationship("DatasetFile", back_populates="dataset", cascade="all, delete-orphan")
+
+
+class DatasetFile(Base):
+    __tablename__ = "dataset_files"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    dataset_id: Mapped[str] = mapped_column(String(36), ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String, nullable=False)
+    storage_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    file_size: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    dataset = relationship("Dataset", back_populates="files")
+
+
+# ── Cart ──
+
+class Cart(Base):
+    __tablename__ = "carts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    company_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    session_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    coupon_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    discount_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    discount_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    delivery_method: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    delivery_cost: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    delivery_address_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    subtotal: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tax_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    cart_items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+
+
+class CartItem(Base):
+    __tablename__ = "cart_items"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    cart_id: Mapped[str] = mapped_column(String(36), ForeignKey("carts.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    variant_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    product_name: Mapped[str] = mapped_column(String, nullable=False)
+    product_type: Mapped[str] = mapped_column(String(30), nullable=False, default="service")
+    product_image: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sku: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    unit_price: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_price: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tax_rate: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False, default=0.14)
+    tax_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    scheduled_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    custom_options_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    cart = relationship("Cart", back_populates="cart_items")
+
+
+# ── Coupon ──
+
+class Coupon(Base):
+    __tablename__ = "coupons"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    discount_type: Mapped[str] = mapped_column(String(20), nullable=False)  # percentage, fixed
+    discount_value: Mapped[int] = mapped_column(Integer, nullable=False)
+    minimum_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    maximum_discount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    usage_limit: Mapped[int] = mapped_column(Integer, default=100, nullable=False)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    first_order_only: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ── Shop Product (rich catalog) ──
+
+class ShopProduct(Base):
+    """Rich product catalog for the shop (flight services, hardware, etc.)."""
+    __tablename__ = "shop_products"
+
+    id: Mapped[str] = mapped_column(String(50), primary_key=True)  # e.g. prod_mining_volumetric
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    slug: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    short_description: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    product_type: Mapped[str] = mapped_column(String(30), nullable=False, default="service")
+    category: Mapped[str] = mapped_column(String(50), nullable=False, default="flight")
+    execution_type: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # pontual, recorrente
+    price: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
+    tax_rate: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False, default=0.14)
+    duration_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    requires_site: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    min_area_ha: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    sectors_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")  # JSON list
+    deliverables_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")  # JSON list
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_featured: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    track_inventory: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    stock_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ── Payment ──
+
+class Payment(Base):
+    __tablename__ = "payments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    order_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
+    provider: Mapped[str] = mapped_column(String(30), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+# ── Risk Assessment History ──
+
+class RiskAssessment(Base):
+    __tablename__ = "risk_assessments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    site_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    sector: Mapped[str] = mapped_column(String(50), nullable=False)
+    risk_score: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    risk_level: Mapped[str] = mapped_column(String(20), nullable=False)
+    triggered_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    details_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+    assessed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# ── Order Event (timeline) ──
+
+class OrderEvent(Base):
+    __tablename__ = "order_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    order_id: Mapped[str] = mapped_column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    actor_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    is_customer_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    order = relationship("Order", backref="events_rel")
+
+
+# ── Deliverable ──
+
+class Deliverable(Base):
+    __tablename__ = "deliverables"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    order_id: Mapped[str] = mapped_column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    order_item_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    deliverable_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    storage_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    download_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    download_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    is_ready: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    order = relationship("Order", backref="deliverables_rel")
 
 
 # Compatibility alias so routers can import Profile per spec

@@ -1,5 +1,5 @@
 """
-Cart Service
+Cart Service — DB-backed
 
 Manages shopping cart operations:
 - Add/remove items
@@ -7,23 +7,25 @@ Manages shopping cart operations:
 - Apply coupons
 - Calculate totals with tax and delivery
 """
+import json
 import uuid
 import logging
 from datetime import datetime, timedelta, timezone
-
-def _utcnow():
-    return datetime.now(timezone.utc)
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 
+from sqlalchemy.orm import Session
+
 logger = logging.getLogger(__name__)
 
+def _utcnow():
+    return datetime.now(timezone.utc)
 
-# ============ DATA CLASSES ============
+
+# ============ DATA CLASSES (unchanged API) ============
 
 @dataclass
 class CartItemData:
-    """Cart item representation."""
     id: str
     product_id: str
     variant_id: Optional[str]
@@ -32,7 +34,7 @@ class CartItemData:
     product_image: Optional[str]
     sku: Optional[str]
     quantity: int
-    unit_price: int  # In smallest currency unit
+    unit_price: int
     total_price: int
     tax_rate: float
     tax_amount: int
@@ -42,7 +44,6 @@ class CartItemData:
 
 @dataclass
 class CartData:
-    """Cart representation."""
     id: str
     user_id: Optional[str]
     company_id: Optional[str]
@@ -66,7 +67,6 @@ class CartData:
 
 @dataclass
 class CouponValidation:
-    """Coupon validation result."""
     valid: bool
     code: str
     discount_type: Optional[str] = None
@@ -78,18 +78,11 @@ class CouponValidation:
 # ============ TAX CONFIGURATION ============
 
 TAX_RATES = {
-    "AO": 0.14,  # Angola IVA 14%
-    "PT": 0.23,  # Portugal IVA 23%
-    "US": 0.0,   # No federal sales tax
+    "AO": 0.14,
+    "PT": 0.23,
+    "US": 0.0,
     "default": 0.14,
 }
-
-
-# ============ IN-MEMORY STORES ============
-
-_carts_store: Dict[str, dict] = {}
-_products_store: Dict[str, dict] = {}  # Product cache
-_coupons_store: Dict[str, dict] = {}
 
 
 # ============ SECTOR LABELS ============
@@ -104,1057 +97,313 @@ SECTOR_LABELS = {
 }
 
 
-# ============ SEED DEMO PRODUCTS ============
+# ============ SEED DATA ============
 
-def seed_demo_products():
-    """Seed comprehensive flight services for all sectors."""
-    products = [
-        # ==========================================
-        # MINING SECTOR
-        # ==========================================
-        {
-            "id": "prod_mining_volumetric",
-            "name": "Voo Volumétrico de Mina",
-            "slug": "voo-volumetrico-mina",
-            "description": "Levantamento volumétrico de alta precisão para cálculo de stockpiles, cavas e movimentação de material. Entrega: Modelo 3D, Relatório de Volume, Ortomosaico.",
-            "short_description": "Cálculo de volumes de stockpiles",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 95000000,  # 950.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "min_area_ha": 10,
-            "sectors": ["mining"],
-            "deliverables": ["Modelo 3D", "Relatório de Volume PDF", "Ortomosaico GeoTIFF", "Nuvem de Pontos LAS"],
-            "image_url": "/assets/img/products/mining-volumetric.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_mining_topo_3d",
-            "name": "Topografia 3D de Mina",
-            "slug": "topografia-3d-mina",
-            "description": "Mapeamento topográfico completo com LiDAR ou fotogrametria. Ideal para planeamento de escavação e conformidade regulatória.",
-            "short_description": "Topografia LiDAR/Fotogrametria",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 125000000,  # 1.250.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 96,
-            "requires_site": True,
-            "min_area_ha": 20,
-            "sectors": ["mining"],
-            "deliverables": ["DTM/DEM", "Curvas de Nível", "Ortomosaico", "Relatório Técnico"],
-            "image_url": "/assets/img/products/mining-topo.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_mining_slope_monitoring",
-            "name": "Monitorização de Taludes",
-            "slug": "monitorizacao-taludes",
-            "description": "Análise de estabilidade de taludes com detecção de movimentação e riscos geotécnicos. Serviço recorrente recomendado.",
-            "short_description": "Estabilidade e risco geotécnico",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 65000000,  # 650.000 AOA por voo
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 48,
-            "requires_site": True,
-            "sectors": ["mining"],
-            "deliverables": ["Mapa de Risco", "Análise de Deformação", "Relatório de Estabilidade"],
-            "image_url": "/assets/img/products/mining-slope.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_mining_environmental",
-            "name": "Monitorização Ambiental Mineira",
-            "slug": "monitorizacao-ambiental-mina",
-            "description": "Monitorização de impacto ambiental: barragens de rejeitos, revegetação, qualidade de água.",
-            "short_description": "Compliance ambiental",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 85000000,  # 850.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "sectors": ["mining"],
-            "deliverables": ["Ortomosaico Multiespectral", "Relatório Ambiental", "Mapa de Vegetação"],
-            "image_url": "/assets/img/products/mining-environmental.jpg",
-            "is_active": True,
-        },
-        
-        # ==========================================
-        # INFRASTRUCTURE / CONSTRUCTION SECTOR
-        # ==========================================
-        {
-            "id": "prod_infra_progress",
-            "name": "Monitorização de Progresso de Obra",
-            "slug": "monitorizacao-progresso-obra",
-            "description": "Acompanhamento visual e volumétrico do progresso de construção. Ideal para relatórios a stakeholders e conformidade.",
-            "short_description": "Tracking de progresso de obra",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 55000000,  # 550.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 48,
-            "requires_site": True,
-            "sectors": ["infrastructure", "construction"],
-            "deliverables": ["Ortomosaico", "Modelo 3D", "Relatório de Progresso", "Vídeo Timelapse"],
-            "image_url": "/assets/img/products/infra-progress.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_infra_earthworks",
-            "name": "Análise de Earthworks",
-            "slug": "analise-earthworks",
-            "description": "Cálculo preciso de movimentação de terra: corte, aterro, compactação. Comparação com projecto original.",
-            "short_description": "Corte & Aterro volumétrico",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 75000000,  # 750.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "sectors": ["infrastructure", "construction"],
-            "deliverables": ["Relatório Cut/Fill", "Modelo 3D", "Comparação Design vs As-Built"],
-            "image_url": "/assets/img/products/infra-earthworks.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_infra_digital_twin",
-            "name": "Digital Twin de Infraestrutura",
-            "slug": "digital-twin-infraestrutura",
-            "description": "Modelo digital completo da infraestrutura para gestão de activos, planeamento e manutenção.",
-            "short_description": "Gémeo digital completo",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 185000000,  # 1.850.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 168,
-            "requires_site": True,
-            "sectors": ["infrastructure", "construction"],
-            "deliverables": ["Modelo BIM", "Visualização 3D Web", "Plataforma de Gestão"],
-            "image_url": "/assets/img/products/infra-digital-twin.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_infra_inspection",
-            "name": "Inspeção de Estruturas",
-            "slug": "inspecao-estruturas",
-            "description": "Inspeção visual detalhada de pontes, viadutos, torres e edifícios. Detecção de fissuras e degradação.",
-            "short_description": "Inspeção de pontes e estruturas",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 45000000,  # 450.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 24,
-            "requires_site": True,
-            "sectors": ["infrastructure"],
-            "deliverables": ["Relatório de Inspeção", "Fotos HD Anotadas", "Vídeo 4K"],
-            "image_url": "/assets/img/products/infra-inspection.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_infra_corridor",
-            "name": "Mapeamento de Corredores",
-            "slug": "mapeamento-corredores",
-            "description": "Mapeamento linear de estradas, pipelines, linhas de transmissão. Até 100km por missão.",
-            "short_description": "Estradas, pipelines, linhas TX",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 120000000,  # 1.200.000 AOA por 50km
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 96,
-            "requires_site": True,
-            "sectors": ["infrastructure"],
-            "deliverables": ["Ortomosaico Linear", "Perfil de Elevação", "Relatório de Condição"],
-            "image_url": "/assets/img/products/infra-corridor.jpg",
-            "is_active": True,
-        },
-        
-        # ==========================================
-        # AGRICULTURE & LIVESTOCK SECTOR
-        # ==========================================
-        {
-            "id": "prod_agro_ndvi",
-            "name": "Análise NDVI Agrícola",
-            "slug": "analise-ndvi-agricola",
-            "description": "Mapeamento de saúde vegetal com índice NDVI. Detecção de stress hídrico, pragas e deficiências nutricionais.",
-            "short_description": "NDVI saúde vegetal",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 25000000,  # 250.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 48,
-            "requires_site": True,
-            "min_area_ha": 20,
-            "sectors": ["agro"],
-            "deliverables": ["Mapa NDVI", "Relatório de Saúde", "Zonas de Gestão", "Recomendações"],
-            "image_url": "/assets/img/products/agro-ndvi.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_agro_spraying",
-            "name": "Pulverização por Drone",
-            "slug": "pulverizacao-drone",
-            "description": "Aplicação precisa de fitossanitários, fertilizantes ou sementes com drones DJI Agras. Até 100ha/dia.",
-            "short_description": "Pulverização até 100ha/dia",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 5000000,  # 50.000 AOA por hectare
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 8,
-            "requires_site": True,
-            "requires_scheduling": True,
-            "min_area_ha": 5,
-            "sectors": ["agro"],
-            "deliverables": ["Relatório de Aplicação", "Mapa de Cobertura", "Certificado"],
-            "image_url": "/assets/img/products/agro-spraying.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_agro_livestock_count",
-            "name": "Contagem de Rebanho",
-            "slug": "contagem-rebanho",
-            "description": "Contagem automática de gado com IA. Ideal para fazendas de grande escala e gestão de inventário.",
-            "short_description": "Contagem automática de gado",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 35000000,  # 350.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 24,
-            "requires_site": True,
-            "sectors": ["agro", "livestock"],
-            "deliverables": ["Relatório de Contagem", "Mapa de Distribuição", "Vídeo HD"],
-            "image_url": "/assets/img/products/agro-livestock.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_agro_irrigation",
-            "name": "Análise de Irrigação",
-            "slug": "analise-irrigacao",
-            "description": "Mapeamento térmico para detecção de falhas de irrigação, fugas e optimização de recursos hídricos.",
-            "short_description": "Thermal irrigation analysis",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 45000000,  # 450.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 48,
-            "requires_site": True,
-            "sectors": ["agro"],
-            "deliverables": ["Mapa Térmico", "Relatório de Irrigação", "Recomendações"],
-            "image_url": "/assets/img/products/agro-irrigation.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_agro_crop_mapping",
-            "name": "Mapeamento de Culturas",
-            "slug": "mapeamento-culturas",
-            "description": "Classificação e mapeamento de diferentes culturas. Estimativa de produtividade e planeamento de colheita.",
-            "short_description": "Classificação de culturas",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 55000000,  # 550.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "min_area_ha": 50,
-            "sectors": ["agro"],
-            "deliverables": ["Mapa de Culturas", "Estimativa de Produção", "Ortomosaico"],
-            "image_url": "/assets/img/products/agro-crop-mapping.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_agro_monitoring_sub",
-            "name": "Monitorização Agrícola Mensal",
-            "slug": "monitorizacao-agricola-mensal",
-            "description": "Assinatura mensal com 2 voos NDVI, alertas automáticos e relatórios de evolução.",
-            "short_description": "2 voos/mês + alertas",
-            "product_type": "subscription",
-            "category": "monitoring",
-            "execution_type": "recorrente",
-            "price": 45000000,  # 450.000 AOA/mês
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "requires_site": True,
-            "sectors": ["agro"],
-            "deliverables": ["Voos Mensais", "Relatórios", "Alertas", "Dashboard"],
-            "image_url": "/assets/img/products/agro-monitoring.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        
-        # ==========================================
-        # DEMINING SECTOR
-        # ==========================================
-        {
-            "id": "prod_demining_thermal",
-            "name": "Mapeamento Térmico para Desminagem",
-            "slug": "mapeamento-termico-desminagem",
-            "description": "Detecção de anomalias térmicas no solo que podem indicar presença de objectos enterrados. Suporte a operações de limpeza.",
-            "short_description": "Detecção térmica de anomalias",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 85000000,  # 850.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "sectors": ["demining"],
-            "deliverables": ["Mapa Térmico", "Mapa de Anomalias", "Relatório de Risco", "Coordenadas GPS"],
-            "image_url": "/assets/img/products/demining-thermal.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_demining_multispectral",
-            "name": "Análise Multiespectral de Solo",
-            "slug": "analise-multiespectral-desminagem",
-            "description": "Detecção de alterações no solo usando sensores multiespectrais. Identificação de áreas de risco para equipas de desminagem.",
-            "short_description": "Multiespectral solo alterado",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 95000000,  # 950.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 96,
-            "requires_site": True,
-            "sectors": ["demining"],
-            "deliverables": ["Análise Espectral", "Mapa de Risco", "Relatório Técnico"],
-            "image_url": "/assets/img/products/demining-multispectral.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_demining_baseline",
-            "name": "Mapeamento Baseline de Área Contaminada",
-            "slug": "mapeamento-baseline-desminagem",
-            "description": "Ortomosaico e modelo 3D de alta resolução para planeamento de operações de desminagem e documentação.",
-            "short_description": "Baseline ortomosaico 3D",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 65000000,  # 650.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 48,
-            "requires_site": True,
-            "sectors": ["demining"],
-            "deliverables": ["Ortomosaico HD", "Modelo 3D", "Mapa de Planeamento"],
-            "image_url": "/assets/img/products/demining-baseline.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_demining_progress",
-            "name": "Monitorização de Progresso de Limpeza",
-            "slug": "monitorizacao-progresso-desminagem",
-            "description": "Acompanhamento visual do progresso de desminagem para relatórios a doadores e stakeholders.",
-            "short_description": "Tracking de limpeza",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 45000000,  # 450.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 24,
-            "requires_site": True,
-            "sectors": ["demining"],
-            "deliverables": ["Ortomosaico", "Relatório de Progresso", "Comparativo Temporal"],
-            "image_url": "/assets/img/products/demining-progress.jpg",
-            "is_active": True,
-        },
-        
-        # ==========================================
-        # SOLAR & ENERGY SECTOR
-        # ==========================================
-        {
-            "id": "prod_solar_thermal_inspection",
-            "name": "Inspeção Térmica de Painéis Solares",
-            "slug": "inspecao-termica-solar",
-            "description": "Detecção de hotspots, células defeituosas e anomalias em parques solares usando câmaras térmicas de alta resolução.",
-            "short_description": "Thermal inspection painéis",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 55000000,  # 550.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 48,
-            "requires_site": True,
-            "sectors": ["solar"],
-            "deliverables": ["Mapa Térmico", "Relatório de Defeitos", "Lista de Painéis Afectados", "Recomendações"],
-            "image_url": "/assets/img/products/solar-thermal.jpg",
-            "is_active": True,
-            "is_featured": True,
-        },
-        {
-            "id": "prod_solar_monitoring",
-            "name": "Monitorização de Parque Solar",
-            "slug": "monitorizacao-parque-solar",
-            "description": "Monitorização regular de parques fotovoltaicos com análise de performance e detecção precoce de problemas.",
-            "short_description": "Monitoring recorrente solar",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "recorrente",
-            "price": 75000000,  # 750.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "sectors": ["solar"],
-            "deliverables": ["Relatório de Performance", "Análise de Degradação", "Mapa de Sujidade"],
-            "image_url": "/assets/img/products/solar-monitoring.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_solar_site_assessment",
-            "name": "Avaliação de Terreno para Solar",
-            "slug": "avaliacao-terreno-solar",
-            "description": "Análise topográfica e de sombreamento para planeamento de novos parques solares.",
-            "short_description": "Site assessment solar",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 95000000,  # 950.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 96,
-            "requires_site": True,
-            "sectors": ["solar"],
-            "deliverables": ["Modelo 3D", "Análise de Sombreamento", "Estudo de Viabilidade"],
-            "image_url": "/assets/img/products/solar-site.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_energy_transmission",
-            "name": "Inspeção de Linhas de Transmissão",
-            "slug": "inspecao-linhas-transmissao",
-            "description": "Inspeção visual e térmica de linhas de transmissão elétrica. Detecção de danos, vegetação invasora e pontos quentes.",
-            "short_description": "Inspeção linhas TX elétrica",
-            "product_type": "service",
-            "category": "flight",
-            "execution_type": "pontual",
-            "price": 125000000,  # 1.250.000 AOA por 50km
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "duration_hours": 72,
-            "requires_site": True,
-            "sectors": ["solar", "infrastructure"],
-            "deliverables": ["Relatório de Inspeção", "Mapa de Defeitos", "Vídeo HD", "Fotos Anotadas"],
-            "image_url": "/assets/img/products/energy-transmission.jpg",
-            "is_active": True,
-        },
-        
-        # ==========================================
-        # HARDWARE & SUPPLIES (Multi-sector)
-        # ==========================================
-        {
-            "id": "prod_sensor_soil",
-            "name": "Sensor de Solo IoT",
-            "slug": "sensor-solo-iot",
-            "description": "Sensor de humidade, temperatura e pH do solo com conectividade LoRa. Inclui 1 ano de dados na plataforma.",
-            "short_description": "Sensor solo + 1 ano dados",
-            "product_type": "physical",
-            "category": "hardware",
-            "price": 12000000,  # 120.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "track_inventory": True,
-            "stock_quantity": 50,
-            "sectors": ["agro"],
-            "deliverables": ["Sensor", "Manual", "Acesso Plataforma 1 Ano"],
-            "image_url": "/assets/img/products/sensor-soil.jpg",
-            "is_active": True,
-        },
-        {
-            "id": "prod_weather_station",
-            "name": "Estação Meteorológica IoT",
-            "slug": "estacao-meteo-iot",
-            "description": "Estação meteorológica completa com sensores de temperatura, humidade, vento, precipitação e radiação solar.",
-            "short_description": "Estação meteo completa",
-            "product_type": "physical",
-            "category": "hardware",
-            "price": 85000000,  # 850.000 AOA
-            "currency": "AOA",
-            "tax_rate": 0.14,
-            "track_inventory": True,
-            "stock_quantity": 20,
-            "sectors": ["agro", "solar", "mining"],
-            "deliverables": ["Estação", "Instalação", "1 Ano Plataforma"],
-            "image_url": "/assets/img/products/weather-station.jpg",
-            "is_active": True,
-        },
-    ]
-    
-    for p in products:
-        p["created_at"] = _utcnow()
-        p["updated_at"] = _utcnow()
-        _products_store[p["id"]] = p
-    
-    # Demo coupons
-    _coupons_store["WELCOME10"] = {
-        "code": "WELCOME10",
-        "discount_type": "percentage",
-        "discount_value": 10,
-        "minimum_order": 5000000,
-        "usage_limit": 100,
-        "usage_count": 0,
-        "is_active": True,
-        "first_order_only": True,
-    }
-    _coupons_store["DRONE50K"] = {
-        "code": "DRONE50K",
-        "discount_type": "fixed",
-        "discount_value": 5000000,  # 50.000 AOA off
-        "minimum_order": 50000000,
-        "usage_limit": 50,
-        "usage_count": 0,
-        "is_active": True,
-    }
-    
-    return len(products)
+SHOP_PRODUCTS = [
+    {"id": "prod_mining_volumetric", "name": "Voo Volumétrico de Mina", "slug": "voo-volumetrico-mina", "description": "Levantamento volumétrico de alta precisão para cálculo de stockpiles, cavas e movimentação de material.", "short_description": "Cálculo de volumes de stockpiles", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 95000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 72, "requires_site": True, "min_area_ha": 10, "sectors": ["mining"], "deliverables": ["Modelo 3D", "Relatório de Volume PDF", "Ortomosaico GeoTIFF", "Nuvem de Pontos LAS"], "image_url": "/assets/img/products/mining-volumetric.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_mining_topo_3d", "name": "Topografia 3D de Mina", "slug": "topografia-3d-mina", "description": "Mapeamento topográfico completo com LiDAR ou fotogrametria.", "short_description": "Topografia LiDAR/Fotogrametria", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 125000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 96, "requires_site": True, "min_area_ha": 20, "sectors": ["mining"], "deliverables": ["DTM/DEM", "Curvas de Nível", "Ortomosaico", "Relatório Técnico"], "image_url": "/assets/img/products/mining-topo.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_mining_slope_monitoring", "name": "Monitorização de Taludes", "slug": "monitorizacao-taludes", "description": "Análise de estabilidade de taludes com detecção de movimentação e riscos geotécnicos.", "short_description": "Estabilidade e risco geotécnico", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 65000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 48, "requires_site": True, "sectors": ["mining"], "deliverables": ["Mapa de Risco", "Análise de Deformação", "Relatório de Estabilidade"], "image_url": "/assets/img/products/mining-slope.jpg", "is_active": True},
+    {"id": "prod_mining_environmental", "name": "Monitorização Ambiental Mineira", "slug": "monitorizacao-ambiental-mina", "description": "Monitorização de impacto ambiental: barragens de rejeitos, revegetação, qualidade de água.", "short_description": "Compliance ambiental", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 85000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 72, "requires_site": True, "sectors": ["mining"], "deliverables": ["Ortomosaico Multiespectral", "Relatório Ambiental", "Mapa de Vegetação"], "image_url": "/assets/img/products/mining-environmental.jpg", "is_active": True},
+    {"id": "prod_infra_progress", "name": "Monitorização de Progresso de Obra", "slug": "monitorizacao-progresso-obra", "description": "Acompanhamento visual e volumétrico do progresso de construção.", "short_description": "Tracking de progresso de obra", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 55000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 48, "requires_site": True, "sectors": ["infrastructure", "construction"], "deliverables": ["Ortomosaico", "Modelo 3D", "Relatório de Progresso", "Vídeo Timelapse"], "image_url": "/assets/img/products/infra-progress.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_infra_earthworks", "name": "Análise de Earthworks", "slug": "analise-earthworks", "description": "Cálculo preciso de movimentação de terra: corte, aterro, compactação.", "short_description": "Corte & Aterro volumétrico", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 75000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 72, "requires_site": True, "sectors": ["infrastructure", "construction"], "deliverables": ["Relatório Cut/Fill", "Modelo 3D", "Comparação Design vs As-Built"], "image_url": "/assets/img/products/infra-earthworks.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_infra_digital_twin", "name": "Digital Twin de Infraestrutura", "slug": "digital-twin-infraestrutura", "description": "Modelo digital completo da infraestrutura para gestão de activos.", "short_description": "Gémeo digital completo", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 185000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 168, "requires_site": True, "sectors": ["infrastructure", "construction"], "deliverables": ["Modelo BIM", "Visualização 3D Web", "Plataforma de Gestão"], "image_url": "/assets/img/products/infra-digital-twin.jpg", "is_active": True},
+    {"id": "prod_infra_inspection", "name": "Inspeção de Estruturas", "slug": "inspecao-estruturas", "description": "Inspeção visual detalhada de pontes, viadutos, torres e edifícios.", "short_description": "Inspeção de pontes e estruturas", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 45000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["infrastructure"], "deliverables": ["Relatório de Inspeção", "Fotos HD Anotadas", "Vídeo 4K"], "image_url": "/assets/img/products/infra-inspection.jpg", "is_active": True},
+    {"id": "prod_infra_corridor", "name": "Mapeamento de Corredores", "slug": "mapeamento-corredores", "description": "Mapeamento linear de estradas, pipelines, linhas de transmissão.", "short_description": "Estradas, pipelines, linhas TX", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 120000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 96, "requires_site": True, "sectors": ["infrastructure"], "deliverables": ["Ortomosaico Linear", "Perfil de Elevação", "Relatório de Condição"], "image_url": "/assets/img/products/infra-corridor.jpg", "is_active": True},
+    {"id": "prod_agro_ndvi", "name": "Análise NDVI de Culturas", "slug": "analise-ndvi-culturas", "description": "Mapeamento multiespectral para análise da saúde de culturas com índice NDVI.", "short_description": "Saúde de culturas NDVI", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 45000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 48, "requires_site": True, "min_area_ha": 50, "sectors": ["agro"], "deliverables": ["Mapa NDVI", "Relatório de Saúde", "Zonas de Gestão"], "image_url": "/assets/img/products/agro-ndvi.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_agro_spraying", "name": "Pulverização de Precisão", "slug": "pulverizacao-precisao", "description": "Aplicação de precisão de fitofármacos, fertilizantes ou sementes por drone.", "short_description": "Spraying por drone", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 35000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 8, "requires_site": True, "min_area_ha": 20, "sectors": ["agro"], "deliverables": ["Relatório de Aplicação", "Mapa de Cobertura"], "image_url": "/assets/img/products/agro-spraying.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_agro_irrigation", "name": "Mapeamento de Irrigação", "slug": "mapeamento-irrigacao", "description": "Análise térmica e multiespectral para optimizar sistemas de irrigação.", "short_description": "Eficiência de irrigação", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 55000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 48, "requires_site": True, "sectors": ["agro"], "deliverables": ["Mapa Térmico", "Mapa de Stress Hídrico", "Recomendações"], "image_url": "/assets/img/products/agro-irrigation.jpg", "is_active": True},
+    {"id": "prod_agro_livestock_count", "name": "Contagem de Gado por Drone", "slug": "contagem-gado-drone", "description": "Contagem automática de cabeças de gado com IA e visão computacional.", "short_description": "Contagem automática de gado", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 25000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro", "livestock"], "deliverables": ["Relatório de Contagem", "Mapa de Distribuição", "Fotos Aéreas"], "image_url": "/assets/img/products/agro-livestock.jpg", "is_active": True},
+    {"id": "prod_agro_land_survey", "name": "Levantamento Cadastral Agrícola", "slug": "levantamento-cadastral-agricola", "description": "Mapeamento e demarcação de propriedades agrícolas.", "short_description": "Demarcação de parcelas", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 65000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 72, "requires_site": True, "sectors": ["agro"], "deliverables": ["Ortomosaico", "Mapa Cadastral", "Relatório de Área"], "image_url": "/assets/img/products/agro-cadastral.jpg", "is_active": True},
+    {"id": "prod_demining_thermal", "name": "Mapeamento Térmico para Desminagem", "slug": "mapeamento-termico-desminagem", "description": "Detecção de anomalias térmicas em terreno para identificar possíveis zonas minadas.", "short_description": "Detecção térmica de minas", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 75000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 48, "requires_site": True, "sectors": ["demining"], "deliverables": ["Mapa Térmico", "Mapa de Anomalias", "Relatório de Risco"], "image_url": "/assets/img/products/demining-thermal.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_demining_survey", "name": "Levantamento Pré-Desminagem", "slug": "levantamento-pre-desminagem", "description": "Mapeamento completo do terreno antes de operações de desminagem.", "short_description": "Survey pré-operacional", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 55000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 48, "requires_site": True, "sectors": ["demining"], "deliverables": ["Ortomosaico HD", "Modelo 3D Terreno", "Relatório de Condições"], "image_url": "/assets/img/products/demining-survey.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_demining_progress", "name": "Monitorização de Progresso de Desminagem", "slug": "monitorizacao-progresso-desminagem", "description": "Acompanhamento periódico do avanço das operações de desminagem.", "short_description": "Tracking de clearance", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 35000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["demining"], "deliverables": ["Mapa de Progresso", "Relatório Semanal"], "image_url": "/assets/img/products/demining-progress.jpg", "is_active": True},
+    {"id": "prod_solar_site_assessment", "name": "Avaliação de Terreno Solar", "slug": "avaliacao-terreno-solar", "description": "Análise topográfica e de irradiação para instalação de painéis solares.", "short_description": "Viabilidade solar", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 65000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 72, "requires_site": True, "sectors": ["solar"], "deliverables": ["Modelo 3D", "Análise de Sombreamento", "Relatório de Viabilidade"], "image_url": "/assets/img/products/solar-assessment.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_solar_panel_inspection", "name": "Inspeção Térmica de Painéis Solares", "slug": "inspecao-termica-paineis-solares", "description": "Detecção de hotspots e defeitos em painéis solares com câmara térmica.", "short_description": "Hotspot detection", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 45000000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["solar"], "deliverables": ["Mapa Térmico", "Relatório de Defeitos", "Lista de Painéis Afectados"], "image_url": "/assets/img/products/solar-inspection.jpg", "is_active": True},
+    {"id": "prod_hw_dji_m350", "name": "DJI Matrice 350 RTK", "slug": "dji-matrice-350-rtk", "description": "Drone enterprise com RTK integrado para mapeamento de precisão.", "short_description": "Drone enterprise RTK", "product_type": "hardware", "category": "drone", "price": 185000000, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["mining", "infrastructure", "agro"], "deliverables": [], "image_url": "/assets/img/products/dji-m350.jpg", "is_active": True, "is_featured": True, "track_inventory": True, "stock_quantity": 3},
+    {"id": "prod_hw_zenmuse_p1", "name": "DJI Zenmuse P1 (Câmara)", "slug": "dji-zenmuse-p1", "description": "Câmara fotogramétrica full-frame de 45MP para Matrice 300/350.", "short_description": "Câmara fotogramétrica 45MP", "product_type": "hardware", "category": "sensor", "price": 75000000, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["mining", "infrastructure"], "deliverables": [], "image_url": "/assets/img/products/zenmuse-p1.jpg", "is_active": True, "track_inventory": True, "stock_quantity": 2},
+    {"id": "prod_hw_zenmuse_l2", "name": "DJI Zenmuse L2 (LiDAR)", "slug": "dji-zenmuse-l2", "description": "Sensor LiDAR de alta precisão com câmara RGB integrada.", "short_description": "LiDAR + RGB", "product_type": "hardware", "category": "sensor", "price": 125000000, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["mining", "infrastructure", "demining"], "deliverables": [], "image_url": "/assets/img/products/zenmuse-l2.jpg", "is_active": True, "track_inventory": True, "stock_quantity": 2},
+    {"id": "prod_hw_dji_agras_t40", "name": "DJI Agras T40", "slug": "dji-agras-t40", "description": "Drone agrícola com tanque de 40L para pulverização de precisão.", "short_description": "Drone sprayer 40L", "product_type": "hardware", "category": "drone", "price": 95000000, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro"], "deliverables": [], "image_url": "/assets/img/products/dji-agras-t40.jpg", "is_active": True, "track_inventory": True, "stock_quantity": 1},
+    {"id": "prod_hw_flir_vue", "name": "FLIR Vue TZ20-R (Câmara Térmica)", "slug": "flir-vue-tz20-r", "description": "Câmara térmica radiométrica de dupla lente para inspeção e monitorização.", "short_description": "Câmara térmica dual", "product_type": "hardware", "category": "sensor", "price": 55000000, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["solar", "infrastructure", "mining"], "deliverables": [], "image_url": "/assets/img/products/flir-vue.jpg", "is_active": True, "track_inventory": True, "stock_quantity": 2},
+]
+
+SHOP_COUPONS = [
+    {"code": "WELCOME10", "discount_type": "percentage", "discount_value": 10, "minimum_order": 5000000, "usage_limit": 100, "first_order_only": True},
+    {"code": "DRONE50K", "discount_type": "fixed", "discount_value": 5000000, "minimum_order": 50000000, "usage_limit": 50},
+]
 
 
-# Seed on import
-seed_demo_products()
+def seed_shop_products(db: Session) -> int:
+    """Seed shop products and coupons into DB if not present."""
+    from app.models import ShopProduct, Coupon
+
+    existing = db.query(ShopProduct.id).count()
+    if existing > 0:
+        return 0
+
+    count = 0
+    for p in SHOP_PRODUCTS:
+        sp = ShopProduct(
+            id=p["id"], name=p["name"], slug=p["slug"],
+            description=p.get("description"), short_description=p.get("short_description"),
+            product_type=p.get("product_type", "service"), category=p.get("category", "flight"),
+            execution_type=p.get("execution_type"), price=p["price"],
+            currency=p.get("currency", "AOA"), tax_rate=p.get("tax_rate", 0.14),
+            duration_hours=p.get("duration_hours"), requires_site=p.get("requires_site", False),
+            min_area_ha=p.get("min_area_ha"),
+            sectors_json=json.dumps(p.get("sectors", [])),
+            deliverables_json=json.dumps(p.get("deliverables", [])),
+            image_url=p.get("image_url"), is_active=p.get("is_active", True),
+            is_featured=p.get("is_featured", False),
+            track_inventory=p.get("track_inventory", False),
+            stock_quantity=p.get("stock_quantity", 0),
+        )
+        db.add(sp)
+        count += 1
+
+    for c in SHOP_COUPONS:
+        coupon = Coupon(
+            code=c["code"], discount_type=c["discount_type"],
+            discount_value=c["discount_value"],
+            minimum_order=c.get("minimum_order", 0),
+            usage_limit=c.get("usage_limit", 100),
+            first_order_only=c.get("first_order_only", False),
+        )
+        db.add(coupon)
+
+    db.commit()
+    return count
 
 
 # ============ CART SERVICE ============
 
 class CartService:
-    """Shopping cart service."""
-    
-    def get_or_create_cart(
-        self,
-        user_id: Optional[str] = None,
-        session_id: Optional[str] = None,
-        company_id: Optional[str] = None,
-    ) -> CartData:
-        """Get existing cart or create new one."""
-        
-        # Find existing cart
+    """Shopping cart service — DB-backed."""
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def _models(self):
+        from app.models import Cart as CartModel, CartItem as CartItemModel, ShopProduct, Coupon
+        return CartModel, CartItemModel, ShopProduct, Coupon
+
+    def get_or_create_cart(self, user_id=None, session_id=None, company_id=None):
+        CM, _, _, _ = self._models()
         cart = None
         if user_id:
-            cart = next(
-                (c for c in _carts_store.values() 
-                 if c.get("user_id") == user_id and c.get("is_active")),
-                None
-            )
-        elif session_id:
-            cart = next(
-                (c for c in _carts_store.values() 
-                 if c.get("session_id") == session_id and c.get("is_active")),
-                None
-            )
-        
+            cart = self.db.query(CM).filter(CM.user_id == user_id, CM.is_active == True).first()
+        if not cart and session_id:
+            cart = self.db.query(CM).filter(CM.session_id == session_id, CM.is_active == True).first()
         if cart:
-            return self._cart_to_data(cart)
-        
-        # Create new cart
-        cart_id = str(uuid.uuid4())
-        now = _utcnow()
-        
-        cart = {
-            "id": cart_id,
-            "user_id": user_id,
-            "company_id": company_id,
-            "session_id": session_id or str(uuid.uuid4()),
-            "site_id": None,
-            "items": [],
-            "coupon_code": None,
-            "discount_amount": 0,
-            "discount_type": None,
-            "delivery_method": None,
-            "delivery_cost": 0,
-            "delivery_address": None,
-            "subtotal": 0,
-            "tax_amount": 0,
-            "total": 0,
-            "currency": "AOA",
-            "is_active": True,
-            "created_at": now,
-            "updated_at": now,
-            "expires_at": now + timedelta(days=7),
-        }
-        
-        _carts_store[cart_id] = cart
-        
-        return self._cart_to_data(cart)
-    
-    def _find_cart(self, cart_id: str) -> Optional[dict]:
-        """Find cart by ID or session_id."""
-        cart = _carts_store.get(cart_id)
-        if cart and cart.get("is_active"):
+            return self._to_data(cart)
+        cart = CM(id=str(uuid.uuid4()), user_id=user_id, company_id=company_id,
+                  session_id=session_id or str(uuid.uuid4()), currency="AOA",
+                  is_active=True, expires_at=_utcnow() + timedelta(days=7))
+        self.db.add(cart)
+        self.db.commit()
+        self.db.refresh(cart)
+        return self._to_data(cart)
+
+    def _find(self, cart_id):
+        CM, _, _, _ = self._models()
+        cart = self.db.get(CM, cart_id)
+        if cart and cart.is_active:
             return cart
-        # Try by session_id
-        return self._get_cart_dict_by_session(cart_id)
-    
-    def get_cart(self, cart_id: str) -> Optional[CartData]:
-        """Get cart by ID or session_id."""
-        cart = self._find_cart(cart_id)
-        if cart:
-            return self._cart_to_data(cart)
-        return None
-    
-    def get_cart_by_session(self, session_id: str) -> Optional[CartData]:
-        """Get cart by session ID."""
-        cart = next(
-            (c for c in _carts_store.values() 
-             if c.get("session_id") == session_id and c.get("is_active")),
-            None
-        )
-        if cart:
-            return self._cart_to_data(cart)
-        return None
-    
-    def _get_cart_dict_by_session(self, session_id: str) -> Optional[dict]:
-        """Get raw cart dict by session ID (internal use)."""
-        return next(
-            (c for c in _carts_store.values() 
-             if c.get("session_id") == session_id and c.get("is_active")),
-            None
-        )
-    
-    def add_item(
-        self,
-        cart_id: str,
-        product_id: str,
-        quantity: int = 1,
-        variant_id: Optional[str] = None,
-        scheduled_date: Optional[datetime] = None,
-        custom_options: Optional[Dict[str, Any]] = None,
-    ) -> CartData:
-        """Add item to cart."""
-        
-        # Try to find cart by ID or session_id
-        cart = _carts_store.get(cart_id) or self._get_cart_dict_by_session(cart_id)
-        if not cart:
-            raise ValueError("Cart not found")
-        
-        product = _products_store.get(product_id)
-        if not product:
-            raise ValueError("Product not found")
-        
-        if not product.get("is_active"):
-            raise ValueError("Product is not available")
-        
-        # Check stock for physical products
-        if product.get("track_inventory"):
-            if product.get("stock_quantity", 0) < quantity:
-                raise ValueError("Insufficient stock")
-        
-        # Check if item already in cart
-        existing_item = next(
-            (i for i in cart["items"] 
-             if i["product_id"] == product_id and i.get("variant_id") == variant_id),
-            None
-        )
-        
-        price = product["price"]
-        tax_rate = product.get("tax_rate", 0.14)
-        
-        if existing_item:
-            existing_item["quantity"] += quantity
-            existing_item["total_price"] = existing_item["unit_price"] * existing_item["quantity"]
-            existing_item["tax_amount"] = int(existing_item["total_price"] * tax_rate)
+        return self.db.query(CM).filter(CM.session_id == cart_id, CM.is_active == True).first()
+
+    def get_cart(self, cart_id): 
+        c = self._find(cart_id)
+        return self._to_data(c) if c else None
+
+    def get_cart_by_session(self, session_id):
+        CM = self._models()[0]
+        c = self.db.query(CM).filter(CM.session_id == session_id, CM.is_active == True).first()
+        return self._to_data(c) if c else None
+
+    def add_item(self, cart_id, product_id, quantity=1, variant_id=None, scheduled_date=None, custom_options=None):
+        _, CIM, SP, _ = self._models()
+        cart = self._find(cart_id)
+        if not cart: raise ValueError("Cart not found")
+        product = self.db.get(SP, product_id)
+        if not product: raise ValueError("Product not found")
+        if not product.is_active: raise ValueError("Product is not available")
+        if product.track_inventory and product.stock_quantity < quantity:
+            raise ValueError("Insufficient stock")
+        existing = next((i for i in cart.cart_items if i.product_id == product_id and i.variant_id == variant_id), None)
+        price = product.price
+        tax_rate = float(product.tax_rate)
+        if existing:
+            existing.quantity += quantity
+            existing.total_price = existing.unit_price * existing.quantity
+            existing.tax_amount = int(existing.total_price * tax_rate)
         else:
-            item = {
-                "id": str(uuid.uuid4()),
-                "product_id": product_id,
-                "variant_id": variant_id,
-                "product_name": product["name"],
-                "product_type": product["product_type"],
-                "product_image": product.get("image_url"),
-                "sku": product.get("sku"),
-                "quantity": quantity,
-                "unit_price": price,
-                "total_price": price * quantity,
-                "tax_rate": tax_rate,
-                "tax_amount": int(price * quantity * tax_rate),
-                "scheduled_date": scheduled_date,
-                "custom_options": custom_options or {},
-            }
-            cart["items"].append(item)
-        
-        self._recalculate_cart(cart)
-        
-        return self._cart_to_data(cart)
-    
-    def update_item_quantity(
-        self,
-        cart_id: str,
-        item_id: str,
-        quantity: int,
-    ) -> CartData:
-        """Update item quantity."""
-        
-        cart = self._find_cart(cart_id)
-        if not cart:
-            raise ValueError("Cart not found")
-        
-        item = next((i for i in cart["items"] if i["id"] == item_id), None)
-        if not item:
-            raise ValueError("Item not found in cart")
-        
+            item = CIM(id=str(uuid.uuid4()), cart_id=cart.id, product_id=product_id,
+                       variant_id=variant_id, product_name=product.name,
+                       product_type=product.product_type, product_image=product.image_url,
+                       sku=product.slug, quantity=quantity, unit_price=price,
+                       total_price=price*quantity, tax_rate=tax_rate,
+                       tax_amount=int(price*quantity*tax_rate), scheduled_date=scheduled_date,
+                       custom_options_json=json.dumps(custom_options or {}))
+            self.db.add(item)
+        self._recalc(cart)
+        self.db.commit(); self.db.refresh(cart)
+        return self._to_data(cart)
+
+    def update_item_quantity(self, cart_id, item_id, quantity):
+        _, _, SP, _ = self._models()
+        cart = self._find(cart_id)
+        if not cart: raise ValueError("Cart not found")
+        item = next((i for i in cart.cart_items if i.id == item_id), None)
+        if not item: raise ValueError("Item not found in cart")
         if quantity <= 0:
-            cart["items"] = [i for i in cart["items"] if i["id"] != item_id]
+            self.db.delete(item)
         else:
-            # Check stock
-            product = _products_store.get(item["product_id"])
-            if product and product.get("track_inventory"):
-                if product.get("stock_quantity", 0) < quantity:
-                    raise ValueError("Insufficient stock")
-            
-            item["quantity"] = quantity
-            item["total_price"] = item["unit_price"] * quantity
-            item["tax_amount"] = int(item["total_price"] * item["tax_rate"])
-        
-        self._recalculate_cart(cart)
-        
-        return self._cart_to_data(cart)
-    
-    def remove_item(self, cart_id: str, item_id: str) -> CartData:
-        """Remove item from cart."""
+            p = self.db.get(SP, item.product_id)
+            if p and p.track_inventory and p.stock_quantity < quantity:
+                raise ValueError("Insufficient stock")
+            item.quantity = quantity
+            item.total_price = item.unit_price * quantity
+            item.tax_amount = int(item.total_price * float(item.tax_rate))
+        self._recalc(cart)
+        self.db.commit(); self.db.refresh(cart)
+        return self._to_data(cart)
+
+    def remove_item(self, cart_id, item_id):
         return self.update_item_quantity(cart_id, item_id, 0)
-    
-    def apply_coupon(self, cart_id: str, coupon_code: str) -> CouponValidation:
-        """Apply coupon to cart."""
-        
-        cart = self._find_cart(cart_id)
-        if not cart:
-            return CouponValidation(valid=False, code=coupon_code, error="Cart not found")
-        
-        code_upper = coupon_code.upper().strip()
-        coupon = _coupons_store.get(code_upper)
-        
-        if not coupon:
-            return CouponValidation(valid=False, code=coupon_code, error="Cupão inválido")
-        
-        if not coupon.get("is_active"):
-            return CouponValidation(valid=False, code=coupon_code, error="Cupão expirado")
-        
-        if coupon.get("usage_limit") and coupon.get("usage_count", 0) >= coupon["usage_limit"]:
+
+    def apply_coupon(self, cart_id, coupon_code):
+        _, _, _, CouponM = self._models()
+        cart = self._find(cart_id)
+        if not cart: return CouponValidation(valid=False, code=coupon_code, error="Cart not found")
+        code = coupon_code.upper().strip()
+        coupon = self.db.query(CouponM).filter(CouponM.code == code, CouponM.is_active == True).first()
+        if not coupon: return CouponValidation(valid=False, code=coupon_code, error="Cupão inválido")
+        if coupon.usage_limit and coupon.usage_count >= coupon.usage_limit:
             return CouponValidation(valid=False, code=coupon_code, error="Cupão esgotado")
-        
-        subtotal = cart.get("subtotal", 0)
-        if coupon.get("minimum_order") and subtotal < coupon["minimum_order"]:
-            min_order = coupon["minimum_order"] / 100
-            return CouponValidation(
-                valid=False, 
-                code=coupon_code, 
-                error=f"Pedido mínimo de {min_order:,.0f} AOA"
-            )
-        
-        # Calculate discount
-        discount_type = coupon["discount_type"]
-        discount_value = coupon["discount_value"]
-        
-        if discount_type == "percentage":
-            discount_amount = int(subtotal * discount_value / 100)
-            if coupon.get("maximum_discount"):
-                discount_amount = min(discount_amount, coupon["maximum_discount"])
+        subtotal = cart.subtotal or 0
+        if coupon.minimum_order and subtotal < coupon.minimum_order:
+            return CouponValidation(valid=False, code=coupon_code, error=f"Pedido mínimo de {coupon.minimum_order/100:,.0f} AOA")
+        if coupon.discount_type == "percentage":
+            da = int(subtotal * coupon.discount_value / 100)
+            if coupon.maximum_discount: da = min(da, coupon.maximum_discount)
         else:
-            discount_amount = discount_value
-        
-        # Apply to cart
-        cart["coupon_code"] = code_upper
-        cart["discount_type"] = discount_type
-        cart["discount_amount"] = discount_amount
-        
-        self._recalculate_cart(cart)
-        
-        return CouponValidation(
-            valid=True,
-            code=code_upper,
-            discount_type=discount_type,
-            discount_value=discount_value,
-            discount_amount=discount_amount,
-        )
-    
-    def remove_coupon(self, cart_id: str) -> CartData:
-        """Remove coupon from cart."""
-        
-        cart = self._find_cart(cart_id)
-        if not cart:
-            raise ValueError("Cart not found")
-        
-        cart["coupon_code"] = None
-        cart["discount_type"] = None
-        cart["discount_amount"] = 0
-        
-        self._recalculate_cart(cart)
-        
-        return self._cart_to_data(cart)
-    
-    def set_delivery(
-        self,
-        cart_id: str,
-        delivery_method: str,
-        delivery_address: Optional[Dict[str, Any]] = None,
-    ) -> CartData:
-        """Set delivery method and address."""
-        
-        cart = self._find_cart(cart_id)
-        if not cart:
-            raise ValueError("Cart not found")
-        
-        # Calculate delivery cost based on method
-        delivery_costs = {
-            "pickup": 0,
-            "luanda": 500000,      # 5.000 AOA
-            "provinces": 1500000,   # 15.000 AOA
-            "international": 5000000,  # 50.000 AOA
-        }
-        
-        cart["delivery_method"] = delivery_method
-        cart["delivery_cost"] = delivery_costs.get(delivery_method, 0)
-        cart["delivery_address"] = delivery_address
-        
-        self._recalculate_cart(cart)
-        
-        return self._cart_to_data(cart)
-    
-    def set_site(self, cart_id: str, site_id: str) -> CartData:
-        """Associate cart with a site (for services)."""
-        
-        cart = self._find_cart(cart_id)
-        if not cart:
-            raise ValueError("Cart not found")
-        
-        cart["site_id"] = site_id
-        cart["updated_at"] = _utcnow()
-        
-        return self._cart_to_data(cart)
-    
-    def clear_cart(self, cart_id: str) -> bool:
-        """Clear all items from cart."""
-        
-        cart = self._find_cart(cart_id)
-        if not cart:
-            return False
-        
-        cart["items"] = []
-        cart["coupon_code"] = None
-        cart["discount_amount"] = 0
-        cart["discount_type"] = None
-        
-        self._recalculate_cart(cart)
-        
+            da = coupon.discount_value
+        cart.coupon_code = code; cart.discount_type = coupon.discount_type; cart.discount_amount = da
+        self._recalc(cart); self.db.commit()
+        return CouponValidation(valid=True, code=code, discount_type=coupon.discount_type, discount_value=coupon.discount_value, discount_amount=da)
+
+    def remove_coupon(self, cart_id):
+        cart = self._find(cart_id)
+        if not cart: raise ValueError("Cart not found")
+        cart.coupon_code = None; cart.discount_type = None; cart.discount_amount = 0
+        self._recalc(cart); self.db.commit(); self.db.refresh(cart)
+        return self._to_data(cart)
+
+    def set_delivery(self, cart_id, delivery_method, delivery_address=None):
+        cart = self._find(cart_id)
+        if not cart: raise ValueError("Cart not found")
+        costs = {"pickup": 0, "luanda": 500000, "provinces": 1500000, "international": 5000000}
+        cart.delivery_method = delivery_method
+        cart.delivery_cost = costs.get(delivery_method, 0)
+        cart.delivery_address_json = json.dumps(delivery_address) if delivery_address else None
+        self._recalc(cart); self.db.commit(); self.db.refresh(cart)
+        return self._to_data(cart)
+
+    def set_site(self, cart_id, site_id):
+        cart = self._find(cart_id)
+        if not cart: raise ValueError("Cart not found")
+        cart.site_id = site_id; cart.updated_at = _utcnow()
+        self.db.commit(); self.db.refresh(cart)
+        return self._to_data(cart)
+
+    def clear_cart(self, cart_id):
+        _, CIM, _, _ = self._models()
+        cart = self._find(cart_id)
+        if not cart: return False
+        self.db.query(CIM).filter(CIM.cart_id == cart.id).delete()
+        cart.coupon_code = None; cart.discount_amount = 0; cart.discount_type = None
+        self._recalc(cart); self.db.commit()
         return True
-    
-    def _recalculate_cart(self, cart: dict) -> None:
-        """Recalculate cart totals."""
-        
-        subtotal = sum(item["total_price"] for item in cart["items"])
-        tax_amount = sum(item["tax_amount"] for item in cart["items"])
-        
-        discount = cart.get("discount_amount", 0)
-        delivery = cart.get("delivery_cost", 0)
-        
-        total = subtotal - discount + delivery
-        
-        cart["subtotal"] = subtotal
-        cart["tax_amount"] = tax_amount
-        cart["total"] = max(0, total)
-        cart["updated_at"] = _utcnow()
-    
-    def _cart_to_data(self, cart: dict) -> CartData:
-        """Convert cart dict to CartData."""
-        
-        items = [
-            CartItemData(
-                id=i["id"],
-                product_id=i["product_id"],
-                variant_id=i.get("variant_id"),
-                product_name=i["product_name"],
-                product_type=i["product_type"],
-                product_image=i.get("product_image"),
-                sku=i.get("sku"),
-                quantity=i["quantity"],
-                unit_price=i["unit_price"],
-                total_price=i["total_price"],
-                tax_rate=i.get("tax_rate", 0),
-                tax_amount=i.get("tax_amount", 0),
-                scheduled_date=i.get("scheduled_date"),
-                custom_options=i.get("custom_options", {}),
-            )
-            for i in cart.get("items", [])
-        ]
-        
-        return CartData(
-            id=cart["id"],
-            user_id=cart.get("user_id"),
-            company_id=cart.get("company_id"),
-            session_id=cart.get("session_id"),
-            site_id=cart.get("site_id"),
-            items=items,
-            item_count=len(items),
-            subtotal=cart.get("subtotal", 0),
-            discount_amount=cart.get("discount_amount", 0),
-            discount_type=cart.get("discount_type"),
-            coupon_code=cart.get("coupon_code"),
-            tax_rate=cart.get("tax_rate", 0.14),
-            tax_amount=cart.get("tax_amount", 0),
-            delivery_cost=cart.get("delivery_cost", 0),
-            delivery_method=cart.get("delivery_method"),
-            total=cart.get("total", 0),
-            currency=cart.get("currency", "AOA"),
-            created_at=cart.get("created_at", _utcnow()),
-            updated_at=cart.get("updated_at", _utcnow()),
-        )
-    
-    def list_products(self) -> List[dict]:
-        """List all active products."""
-        return [p for p in _products_store.values() if p.get("is_active", True)]
-    
-    def get_product(self, product_id: str) -> Optional[dict]:
-        """Get product by ID."""
-        return _products_store.get(product_id)
-    
-    def check_sector_mismatch(
-        self,
-        product_id: str,
-        account_sector: Optional[str],
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Check if product sector matches account sector.
-        Returns warning info if mismatch, None if OK.
-        Non-blocking: allows purchase but warns user.
-        """
-        if not account_sector:
-            return None
-        
-        product = _products_store.get(product_id)
-        if not product:
-            return None
-        
-        product_sectors = product.get("sectors", [])
-        if not product_sectors:
-            return None
-        
-        # Check if account sector is in product's allowed sectors
-        if account_sector in product_sectors:
-            return None
-        
-        # Mismatch detected - return warning (non-blocking)
-        product_sector_label = SECTOR_LABELS.get(product_sectors[0], product_sectors[0])
-        account_sector_label = SECTOR_LABELS.get(account_sector, account_sector)
-        
-        return {
-            "warning": True,
-            "sector_mismatch": True,
-            "product_sector": product_sectors[0],
-            "product_sector_label": product_sector_label,
-            "account_sector": account_sector,
-            "account_sector_label": account_sector_label,
-            "message": f"Este serviço é destinado ao sector {product_sector_label}. A sua conta está configurada para {account_sector_label}.",
-            "suggestion": f"Pode continuar com a compra ou criar uma nova conta {product_sector_label}."
-        }
-    
-    def get_cart_with_warnings(
-        self,
-        cart_id: str,
-        account_sector: Optional[str] = None,
-    ) -> Dict[str, Any]:
-        """
-        Get cart data with sector mismatch warnings for each item.
-        """
-        cart = self._find_cart(cart_id)
-        if not cart:
-            raise ValueError("Cart not found")
-        
-        cart_data = self._cart_to_data(cart)
-        
-        items_with_warnings = []
-        has_warnings = False
-        
-        for item in cart_data.items:
-            warning = self.check_sector_mismatch(item.product_id, account_sector)
-            item_dict = {
-                "id": item.id,
-                "product_id": item.product_id,
-                "product_name": item.product_name,
-                "product_type": item.product_type,
-                "quantity": item.quantity,
-                "unit_price": item.unit_price,
-                "total_price": item.total_price,
-                "tax_amount": item.tax_amount,
-                "product_image": item.product_image,
-                "warning": warning,
-            }
-            if warning:
-                has_warnings = True
-            items_with_warnings.append(item_dict)
-        
-        return {
-            "cart": {
-                "id": cart_data.id,
-                "user_id": cart_data.user_id,
-                "item_count": cart_data.item_count,
-                "subtotal": cart_data.subtotal,
-                "discount_amount": cart_data.discount_amount,
-                "tax_amount": cart_data.tax_amount,
-                "delivery_cost": cart_data.delivery_cost,
-                "total": cart_data.total,
-                "currency": cart_data.currency,
-            },
-            "items": items_with_warnings,
-            "has_sector_warnings": has_warnings,
-        }
+
+    def _recalc(self, cart):
+        items = cart.cart_items
+        cart.subtotal = sum(i.total_price for i in items)
+        cart.tax_amount = sum(i.tax_amount for i in items)
+        cart.total = max(0, cart.subtotal - (cart.discount_amount or 0) + (cart.delivery_cost or 0))
+        cart.updated_at = _utcnow()
+
+    def _to_data(self, cart):
+        items = [CartItemData(id=i.id, product_id=i.product_id, variant_id=i.variant_id,
+                    product_name=i.product_name, product_type=i.product_type,
+                    product_image=i.product_image, sku=i.sku, quantity=i.quantity,
+                    unit_price=i.unit_price, total_price=i.total_price,
+                    tax_rate=float(i.tax_rate), tax_amount=i.tax_amount,
+                    scheduled_date=i.scheduled_date,
+                    custom_options=json.loads(i.custom_options_json or "{}"))
+                 for i in cart.cart_items]
+        return CartData(id=cart.id, user_id=cart.user_id, company_id=cart.company_id,
+            session_id=cart.session_id, site_id=cart.site_id, items=items,
+            item_count=len(items), subtotal=cart.subtotal or 0,
+            discount_amount=cart.discount_amount or 0, discount_type=cart.discount_type,
+            coupon_code=cart.coupon_code, tax_rate=0.14, tax_amount=cart.tax_amount or 0,
+            delivery_cost=cart.delivery_cost or 0, delivery_method=cart.delivery_method,
+            total=cart.total or 0, currency=cart.currency or "AOA",
+            created_at=cart.created_at or _utcnow(), updated_at=cart.updated_at or _utcnow())
+
+    def list_products(self):
+        SP = self._models()[2]
+        return [self._p2d(p) for p in self.db.query(SP).filter(SP.is_active == True).all()]
+
+    def get_product(self, product_id):
+        SP = self._models()[2]
+        p = self.db.get(SP, product_id)
+        return self._p2d(p) if p else None
+
+    def _p2d(self, p):
+        return {"id": p.id, "name": p.name, "slug": p.slug, "description": p.description,
+                "short_description": p.short_description, "product_type": p.product_type,
+                "category": p.category, "execution_type": p.execution_type, "price": p.price,
+                "currency": p.currency, "tax_rate": float(p.tax_rate),
+                "duration_hours": p.duration_hours, "requires_site": p.requires_site,
+                "min_area_ha": p.min_area_ha, "sectors": json.loads(p.sectors_json or "[]"),
+                "deliverables": json.loads(p.deliverables_json or "[]"),
+                "image_url": p.image_url, "is_active": p.is_active, "is_featured": p.is_featured,
+                "track_inventory": p.track_inventory, "stock_quantity": p.stock_quantity,
+                "created_at": p.created_at, "updated_at": p.updated_at}
+
+    def check_sector_mismatch(self, product_id, account_sector):
+        if not account_sector: return None
+        product = self.get_product(product_id)
+        if not product: return None
+        sectors = product.get("sectors", [])
+        if not sectors or account_sector in sectors: return None
+        pl = SECTOR_LABELS.get(sectors[0], sectors[0])
+        al = SECTOR_LABELS.get(account_sector, account_sector)
+        return {"warning": True, "sector_mismatch": True, "product_sector": sectors[0],
+                "product_sector_label": pl, "account_sector": account_sector,
+                "account_sector_label": al,
+                "message": f"Este serviço é destinado ao sector {pl}. A sua conta está configurada para {al}.",
+                "suggestion": f"Pode continuar com a compra ou criar uma nova conta {pl}."}
+
+    def get_cart_with_warnings(self, cart_id, account_sector=None):
+        cart = self._find(cart_id)
+        if not cart: raise ValueError("Cart not found")
+        cd = self._to_data(cart)
+        items_w = []; hw = False
+        for item in cd.items:
+            w = self.check_sector_mismatch(item.product_id, account_sector)
+            if w: hw = True
+            items_w.append({"id": item.id, "product_id": item.product_id, "product_name": item.product_name,
+                "product_type": item.product_type, "quantity": item.quantity, "unit_price": item.unit_price,
+                "total_price": item.total_price, "tax_amount": item.tax_amount,
+                "product_image": item.product_image, "warning": w})
+        return {"cart": {"id": cd.id, "user_id": cd.user_id, "item_count": cd.item_count,
+            "subtotal": cd.subtotal, "discount_amount": cd.discount_amount, "tax_amount": cd.tax_amount,
+            "delivery_cost": cd.delivery_cost, "total": cd.total, "currency": cd.currency},
+            "items": items_w, "has_sector_warnings": hw}
 
 
-def get_sector_labels() -> Dict[str, str]:
-    """Get sector labels for display."""
+def get_sector_labels():
     return SECTOR_LABELS.copy()
 
-
-# Singleton
-_cart_service: Optional[CartService] = None
-
-
-def get_cart_service() -> CartService:
-    """Get cart service instance."""
-    global _cart_service
-    if _cart_service is None:
-        _cart_service = CartService()
-    return _cart_service
-
-
-def get_products_store() -> Dict[str, dict]:
-    """Get products store for read access."""
-    return _products_store
+def get_cart_service(db: Session) -> CartService:
+    return CartService(db)
