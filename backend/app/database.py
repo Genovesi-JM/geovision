@@ -208,6 +208,61 @@ def ensure_legacy_schema() -> None:
                     except Exception:
                         pass
 
+        # Datasets table: ensure columns match the model
+        try:
+            ds_cols = [c["name"] for c in inspector.get_columns("datasets")]
+        except Exception:
+            ds_cols = []
+
+        if ds_cols:
+            _ds_adds = {
+                "company_id": "ALTER TABLE datasets ADD COLUMN company_id VARCHAR(36)",
+                "site_id": "ALTER TABLE datasets ADD COLUMN site_id VARCHAR(36)",
+                "description": "ALTER TABLE datasets ADD COLUMN description TEXT",
+                "source_tool": "ALTER TABLE datasets ADD COLUMN source_tool VARCHAR(50)",
+                "data_type": "ALTER TABLE datasets ADD COLUMN data_type VARCHAR(50) DEFAULT 'drone_imagery'",
+                "source": "ALTER TABLE datasets ADD COLUMN source VARCHAR(100)",
+                "sector": "ALTER TABLE datasets ADD COLUMN sector VARCHAR(50)",
+                "capture_date": "ALTER TABLE datasets ADD COLUMN capture_date TIMESTAMP",
+                "metadata_json": "ALTER TABLE datasets ADD COLUMN metadata_json TEXT DEFAULT '{}'",
+                "storage_path": "ALTER TABLE datasets ADD COLUMN storage_path TEXT",
+                "file_count": "ALTER TABLE datasets ADD COLUMN file_count INTEGER DEFAULT 0",
+                "total_size_bytes": "ALTER TABLE datasets ADD COLUMN total_size_bytes INTEGER DEFAULT 0",
+                "processed_at": "ALTER TABLE datasets ADD COLUMN processed_at TIMESTAMP",
+            }
+            for col, ddl in _ds_adds.items():
+                if col not in ds_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
+        # Payments table: ensure columns match the model
+        try:
+            pay_cols = [c["name"] for c in inspector.get_columns("payments")]
+        except Exception:
+            pay_cols = []
+
+        if pay_cols:
+            _pay_adds = {
+                "company_id": "ALTER TABLE payments ADD COLUMN company_id VARCHAR(36)",
+                "order_id": "ALTER TABLE payments ADD COLUMN order_id VARCHAR(36)",
+                "amount": "ALTER TABLE payments ADD COLUMN amount INTEGER DEFAULT 0",
+                "currency": "ALTER TABLE payments ADD COLUMN currency VARCHAR(5) DEFAULT 'AOA'",
+                "provider": "ALTER TABLE payments ADD COLUMN provider VARCHAR(30) DEFAULT ''",
+                "description": "ALTER TABLE payments ADD COLUMN description TEXT",
+                "idempotency_key": "ALTER TABLE payments ADD COLUMN idempotency_key VARCHAR(100)",
+                "provider_reference": "ALTER TABLE payments ADD COLUMN provider_reference VARCHAR(200)",
+                "metadata_json": "ALTER TABLE payments ADD COLUMN metadata_json TEXT DEFAULT '{}'",
+                "expires_at": "ALTER TABLE payments ADD COLUMN expires_at TIMESTAMP",
+            }
+            for col, ddl in _pay_adds.items():
+                if col not in pay_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
 
 # Initialize the engine by default outside of tests so imports have a usable DB connection.
 if getattr(settings, "env", "dev") != "test":
