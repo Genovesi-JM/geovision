@@ -149,6 +149,18 @@ def ensure_legacy_schema() -> None:
                         conn.execute(text(ddl))
                     except Exception:
                         pass
+            # Make enterprise-specific NOT NULL columns nullable so the model can insert
+            _doc_nullable = [
+                "ALTER TABLE documents ALTER COLUMN original_filename DROP NOT NULL",
+                "ALTER TABLE documents ALTER COLUMN file_extension DROP NOT NULL",
+                "ALTER TABLE documents ALTER COLUMN storage_path DROP NOT NULL",
+                "ALTER TABLE documents ALTER COLUMN storage_provider DROP NOT NULL",
+            ]
+            for ddl in _doc_nullable:
+                try:
+                    conn.execute(text(ddl))
+                except Exception:
+                    pass
 
         # Audit log table: ensure columns match the model
         try:
