@@ -8,6 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/chatbot.css" />
+  <script src="assets/js/config.js?v=5"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
@@ -1678,7 +1679,7 @@
   </div>
 
   <script src="assets/js/i18n.js?v=1"></script>
-  <script src="assets/js/config.js?v=4"></script>
+  <script src="assets/js/config.js?v=5"></script>
   <script>
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
@@ -1746,7 +1747,7 @@
     });
 
     // ============ API CALLS ============
-    const API_BASE = window.GV_CONFIG?.API_BASE || 'http://127.0.0.1:8010';
+    const API_BASE = window.API_BASE || 'http://127.0.0.1:8010';
 
     function authHeaders(extra = {}) {
       const token = localStorage.getItem('gv_token');
@@ -2154,7 +2155,7 @@
       // Fetch fresh data from /auth/me
       const token = localStorage.getItem('gv_token');
       if (token) {
-        const apiUrl = window.API_BASE || 'http://127.0.0.1:8010';
+        const apiUrl = API_BASE;
         fetch(apiUrl + '/auth/me', {
           headers: { 'Authorization': 'Bearer ' + token }
         })
@@ -2172,7 +2173,6 @@
       }
     });
   </script>
-  <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>

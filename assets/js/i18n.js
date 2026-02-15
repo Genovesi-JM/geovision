@@ -890,6 +890,8 @@ const translations = {
   "dash.ops.activeBadge": { pt: "0 ativos", en: "0 active", es: "0 activos" },
   "dash.support.whatsappTitle": { pt: "WhatsApp", en: "WhatsApp", es: "WhatsApp" },
   "dash.support.emailTitle": { pt: "Email", en: "Email", es: "Email" },
+  "dash.settings.nameLabel": { pt: "Nome", en: "Name", es: "Nombre" },
+  "dash.settings.roleLabel": { pt: "Cargo", en: "Role", es: "Cargo" },
   "dash.settings.emailLabel": { pt: "Email", en: "Email", es: "Email" },
   "dash.settings.activeAccount": { pt: "Conta Ativa", en: "Active Account", es: "Cuenta Activa" },
   "dash.modal.moduleKpi": { pt: "KPIs", en: "KPIs", es: "KPIs" },
