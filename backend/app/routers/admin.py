@@ -180,7 +180,7 @@ async def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
     company = Company(
         id=company_id, name=data.name, tax_id=data.tax_id, email=data.email,
         phone=data.phone, address=data.address,
-        sectors_json=json.dumps(data.sectors),
+        sectors=json.dumps(data.sectors),
         status=CompanyStatus.TRIAL.value, subscription_plan=data.subscription_plan.value,
         max_users=data.max_users, max_sites=data.max_sites, max_storage_gb=data.max_storage_gb,
     )
@@ -230,7 +230,7 @@ async def update_company(company_id: str, data: CompanyUpdate, db: Session = Dep
     for field, value in updates.items():
         if value is None: continue
         if field == "sectors":
-            c.sectors_json = json.dumps(value)
+            c.sectors = json.dumps(value)
         elif isinstance(value, Enum):
             setattr(c, field, value.value)
         else:
