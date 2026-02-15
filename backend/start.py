@@ -52,11 +52,49 @@ def main() -> None:
             print(f"[start] ERROR: create_all failed: {create_err}", file=sys.stderr, flush=True)
             raise SystemExit(1)
 
+    # ── Ensure critical columns exist (handles schema drift) ──
+    _ensure_schema_columns()
+
     import uvicorn
 
     port = int(os.environ.get("PORT", "8010"))
     print(f"[start] Starting server on 0.0.0.0:{port}...", flush=True)
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)
+
+
+def _ensure_schema_columns():
+    """Add any columns that are in the model but missing from the DB.
+
+    This handles the case where Alembic was stamped to head without actually
+    running migrations (e.g. after a failed deploy).
+    """
+    from sqlalchemy import inspect as sa_inspect, text
+    from app.database import init_db_engine, engine
+
+    init_db_engine()
+
+    # Map of table -> [(column_name, sql_type, default)]
+    required_columns = {
+        "companies": [
+            ("address", "TEXT", None),
+        ],
+    }
+
+    try:
+        inspector = sa_inspect(engine)
+        with engine.begin() as conn:
+            for table, columns in required_columns.items():
+                if table not in inspector.get_table_names():
+                    continue
+                existing = {c["name"] for c in inspector.get_columns(table)}
+                for col_name, col_type, default in columns:
+                    if col_name not in existing:
+                        default_clause = f" DEFAULT {default}" if default else ""
+                        sql = f'ALTER TABLE {table} ADD COLUMN {col_name} {col_type}{default_clause}'
+                        conn.execute(text(sql))
+                        print(f"[start] Added missing column {table}.{col_name}", flush=True)
+    except Exception as e:
+        print(f"[start] WARNING: schema column check failed: {e}", file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":
