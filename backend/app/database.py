@@ -132,6 +132,43 @@ def ensure_legacy_schema() -> None:
             except Exception:
                 pass
 
+        # Documents table: ensure columns match the model
+        try:
+            doc_cols = [c["name"] for c in inspector.get_columns("documents")]
+        except Exception:
+            doc_cols = []
+
+        if doc_cols:
+            _doc_adds = {
+                "file_path": "ALTER TABLE documents ADD COLUMN file_path TEXT",
+                "uploaded_by": "ALTER TABLE documents ADD COLUMN uploaded_by TEXT",
+            }
+            for col, ddl in _doc_adds.items():
+                if col not in doc_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
+        # Audit log table: ensure columns match the model
+        try:
+            audit_cols = [c["name"] for c in inspector.get_columns("audit_log")]
+        except Exception:
+            audit_cols = []
+
+        if audit_cols:
+            _audit_adds = {
+                "user_email": "ALTER TABLE audit_log ADD COLUMN user_email TEXT",
+                "ip_address": "ALTER TABLE audit_log ADD COLUMN ip_address VARCHAR(45)",
+                "user_agent": "ALTER TABLE audit_log ADD COLUMN user_agent VARCHAR(500)",
+            }
+            for col, ddl in _audit_adds.items():
+                if col not in audit_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
 
 # Initialize the engine by default outside of tests so imports have a usable DB connection.
 if getattr(settings, "env", "dev") != "test":

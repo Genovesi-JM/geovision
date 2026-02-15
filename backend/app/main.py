@@ -77,6 +77,14 @@ def create_application() -> FastAPI:
 
     init_db_engine()
 
+    # Ensure DB schema is up-to-date (add missing columns)
+    try:
+        from .database import ensure_legacy_schema
+        ensure_legacy_schema()
+        print("[GeoVision] Schema drift check completed.")
+    except Exception as exc:
+        print(f"[GeoVision] Schema drift check failed (non-fatal): {exc}")
+
     try:
         from .database import SessionLocal
         db = SessionLocal()
