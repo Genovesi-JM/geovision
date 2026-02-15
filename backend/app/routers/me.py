@@ -13,6 +13,32 @@ from app.schemas import AccountPublic, MeResponse, ProfileOut, UserSummary
 router = APIRouter(prefix="/me", tags=["me"])
 
 
+@router.get("/debug-docs/{email}")
+def debug_docs_for_email(email: str, db: Session = Depends(get_db)):
+    """Temporary debug endpoint — remove after diagnosing the issue."""
+    from app.models import Document as DocModel
+    from sqlalchemy import or_
+    email_lower = email.strip().lower()
+    cu = db.query(CompanyUser).filter(CompanyUser.email == email_lower).first()
+    co = db.query(Company).filter(Company.email == email_lower).first()
+    company_id = cu.company_id if cu else (co.id if co else None)
+    docs = []
+    if company_id:
+        docs = db.query(DocModel).filter(
+            DocModel.company_id == company_id,
+            or_(DocModel.is_confidential == False, DocModel.is_confidential.is_(None)),
+        ).order_by(DocModel.created_at.desc()).all()
+    return {
+        "email": email_lower,
+        "company_user_found": cu is not None,
+        "company_user_company_id": cu.company_id if cu else None,
+        "company_found": co is not None,
+        "company_id_resolved": company_id,
+        "docs_count": len(docs),
+        "docs": [{"id": d.id, "name": d.name, "company_id": d.company_id} for d in docs],
+    }
+
+
 def _parse_modules(value: str):
     try:
         parsed = json.loads(value) if value else None
@@ -93,8 +119,7 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
         DocModel.company_id == company_id,
         or_(DocModel.is_confidential == False, DocModel.is_confidential.is_(None)),
     ).order_by(DocModel.created_at.desc()).all()
-    print(f"[me/documents] found {len(docs)} docs for company {company_id}")
-    return [{
+    result = [{
         "id": d.id,
         "name": d.name,
         "document_type": d.document_type,
@@ -106,6 +131,8 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
         "has_file": bool(d.file_path),
         "created_at": d.created_at.isoformat() if d.created_at else None,
     } for d in docs]
+    print(f"[me/documents] found {len(result)} docs for company {company_id}")
+    return result
 
 
 @router.get("/documents/{document_id}/download")
