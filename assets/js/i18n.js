@@ -355,6 +355,7 @@ const translations = {
   "dash.nav.store": { pt: "Ir para Loja", en: "Go to Store", es: "Ir a Tienda" },
   "dash.nav.contact": { pt: "Contactar GeoVision", en: "Contact GeoVision", es: "Contactar GeoVision" },
   "dash.nav.settings": { pt: "Definições", en: "Settings", es: "Configuración" },
+  "dash.nav.adminPanel": { pt: "Painel Admin", en: "Admin Panel", es: "Panel Admin" },
   "dash.breadcrumb": { pt: "Painel /", en: "Dashboard /", es: "Panel /" },
   "dash.newAccount": { pt: "+ Nova Conta", en: "+ New Account", es: "+ Nueva Cuenta" },
   "dash.accountTitle": { pt: "Conta GeoVision", en: "GeoVision Account", es: "Cuenta GeoVision" },

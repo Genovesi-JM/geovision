@@ -1815,6 +1815,19 @@
           sel.innerHTML = '<option value="">Selecionar cliente...</option>' +
             _cachedCompanies.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
           if (current) sel.value = current;
+          // Load sites when client changes
+          sel.onchange = function() {
+            const siteSel = document.querySelector('#form-upload-doc select[name="site_id"]');
+            siteSel.innerHTML = '<option value="">Selecionar site...</option>';
+            if (!this.value) return;
+            fetch(`${API_BASE}/admin/companies/${this.value}/sites`, { headers: authHeaders() })
+              .then(r => r.ok ? r.json() : [])
+              .then(sites => {
+                siteSel.innerHTML = '<option value="">Selecionar site...</option>' +
+                  sites.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+              })
+              .catch(() => {});
+          };
         }
       }
       document.getElementById(modalId).classList.add('open');

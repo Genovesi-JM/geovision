@@ -667,7 +667,7 @@ async def create_document(company_id: str, data: DocumentCreate,
     if not c: raise HTTPException(404, "Company not found")
     doc = DocModel(id=str(uuid.uuid4()), company_id=company_id, site_id=site_id,
                    name=data.name, document_type=data.document_type,
-                   confidential=data.is_confidential)
+                   is_confidential=data.is_confidential, is_official=data.is_official)
     db.add(doc)
     _log_audit(db, company_id, "document_created", "document", doc.id,
                details={"name": data.name, "type": data.document_type})
@@ -675,7 +675,8 @@ async def create_document(company_id: str, data: DocumentCreate,
     return DocumentOut(id=doc.id, company_id=company_id, site_id=site_id,
                        name=doc.name, document_type=doc.document_type,
                        description=data.description, status=doc.status or "draft",
-                       version=doc.version or 1, is_confidential=doc.confidential or False,
+                       version=doc.version or 1, is_confidential=doc.is_confidential or False,
+                       is_official=doc.is_official or False,
                        created_at=doc.created_at, updated_at=doc.updated_at)
 
 
@@ -691,12 +692,13 @@ async def list_all_documents(
     if site_id: q = q.filter(DocModel.site_id == site_id)
     if document_type: q = q.filter(DocModel.document_type == document_type)
     if status: q = q.filter(DocModel.status == status)
-    if is_confidential is not None: q = q.filter(DocModel.confidential == is_confidential)
+    if is_confidential is not None: q = q.filter(DocModel.is_confidential == is_confidential)
     docs = q.all()
     return [DocumentOut(id=d.id, company_id=d.company_id, site_id=d.site_id,
             name=d.name, document_type=d.document_type,
             status=d.status or "draft", version=d.version or 1,
-            is_confidential=d.confidential or False,
+            is_confidential=d.is_confidential or False,
+            is_official=d.is_official or False,
             created_at=d.created_at, updated_at=d.updated_at) for d in docs]
 
 
@@ -711,7 +713,8 @@ async def update_document(document_id: str, status: Optional[str] = Query(None),
     return DocumentOut(id=doc.id, company_id=doc.company_id, site_id=doc.site_id,
                        name=doc.name, document_type=doc.document_type,
                        status=doc.status or "draft", version=doc.version or 1,
-                       is_confidential=doc.confidential or False,
+                       is_confidential=doc.is_confidential or False,
+                       is_official=doc.is_official or False,
                        created_at=doc.created_at, updated_at=doc.updated_at)
 
 

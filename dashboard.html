@@ -1234,6 +1234,15 @@
           <span data-i18n="dash.nav.settings">Definições</span>
         </a>
       </div>
+
+      <!-- Admin (hidden by default, shown via JS for admin users) -->
+      <div class="sidebar-section" id="sidebar-admin-section" style="display:none;">
+        <div class="sidebar-section-title">Administração</div>
+        <a href="admin.html" class="sidebar-link">
+          <span class="sidebar-link-icon"><i class="fa-solid fa-shield-halved"></i></span>
+          <span data-i18n="dash.nav.adminPanel">Painel Admin</span>
+        </a>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -1969,6 +1978,10 @@
         document.getElementById('user-name').textContent = displayName;
         document.getElementById('user-avatar').textContent = (displayName.charAt(0) || 'C').toUpperCase();
         document.getElementById('user-role').textContent = role === 'admin' ? 'Administrador' : 'Cliente';
+
+        // Show admin panel link for admin users
+        const adminSection = document.getElementById('sidebar-admin-section');
+        if (adminSection) adminSection.style.display = (role === 'admin') ? '' : 'none';
 
         const nameInput = document.getElementById('settings-name');
         if (nameInput) nameInput.value = name || displayName;
