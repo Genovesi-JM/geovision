@@ -164,9 +164,10 @@ class SystemStats(BaseModel):
 def _log_audit(db: Session, company_id: str, action: str, resource_type: str,
                resource_id: str = None, user_id: str = None, details: dict = None):
     from app.models import AuditLog
-    entry = AuditLog(id=str(uuid.uuid4()), company_id=company_id, user_id=user_id,
+    detail_str = json.dumps(details) if details else json.dumps({"company_id": company_id})
+    entry = AuditLog(id=str(uuid.uuid4()), user_id=user_id,
                      action=action, resource_type=resource_type, resource_id=resource_id,
-                     details=details)
+                     details=detail_str)
     db.add(entry)
 
 
