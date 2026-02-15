@@ -209,7 +209,7 @@ def _build_auth_response(db: Session, user: User) -> dict:
         db.commit()
         db.refresh(user)
 
-    _ensure_profile(db, user)
+    profile = _ensure_profile(db, user)
     account = _ensure_default_account(db, user)
 
     role = resolve_role(user)
@@ -219,9 +219,17 @@ def _build_auth_response(db: Session, user: User) -> dict:
     })
     refresh_token = _create_refresh_token(db, user.id)
 
+    # Build user dict with profile name
+    user_data = {
+        "id": user.id,
+        "email": user.email,
+        "role": role,
+        "name": getattr(profile, "full_name", None) or "",
+    }
+
     return {
         "access_token": access_token,
-        "user": user,
+        "user": user_data,
         "account": account,
         "refresh_token": refresh_token,
     }
@@ -372,6 +380,43 @@ def logout(
             db.commit()
 
     return {"message": "Logged out"}
+
+
+# ── Current User ──
+
+@router.get("/me", tags=["auth"])
+def get_current_user(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+):
+    """Return current user profile info from access token."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token required")
+
+    token = authorization[7:]
+    payload = verify_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    email = payload.get("sub", "")
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+    account = None
+    if membership:
+        account = db.query(Account).filter(Account.id == membership.account_id).first()
+
+    return {
+        "email": user.email,
+        "name": getattr(profile, "full_name", None) or "",
+        "role": resolve_role(user),
+        "company": getattr(profile, "company", None) or getattr(profile, "org_name", None) or "",
+        "account_id": getattr(account, "id", "") if account else "",
+        "account_name": getattr(account, "name", "") if account else "",
+    }
 
 
 # ── Status ──
@@ -564,7 +609,9 @@ def google_callback(code: str | None = None, state: str | None = None,
         callback_url = f"{frontend_base}/auth-callback.html"
         params = urlencode({
             "token": token, "email": email, "role": role,
+            "name": name or "",
             "account_id": getattr(account, "id", ""),
+            "account_name": getattr(account, "name", ""),
             "redirect": redirect_path,
         })
         return RedirectResponse(f"{callback_url}?{params}")
@@ -764,7 +811,9 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
         callback_url = f"{frontend_base}/auth-callback.html"
         params = urlencode({
             "token": token, "email": email, "role": role,
+            "name": name or "",
             "account_id": getattr(account, "id", ""),
+            "account_name": getattr(account, "name", ""),
             "redirect": redirect_path,
         })
         return RedirectResponse(f"{callback_url}?{params}")

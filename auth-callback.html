@@ -26,12 +26,14 @@
           token: p.get('token'),
           refresh_token: p.get('refresh_token') || '',
           email: p.get('email'),
+          name: p.get('name') || '',
           role: p.get('role') || 'cliente',
           accountId: p.get('account_id') || '',
+          accountName: p.get('account_name') || '',
           redirect: p.get('redirect') || '/dashboard.html',
         };
       }
-      const { token, refresh_token, email, role, accountId, redirect } = getParams();
+      const { token, refresh_token, email, name, role, accountId, accountName, redirect } = getParams();
       if (!token) {
         document.getElementById('msg').textContent = 'Token ausente. Volta ao login.';
         setTimeout(() => window.location.replace('login.html'), 1200);
@@ -40,8 +42,12 @@
       try {
         localStorage.setItem('gv_token', token);
         if (refresh_token) localStorage.setItem('gv_refresh_token', refresh_token);
-        localStorage.setItem('gv_user', JSON.stringify({ email: email || '', role }));
+        localStorage.setItem('gv_user', JSON.stringify({ email: email || '', name: name || '', role }));
+        if (email) localStorage.setItem('gv_email', email);
+        if (name) localStorage.setItem('gv_name', name);
+        if (role) localStorage.setItem('gv_role', role);
         if (accountId) localStorage.setItem('gv_account_id', accountId);
+        if (accountName) localStorage.setItem('gv_account_name', accountName);
         localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Login concluído com sucesso', type: 'success', ts: Date.now() }));
       } catch (e) { /* ignore */ }
       // Handle redirect - if it starts with /, make it relative to current directory

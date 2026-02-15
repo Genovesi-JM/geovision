@@ -49,6 +49,7 @@
       localStorage.setItem('gv_user', JSON.stringify(data.user));
       if (data.user.email) localStorage.setItem('gv_email', String(data.user.email));
       if (data.user.role) localStorage.setItem('gv_role', String(data.user.role));
+      if (data.user.name) localStorage.setItem('gv_name', String(data.user.name));
     } else if (fallbackEmail) {
       localStorage.setItem('gv_user', JSON.stringify({ email: fallbackEmail }));
       localStorage.setItem('gv_email', String(fallbackEmail));
@@ -56,6 +57,7 @@
 
     try {
       if (data && data.account && data.account.id) localStorage.setItem('gv_account_id', String(data.account.id));
+      if (data && data.account && data.account.name) localStorage.setItem('gv_account_name', String(data.account.name));
     } catch (_) {}
   }
 

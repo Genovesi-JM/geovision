@@ -2109,6 +2109,11 @@
       localStorage.removeItem('gv_token');
       localStorage.removeItem('gv_role');
       localStorage.removeItem('gv_email');
+      localStorage.removeItem('gv_name');
+      localStorage.removeItem('gv_user');
+      localStorage.removeItem('gv_account_id');
+      localStorage.removeItem('gv_account_name');
+      localStorage.removeItem('gv_refresh_token');
       window.location.href = 'index.html';
     });
 
@@ -2117,12 +2122,46 @@
       loadDashboardData();
       loadClients();
 
-      // Load user info
-      const email = localStorage.getItem('gv_email') || '—';
-      const role = localStorage.getItem('gv_role') || 'admin';
-      document.getElementById('user-name').textContent = email.split('@')[0];
-      document.getElementById('user-role').textContent = role === 'admin' ? 'Super Admin' : role;
-      document.getElementById('user-avatar').textContent = email.charAt(0).toUpperCase();
+      // Load user info from all sources
+      let userObj = null;
+      try { userObj = JSON.parse(localStorage.getItem('gv_user') || '{}'); } catch (_) { userObj = {}; }
+
+      const email = localStorage.getItem('gv_email') || (userObj && userObj.email) || '—';
+      const name = localStorage.getItem('gv_name') || (userObj && userObj.name) || '';
+      const role = localStorage.getItem('gv_role') || (userObj && userObj.role) || 'admin';
+
+      if (!localStorage.getItem('gv_email') && email !== '—') {
+        localStorage.setItem('gv_email', email);
+      }
+
+      function applyAdminUserInfo(email, name, role) {
+        const displayName = name || (email !== '—' ? email.split('@')[0] : '—');
+        document.getElementById('user-name').textContent = displayName;
+        document.getElementById('user-role').textContent = role === 'admin' ? 'Super Admin' : role;
+        document.getElementById('user-avatar').textContent = (displayName.charAt(0) || 'A').toUpperCase();
+      }
+
+      applyAdminUserInfo(email, name, role);
+
+      // Fetch fresh data from /auth/me
+      const token = localStorage.getItem('gv_token');
+      if (token) {
+        const apiUrl = window.API_BASE || 'http://127.0.0.1:8010';
+        fetch(apiUrl + '/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(r => r.ok ? r.json() : null)
+        .then(me => {
+          if (!me) return;
+          if (me.email) localStorage.setItem('gv_email', me.email);
+          if (me.name) localStorage.setItem('gv_name', me.name);
+          if (me.role) localStorage.setItem('gv_role', me.role);
+          if (me.account_name) localStorage.setItem('gv_account_name', me.account_name);
+          if (me.account_id) localStorage.setItem('gv_account_id', me.account_id);
+          applyAdminUserInfo(me.email || email, me.name || name, me.role || role);
+        })
+        .catch(() => {});
+      }
     });
   </script>
   <script src="assets/js/config.js?v=4"></script>

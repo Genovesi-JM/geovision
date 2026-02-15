@@ -58,6 +58,7 @@ class UserOut(BaseModel):
     id: str
     email: EmailStr
     role: str
+    name: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
