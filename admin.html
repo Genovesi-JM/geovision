@@ -1748,9 +1748,16 @@
     // ============ API CALLS ============
     const API_BASE = window.GV_CONFIG?.API_BASE || 'http://127.0.0.1:8010';
 
+    function authHeaders(extra = {}) {
+      const token = localStorage.getItem('gv_token');
+      const h = { ...extra };
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      return h;
+    }
+
     async function loadDashboardData() {
       try {
-        const response = await fetch(`${API_BASE}/admin/stats`);
+        const response = await fetch(`${API_BASE}/admin/stats`, { headers: authHeaders() });
         if (response.ok) {
           const stats = await response.json();
           document.getElementById('kpi-total-clients').textContent = stats.total_companies || 0;
@@ -1767,7 +1774,7 @@
 
     async function loadClients() {
       try {
-        const response = await fetch(`${API_BASE}/admin/companies`);
+        const response = await fetch(`${API_BASE}/admin/companies`, { headers: authHeaders() });
         if (response.ok) {
           const companies = await response.json();
           const tbody = document.getElementById('clients-table-body');
@@ -1813,7 +1820,7 @@
       try {
         const response = await fetch(`${API_BASE}/admin/companies`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify(data),
         });
 
@@ -1842,6 +1849,7 @@
       try {
         const response = await fetch(`${API_BASE}/admin/companies/${clientId}`, {
           method: 'DELETE',
+          headers: authHeaders(),
         });
         if (response.ok) {
           loadClients();
@@ -1864,7 +1872,7 @@
     // ============ SITES ============
     async function loadSites() {
       try {
-        const response = await fetch(`${API_BASE}/admin/sites`);
+        const response = await fetch(`${API_BASE}/admin/sites`, { headers: authHeaders() });
         if (response.ok) {
           const sites = await response.json();
           const tbody = document.getElementById('sites-table-body');
@@ -1893,7 +1901,7 @@
     async function deleteSite(siteId) {
       if (!confirm('Tem certeza que deseja excluir este site?')) return;
       try {
-        await fetch(`${API_BASE}/admin/sites/${siteId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/admin/sites/${siteId}`, { method: 'DELETE', headers: authHeaders() });
         loadSites();
         loadDashboardData();
       } catch (err) {
@@ -1908,7 +1916,7 @@
     // ============ DOCUMENTS ============
     async function loadDocuments() {
       try {
-        const response = await fetch(`${API_BASE}/admin/documents`);
+        const response = await fetch(`${API_BASE}/admin/documents`, { headers: authHeaders() });
         if (response.ok) {
           const docs = await response.json();
           const tbody = document.getElementById('documents-table-body');
@@ -1946,7 +1954,7 @@
     async function deleteDocument(docId) {
       if (!confirm('Tem certeza que deseja excluir este documento?')) return;
       try {
-        await fetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/admin/documents/${docId}`, { method: 'DELETE', headers: authHeaders() });
         loadDocuments();
       } catch (err) {
         alert('Erro: ' + err.message);
@@ -1960,7 +1968,7 @@
     // ============ INTEGRATIONS ============
     async function loadIntegrations() {
       try {
-        const response = await fetch(`${API_BASE}/admin/integrations`);
+        const response = await fetch(`${API_BASE}/admin/integrations`, { headers: authHeaders() });
         if (response.ok) {
           const integrations = await response.json();
           const tbody = document.getElementById('integrations-table-body');
@@ -1988,7 +1996,7 @@
 
     async function syncIntegration(integrationId) {
       try {
-        const response = await fetch(`${API_BASE}/admin/integrations/${integrationId}/sync`, { method: 'POST' });
+        const response = await fetch(`${API_BASE}/admin/integrations/${integrationId}/sync`, { method: 'POST', headers: authHeaders() });
         if (response.ok) {
           alert('Sync iniciado!');
           loadIntegrations();
@@ -2001,7 +2009,7 @@
     async function deleteIntegration(integrationId) {
       if (!confirm('Tem certeza que deseja excluir esta integração?')) return;
       try {
-        await fetch(`${API_BASE}/admin/integrations/${integrationId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/admin/integrations/${integrationId}`, { method: 'DELETE', headers: authHeaders() });
         loadIntegrations();
       } catch (err) {
         alert('Erro: ' + err.message);
@@ -2011,7 +2019,7 @@
     // ============ DATASETS ============
     async function loadDatasets() {
       try {
-        const response = await fetch(`${API_BASE}/admin/datasets`);
+        const response = await fetch(`${API_BASE}/admin/datasets`, { headers: authHeaders() });
         if (response.ok) {
           const datasets = await response.json();
           const tbody = document.getElementById('datasets-table-body');
@@ -2040,7 +2048,7 @@
     async function deleteDataset(datasetId) {
       if (!confirm('Tem certeza que deseja excluir este dataset?')) return;
       try {
-        await fetch(`${API_BASE}/admin/datasets/${datasetId}`, { method: 'DELETE' });
+        await fetch(`${API_BASE}/admin/datasets/${datasetId}`, { method: 'DELETE', headers: authHeaders() });
         loadDatasets();
         loadDashboardData();
       } catch (err) {
@@ -2051,7 +2059,7 @@
     // ============ AUDIT LOGS ============
     async function loadAuditLogs() {
       try {
-        const response = await fetch(`${API_BASE}/admin/audit-logs`);
+        const response = await fetch(`${API_BASE}/admin/audit-logs`, { headers: authHeaders() });
         if (response.ok) {
           const logs = await response.json();
           const tbody = document.getElementById('audit-logs-table-body');

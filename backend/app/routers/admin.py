@@ -528,10 +528,11 @@ class IntegrationOut(BaseModel):
 
 
 def _company_out(c, db: Session) -> CompanyOut:
+    sectors_raw = getattr(c, 'sectors_json', None) or getattr(c, 'sectors', None) or '[]'
     return CompanyOut(
         id=c.id, name=c.name, tax_id=c.tax_id, email=c.email,
         phone=c.phone, address=c.address,
-        sectors=json.loads(c.sectors_json or "[]"),
+        sectors=json.loads(sectors_raw) if isinstance(sectors_raw, str) else sectors_raw,
         status=c.status, subscription_plan=c.subscription_plan,
         max_users=c.max_users, max_sites=c.max_sites,
         max_storage_gb=c.max_storage_gb,

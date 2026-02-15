@@ -31,6 +31,8 @@ from ..models import (
     Account,
     AccountMember,
     AuthIdentity,
+    Company,
+    CompanyUser,
     OAuthState,
     RefreshTokenModel,
     ResetToken,
@@ -82,11 +84,48 @@ def _ensure_profile(db: Session, user: User, full_name: str | None = None, org_n
     return profile
 
 
+def _ensure_company(db: Session, user: User, account_name: str, sector_focus: str | None = None) -> None:
+    """Auto-create a Company record so the user appears in the admin panel."""
+    email = (user.email or "").strip().lower()
+    existing = db.query(Company).filter(Company.email == email).first()
+    if existing:
+        return
+
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    company = Company(
+        name=account_name,
+        email=email,
+        phone=None,
+        sectors=json.dumps([sector_focus or "agro"]),
+        status="active",
+        subscription_plan="trial",
+        max_users=5,
+        max_sites=10,
+        max_storage_gb=50,
+        current_users=1,
+    )
+    db.add(company)
+    db.flush()
+
+    # Link user to company
+    cu = CompanyUser(
+        company_id=company.id,
+        email=email,
+        name=getattr(profile, "full_name", None) if profile else None,
+        role="owner",
+        is_active=True,
+    )
+    db.add(cu)
+
+
 def _ensure_default_account(db: Session, user: User, sector_focus: str | None = None) -> Account:
     membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
     if membership:
         account = db.query(Account).filter(Account.id == membership.account_id).first()
         if account:
+            # Ensure company also exists
+            _ensure_company(db, user, account.name, account.sector_focus)
+            db.commit()
             return account
 
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
@@ -109,6 +148,10 @@ def _ensure_default_account(db: Session, user: User, sector_focus: str | None = 
 
     membership = AccountMember(account_id=account.id, user_id=user.id, role="owner")
     db.add(membership)
+
+    # Also create Company for admin panel
+    _ensure_company(db, user, account_name, sector_focus)
+
     db.commit()
     db.refresh(account)
     return account
