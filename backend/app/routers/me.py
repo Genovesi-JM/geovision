@@ -86,12 +86,14 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
     from app.models import Document as DocModel
     from sqlalchemy import or_
     company_id = _get_user_company_id(user, db)
+    print(f"[me/documents] user={user.email} company_id={company_id}")
     if not company_id:
         return []
     docs = db.query(DocModel).filter(
         DocModel.company_id == company_id,
         or_(DocModel.is_confidential == False, DocModel.is_confidential.is_(None)),
     ).order_by(DocModel.created_at.desc()).all()
+    print(f"[me/documents] found {len(docs)} docs for company {company_id}")
     return [{
         "id": d.id,
         "name": d.name,
