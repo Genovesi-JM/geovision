@@ -542,11 +542,12 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   renderServices(portfolio);
   renderHardware(portfolio);
-  renderReports(portfolio);
+  // Reports are loaded by loadReports() in dashboard.html from /me/documents API
+  // renderReports(portfolio);   // REMOVED — was overwriting real API docs
   // renderAlerts from portfolio is now replaced by loadAlerts from backend
 
-  // Enriquecer tabela de relatórios com pedidos reais da loja (se existirem)
-  await loadOrdersOverrideReports(currentAccountId);
+  // Orders override reports — now handled by loadReports() in dashboard.html
+  // await loadOrdersOverrideReports(currentAccountId);  // REMOVED — was clearing reports table
 
   const switcher = document.getElementById("account-switcher");
   if (switcher && !switcher.dataset.gvBound) {

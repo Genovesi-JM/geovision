@@ -1689,7 +1689,7 @@
         loadOrders();
       }
       // Load reports / documents if switching to reports view
-      if (viewId === 'reports' && !reportsLoaded) {
+      if (viewId === 'reports') {
         loadReports();
       }
     }
@@ -1804,12 +1804,15 @@
       if (!tbody) return;
       try {
         const token = localStorage.getItem('gv_token');
-        if (!token) { if (empty) empty.style.display = ''; return; }
+        if (!token) { console.warn('[loadReports] No token'); if (empty) empty.style.display = ''; return; }
+        console.log('[loadReports] Fetching /me/documents...');
         const res = await fetch(`${API_URL}/me/documents`, {
           headers: { Authorization: 'Bearer ' + token }
         });
-        if (!res.ok) throw new Error('Fetch failed');
+        console.log('[loadReports] Response status:', res.status);
+        if (!res.ok) throw new Error('Fetch failed: ' + res.status);
         const docs = await res.json();
+        console.log('[loadReports] Got docs:', docs.length, docs);
         reportsLoaded = true;
         if (kpi) kpi.textContent = docs.length;
         if (docs.length === 0) {
@@ -1833,7 +1836,7 @@
           </tr>
         `).join('');
       } catch (err) {
-        console.warn('Could not load reports:', err);
+        console.error('[loadReports] Error:', err);
         if (empty) empty.style.display = '';
       }
     }
