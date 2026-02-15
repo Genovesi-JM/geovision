@@ -155,6 +155,9 @@ def ensure_legacy_schema() -> None:
                 "ALTER TABLE documents ALTER COLUMN file_extension DROP NOT NULL",
                 "ALTER TABLE documents ALTER COLUMN storage_path DROP NOT NULL",
                 "ALTER TABLE documents ALTER COLUMN storage_provider DROP NOT NULL",
+                "ALTER TABLE documents ALTER COLUMN download_blocked DROP NOT NULL",
+                "ALTER TABLE documents ALTER COLUMN download_blocked SET DEFAULT false",
+                "ALTER TABLE documents ALTER COLUMN file_size_bytes SET DEFAULT 0",
             ]
             for ddl in _doc_nullable:
                 try:
