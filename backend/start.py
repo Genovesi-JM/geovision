@@ -80,6 +80,11 @@ def _ensure_schema_columns():
         ],
     }
 
+    # Columns from enterprise migration that must be nullable (model doesn't include them)
+    force_nullable = {
+        "companies": ["country", "sectors"],
+    }
+
     try:
         inspector = sa_inspect(engine)
         with engine.begin() as conn:
@@ -93,6 +98,16 @@ def _ensure_schema_columns():
                         sql = f'ALTER TABLE {table} ADD COLUMN {col_name} {col_type}{default_clause}'
                         conn.execute(text(sql))
                         print(f"[start] Added missing column {table}.{col_name}", flush=True)
+
+            # Make enterprise-specific NOT NULL columns nullable
+            for table, cols in force_nullable.items():
+                if table not in inspector.get_table_names():
+                    continue
+                existing_cols = {c["name"]: c for c in inspector.get_columns(table)}
+                for col_name in cols:
+                    if col_name in existing_cols and existing_cols[col_name].get("nullable") is False:
+                        conn.execute(text(f'ALTER TABLE {table} ALTER COLUMN {col_name} DROP NOT NULL'))
+                        print(f"[start] Made {table}.{col_name} nullable", flush=True)
     except Exception as e:
         print(f"[start] WARNING: schema column check failed: {e}", file=sys.stderr, flush=True)
 
