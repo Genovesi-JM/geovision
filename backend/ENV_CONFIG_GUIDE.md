@@ -12,7 +12,7 @@ ENVIRONMENT=development
 APP_VERSION=1.0.0
 
 # URLs base
-BACKEND_BASE=https://geovision-backend-db2f.onrender.com
+BACKEND_BASE=https://geovisionops-sqknb.ondigitalocean.app
 FRONTEND_BASE=https://genovesi-jm.github.io/geovision
 
 # CORS - origens permitidas (separadas por vírgula)
@@ -41,6 +41,15 @@ GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxx
 
 # Redirect URI após autenticação Google
 GOOGLE_REDIRECT_URI=https://genovesi-jm.github.io/geovision/auth-callback.html
+```
+
+## Microsoft OAuth / Entra ID
+
+```bash
+# Azure Portal -> App registrations -> Your app -> Certificates & secrets
+MICROSOFT_CLIENT_ID=your-azure-app-client-id
+MICROSOFT_CLIENT_SECRET=your-azure-app-client-secret
+MICROSOFT_TENANT_ID=common
 ```
 
 ## Armazenamento S3
@@ -80,7 +89,7 @@ MULTICAIXA_API_KEY=your-api-key
 MULTICAIXA_WEBHOOK_SECRET=whsec-xxxxxxxx
 
 # URL de callback após pagamento
-MULTICAIXA_CALLBACK_URL=https://geovision-backend-db2f.onrender.com/payments/webhooks/multicaixa
+MULTICAIXA_CALLBACK_URL=https://geovisionops-sqknb.ondigitalocean.app/payments/webhooks/multicaixa
 ```
 
 ## Pagamentos - Stripe (Visa/Mastercard)
@@ -127,7 +136,7 @@ DRONEDEPLOY_API_KEY=your-dronedeploy-key
 ```bash
 BIM360_CLIENT_ID=your-autodesk-client-id
 BIM360_CLIENT_SECRET=your-autodesk-client-secret
-BIM360_CALLBACK_URL=https://geovision-backend-db2f.onrender.com/datasets/webhooks/bim360
+BIM360_CALLBACK_URL=https://geovisionops-sqknb.ondigitalocean.app/datasets/webhooks/bim360
 ```
 
 ### Procore
@@ -169,12 +178,12 @@ APP_VERSION=1.0.0
 SECRET_KEY=change-this-to-a-random-256-bit-key
 
 # ===== URLS =====
-BACKEND_BASE=https://geovision-backend-db2f.onrender.com
+BACKEND_BASE=https://geovisionops-sqknb.ondigitalocean.app
 FRONTEND_BASE=https://genovesi-jm.github.io/geovision
 CORS_ORIGINS=https://genovesi-jm.github.io,https://app.geovision.co.ao
 
 # ===== DATABASE =====
-DATABASE_URL=postgresql://geovision:password@db.render.com:5432/geovision_prod
+DATABASE_URL=postgresql://user:password@db.digitalocean.com:25060/geovision_prod
 
 # ===== GOOGLE OAUTH =====
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
@@ -217,7 +226,7 @@ OPENAI_API_KEY=sk-xxx
 ## Notas de Segurança
 
 1. **Nunca** commitar o ficheiro `.env` no repositório
-2. Usar **secrets** do Render/Heroku/etc. para variáveis sensíveis
+2. Usar **secrets** do DigitalOcean/etc. para variáveis sensíveis
 3. Rotar as chaves API periodicamente
 4. Usar credenciais **test** durante desenvolvimento
 5. Ativar **2FA** em todas as contas de serviços (Google, Stripe, AWS)
@@ -227,7 +236,7 @@ OPENAI_API_KEY=sk-xxx
 Para verificar se todas as variáveis estão configuradas:
 
 ```bash
-curl https://geovision-backend-db2f.onrender.com/admin/health
+curl https://geovisionops-sqknb.ondigitalocean.app/admin/health
 ```
 
 Resposta esperada:

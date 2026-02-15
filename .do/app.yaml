@@ -48,6 +48,18 @@ services:
   - key: GOOGLE_CLIENT_SECRET
     scope: RUN_TIME
     type: SECRET
+  - key: MICROSOFT_CLIENT_ID
+    scope: RUN_TIME
+    type: SECRET
+  - key: MICROSOFT_CLIENT_SECRET
+    scope: RUN_TIME
+    type: SECRET
+  - key: OPENAI_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: OPENAI_MODEL
+    scope: RUN_TIME
+    value: gpt-4.1-mini
   github:
     branch: main
     deploy_on_push: true

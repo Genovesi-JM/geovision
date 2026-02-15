@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def fix_postgres_url(cls, v: str) -> str:
-        """Render uses postgres:// but SQLAlchemy 2.0 requires postgresql://"""
+        """Some providers use postgres:// but SQLAlchemy 2.0 requires postgresql://"""
         if v and v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql://", 1)
         return v
