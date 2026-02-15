@@ -388,10 +388,12 @@ async def get_system_stats(db: Session = Depends(get_db)):
     try:
         total_sites = db.query(Site).count()
     except Exception:
+        db.rollback()
         total_sites = 0
     try:
         total_datasets = db.query(Dataset).count()
     except Exception:
+        db.rollback()
         total_datasets = 0
 
     today = _utcnow().date()
@@ -403,6 +405,7 @@ async def get_system_stats(db: Session = Depends(get_db)):
             Payment.status.in_([PS.PENDING.value, PS.PROCESSING.value, PS.AWAITING_CONFIRMATION.value])
         ).count()
     except Exception:
+        db.rollback()
         payments_today = 0
         payments_pending = 0
 
