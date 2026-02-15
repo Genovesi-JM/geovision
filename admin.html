@@ -2008,8 +2008,39 @@
     }
 
     function uploadDocument() {
-      // TODO: integrate FormData upload endpoint
-      closeModal('modal-upload-doc');
+      const form = document.getElementById('form-upload-doc');
+      const formData = new FormData(form);
+      const companyId = formData.get('company_id');
+      if (!companyId) { alert('Selecione um cliente.'); return; }
+      const name = formData.get('name');
+      if (!name) { alert('Insira o nome do documento.'); return; }
+      const data = {
+        name: name,
+        document_type: formData.get('document_type') || 'report',
+        description: formData.get('description') || '',
+        is_confidential: form.querySelector('[name="is_confidential"]')?.checked || false,
+        is_official: form.querySelector('[name="is_official"]')?.checked || false,
+      };
+      const siteId = formData.get('site_id');
+      let url = `${API_BASE}/admin/companies/${companyId}/documents`;
+      if (siteId) url += `?site_id=${siteId}`;
+      fetch(url, {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(data),
+      })
+      .then(async r => {
+        if (r.ok) {
+          closeModal('modal-upload-doc');
+          form.reset();
+          loadDocuments();
+          alert('Documento registado com sucesso!');
+        } else {
+          const err = await r.json();
+          alert('Erro: ' + (err.detail || 'Falha ao registar documento'));
+        }
+      })
+      .catch(err => alert('Erro de conexao: ' + err.message));
     }
 
     function exportReport() {
@@ -2274,49 +2305,41 @@
 
     // ============ INIT ============
     document.addEventListener('DOMContentLoaded', () => {
-      loadDashboardData();
-      loadClients();
-
-      // Load user info from all sources
-      let userObj = null;
-      try { userObj = JSON.parse(localStorage.getItem('gv_user') || '{}'); } catch (_) { userObj = {}; }
-
-      const email = localStorage.getItem('gv_email') || (userObj && userObj.email) || '—';
-      const name = localStorage.getItem('gv_name') || (userObj && userObj.name) || '';
-      const role = localStorage.getItem('gv_role') || (userObj && userObj.role) || 'admin';
-
-      if (!localStorage.getItem('gv_email') && email !== '—') {
-        localStorage.setItem('gv_email', email);
+      // Auth guard — verify admin token
+      const initToken = localStorage.getItem('gv_token');
+      if (!initToken) {
+        window.location.href = 'login.html';
+        return;
       }
-
-      function applyAdminUserInfo(email, name, role) {
-        const displayName = name || (email !== '—' ? email.split('@')[0] : '—');
-        document.getElementById('user-name').textContent = displayName;
-        document.getElementById('user-role').textContent = role === 'admin' ? 'Super Admin' : role;
-        document.getElementById('user-avatar').textContent = (displayName.charAt(0) || 'A').toUpperCase();
-      }
-
-      applyAdminUserInfo(email, name, role);
-
-      // Fetch fresh data from /auth/me
-      const token = localStorage.getItem('gv_token');
-      if (token) {
-        const apiUrl = API_BASE;
-        fetch(apiUrl + '/auth/me', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        })
-        .then(r => r.ok ? r.json() : null)
+      fetch(API_BASE + '/auth/me', { headers: { Authorization: 'Bearer ' + initToken } })
+        .then(r => { if (!r.ok) throw new Error('Auth failed'); return r.json(); })
         .then(me => {
-          if (!me) return;
+          if (me.role !== 'admin') {
+            alert('Acesso restrito. Inicie sessao como administrador.');
+            window.location.href = 'login.html';
+            return;
+          }
+          // Store fresh user data
           if (me.email) localStorage.setItem('gv_email', me.email);
           if (me.name) localStorage.setItem('gv_name', me.name);
           if (me.role) localStorage.setItem('gv_role', me.role);
           if (me.account_name) localStorage.setItem('gv_account_name', me.account_name);
           if (me.account_id) localStorage.setItem('gv_account_id', me.account_id);
-          applyAdminUserInfo(me.email || email, me.name || name, me.role || role);
+
+          const displayName = me.name || (me.email ? me.email.split('@')[0] : 'Admin');
+          document.getElementById('user-name').textContent = displayName;
+          document.getElementById('user-role').textContent = 'Super Admin';
+          document.getElementById('user-avatar').textContent = (displayName.charAt(0) || 'A').toUpperCase();
+
+          // Load data after auth confirmed
+          loadDashboardData();
+          loadClients();
         })
-        .catch(() => {});
-      }
+        .catch(() => {
+          alert('Sessao expirada. Faca login novamente.');
+          localStorage.removeItem('gv_token');
+          window.location.href = 'login.html';
+        });
     });
   </script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>

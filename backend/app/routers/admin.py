@@ -74,6 +74,7 @@ class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
+    tax_id: Optional[str] = None
     address: Optional[str] = None
     sectors: Optional[List[str]] = None
     status: Optional[CompanyStatus] = None
