@@ -184,6 +184,30 @@ def ensure_legacy_schema() -> None:
                     except Exception:
                         pass
 
+        # Sites table: ensure columns match the model
+        try:
+            site_cols = [c["name"] for c in inspector.get_columns("sites")]
+        except Exception:
+            site_cols = []
+
+        if site_cols:
+            _site_adds = {
+                "country": "ALTER TABLE sites ADD COLUMN country VARCHAR(100) DEFAULT 'Angola'",
+                "province": "ALTER TABLE sites ADD COLUMN province VARCHAR(100)",
+                "municipality": "ALTER TABLE sites ADD COLUMN municipality VARCHAR(100)",
+                "latitude": "ALTER TABLE sites ADD COLUMN latitude NUMERIC(10,6)",
+                "longitude": "ALTER TABLE sites ADD COLUMN longitude NUMERIC(10,6)",
+                "area_hectares": "ALTER TABLE sites ADD COLUMN area_hectares NUMERIC(12,2)",
+                "sector": "ALTER TABLE sites ADD COLUMN sector VARCHAR(50)",
+                "description": "ALTER TABLE sites ADD COLUMN description TEXT",
+            }
+            for col, ddl in _site_adds.items():
+                if col not in site_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
 
 # Initialize the engine by default outside of tests so imports have a usable DB connection.
 if getattr(settings, "env", "dev") != "test":

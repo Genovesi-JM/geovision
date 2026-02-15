@@ -738,9 +738,12 @@ async def list_all_documents(
     if document_type: q = q.filter(DocModel.document_type == document_type)
     if status: q = q.filter(DocModel.status == status)
     if is_confidential is not None: q = q.filter(DocModel.is_confidential == is_confidential)
-    docs = q.all()
+    docs = q.order_by(DocModel.created_at.desc()).all()
     return [DocumentOut(id=d.id, company_id=d.company_id, site_id=d.site_id,
             name=d.name, document_type=d.document_type,
+            description=d.description,
+            file_path=d.file_path, file_size_bytes=d.file_size_bytes or 0,
+            mime_type=d.mime_type,
             status=d.status or "draft", version=d.version or 1,
             is_confidential=d.is_confidential or False,
             is_official=d.is_official or False,

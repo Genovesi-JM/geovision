@@ -84,12 +84,13 @@ def _get_user_company_id(user: User, db: Session) -> Optional[str]:
 def my_documents(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """List documents for the current user's company."""
     from app.models import Document as DocModel
+    from sqlalchemy import or_
     company_id = _get_user_company_id(user, db)
     if not company_id:
         return []
     docs = db.query(DocModel).filter(
         DocModel.company_id == company_id,
-        DocModel.is_confidential == False,
+        or_(DocModel.is_confidential == False, DocModel.is_confidential.is_(None)),
     ).order_by(DocModel.created_at.desc()).all()
     return [{
         "id": d.id,

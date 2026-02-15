@@ -2317,7 +2317,7 @@
         if (!res.ok) return;
         const docs = await res.json();
         // Show last 10 with files
-        const recent = docs.filter(d => d.file_path || d.file_size_bytes > 0).slice(0, 10);
+        const recent = docs.slice(0, 10);
         if (recent.length === 0) {
           tbody.innerHTML = '';
           if (empty) empty.style.display = '';
