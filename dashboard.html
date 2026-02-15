@@ -1665,6 +1665,7 @@
     const viewPanels = document.querySelectorAll('.view-panel');
     const breadcrumb = document.getElementById('breadcrumb-current');
     let ordersLoaded = false;
+    let reportsLoaded = false;
 
     function switchView(viewId) {
       // Update sidebar
@@ -1686,6 +1687,10 @@
       // Load orders if switching to orders view
       if (viewId === 'orders' && !ordersLoaded) {
         loadOrders();
+      }
+      // Load reports / documents if switching to reports view
+      if (viewId === 'reports' && !reportsLoaded) {
+        loadReports();
       }
     }
 
@@ -1775,6 +1780,85 @@
       });
     }
 
+    // ============ REPORTS / DOCUMENTS ============
+    function _formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    function _formatSize(bytes) {
+      if (!bytes || bytes === 0) return '—';
+      const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+    const _docTypeLabels = {
+      report: 'Relatório', orthomosaic: 'Ortomosaico', contract: 'Contrato',
+      invoice: 'Fatura', geotiff: 'GeoTIFF', point_cloud: 'Point Cloud',
+      shapefile: 'Shapefile', dxf: 'DXF', other: 'Outro'
+    };
+
+    async function loadReports() {
+      const tbody = document.getElementById('reports-table-body');
+      const empty = document.getElementById('reports-empty');
+      const kpi = document.getElementById('kpi-reports');
+      if (!tbody) return;
+      try {
+        const token = localStorage.getItem('gv_token');
+        if (!token) { if (empty) empty.style.display = ''; return; }
+        const res = await fetch(`${API_URL}/me/documents`, {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Fetch failed');
+        const docs = await res.json();
+        reportsLoaded = true;
+        if (kpi) kpi.textContent = docs.length;
+        if (docs.length === 0) {
+          tbody.innerHTML = '';
+          if (empty) empty.style.display = '';
+          return;
+        }
+        if (empty) empty.style.display = 'none';
+        tbody.innerHTML = docs.map(d => `
+          <tr>
+            <td>
+              <strong>${d.name}</strong>
+              ${d.is_official ? '<span class="badge badge-active" style="margin-left:0.5rem;font-size:0.65rem;">Oficial</span>' : ''}
+            </td>
+            <td><span class="badge badge-trial">${_docTypeLabels[d.document_type] || d.document_type}</span></td>
+            <td>${_formatDate(d.created_at)}</td>
+            <td><span class="badge badge-${d.status === 'approved' ? 'active' : 'pending'}">${d.status === 'approved' ? 'Aprovado' : d.status === 'draft' ? 'Rascunho' : d.status}</span></td>
+            <td>
+              ${d.has_file ? `<button class="btn btn-sm btn-primary" onclick="downloadMyDoc('${d.id}', '${d.name.replace(/'/g, "\\'")}')"><i class="fa-solid fa-download"></i> Download</button>` : '<span style="color:#6b7280;font-size:0.8rem;">Sem ficheiro</span>'}
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.warn('Could not load reports:', err);
+        if (empty) empty.style.display = '';
+      }
+    }
+
+    function downloadMyDoc(docId, filename) {
+      const token = localStorage.getItem('gv_token');
+      fetch(`${API_URL}/me/documents/${docId}/download`, {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(r => {
+        if (!r.ok) throw new Error('Download failed');
+        return r.blob();
+      })
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename || 'document';
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(err => alert('Erro ao descarregar: ' + err.message));
+    }
+
+    // ============ ORDERS ============
     async function loadOrders() {
       const container = document.getElementById("orders-container");
       if (!container) return;
@@ -2011,6 +2095,7 @@
           if (me.role) localStorage.setItem('gv_role', me.role);
           if (me.account_name) localStorage.setItem('gv_account_name', me.account_name);
           if (me.account_id) localStorage.setItem('gv_account_id', me.account_id);
+          if (me.company_id) localStorage.setItem('gv_company_id', me.company_id);
           // Re-apply with fresh data
           applyUserInfo(
             me.email || email,
@@ -2018,6 +2103,8 @@
             me.role || role,
             me.account_name || accountName
           );
+          // Pre-load reports count for KPI
+          loadReports();
         })
         .catch(() => { /* offline or error, keep localStorage data */ });
       }

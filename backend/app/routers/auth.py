@@ -452,6 +452,13 @@ def get_current_user(
     if membership:
         account = db.query(Account).filter(Account.id == membership.account_id).first()
 
+    # Find the company linked to this user (for client document access)
+    company_row = None
+    try:
+        company_row = db.query(CompanyUser).filter(CompanyUser.email == email.lower()).first()
+    except Exception:
+        pass
+
     return {
         "email": user.email,
         "name": getattr(profile, "full_name", None) or "",
@@ -459,6 +466,7 @@ def get_current_user(
         "company": getattr(profile, "company", None) or getattr(profile, "org_name", None) or "",
         "account_id": getattr(account, "id", "") if account else "",
         "account_name": getattr(account, "name", "") if account else "",
+        "company_id": company_row.company_id if company_row else "",
     }
 
 

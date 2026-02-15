@@ -15,7 +15,8 @@ from typing import Optional, List
 from datetime import datetime, timezone
 from enum import Enum
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy.orm import Session
 
@@ -660,22 +661,65 @@ async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
 
 # ============ DOCUMENTS MANAGEMENT ============
 
+import os as _os
+import shutil as _shutil
+from pathlib import Path as _Path
+
+# Upload directory — inside /workspace on DO, or local backend dir
+_UPLOAD_DIR = _Path(_os.environ.get("UPLOAD_DIR", _Path(__file__).resolve().parent.parent / "uploads"))
+_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
 @router.post("/companies/{company_id}/documents", response_model=DocumentOut)
-async def create_document(company_id: str, data: DocumentCreate,
-                          site_id: Optional[str] = Query(None), db: Session = Depends(get_db)):
+async def create_document(
+    company_id: str,
+    name: str = Form(...),
+    document_type: str = Form("report"),
+    description: str = Form(""),
+    is_confidential: bool = Form(False),
+    is_official: bool = Form(False),
+    site_id: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+):
     from app.models import Company, Document as DocModel
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
-    doc = DocModel(id=str(uuid.uuid4()), company_id=company_id, site_id=site_id,
-                   name=data.name, document_type=data.document_type,
-                   is_confidential=data.is_confidential, is_official=data.is_official)
+
+    doc_id = str(uuid.uuid4())
+    file_path = None
+    file_size = 0
+    mime = None
+
+    # Save uploaded file
+    if file and file.filename:
+        company_dir = _UPLOAD_DIR / company_id
+        company_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = f"{doc_id}_{file.filename}"
+        dest = company_dir / safe_name
+        with open(dest, "wb") as buf:
+            _shutil.copyfileobj(file.file, buf)
+        file_path = str(dest)
+        file_size = dest.stat().st_size
+        mime = file.content_type
+
+    sid = site_id if site_id and site_id.strip() else None
+    doc = DocModel(
+        id=doc_id, company_id=company_id, site_id=sid,
+        name=name, document_type=document_type, description=description or None,
+        file_path=file_path, file_size_bytes=file_size, mime_type=mime,
+        is_confidential=is_confidential, is_official=is_official,
+        status="approved" if file_path else "draft",
+    )
     db.add(doc)
     _log_audit(db, company_id, "document_created", "document", doc.id,
-               details={"name": data.name, "type": data.document_type})
+               details={"name": name, "type": document_type, "has_file": bool(file_path)})
     db.commit(); db.refresh(doc)
-    return DocumentOut(id=doc.id, company_id=company_id, site_id=site_id,
+    return DocumentOut(id=doc.id, company_id=company_id, site_id=sid,
                        name=doc.name, document_type=doc.document_type,
-                       description=data.description, status=doc.status or "draft",
+                       description=doc.description, status=doc.status or "draft",
+                       file_path=doc.file_path, file_size_bytes=doc.file_size_bytes,
+                       mime_type=doc.mime_type,
                        version=doc.version or 1, is_confidential=doc.is_confidential or False,
                        is_official=doc.is_official or False,
                        created_at=doc.created_at, updated_at=doc.updated_at)
@@ -726,6 +770,24 @@ async def delete_document(document_id: str, db: Session = Depends(get_db)):
     if not doc: raise HTTPException(404, "Document not found")
     db.delete(doc); db.commit()
     return {"message": "Document deleted", "document_id": document_id}
+
+
+@router.get("/documents/{document_id}/download")
+async def download_document(document_id: str, db: Session = Depends(get_db)):
+    """Download a document file by its ID."""
+    from app.models import Document as DocModel
+    doc = db.get(DocModel, document_id)
+    if not doc: raise HTTPException(404, "Document not found")
+    if not doc.file_path:
+        raise HTTPException(404, "No file associated with this document")
+    fp = _Path(doc.file_path)
+    if not fp.exists():
+        raise HTTPException(404, "File not found on disk")
+    return FileResponse(
+        path=str(fp),
+        filename=doc.name,
+        media_type=doc.mime_type or "application/octet-stream",
+    )
 
 
 # ============ INTEGRATIONS MANAGEMENT ============

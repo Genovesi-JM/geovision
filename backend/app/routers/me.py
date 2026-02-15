@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from pathlib import Path
+from typing import List, Optional
 import json
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import User, UserProfile, AccountMember, Account
+from app.models import User, UserProfile, AccountMember, Account, CompanyUser
 from app.schemas import AccountPublic, MeResponse, ProfileOut, UserSummary
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -50,4 +53,62 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
         profile=ProfileOut.model_validate(prof) if prof else None,
         accounts=accounts,
         default_account_id=default_account_id,
+    )
+
+
+# ============ CLIENT DOCUMENTS ============
+
+def _get_user_company_id(user: User, db: Session) -> Optional[str]:
+    """Find the company this user belongs to via company_users table."""
+    email = (user.email or "").strip().lower()
+    cu = db.query(CompanyUser).filter(CompanyUser.email == email).first()
+    return cu.company_id if cu else None
+
+
+@router.get("/documents")
+def my_documents(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """List documents for the current user's company."""
+    from app.models import Document as DocModel
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        return []
+    docs = db.query(DocModel).filter(
+        DocModel.company_id == company_id,
+        DocModel.is_confidential == False,
+    ).order_by(DocModel.created_at.desc()).all()
+    return [{
+        "id": d.id,
+        "name": d.name,
+        "document_type": d.document_type,
+        "description": d.description,
+        "status": d.status or "draft",
+        "is_official": d.is_official or False,
+        "file_size_bytes": d.file_size_bytes or 0,
+        "mime_type": d.mime_type,
+        "has_file": bool(d.file_path),
+        "created_at": d.created_at.isoformat() if d.created_at else None,
+    } for d in docs]
+
+
+@router.get("/documents/{document_id}/download")
+def download_my_document(document_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Download a document file — only if it belongs to the user's company."""
+    from app.models import Document as DocModel
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        raise HTTPException(status_code=403, detail="No company linked")
+    doc = db.get(DocModel, document_id)
+    if not doc or doc.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.is_confidential:
+        raise HTTPException(status_code=403, detail="Confidential document")
+    if not doc.file_path:
+        raise HTTPException(status_code=404, detail="No file available")
+    fp = Path(doc.file_path)
+    if not fp.exists():
+        raise HTTPException(status_code=404, detail="File not found on server")
+    return FileResponse(
+        path=str(fp),
+        filename=doc.name,
+        media_type=doc.mime_type or "application/octet-stream",
     )

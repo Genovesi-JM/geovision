@@ -2027,20 +2027,32 @@
       if (!companyId) { alert('Selecione um cliente.'); return; }
       const name = formData.get('name');
       if (!name) { alert('Insira o nome do documento.'); return; }
-      const data = {
-        name: name,
-        document_type: formData.get('document_type') || 'report',
-        description: formData.get('description') || '',
-        is_confidential: form.querySelector('[name="is_confidential"]')?.checked || false,
-        is_official: form.querySelector('[name="is_official"]')?.checked || false,
-      };
+
+      // Build multipart FormData for file upload
+      const uploadData = new FormData();
+      uploadData.append('name', name);
+      uploadData.append('document_type', formData.get('document_type') || 'report');
+      uploadData.append('description', formData.get('description') || '');
+      uploadData.append('is_confidential', form.querySelector('[name="is_confidential"]')?.checked ? 'true' : 'false');
+      uploadData.append('is_official', form.querySelector('[name="is_official"]')?.checked ? 'true' : 'false');
       const siteId = formData.get('site_id');
-      let url = `${API_BASE}/admin/companies/${companyId}/documents`;
-      if (siteId) url += `?site_id=${siteId}`;
-      fetch(url, {
+      if (siteId) uploadData.append('site_id', siteId);
+
+      // Attach actual file if selected
+      const fileInput = form.querySelector('input[type="file"]');
+      if (fileInput && fileInput.files.length > 0) {
+        uploadData.append('file', fileInput.files[0]);
+      }
+
+      // Use token-only header (no Content-Type — browser sets multipart boundary)
+      const token = localStorage.getItem('gv_token');
+      const headers = {};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+
+      fetch(`${API_BASE}/admin/companies/${companyId}/documents`, {
         method: 'POST',
-        headers: authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(data),
+        headers: headers,
+        body: uploadData,
       })
       .then(async r => {
         if (r.ok) {
@@ -2153,7 +2165,26 @@
     }
 
     function downloadDocument(docId) {
-      alert('Download do documento: ' + docId);
+      const token = localStorage.getItem('gv_token');
+      fetch(`${API_BASE}/admin/documents/${docId}/download`, {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(r => {
+        if (!r.ok) throw new Error('Download failed');
+        const cd = r.headers.get('Content-Disposition') || '';
+        const match = cd.match(/filename="?([^"]+)"?/);
+        const filename = match ? match[1] : 'document';
+        return r.blob().then(blob => ({ blob, filename }));
+      })
+      .then(({ blob, filename }) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      })
+      .catch(err => alert('Erro ao descarregar: ' + err.message));
     }
 
     // ============ INTEGRATIONS ============
