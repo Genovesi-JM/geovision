@@ -7,7 +7,7 @@ import json
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import User, UserProfile, AccountMember, Account, CompanyUser
+from app.models import User, UserProfile, AccountMember, Account, CompanyUser, Company
 from app.schemas import AccountPublic, MeResponse, ProfileOut, UserSummary
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -59,10 +59,25 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 # ============ CLIENT DOCUMENTS ============
 
 def _get_user_company_id(user: User, db: Session) -> Optional[str]:
-    """Find the company this user belongs to via company_users table."""
+    """Find the company this user belongs to via company_users table, with Company fallback."""
     email = (user.email or "").strip().lower()
     cu = db.query(CompanyUser).filter(CompanyUser.email == email).first()
-    return cu.company_id if cu else None
+    if cu:
+        return cu.company_id
+    # Fallback: check Company table directly (for users registered before CompanyUser was added)
+    company = db.query(Company).filter(Company.email == email).first()
+    if company:
+        # Auto-create the missing CompanyUser link
+        db.add(CompanyUser(
+            company_id=company.id,
+            email=email,
+            name=getattr(user, "full_name", None) or email,
+            role="owner",
+            is_active=True,
+        ))
+        db.commit()
+        return company.id
+    return None
 
 
 @router.get("/documents")

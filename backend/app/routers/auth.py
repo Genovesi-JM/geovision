@@ -87,11 +87,25 @@ def _ensure_profile(db: Session, user: User, full_name: str | None = None, org_n
 def _ensure_company(db: Session, user: User, account_name: str, sector_focus: str | None = None) -> None:
     """Auto-create a Company record so the user appears in the admin panel."""
     email = (user.email or "").strip().lower()
+    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+
     existing = db.query(Company).filter(Company.email == email).first()
     if existing:
+        # Company exists — ensure CompanyUser link also exists
+        cu = db.query(CompanyUser).filter(
+            CompanyUser.company_id == existing.id,
+            CompanyUser.email == email,
+        ).first()
+        if not cu:
+            db.add(CompanyUser(
+                company_id=existing.id,
+                email=email,
+                name=getattr(profile, "full_name", None) if profile else None,
+                role="owner",
+                is_active=True,
+            ))
         return
 
-    profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
     company = Company(
         name=account_name,
         email=email,
@@ -456,6 +470,15 @@ def get_current_user(
     company_row = None
     try:
         company_row = db.query(CompanyUser).filter(CompanyUser.email == email.lower()).first()
+        if not company_row:
+            # Fallback: Company exists but CompanyUser link missing
+            co = db.query(Company).filter(Company.email == email.lower()).first()
+            if co:
+                company_row = CompanyUser(company_id=co.id, email=email.lower(),
+                                          name=getattr(profile, "full_name", None) or "",
+                                          role="owner", is_active=True)
+                db.add(company_row)
+                db.commit()
     except Exception:
         pass
 
