@@ -1593,6 +1593,83 @@
     </div>
   </div>
 
+  <!-- Edit Client Modal -->
+  <div class="modal-overlay" id="modal-edit-client">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title" data-i18n="admin.action.editClient">Editar Cliente</h2>
+        <button class="modal-close" onclick="closeModal('modal-edit-client')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-edit-client">
+          <input type="hidden" name="id" />
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.companyName">Nome da Empresa *</label>
+              <input type="text" class="form-input" name="name" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.nif">NIF</label>
+              <input type="text" class="form-input" name="tax_id" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.email">Email *</label>
+              <input type="email" class="form-input" name="email" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.phone">Telefone</label>
+              <input type="tel" class="form-input" name="phone" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.whatsapp">WhatsApp</label>
+              <input type="tel" class="form-input" name="whatsapp" placeholder="+244..." />
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.plan">Plano</label>
+              <select class="form-select" name="subscription_plan">
+                <option value="trial" data-i18n="admin.modal.planTrial">Trial (14 dias)</option>
+                <option value="starter" data-i18n="admin.modal.planStarter">Starter</option>
+                <option value="professional" data-i18n="admin.modal.planPro">Professional</option>
+                <option value="enterprise" data-i18n="admin.modal.planEnterprise">Enterprise</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <option value="active">Ativo</option>
+                <option value="suspended">Suspenso</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="admin.modal.sectors">Setores</label>
+              <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agro" /> <span data-i18n="admin.modal.sectorAgro">Agro & Pecuaria</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="admin.modal.sectorMining">Mineracao</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="demining" /> <span data-i18n="admin.modal.sectorDemining">Desminagem</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="admin.modal.sectorConstruction">Construcao</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" data-i18n="admin.modal.address">Morada</label>
+            <textarea class="form-textarea" name="address" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-edit-client')" data-i18n="common.cancel">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditClient()" data-i18n="admin.action.saveClient">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Upload Document Modal -->
   <div class="modal-overlay" id="modal-upload-doc">
     <div class="modal">
@@ -1730,6 +1807,16 @@
 
     // ============ MODALS ============
     function showModal(modalId) {
+      // Populate client dropdown in upload modal
+      if (modalId === 'modal-upload-doc') {
+        const sel = document.querySelector('#form-upload-doc select[name="company_id"]');
+        if (sel) {
+          const current = sel.value;
+          sel.innerHTML = '<option value="">Selecionar cliente...</option>' +
+            _cachedCompanies.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
+          if (current) sel.value = current;
+        }
+      }
       document.getElementById(modalId).classList.add('open');
     }
 
@@ -1773,11 +1860,20 @@
       }
     }
 
+    let _cachedCompanies = [];
+
     async function loadClients() {
       try {
         const response = await fetch(`${API_BASE}/admin/companies`, { headers: authHeaders() });
         if (response.ok) {
           const companies = await response.json();
+          _cachedCompanies = companies;
+          // Update badge count
+          const badge = document.getElementById('badge-clients');
+          if (badge) badge.textContent = companies.length;
+          const kpi = document.getElementById('kpi-total-clients');
+          if (kpi) kpi.textContent = companies.length;
+
           const tbody = document.getElementById('clients-table-body');
           tbody.innerHTML = companies.map(c => `
             <tr>
@@ -1841,7 +1937,57 @@
     }
 
     function editClient(clientId) {
-      alert('Editar cliente: ' + clientId);
+      const c = _cachedCompanies.find(x => x.id === clientId);
+      if (!c) { alert('Cliente nao encontrado'); return; }
+      const form = document.getElementById('form-edit-client');
+      form.querySelector('[name="id"]').value = c.id;
+      form.querySelector('[name="name"]').value = c.name || '';
+      form.querySelector('[name="tax_id"]').value = c.tax_id || '';
+      form.querySelector('[name="email"]').value = c.email || '';
+      form.querySelector('[name="phone"]').value = c.phone || '';
+      form.querySelector('[name="whatsapp"]').value = c.whatsapp || '';
+      form.querySelector('[name="subscription_plan"]').value = c.subscription_plan || 'trial';
+      form.querySelector('[name="status"]').value = c.status || 'active';
+      form.querySelector('[name="address"]').value = c.address || '';
+      // Set sector checkboxes
+      form.querySelectorAll('[name="sectors"]').forEach(cb => {
+        cb.checked = (c.sectors || []).includes(cb.value);
+      });
+      showModal('modal-edit-client');
+    }
+
+    async function saveEditClient() {
+      const form = document.getElementById('form-edit-client');
+      const formData = new FormData(form);
+      const clientId = formData.get('id');
+      const data = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone') || null,
+        tax_id: formData.get('tax_id') || null,
+        address: formData.get('address') || null,
+        subscription_plan: formData.get('subscription_plan'),
+        status: formData.get('status'),
+        sectors: formData.getAll('sectors'),
+      };
+      try {
+        const response = await fetch(`${API_BASE}/admin/companies/${clientId}`, {
+          method: 'PATCH',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(data),
+        });
+        if (response.ok) {
+          closeModal('modal-edit-client');
+          loadClients();
+          loadDashboardData();
+          alert('Cliente atualizado com sucesso!');
+        } else {
+          const err = await response.json();
+          alert('Erro: ' + (err.detail || 'Nao foi possivel atualizar'));
+        }
+      } catch (err) {
+        alert('Erro de conexao: ' + err.message);
+      }
     }
 
     async function suspendClient(clientId) {

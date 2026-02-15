@@ -974,6 +974,8 @@ const translations = {
   "admin.form.sectorConstruction": { pt: "Construção", en: "Construction", es: "Construcción" },
   "admin.form.address": { pt: "Morada", en: "Address", es: "Dirección" },
   "admin.action.createClient": { pt: "Criar Cliente", en: "Create Client", es: "Crear Cliente" },
+  "admin.action.editClient": { pt: "Editar Cliente", en: "Edit Client", es: "Editar Cliente" },
+  "admin.action.saveClient": { pt: "Guardar", en: "Save", es: "Guardar" },
   "admin.form.client": { pt: "Cliente *", en: "Client *", es: "Cliente *" },
   "admin.form.selectClient": { pt: "Selecionar cliente...", en: "Select client...", es: "Seleccionar cliente..." },
   "admin.form.selectSite": { pt: "Selecionar site...", en: "Select site...", es: "Seleccionar sitio..." },
