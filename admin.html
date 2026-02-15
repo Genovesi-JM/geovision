@@ -877,6 +877,10 @@
           <span class="sidebar-link-icon"><i class="fa-solid fa-file-lines"></i></span>
           <span data-i18n="admin.nav.documents">Documentos</span>
         </a>
+        <a href="#" class="sidebar-link" data-view="send-reports">
+          <span class="sidebar-link-icon"><i class="fa-solid fa-paper-plane"></i></span>
+          <span data-i18n="admin.nav.sendReports">Enviar Relatórios</span>
+        </a>
       </div>
 
       <!-- Integrações -->
@@ -1211,6 +1215,122 @@
                 <!-- Populated by JS -->
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ SEND REPORTS VIEW ============ -->
+      <div class="view-panel" id="view-send-reports">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão de Clientes</div>
+          <h1 class="page-title" data-i18n="admin.sendReports.title">Enviar Relatórios</h1>
+          <p class="page-subtitle" data-i18n="admin.sendReports.desc">Faça upload de ficheiros que ficam imediatamente disponíveis na conta do cliente.</p>
+        </div>
+
+        <div class="card" style="max-width: 700px;">
+          <div class="card-header">
+            <h3 class="card-title" data-i18n="admin.sendReports.formTitle">Novo Relatório para Cliente</h3>
+          </div>
+          <div class="card-body">
+            <form id="form-send-report">
+              <div class="form-group">
+                <label class="form-label">Cliente *</label>
+                <select class="form-select" name="company_id" id="sr-company" required>
+                  <option value="">Selecionar cliente...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Site / Projeto</label>
+                <select class="form-select" name="site_id" id="sr-site">
+                  <option value="">Nenhum (geral)</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Tipo de Documento *</label>
+                  <select class="form-select" name="document_type" required>
+                    <option value="report">Relatório</option>
+                    <option value="orthomosaic">Ortomosaico</option>
+                    <option value="contract">Contrato</option>
+                    <option value="invoice">Fatura</option>
+                    <option value="geotiff">GeoTIFF</option>
+                    <option value="point_cloud">Point Cloud (LAS/LAZ)</option>
+                    <option value="shapefile">Shapefile</option>
+                    <option value="dxf">DXF</option>
+                    <option value="other">Outro</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Estado</label>
+                  <select class="form-select" name="status">
+                    <option value="approved" selected>Aprovado (visível ao cliente)</option>
+                    <option value="draft">Rascunho</option>
+                    <option value="pending_review">Pendente Revisão</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nome do Documento *</label>
+                <input type="text" class="form-input" name="name" required placeholder="Ex: Relatório de Levantamento Aéreo - Fazenda Norte" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ficheiro *</label>
+                <div style="border: 2px dashed #374151; border-radius: 0.75rem; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s;" id="sr-dropzone">
+                  <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: #6b7280; margin-bottom: 0.5rem;"></i>
+                  <p style="color: #9ca3af; margin: 0;">Arraste o ficheiro aqui ou <span style="color: #22d3ee; text-decoration: underline;">clique para selecionar</span></p>
+                  <p id="sr-file-name" style="color: #22d3ee; font-weight: 600; margin-top: 0.5rem; display: none;"></p>
+                  <input type="file" name="file" style="display:none;" id="sr-file-input"
+                         accept=".pdf,.docx,.doc,.tif,.tiff,.las,.laz,.shp,.csv,.dxf,.png,.jpg,.jpeg,.zip" />
+                </div>
+                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.3rem;">PDF, DOCX, GeoTIFF, LAS/LAZ, SHP, CSV, DXF, Imagens, ZIP</p>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Descrição</label>
+                <textarea class="form-textarea" name="description" rows="2" placeholder="Breve descrição do documento..."></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label style="font-size: 0.85rem;"><input type="checkbox" name="is_official" checked /> Marcar como Oficial</label>
+                </div>
+                <div class="form-group">
+                  <label style="font-size: 0.85rem;"><input type="checkbox" name="is_confidential" /> Confidencial (oculto ao cliente)</label>
+                </div>
+              </div>
+            </form>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+              <button class="btn btn-primary" onclick="sendReportToClient()" style="flex:1;">
+                <i class="fa-solid fa-paper-plane"></i> Enviar para o Cliente
+              </button>
+            </div>
+            <div id="sr-success" style="display:none; margin-top:1rem; padding:1rem; border-radius:0.5rem; background:#065f4620; border:1px solid #065f46; color:#34d399;">
+              <i class="fa-solid fa-circle-check"></i> <span id="sr-success-msg">Relatório enviado com sucesso!</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent uploads log -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header">
+            <h3 class="card-title">Últimos Envios</h3>
+          </div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Documento</th>
+                  <th>Cliente</th>
+                  <th>Tipo</th>
+                  <th>Tamanho</th>
+                  <th>Estado</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody id="sr-recent-body"></tbody>
+            </table>
+            <div id="sr-recent-empty" style="text-align:center; padding:2rem; color:#6b7280; display:none;">
+              <i class="fa-solid fa-inbox" style="font-size:1.5rem; margin-bottom:0.5rem;"></i>
+              <p>Nenhum envio recente.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -1779,6 +1899,11 @@
       if (activeLink) {
         breadcrumb.textContent = activeLink.textContent.trim();
       }
+      // Lazy-load recent uploads when switching to send-reports
+      if (viewId === 'send-reports') {
+        populateSRClients();
+        loadSRRecent();
+      }
     }
 
     viewLinks.forEach(link => {
@@ -1886,6 +2011,8 @@
           if (badge) badge.textContent = companies.length;
           const kpi = document.getElementById('kpi-total-clients');
           if (kpi) kpi.textContent = companies.length;
+          // Populate send-reports client dropdown
+          populateSRClients();
 
           const tbody = document.getElementById('clients-table-body');
           tbody.innerHTML = companies.map(c => `
@@ -2070,6 +2197,148 @@
 
     function exportReport() {
       // TODO: integrate report export endpoint
+    }
+
+    // ============ SEND REPORTS TO CLIENTS ============
+    (function initSendReports() {
+      // Drag-drop zone
+      const dz = document.getElementById('sr-dropzone');
+      const fi = document.getElementById('sr-file-input');
+      const fn = document.getElementById('sr-file-name');
+      if (dz && fi) {
+        dz.addEventListener('click', () => fi.click());
+        fi.addEventListener('change', () => {
+          if (fi.files.length) { fn.textContent = fi.files[0].name; fn.style.display = ''; }
+          else { fn.style.display = 'none'; }
+        });
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = '#22d3ee'; });
+        dz.addEventListener('dragleave', () => { dz.style.borderColor = '#374151'; });
+        dz.addEventListener('drop', e => {
+          e.preventDefault(); dz.style.borderColor = '#374151';
+          if (e.dataTransfer.files.length) {
+            fi.files = e.dataTransfer.files;
+            fn.textContent = fi.files[0].name; fn.style.display = '';
+          }
+        });
+      }
+      // Load sites on company change
+      const srCompany = document.getElementById('sr-company');
+      if (srCompany) {
+        srCompany.addEventListener('change', async () => {
+          const siteSelect = document.getElementById('sr-site');
+          siteSelect.innerHTML = '<option value="">Nenhum (geral)</option>';
+          const cid = srCompany.value;
+          if (!cid) return;
+          try {
+            const res = await fetch(`${API_BASE}/admin/sites?company_id=${cid}`, { headers: authHeaders() });
+            if (res.ok) {
+              const sites = await res.json();
+              sites.forEach(s => {
+                siteSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+              });
+            }
+          } catch (e) { /* ignore */ }
+        });
+      }
+    })();
+
+    function populateSRClients() {
+      const sel = document.getElementById('sr-company');
+      if (!sel || !_cachedCompanies.length) return;
+      sel.innerHTML = '<option value="">Selecionar cliente...</option>' +
+        _cachedCompanies.map(c => `<option value="${c.id}">${c.name} (${c.email})</option>`).join('');
+    }
+
+    async function sendReportToClient() {
+      const form = document.getElementById('form-send-report');
+      const fd = new FormData(form);
+      const companyId = fd.get('company_id');
+      if (!companyId) { alert('Selecione um cliente.'); return; }
+      const name = fd.get('name');
+      if (!name) { alert('Insira o nome do documento.'); return; }
+      const fileInput = document.getElementById('sr-file-input');
+      if (!fileInput || !fileInput.files.length) { alert('Selecione um ficheiro para enviar.'); return; }
+
+      const btn = form.parentElement.querySelector('.btn-primary');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+      const uploadData = new FormData();
+      uploadData.append('name', name);
+      uploadData.append('document_type', fd.get('document_type') || 'report');
+      uploadData.append('description', fd.get('description') || '');
+      uploadData.append('is_confidential', form.querySelector('[name="is_confidential"]')?.checked ? 'true' : 'false');
+      uploadData.append('is_official', form.querySelector('[name="is_official"]')?.checked ? 'true' : 'false');
+      const siteId = fd.get('site_id');
+      if (siteId) uploadData.append('site_id', siteId);
+      uploadData.append('file', fileInput.files[0]);
+
+      const token = localStorage.getItem('gv_token');
+      try {
+        const res = await fetch(`${API_BASE}/admin/companies/${companyId}/documents`, {
+          method: 'POST',
+          headers: token ? { Authorization: 'Bearer ' + token } : {},
+          body: uploadData,
+        });
+        if (res.ok) {
+          const doc = await res.json();
+          const clientName = _cachedCompanies.find(c => c.id === companyId)?.name || companyId.substring(0,8);
+          const successDiv = document.getElementById('sr-success');
+          const successMsg = document.getElementById('sr-success-msg');
+          successMsg.textContent = `"${name}" enviado com sucesso para ${clientName}! O cliente já pode ver nos Relatórios.`;
+          successDiv.style.display = '';
+          setTimeout(() => { successDiv.style.display = 'none'; }, 8000);
+          form.reset();
+          document.getElementById('sr-file-name').style.display = 'none';
+          // Set approved back as default
+          form.querySelector('[name="status"]').value = 'approved';
+          form.querySelector('[name="is_official"]').checked = true;
+          loadSRRecent();
+          loadDocuments(); // refresh documents view too
+        } else {
+          const err = await res.json();
+          alert('Erro: ' + (err.detail || 'Falha ao enviar documento'));
+        }
+      } catch (err) {
+        alert('Erro de conexão: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    async function loadSRRecent() {
+      const tbody = document.getElementById('sr-recent-body');
+      const empty = document.getElementById('sr-recent-empty');
+      if (!tbody) return;
+      try {
+        const res = await fetch(`${API_BASE}/admin/documents`, { headers: authHeaders() });
+        if (!res.ok) return;
+        const docs = await res.json();
+        // Show last 10 with files
+        const recent = docs.filter(d => d.file_path || d.file_size_bytes > 0).slice(0, 10);
+        if (recent.length === 0) {
+          tbody.innerHTML = '';
+          if (empty) empty.style.display = '';
+          return;
+        }
+        if (empty) empty.style.display = 'none';
+        tbody.innerHTML = recent.map(d => {
+          const client = _cachedCompanies.find(c => c.id === d.company_id);
+          const clientLabel = client ? client.name : d.company_id.substring(0,8) + '...';
+          return `<tr>
+            <td><strong>${d.name}</strong></td>
+            <td>${clientLabel}</td>
+            <td><span class="badge badge-trial">${d.document_type}</span></td>
+            <td>${formatBytes(d.file_size_bytes)}</td>
+            <td><span class="badge badge-${d.status === 'approved' ? 'active' : 'pending'}">${d.status === 'approved' ? 'Aprovado' : d.status}</span></td>
+            <td>${new Date(d.created_at).toLocaleDateString('pt-PT')}</td>
+          </tr>`;
+        }).join('');
+      } catch (err) {
+        console.warn('Could not load recent uploads:', err);
+      }
     }
 
     // ============ SITES ============
