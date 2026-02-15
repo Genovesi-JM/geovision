@@ -995,6 +995,48 @@ const translations = {
   "admin.form.description": { pt: "Descrição", en: "Description", es: "Descripción" },
   "admin.action.upload": { pt: "Upload", en: "Upload", es: "Subir" },
 
+  // ============ ADMIN UPLOAD MODAL (admin.upload.*) ============
+  "admin.upload.client": { pt: "Cliente *", en: "Client *", es: "Cliente *" },
+  "admin.upload.selectClient": { pt: "Selecionar cliente...", en: "Select client...", es: "Seleccionar cliente..." },
+  "admin.upload.site": { pt: "Site", en: "Site", es: "Sitio" },
+  "admin.upload.selectSite": { pt: "Selecionar site...", en: "Select site...", es: "Seleccionar sitio..." },
+  "admin.upload.docType": { pt: "Tipo de Documento *", en: "Document Type *", es: "Tipo de Documento *" },
+  "admin.upload.report": { pt: "Relatório", en: "Report", es: "Informe" },
+  "admin.upload.ortho": { pt: "Ortomosaico", en: "Orthomosaic", es: "Ortomosaico" },
+  "admin.upload.contract": { pt: "Contrato", en: "Contract", es: "Contrato" },
+  "admin.upload.invoice": { pt: "Fatura", en: "Invoice", es: "Factura" },
+  "admin.upload.pointCloud": { pt: "Point Cloud (LAS/LAZ)", en: "Point Cloud (LAS/LAZ)", es: "Nube de Puntos (LAS/LAZ)" },
+  "admin.upload.shapefile": { pt: "Shapefile", en: "Shapefile", es: "Shapefile" },
+  "admin.upload.other": { pt: "Outro", en: "Other", es: "Otro" },
+  "admin.upload.status": { pt: "Status", en: "Status", es: "Estado" },
+  "admin.upload.draft": { pt: "Rascunho", en: "Draft", es: "Borrador" },
+  "admin.upload.pendingReview": { pt: "Pendente Revisão", en: "Pending Review", es: "Pendiente de Revisión" },
+  "admin.upload.approved": { pt: "Aprovado", en: "Approved", es: "Aprobado" },
+  "admin.upload.official": { pt: "Oficial", en: "Official", es: "Oficial" },
+  "admin.upload.docName": { pt: "Nome do Documento *", en: "Document Name *", es: "Nombre del Documento *" },
+  "admin.upload.file": { pt: "Ficheiro *", en: "File *", es: "Archivo *" },
+  "admin.upload.formats": { pt: "Formatos: PDF, DOCX, GeoTIFF, LAS/LAZ, SHP, CSV, DXF, Imagens", en: "Formats: PDF, DOCX, GeoTIFF, LAS/LAZ, SHP, CSV, DXF, Images", es: "Formatos: PDF, DOCX, GeoTIFF, LAS/LAZ, SHP, CSV, DXF, Imágenes" },
+  "admin.upload.confidential": { pt: "Confidencial", en: "Confidential", es: "Confidencial" },
+  "admin.upload.markOfficial": { pt: "Marcar como Oficial", en: "Mark as Official", es: "Marcar como Oficial" },
+  "admin.upload.description": { pt: "Descrição", en: "Description", es: "Descripción" },
+  "admin.upload.submit": { pt: "Upload", en: "Upload", es: "Subir" },
+
+  // ============ ADMIN AUDIT LOGS (admin.logs.*) ============
+  "admin.logs.pageTitle": { pt: "Logs de Auditoria", en: "Audit Logs", es: "Registros de Auditoría" },
+  "admin.logs.user": { pt: "Utilizador", en: "User", es: "Usuario" },
+  "admin.logs.action": { pt: "Ação", en: "Action", es: "Acción" },
+  "admin.logs.resource": { pt: "Recurso", en: "Resource", es: "Recurso" },
+  "admin.logs.id": { pt: "ID", en: "ID", es: "ID" },
+
+  // ============ ADMIN ROLES & PERMISSIONS (admin.roles.desc/level.*) ============
+  "admin.roles.desc.superadmin": { pt: "Acesso total à plataforma", en: "Full platform access", es: "Acceso total a la plataforma" },
+  "admin.roles.desc.admin": { pt: "Funções administrativas", en: "Administrative functions", es: "Funciones administrativas" },
+  "admin.roles.desc.manager": { pt: "Operações diárias", en: "Daily operations", es: "Operaciones diarias" },
+  "admin.roles.desc.clientAdmin": { pt: "Admin da organização cliente", en: "Client organization admin", es: "Admin de la organización cliente" },
+  "admin.roles.desc.clientViewer": { pt: "Apenas leitura", en: "Read only", es: "Solo lectura" },
+  "admin.roles.level.internal": { pt: "Interno GeoVision", en: "GeoVision Internal", es: "Interno GeoVision" },
+  "admin.roles.level.client": { pt: "Cliente", en: "Client", es: "Cliente" },
+
   // ============ COMMON ADDITIONS ============
   "common.client": { pt: "Cliente", en: "Client", es: "Cliente" },
   "common.site": { pt: "Site", en: "Site", es: "Sitio" },
