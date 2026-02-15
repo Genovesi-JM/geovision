@@ -102,6 +102,11 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
         "file_size_bytes": d.file_size_bytes or 0,
         "mime_type": d.mime_type,
         "has_file": bool(d.file_path),
+        "file_exists": bool(d.file_path and Path(d.file_path).exists()),
+        "can_preview": bool(d.mime_type and d.mime_type in (
+            'application/pdf', 'image/png', 'image/jpeg', 'image/jpg',
+            'image/gif', 'image/webp', 'text/plain', 'text/csv',
+        )),
         "created_at": d.created_at.isoformat() if d.created_at else None,
     } for d in docs]
     return result
@@ -120,12 +125,40 @@ def download_my_document(document_id: str, user: User = Depends(get_current_user
     if doc.is_confidential:
         raise HTTPException(status_code=403, detail="Confidential document")
     if not doc.file_path:
-        raise HTTPException(status_code=404, detail="No file available")
+        raise HTTPException(status_code=404, detail="Sem ficheiro associado a este documento")
     fp = Path(doc.file_path)
     if not fp.exists():
-        raise HTTPException(status_code=404, detail="File not found on server")
+        raise HTTPException(status_code=410, detail="Ficheiro indispon\u00edvel — foi eliminado do servidor. Contacte o administrador para re-envio.")
     return FileResponse(
         path=str(fp),
-        filename=doc.name,
+        filename=doc.name + (Path(doc.file_path).suffix if doc.file_path else ''),
         media_type=doc.mime_type or "application/octet-stream",
     )
+
+
+@router.get("/documents/{document_id}/view")
+def view_my_document(document_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """View/preview a document inline in the browser."""
+    from app.models import Document as DocModel
+    from starlette.responses import Response
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        raise HTTPException(status_code=403, detail="No company linked")
+    doc = db.get(DocModel, document_id)
+    if not doc or doc.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if doc.is_confidential:
+        raise HTTPException(status_code=403, detail="Confidential document")
+    if not doc.file_path:
+        raise HTTPException(status_code=404, detail="Sem ficheiro associado")
+    fp = Path(doc.file_path)
+    if not fp.exists():
+        raise HTTPException(status_code=410, detail="Ficheiro indispon\u00edvel — contacte o administrador.")
+    # Serve inline for preview
+    content = fp.read_bytes()
+    media = doc.mime_type or "application/octet-stream"
+    headers = {
+        "Content-Disposition": f'inline; filename="{doc.name}{Path(doc.file_path).suffix}"',
+        "Cache-Control": "private, max-age=300",
+    }
+    return Response(content=content, media_type=media, headers=headers)

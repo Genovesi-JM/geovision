@@ -1818,7 +1818,20 @@
           return;
         }
         if (empty) empty.style.display = 'none';
-        tbody.innerHTML = docs.map(d => `
+        tbody.innerHTML = docs.map(d => {
+          const safeName = (d.name || '').replace(/'/g, "\\'");
+          let actionBtns = '';
+          if (d.has_file && d.file_exists !== false) {
+            if (d.can_preview) {
+              actionBtns += `<button class="btn btn-sm btn-secondary" onclick="viewMyDoc('${d.id}')" title="Visualizar"><i class="fa-solid fa-eye"></i></button> `;
+            }
+            actionBtns += `<button class="btn btn-sm btn-primary" onclick="downloadMyDoc('${d.id}', '${safeName}')" title="Download"><i class="fa-solid fa-download"></i></button>`;
+          } else if (d.has_file && d.file_exists === false) {
+            actionBtns = '<span style="color:#ef4444;font-size:0.75rem;" title="Ficheiro perdido após atualização do servidor"><i class="fa-solid fa-triangle-exclamation"></i> Indisponível</span>';
+          } else {
+            actionBtns = '<span style="color:#6b7280;font-size:0.8rem;">Sem ficheiro</span>';
+          }
+          return `
           <tr>
             <td>
               <strong>${d.name}</strong>
@@ -1827,11 +1840,9 @@
             <td><span class="badge badge-trial">${_docTypeLabels[d.document_type] || d.document_type}</span></td>
             <td>${_formatDate(d.created_at)}</td>
             <td><span class="badge badge-${d.status === 'approved' ? 'active' : 'pending'}">${d.status === 'approved' ? 'Aprovado' : d.status === 'draft' ? 'Rascunho' : d.status}</span></td>
-            <td>
-              ${d.has_file ? `<button class="btn btn-sm btn-primary" onclick="downloadMyDoc('${d.id}', '${d.name.replace(/'/g, "\\'")}')"><i class="fa-solid fa-download"></i> Download</button>` : '<span style="color:#6b7280;font-size:0.8rem;">Sem ficheiro</span>'}
-            </td>
-          </tr>
-        `).join('');
+            <td style="white-space:nowrap;">${actionBtns}</td>
+          </tr>`;
+        }).join('');
       } catch (err) {
         console.warn('Could not load reports:', err);
         if (empty) empty.style.display = '';
@@ -1843,19 +1854,42 @@
       fetch(`${API_URL}/me/documents/${docId}/download`, {
         headers: { Authorization: 'Bearer ' + token }
       })
-      .then(r => {
-        if (!r.ok) throw new Error('Download failed');
-        return r.blob();
+      .then(async r => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(err.detail || 'Download falhou');
+        }
+        const cd = r.headers.get('Content-Disposition') || '';
+        const match = cd.match(/filename="?([^"]+)"?/);
+        const fname = match ? match[1] : (filename || 'document');
+        return r.blob().then(blob => ({ blob, fname }));
       })
-      .then(blob => {
+      .then(({ blob, fname }) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = filename || 'document';
+        a.href = url; a.download = fname;
         document.body.appendChild(a); a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       })
-      .catch(err => alert('Erro ao descarregar: ' + err.message));
+      .catch(err => alert(err.message));
+    }
+
+    function viewMyDoc(docId) {
+      const token = localStorage.getItem('gv_token');
+      fetch(`${API_URL}/me/documents/${docId}/view`, {
+        headers: { Authorization: 'Bearer ' + token }
+      })
+      .then(async r => {
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(err.detail || 'Não foi possível visualizar');
+        }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      })
+      .catch(err => alert(err.message));
     }
 
     // ============ ORDERS ============

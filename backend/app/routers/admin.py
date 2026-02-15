@@ -795,13 +795,13 @@ async def download_document(document_id: str, db: Session = Depends(get_db)):
     doc = db.get(DocModel, document_id)
     if not doc: raise HTTPException(404, "Document not found")
     if not doc.file_path:
-        raise HTTPException(404, "No file associated with this document")
+        raise HTTPException(404, "Sem ficheiro associado a este documento")
     fp = _Path(doc.file_path)
     if not fp.exists():
-        raise HTTPException(404, "File not found on disk")
+        raise HTTPException(410, "Ficheiro indisponível — foi eliminado do servidor após re-deploy. Re-envie o documento.")
     return FileResponse(
         path=str(fp),
-        filename=doc.name,
+        filename=doc.name + (fp.suffix or ''),
         media_type=doc.mime_type or "application/octet-stream",
     )
 
