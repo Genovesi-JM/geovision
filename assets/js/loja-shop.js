@@ -493,24 +493,24 @@ function renderProducts() {
 }
 
 function setupFilters() {
-  // Sector filter buttons
-  const sectorButtons = document.querySelectorAll(".loja-sector-btn");
+  // Sector filter buttons (inside #sector-filters)
+  const sectorButtons = document.querySelectorAll("#sector-filters .loja-filter-btn");
   sectorButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       sectorButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      currentSectorFilter = btn.getAttribute("data-sector");
+      currentSectorFilter = btn.getAttribute("data-sector") || "all";
       renderProducts();
     });
   });
 
-  // Type filter buttons (services, hardware, subscriptions)
-  const typeButtons = document.querySelectorAll(".loja-filter-btn");
+  // Type filter buttons (inside #type-filters)
+  const typeButtons = document.querySelectorAll("#type-filters .loja-filter-btn");
   typeButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       typeButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      currentTypeFilter = btn.getAttribute("data-filter");
+      currentTypeFilter = btn.getAttribute("data-filter") || "all";
       renderProducts();
     });
   });
