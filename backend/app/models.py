@@ -636,6 +636,8 @@ class ShopProduct(Base):
     category: Mapped[str] = mapped_column(String(50), nullable=False, default="flight")
     execution_type: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # pontual, recorrente
     price: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    price_usd: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    price_eur: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
     tax_rate: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False, default=0.14)
     duration_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

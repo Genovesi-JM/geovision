@@ -37,10 +37,15 @@ class AddToCartRequest(BaseModel):
     quantity: int = 1
     scheduled_date: Optional[str] = None
     custom_options: Optional[dict] = None
+    currency: Optional[str] = None
 
 
 class UpdateCartItemRequest(BaseModel):
     quantity: int
+
+
+class UpdateCurrencyRequest(BaseModel):
+    currency: str = Field(..., description="AOA, USD, or EUR")
 
 
 class ApplyCouponRequest(BaseModel):
@@ -202,6 +207,8 @@ class ProductResponse(BaseModel):
     sectors: List[str]
     sku: Optional[str]
     price: int
+    price_usd: Optional[int] = 0
+    price_eur: Optional[int] = 0
     currency: str
     unit_label: Optional[str]
     is_active: bool
@@ -290,6 +297,8 @@ async def list_products(
             sectors=p.get("sectors", []),
             sku=p.get("sku"),
             price=p["price"],
+            price_usd=p.get("price_usd", 0),
+            price_eur=p.get("price_eur", 0),
             currency=p.get("currency", "AOA"),
             unit_label=p.get("unit_label"),
             is_active=p.get("is_active", True),
@@ -325,6 +334,8 @@ async def get_product(product_id: str, db: Session = Depends(get_db)):
         sectors=product.get("sectors", []),
         sku=product.get("sku"),
         price=product["price"],
+        price_usd=product.get("price_usd", 0),
+        price_eur=product.get("price_eur", 0),
         currency=product.get("currency", "AOA"),
         unit_label=product.get("unit_label"),
         is_active=product.get("is_active", True),
@@ -448,6 +459,7 @@ async def add_to_cart(cart_id: str, request: AddToCartRequest, db: Session = Dep
             quantity=request.quantity,
             scheduled_date=scheduled,
             custom_options=request.custom_options,
+            currency=request.currency,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -540,6 +552,50 @@ async def remove_cart_item(cart_id: str, item_id: str, db: Session = Depends(get
     if not cart:
         raise HTTPException(status_code=404, detail="Item não encontrado")
     
+    return CartResponse(
+        id=cart.id,
+        user_id=cart.user_id,
+        company_id=cart.company_id,
+        site_id=cart.site_id,
+        items=[
+            CartItemResponse(
+                id=item.id,
+                product_id=item.product_id,
+                product_name=item.product_name,
+                product_type=item.product_type,
+                sku=item.sku,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                total_price=item.total_price,
+                tax_rate=item.tax_rate,
+                tax_amount=item.tax_amount,
+                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                custom_options=item.custom_options,
+            )
+            for item in cart.items
+        ],
+        subtotal=cart.subtotal,
+        discount_amount=cart.discount_amount,
+        coupon_code=cart.coupon_code,
+        tax_rate=cart.tax_rate,
+        tax_amount=cart.tax_amount,
+        delivery_cost=cart.delivery_cost,
+        delivery_method=cart.delivery_method,
+        total=cart.total,
+        currency=cart.currency,
+        item_count=cart.item_count,
+    )
+
+
+@router.patch("/cart/{cart_id}/currency", response_model=CartResponse)
+async def update_cart_currency(cart_id: str, request: UpdateCurrencyRequest, db: Session = Depends(get_db)):
+    """Update cart currency and recalculate all item prices."""
+    cart_service = get_cart_service(db)
+    try:
+        cart = cart_service.update_currency(cart_id, request.currency)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,

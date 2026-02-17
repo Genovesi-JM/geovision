@@ -58,9 +58,16 @@ function formatAOASimple(cents) {
   return formatPrice(cents, selectedCurrency);
 }
 
+/** Get the correct price for a product based on selected currency */
+function getProductPrice(product) {
+  if (selectedCurrency === 'USD' && product.price_usd) return product.price_usd;
+  if (selectedCurrency === 'EUR' && product.price_eur) return product.price_eur;
+  return product.price; // AOA default
+}
+
 // ============ CURRENCY / PAYMENT TOGGLE ============
 
-function onCurrencyChange(currency) {
+async function onCurrencyChange(currency) {
   selectedCurrency = currency;
   // Show/hide payment methods based on currency
   document.querySelectorAll('.payment-option[data-currencies]').forEach(el => {
@@ -80,7 +87,25 @@ function onCurrencyChange(currency) {
     firstVisible.checked = true;
     selectPayment(firstVisible.value);
   }
-  // Re-render checkout summary with new currency
+  // Re-render product cards with correct prices
+  renderProducts();
+  // Update cart prices on the backend when currency changes
+  if (currentCart && currentCart.items && currentCart.items.length > 0) {
+    try {
+      const res = await fetch(`${API_URL}/shop/cart/${cartId}/currency`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currency }),
+      });
+      if (res.ok) {
+        currentCart = await res.json();
+      }
+    } catch (err) {
+      console.error("Erro ao atualizar moeda do carrinho:", err);
+    }
+  }
+  // Re-render cart and checkout summary AFTER backend update
+  renderCart();
   renderCheckoutSummary();
 }
 
@@ -284,6 +309,7 @@ async function addToCart(productId) {
       body: JSON.stringify({
         product_id: productId,
         quantity: 1,
+        currency: selectedCurrency,
       }),
     });
 
@@ -373,8 +399,6 @@ function mapCategoryLabel(category) {
     "mapping": "Mapeamento",
     "spraying": "Pulverização",
     "monitoring": "Monitorização",
-    "hardware": "Hardware & IoT",
-    "supplies": "Insumos",
     "flight": "Voo",
   };
   return mapping[category] || category || "Serviço";
@@ -384,8 +408,6 @@ function mapFilterKey(product) {
   const type = product.product_type;
   if (type === "service") return "servico";
   if (type === "subscription") return "subscription";
-  if (type === "physical" && product.category === "hardware") return "hardware";
-  if (type === "physical" && product.category === "supplies") return "hardware";
   return "servico";
 }
 
@@ -479,9 +501,19 @@ function renderProducts() {
         ${deliverablesHtml}
       </div>
       <div class="loja-card-footer">
-        <div class="loja-price">
-          ${formatAOA(p.price)}
-          ${p.unit_label ? `<span>/${p.unit_label}</span>` : ""}
+        <div class="loja-prices-multi">
+          <div class="loja-price-row loja-price-aoa${selectedCurrency === 'AOA' ? ' active' : ''}">
+            <span class="cur-badge cur-aoa">AOA</span>
+            ${formatPrice(p.price, 'AOA')}${p.unit_label ? `<span class="unit">/${p.unit_label}</span>` : ""}
+          </div>
+          <div class="loja-price-row loja-price-usd${selectedCurrency === 'USD' ? ' active' : ''}">
+            <span class="cur-badge cur-usd">USD</span>
+            ${formatPrice(p.price_usd || 0, 'USD')}${p.unit_label ? `<span class="unit">/${p.unit_label}</span>` : ""}
+          </div>
+          <div class="loja-price-row loja-price-eur${selectedCurrency === 'EUR' ? ' active' : ''}">
+            <span class="cur-badge cur-eur">EUR</span>
+            ${formatPrice(p.price_eur || 0, 'EUR')}${p.unit_label ? `<span class="unit">/${p.unit_label}</span>` : ""}
+          </div>
         </div>
         <button class="btn-add" onclick="handleAddToCart('${p.id}')">
           Adicionar

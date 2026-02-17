@@ -1639,7 +1639,7 @@
                   <th>Tipo</th>
                   <th>Categoria</th>
                   <th>Setores</th>
-                  <th style="text-align:right">Preço (AOA)</th>
+                  <th style="text-align:right">Preços (AOA / USD / EUR)</th>
                   <th style="text-align:center">Stock</th>
                   <th style="text-align:center">Estado</th>
                   <th style="text-align:center">Ações</th>
@@ -1652,7 +1652,9 @@
 
         <!-- Product Modal -->
         <div id="product-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.7);overflow-y:auto;">
-          <div style="max-width:640px;margin:3rem auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;">
+          <div style="max-width:680px;margin:3rem auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;position:relative;">
+            <!-- Close X button -->
+            <button type="button" onclick="closeProductModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-secondary);font-size:1.5rem;cursor:pointer;line-height:1;padding:4px 8px;border-radius:6px;transition:all .2s;" onmouseover="this.style.color='#f97373';this.style.background='rgba(249,115,115,.12)'" onmouseout="this.style.color='var(--text-secondary)';this.style.background='none'">✕</button>
             <h2 id="product-modal-title" style="margin-bottom:1.5rem;">Novo Produto</h2>
             <form id="product-form" onsubmit="saveProduct(event)">
               <input type="hidden" id="pf-id" />
@@ -1660,7 +1662,35 @@
                 <div style="grid-column:1/-1;"><label>Nome *</label><input class="form-input" id="pf-name" required /></div>
                 <div><label>Tipo</label><select class="form-select" id="pf-product-type"><option value="service">Serviço</option><option value="hardware">Hardware</option></select></div>
                 <div><label>Categoria</label><select class="form-select" id="pf-category"><option value="flight">Voo / Flight</option><option value="drone">Drone</option><option value="sensor">Sensor</option><option value="iot">IoT</option><option value="subscription">Subscrição</option></select></div>
-                <div><label>Preço (AOA centavos)</label><input class="form-input" id="pf-price" type="number" min="0" value="0" /></div>
+
+                <!-- Pricing Section - 3 Currencies -->
+                <div style="grid-column:1/-1;margin-top:.5rem;">
+                  <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;">
+                    <span style="font-weight:600;font-size:.95rem;color:var(--text-primary);">💰 Preços por Moeda</span>
+                    <span style="font-size:.7rem;color:var(--text-secondary);background:var(--bg-surface);padding:2px 8px;border-radius:999px;">Valores em centavos</span>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:1rem;">
+                    <div>
+                      <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:600;margin-bottom:.35rem;">
+                        <span style="background:#1a6b3c;color:#fff;padding:1px 6px;border-radius:4px;font-size:.7rem;">AOA</span> Kwanza
+                      </label>
+                      <input class="form-input" id="pf-price" type="number" min="0" value="0" placeholder="Ex: 95000000" style="font-size:.9rem;" />
+                    </div>
+                    <div>
+                      <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:600;margin-bottom:.35rem;">
+                        <span style="background:#1a5276;color:#fff;padding:1px 6px;border-radius:4px;font-size:.7rem;">USD</span> Dólar
+                      </label>
+                      <input class="form-input" id="pf-price-usd" type="number" min="0" value="0" placeholder="Ex: 114500" style="font-size:.9rem;" />
+                    </div>
+                    <div>
+                      <label style="display:flex;align-items:center;gap:.35rem;font-size:.8rem;font-weight:600;margin-bottom:.35rem;">
+                        <span style="background:#6c3483;color:#fff;padding:1px 6px;border-radius:4px;font-size:.7rem;">EUR</span> Euro
+                      </label>
+                      <input class="form-input" id="pf-price-eur" type="number" min="0" value="0" placeholder="Ex: 105500" style="font-size:.9rem;" />
+                    </div>
+                  </div>
+                </div>
+
                 <div><label>Tipo execução</label><select class="form-select" id="pf-execution-type"><option value="">—</option><option value="pontual">Pontual</option><option value="recorrente">Recorrente</option></select></div>
                 <div style="grid-column:1/-1;"><label>Descrição</label><textarea class="form-input" id="pf-description" rows="2"></textarea></div>
                 <div style="grid-column:1/-1;"><label>Setores (separados por vírgula)</label><input class="form-input" id="pf-sectors" placeholder="mining, agro, infrastructure" /></div>
@@ -2723,6 +2753,8 @@
 
       tbody.innerHTML = allAdminProducts.map(p => {
         const priceFormatted = (p.price / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
+        const priceUsd = p.price_usd ? '$' + (p.price_usd / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—';
+        const priceEur = p.price_eur ? '€' + (p.price_eur / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 }) : '—';
         const sectors = (p.sectors || []).map(s => `<span class="badge badge-trial" style="font-size:.65rem;margin:1px;">${SECTOR_LABELS[s] || s}</span>`).join(' ');
         const typeLabel = p.product_type === 'hardware' ? '<i class="fa-solid fa-microchip"></i> Hardware' : '<i class="fa-solid fa-plane"></i> Serviço';
         const stockDisplay = p.track_inventory
@@ -2738,7 +2770,11 @@
           <td>${typeLabel}</td>
           <td>${p.category || '—'}</td>
           <td>${sectors || '—'}</td>
-          <td style="text-align:right;font-family:monospace;">${priceFormatted}</td>
+          <td style="text-align:right;font-family:monospace;white-space:nowrap;">
+            <div><span style="background:#1a6b3c;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">AOA</span>${priceFormatted}</div>
+            <div style="font-size:.8rem;margin-top:2px;"><span style="background:#1a5276;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">USD</span>${priceUsd}</div>
+            <div style="font-size:.8rem;margin-top:2px;"><span style="background:#6c3483;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">EUR</span>${priceEur}</div>
+          </td>
           <td style="text-align:center;">${stockDisplay}</td>
           <td style="text-align:center;">${statusBadge}</td>
           <td style="text-align:center;white-space:nowrap;">
@@ -2767,6 +2803,8 @@
           document.getElementById('pf-product-type').value = p.product_type || 'service';
           document.getElementById('pf-category').value = p.category || 'flight';
           document.getElementById('pf-price').value = p.price || 0;
+          document.getElementById('pf-price-usd').value = p.price_usd || 0;
+          document.getElementById('pf-price-eur').value = p.price_eur || 0;
           document.getElementById('pf-execution-type').value = p.execution_type || '';
           document.getElementById('pf-description').value = p.description || '';
           document.getElementById('pf-sectors').value = (p.sectors || []).join(', ');
@@ -2800,6 +2838,8 @@
         product_type: document.getElementById('pf-product-type').value,
         category: document.getElementById('pf-category').value,
         price: parseInt(document.getElementById('pf-price').value) || 0,
+        price_usd: parseInt(document.getElementById('pf-price-usd').value) || 0,
+        price_eur: parseInt(document.getElementById('pf-price-eur').value) || 0,
         execution_type: document.getElementById('pf-execution-type').value || null,
         description: document.getElementById('pf-description').value || null,
         sectors: sectors,

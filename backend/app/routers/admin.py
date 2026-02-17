@@ -917,6 +917,8 @@ class ProductCreate(BaseModel):
     category: str = "flight"
     execution_type: Optional[str] = None
     price: int = 0
+    price_usd: int = 0
+    price_eur: int = 0
     currency: str = "AOA"
     tax_rate: float = 0.14
     duration_hours: Optional[int] = None
@@ -938,6 +940,8 @@ class ProductUpdate(BaseModel):
     category: Optional[str] = None
     execution_type: Optional[str] = None
     price: Optional[int] = None
+    price_usd: Optional[int] = None
+    price_eur: Optional[int] = None
     currency: Optional[str] = None
     tax_rate: Optional[float] = None
     duration_hours: Optional[int] = None
@@ -963,7 +967,8 @@ def _product_to_dict(p):
         "description": p.description, "short_description": p.short_description,
         "product_type": p.product_type, "category": p.category,
         "execution_type": p.execution_type,
-        "price": p.price, "currency": p.currency, "tax_rate": float(p.tax_rate or 0.14),
+        "price": p.price, "price_usd": p.price_usd, "price_eur": p.price_eur,
+        "currency": p.currency, "tax_rate": float(p.tax_rate or 0.14),
         "duration_hours": p.duration_hours, "requires_site": p.requires_site,
         "min_area_ha": p.min_area_ha,
         "sectors": _json.loads(p.sectors_json) if p.sectors_json else [],
@@ -1018,7 +1023,8 @@ async def create_product(data: ProductCreate, db: Session = Depends(get_db)):
         description=data.description, short_description=data.short_description,
         product_type=data.product_type, category=data.category,
         execution_type=data.execution_type,
-        price=data.price, currency=data.currency, tax_rate=data.tax_rate,
+        price=data.price, price_usd=data.price_usd, price_eur=data.price_eur,
+        currency=data.currency, tax_rate=data.tax_rate,
         duration_hours=data.duration_hours, requires_site=data.requires_site,
         min_area_ha=data.min_area_ha,
         sectors_json=json.dumps(data.sectors),

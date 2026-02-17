@@ -1,0 +1,652 @@
+/* ============================================================
+   GeoVision – Light‑Mode Theme  (prototype)
+   Activated when <html data-theme="light">
+   ============================================================ */
+
+/* ---------- 1. Root variable overrides (inline‑style pages) -- */
+[data-theme="light"] {
+  --bg-dark:       #f8fafc;
+  --bg-darker:     #e2e8f0;
+  --bg-card:       rgba(255, 255, 255, 0.92);
+  --border:        rgba(51, 65, 85, 0.15);
+  --text-primary:  #0f172a;
+  --text-secondary:#475569;
+  --text-muted:    #64748b;
+  --accent-green:  #16a34a;
+  --accent-blue:   #0284c7;
+  --accent-cyan:   #0891b2;
+
+  /* gradients */
+  --gradient-primary: linear-gradient(135deg, #0284c7, #06b6d4);
+  --gradient-glow:    linear-gradient(135deg, rgba(2,132,199,.15), rgba(6,182,212,.15));
+
+  /* sectors.html extras */
+  --accent-orange: #ea580c;
+  --accent-red:    #dc2626;
+  --accent-purple: #9333ea;
+  --bg-sidebar:    #ffffff;
+
+  /* external style.css vars (dashboard / admin) */
+  --bg:          #f1f5f9;
+  --bg-2:        #e2e8f0;
+  --card:        #ffffff;
+  --panel:       #f8fafc;
+  --stroke:      rgba(51,65,85,.12);
+  --text-main:   #0f172a;
+  --glow:        rgba(2,132,199,.12);
+}
+
+/* ---------- 2. Body & global -------------------------------- */
+[data-theme="light"] body {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* ---------- 3. Navbar --------------------------------------- */
+[data-theme="light"] .navbar {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+[data-theme="light"] .nav-brand {
+  color: #0f172a !important;
+}
+[data-theme="light"] .nav-brand span {
+  color: #0284c7 !important;
+}
+[data-theme="light"] .nav-link {
+  color: #334155 !important;
+}
+[data-theme="light"] .nav-link:hover,
+[data-theme="light"] .nav-link.active {
+  color: #0284c7 !important;
+}
+[data-theme="light"] .nav-link::after {
+  background: #0284c7 !important;
+}
+[data-theme="light"] .navbar-toggle span {
+  background: #334155;
+}
+[data-theme="light"] .navbar-nav.show {
+  background: #ffffff !important;
+}
+
+/* Language toggle */
+[data-theme="light"] .lang-toggle {
+  background: rgba(241,245,249,.9);
+  border-color: var(--border);
+}
+[data-theme="light"] .lang-btn {
+  color: #475569;
+}
+[data-theme="light"] .lang-btn.active,
+[data-theme="light"] .lang-btn:hover {
+  color: #0f172a;
+  background: rgba(2,132,199,.12);
+}
+
+/* ---------- 4. Theme toggle button itself -------------------- */
+.theme-toggle {
+  background: none;
+  border: 1px solid rgba(148,163,184,.25);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.15rem;
+  padding: 5px 9px;
+  margin-left: 8px;
+  transition: all .25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  line-height: 1;
+}
+.theme-toggle svg {
+  display: block;
+}
+.theme-toggle:hover {
+  border-color: rgba(148,163,184,.5);
+  color: #cbd5e1;
+  background: rgba(148,163,184,.08);
+}
+[data-theme="light"] .theme-toggle {
+  border-color: rgba(51,65,85,.18);
+  color: #64748b;
+}
+[data-theme="light"] .theme-toggle:hover {
+  border-color: rgba(51,65,85,.35);
+  color: #334155;
+  background: rgba(51,65,85,.06);
+}
+
+/* ---------- 5. Hero section ---------------------------------- */
+[data-theme="light"] .hero {
+  background: radial-gradient(ellipse at 50% 0%, rgba(2,132,199,.08) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 50%, rgba(6,182,212,.06) 0%, transparent 50%),
+              var(--bg-dark) !important;
+}
+[data-theme="light"] .hero-title,
+[data-theme="light"] .cta-title,
+[data-theme="light"] .cta-tagline,
+[data-theme="light"] .page-title,
+[data-theme="light"] .sector-title {
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+[data-theme="light"] .hero-subtitle,
+[data-theme="light"] .hero-description,
+[data-theme="light"] .hero p {
+  color: #475569 !important;
+}
+
+/* ---------- 6. Cards (sector, feature, service, price) ------- */
+[data-theme="light"] .sector-card,
+[data-theme="light"] .feature-card,
+[data-theme="light"] .service-card,
+[data-theme="light"] .price-card,
+[data-theme="light"] .stat-card,
+[data-theme="light"] .info-card,
+[data-theme="light"] .card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+}
+[data-theme="light"] .sector-card:hover,
+[data-theme="light"] .feature-card:hover,
+[data-theme="light"] .service-card:hover {
+  box-shadow: 0 10px 25px rgba(0,0,0,.08) !important;
+  border-color: rgba(2,132,199,.25) !important;
+}
+[data-theme="light"] .sector-card h3,
+[data-theme="light"] .feature-card h3,
+[data-theme="light"] .service-card h3,
+[data-theme="light"] .card h3 {
+  color: #0f172a !important;
+}
+[data-theme="light"] .sector-card p,
+[data-theme="light"] .feature-card p,
+[data-theme="light"] .service-card p,
+[data-theme="light"] .card p {
+  color: #475569 !important;
+}
+
+/* Card icon containers */
+[data-theme="light"] .sector-icon,
+[data-theme="light"] .feature-icon,
+[data-theme="light"] .card-icon {
+  background: rgba(2,132,199,.08) !important;
+}
+
+/* ---------- 7. Section headings ------------------------------ */
+[data-theme="light"] .section-title,
+[data-theme="light"] h2 {
+  color: #0f172a !important;
+}
+[data-theme="light"] .section-subtitle,
+[data-theme="light"] .section-description {
+  color: #475569 !important;
+}
+[data-theme="light"] .section-label {
+  color: #0284c7 !important;
+}
+[data-theme="light"] .section-line,
+[data-theme="light"] .title-line {
+  background: linear-gradient(90deg, #0284c7, #06b6d4) !important;
+}
+
+/* ---------- 8. Buttons --------------------------------------- */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-cta {
+  background: linear-gradient(135deg, #0284c7, #06b6d4) !important;
+  color: #fff !important;
+}
+[data-theme="light"] .btn-secondary,
+[data-theme="light"] .btn-outline {
+  background: transparent !important;
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
+}
+[data-theme="light"] .btn-secondary:hover,
+[data-theme="light"] .btn-outline:hover {
+  background: rgba(2,132,199,.08) !important;
+}
+
+/* ---------- 9. Footer ---------------------------------------- */
+[data-theme="light"] .footer,
+[data-theme="light"] footer {
+  background: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+[data-theme="light"] .footer h4,
+[data-theme="light"] footer h4 {
+  color: #f1f5f9 !important;
+}
+[data-theme="light"] .footer a,
+[data-theme="light"] footer a {
+  color: #94a3b8 !important;
+}
+[data-theme="light"] .footer a:hover,
+[data-theme="light"] footer a:hover {
+  color: #38bdf8 !important;
+}
+
+/* ---------- 10. CTA section ---------------------------------- */
+[data-theme="light"] .cta-section,
+[data-theme="light"] .cta {
+  background: linear-gradient(135deg, rgba(2,132,199,.06), rgba(6,182,212,.06)) !important;
+  border-color: rgba(2,132,199,.15) !important;
+}
+[data-theme="light"] .cta h2 {
+  color: #0f172a !important;
+}
+
+/* ---------- 11. Map / Tabs ----------------------------------- */
+[data-theme="light"] .map-tab,
+[data-theme="light"] .tab-btn {
+  background: rgba(255,255,255,.8) !important;
+  border-color: var(--border) !important;
+  color: #475569 !important;
+}
+[data-theme="light"] .map-tab.active,
+[data-theme="light"] .tab-btn.active {
+  background: #0284c7 !important;
+  color: #fff !important;
+}
+
+/* ---------- 12. About page specifics ------------------------- */
+[data-theme="light"] .timeline-item::before {
+  background: #0284c7 !important;
+}
+[data-theme="light"] .team-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .value-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+
+/* ---------- 13. Loja / Shop page ----------------------------- */
+[data-theme="light"] .loja-card,
+[data-theme="light"] .product-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .loja-card:hover,
+[data-theme="light"] .product-card:hover {
+  box-shadow: 0 8px 25px rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .loja-header,
+[data-theme="light"] .page-header {
+  background: linear-gradient(135deg, rgba(2,132,199,.06), rgba(6,182,212,.04)) !important;
+}
+[data-theme="light"] .loja-filter-btn,
+[data-theme="light"] .filter-btn {
+  background: rgba(255,255,255,.9) !important;
+  border-color: var(--border) !important;
+  color: #475569 !important;
+}
+[data-theme="light"] .loja-filter-btn.active,
+[data-theme="light"] .filter-btn.active {
+  background: #0284c7 !important;
+  color: #fff !important;
+  border-color: #0284c7 !important;
+}
+[data-theme="light"] .checkout-modal,
+[data-theme="light"] .modal-content {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .payment-option {
+  background: #f8fafc !important;
+  border-color: var(--border) !important;
+  color: #334155 !important;
+}
+[data-theme="light"] .payment-option.selected {
+  border-color: #0284c7 !important;
+  background: rgba(2,132,199,.05) !important;
+}
+[data-theme="light"] .cart-badge,
+[data-theme="light"] .badge {
+  background: #0284c7 !important;
+  color: #fff !important;
+}
+
+/* ---------- 14. Login / Auth page ----------------------------- */
+[data-theme="light"] .shell,
+[data-theme="light"] .auth-container {
+  background: var(--bg-dark) !important;
+}
+[data-theme="light"] .login-card,
+[data-theme="light"] .auth-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,.06);
+}
+[data-theme="light"] .login-card h2,
+[data-theme="light"] .auth-card h2 {
+  color: #0f172a !important;
+}
+[data-theme="light"] .form-group label {
+  color: #334155 !important;
+}
+[data-theme="light"] .form-group input,
+[data-theme="light"] .form-input,
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: #f1f5f9 !important;
+  border-color: rgba(51,65,85,.2) !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .form-group input:focus,
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] input:focus,
+[data-theme="light"] textarea:focus,
+[data-theme="light"] select:focus {
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2,132,199,.12) !important;
+}
+[data-theme="light"] .form-group input::placeholder {
+  color: #94a3b8 !important;
+}
+[data-theme="light"] .divider span,
+[data-theme="light"] .auth-divider span {
+  color: #64748b !important;
+  background: #ffffff !important;
+}
+[data-theme="light"] .divider::before,
+[data-theme="light"] .divider::after,
+[data-theme="light"] .auth-divider::before,
+[data-theme="light"] .auth-divider::after {
+  background: rgba(51,65,85,.15) !important;
+}
+
+/* ---------- 15. Sectors sidebar ------------------------------ */
+[data-theme="light"] .sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid var(--border) !important;
+}
+[data-theme="light"] .sidebar-link {
+  color: #475569 !important;
+}
+[data-theme="light"] .sidebar-link:hover,
+[data-theme="light"] .sidebar-link.active {
+  background: rgba(2,132,199,.06) !important;
+  color: #0284c7 !important;
+}
+
+/* ---------- 16. Scrollbar ------------------------------------ */
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ---------- 17. Modal overlays ------------------------------- */
+[data-theme="light"] .modal-overlay {
+  background: rgba(15,23,42,.4) !important;
+}
+
+/* ---------- 18. Misc elements -------------------------------- */
+[data-theme="light"] .badge-tag,
+[data-theme="light"] .tag {
+  background: rgba(2,132,199,.08) !important;
+  color: #0284c7 !important;
+}
+[data-theme="light"] hr {
+  border-color: rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .glass,
+[data-theme="light"] .glass-card {
+  background: rgba(255,255,255,.7) !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .stat-number,
+[data-theme="light"] .counter {
+  color: #0284c7 !important;
+}
+
+/* ---------- 19. Chatbot -------------------------------------- */
+[data-theme="light"] .chatbot-btn {
+  background: linear-gradient(135deg, #0284c7, #06b6d4) !important;
+}
+[data-theme="light"] .chatbot-panel {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .chatbot-header {
+  background: linear-gradient(135deg, #0284c7, #06b6d4) !important;
+}
+[data-theme="light"] .chatbot-messages {
+  background: #f8fafc !important;
+}
+[data-theme="light"] .chatbot-message.bot {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .chatbot-message.user {
+  background: #0284c7 !important;
+  color: #fff !important;
+}
+[data-theme="light"] .chatbot-input-area {
+  background: #ffffff !important;
+  border-top: 1px solid var(--border) !important;
+}
+[data-theme="light"] .chatbot-input {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* ---------- 20. Dashboard / Admin (external style.css) ------- */
+[data-theme="light"] .dash-sidebar,
+[data-theme="light"] .admin-sidebar {
+  background: #ffffff !important;
+  border-right: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .dash-card,
+[data-theme="light"] .admin-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .dash-header,
+[data-theme="light"] .admin-header {
+  background: rgba(255,255,255,.9) !important;
+  border-bottom: 1px solid rgba(51,65,85,.1) !important;
+}
+
+/* ---------- 21. Responsive mobile menu ----------------------- */
+@media (max-width: 768px) {
+  [data-theme="light"] .navbar-nav {
+    background: #ffffff !important;
+    border-top: 1px solid var(--border);
+  }
+  [data-theme="light"] .navbar-nav.show {
+    background: #ffffff !important;
+  }
+}
+
+/* ---------- 22. Loja – muted text elements ------------------- */
+[data-theme="light"] .loja-cart-count,
+[data-theme="light"] .loja-cart-item-meta,
+[data-theme="light"] .loja-card-tag,
+[data-theme="light"] .loja-card-desc,
+[data-theme="light"] .loja-price span,
+[data-theme="light"] .loja-price-row,
+[data-theme="light"] .loja-price-row .unit,
+[data-theme="light"] .loja-empty,
+[data-theme="light"] .loja-footer,
+[data-theme="light"] .cart-form label,
+[data-theme="light"] .commitment-text,
+[data-theme="light"] .cta-text {
+  color: #475569 !important;
+}
+[data-theme="light"] .loja-price-row.active {
+  color: #1e293b !important;
+}
+
+/* ---------- 23. Sector & execution badges (loja) ------------- */
+[data-theme="light"] .sector-badge {
+  color: #0369a1 !important;
+  background: rgba(3,105,161,.08) !important;
+}
+[data-theme="light"] .sector-badge.mining {
+  color: #a16207 !important;
+  background: rgba(161,98,7,.08) !important;
+}
+[data-theme="light"] .sector-badge.agro {
+  color: #15803d !important;
+  background: rgba(21,128,61,.08) !important;
+}
+[data-theme="light"] .sector-badge.solar {
+  color: #c2410c !important;
+  background: rgba(194,65,12,.08) !important;
+}
+[data-theme="light"] .sector-badge.demining {
+  color: #b91c1c !important;
+  background: rgba(185,28,28,.08) !important;
+}
+[data-theme="light"] .sector-badge.infrastructure {
+  color: #7e22ce !important;
+  background: rgba(126,34,206,.08) !important;
+}
+[data-theme="light"] .execution-badge.pontual {
+  color: #0369a1 !important;
+  background: rgba(3,105,161,.08) !important;
+}
+[data-theme="light"] .execution-badge.recorrente {
+  color: #15803d !important;
+  background: rgba(21,128,61,.08) !important;
+}
+
+/* ---------- 24. Checkout modal (keep dark or make light) ----- */
+[data-theme="light"] .checkout-modal-content {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .checkout-title {
+  color: #0f172a !important;
+}
+[data-theme="light"] .checkout-section h4 {
+  color: #0f172a !important;
+}
+[data-theme="light"] .checkout-close {
+  color: #64748b !important;
+}
+[data-theme="light"] .checkout-close:hover {
+  color: #0f172a !important;
+}
+[data-theme="light"] .checkout-input,
+[data-theme="light"] .coupon-input {
+  background: #f1f5f9 !important;
+  border-color: rgba(51,65,85,.2) !important;
+  color: #0f172a !important;
+}
+[data-theme="light"] .payment-desc {
+  color: #64748b !important;
+}
+[data-theme="light"] .copy-btn {
+  background: #0284c7 !important;
+  color: #fff !important;
+}
+[data-theme="light"] .checkout-summary,
+[data-theme="light"] .order-summary {
+  background: #f8fafc !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+  color: #0f172a !important;
+}
+
+/* ---------- 25. Toast notification --------------------------- */
+[data-theme="light"] .toast {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(51,65,85,.12) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1) !important;
+}
+[data-theme="light"] .toast.success {
+  border-left: 4px solid #16a34a !important;
+}
+[data-theme="light"] .toast.error {
+  border-left: 4px solid #dc2626 !important;
+}
+
+/* ---------- 26. Login page specifics ------------------------- */
+[data-theme="light"] .toggle-password {
+  color: #64748b !important;
+}
+[data-theme="light"] .toggle-password:hover {
+  color: #0f172a !important;
+}
+[data-theme="light"] .split {
+  color: #64748b !important;
+}
+[data-theme="light"] .feedback.error {
+  color: #dc2626 !important;
+}
+[data-theme="light"] .feedback.success {
+  color: #16a34a !important;
+}
+[data-theme="light"] .hint {
+  background: rgba(241,245,249,.95) !important;
+  color: #475569 !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+}
+[data-theme="light"] .forgot-email-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(51,65,85,.1) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,.08) !important;
+}
+[data-theme="light"] .forgot-email-card h3 {
+  color: #0f172a !important;
+}
+[data-theme="light"] .forgot-email-card p {
+  color: #475569 !important;
+}
+[data-theme="light"] .forgot-email-card .support-option {
+  color: #334155 !important;
+}
+[data-theme="light"] .forgot-email-card .close-modal {
+  color: #64748b !important;
+}
+[data-theme="light"] .forgot-email-card .close-modal:hover {
+  color: #0f172a !important;
+}
+
+/* ---------- 27. About page – CTA secondary button ------------ */
+[data-theme="light"] .btn-cta-secondary {
+  background: rgba(2,132,199,.08) !important;
+  border: 1px solid #0284c7 !important;
+  color: #0284c7 !important;
+}
+[data-theme="light"] .btn-cta-secondary:hover {
+  background: rgba(2,132,199,.15) !important;
+}
+
+/* ---------- 28. Map overlay labels (JS inline) --------------- */
+[data-theme="light"] .map-overlay-label {
+  color: #334155 !important;
+}
+
+/* ---------- 29. Inline warning styles (loja sector warning) -- */
+[data-theme="light"] [id="sector-warning-message"] {
+  color: #a16207 !important;
+}
+[data-theme="light"] [id="sector-warning-suggestion"] {
+  color: #64748b !important;
+}
+
+/* ---------- 30. Generic muted color catch-all ---------------- */
+[data-theme="light"] .text-muted,
+[data-theme="light"] .text-secondary,
+[data-theme="light"] small {
+  color: #64748b !important;
+}

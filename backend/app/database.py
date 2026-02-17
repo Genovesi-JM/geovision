@@ -263,6 +263,24 @@ def ensure_legacy_schema() -> None:
                     except Exception:
                         pass
 
+        # Shop products table: multi-currency price columns
+        try:
+            sp_cols = [c["name"] for c in inspector.get_columns("shop_products")]
+        except Exception:
+            sp_cols = []
+
+        if sp_cols:
+            _sp_adds = {
+                "price_usd": "ALTER TABLE shop_products ADD COLUMN price_usd INTEGER DEFAULT 0",
+                "price_eur": "ALTER TABLE shop_products ADD COLUMN price_eur INTEGER DEFAULT 0",
+            }
+            for col, ddl in _sp_adds.items():
+                if col not in sp_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
 
 # Initialize the engine by default outside of tests so imports have a usable DB connection.
 if getattr(settings, "env", "dev") != "test":
