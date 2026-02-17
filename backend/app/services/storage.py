@@ -179,6 +179,28 @@ class StorageService:
         except ClientError:
             return None
 
+    def download_file(self, key: str) -> bytes:
+        """Download file content from S3 as bytes."""
+        try:
+            response = self.client.get_object(Bucket=self.bucket, Key=key)
+            return response["Body"].read()
+        except ClientError as e:
+            raise Exception(f"Ficheiro não encontrado no armazenamento: {e}")
+
+    def generate_document_key(
+        self, company_id: str, doc_id: str, filename: str
+    ) -> str:
+        """Generate S3 key for document uploads."""
+        safe_name = "".join(
+            c for c in filename if c.isalnum() or c in "._- "
+        ).strip()
+        return f"documents/{company_id}/{doc_id}_{safe_name}"
+
+
+def is_s3_key(path: Optional[str]) -> bool:
+    """Check if a stored path is an S3 key (vs legacy local filesystem path)."""
+    return bool(path and not path.startswith("/"))
+
 
 # Singleton instance
 _storage_service: Optional[StorageService] = None

@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from pathlib import Path
 from typing import List, Optional
 import json
 
@@ -9,6 +7,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import User, UserProfile, AccountMember, Account, CompanyUser, Company
 from app.schemas import AccountPublic, MeResponse, ProfileOut, UserSummary
+from app.services.storage import get_storage_service, is_s3_key
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -102,7 +101,7 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
         "file_size_bytes": d.file_size_bytes or 0,
         "mime_type": d.mime_type,
         "has_file": bool(d.file_path),
-        "file_exists": bool(d.file_path and Path(d.file_path).exists()),
+        "file_exists": bool(d.file_path and is_s3_key(d.file_path)),
         "can_preview": bool(d.mime_type and d.mime_type in (
             'application/pdf', 'image/png', 'image/jpeg', 'image/jpg',
             'image/gif', 'image/webp', 'text/plain', 'text/csv',
@@ -126,9 +125,27 @@ def download_my_document(document_id: str, user: User = Depends(get_current_user
         raise HTTPException(status_code=403, detail="Confidential document")
     if not doc.file_path:
         raise HTTPException(status_code=404, detail="Sem ficheiro associado a este documento")
+    # S3-based download
+    if is_s3_key(doc.file_path):
+        try:
+            storage = get_storage_service()
+            content = storage.download_file(doc.file_path)
+        except Exception:
+            raise HTTPException(status_code=410, detail="Ficheiro indisponivel no armazenamento. Contacte o administrador.")
+        ext = '.' + doc.file_path.rsplit('.', 1)[-1] if '.' in doc.file_path else ''
+        filename = doc.name + ext
+        from starlette.responses import Response
+        return Response(
+            content=content,
+            media_type=doc.mime_type or "application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    # Legacy local file fallback
+    from pathlib import Path
     fp = Path(doc.file_path)
     if not fp.exists():
-        raise HTTPException(status_code=410, detail="Ficheiro indispon\u00edvel — foi eliminado do servidor. Contacte o administrador para re-envio.")
+        raise HTTPException(status_code=410, detail="Ficheiro indisponivel. Contacte o administrador para re-envio.")
+    from fastapi.responses import FileResponse
     return FileResponse(
         path=str(fp),
         filename=doc.name + (Path(doc.file_path).suffix if doc.file_path else ''),
@@ -151,14 +168,29 @@ def view_my_document(document_id: str, user: User = Depends(get_current_user), d
         raise HTTPException(status_code=403, detail="Confidential document")
     if not doc.file_path:
         raise HTTPException(status_code=404, detail="Sem ficheiro associado")
-    fp = Path(doc.file_path)
+    # S3-based view
+    if is_s3_key(doc.file_path):
+        try:
+            storage = get_storage_service()
+            content = storage.download_file(doc.file_path)
+        except Exception:
+            raise HTTPException(status_code=410, detail="Ficheiro indisponivel. Contacte o administrador.")
+        ext = '.' + doc.file_path.rsplit('.', 1)[-1] if '.' in doc.file_path else ''
+        media = doc.mime_type or "application/octet-stream"
+        headers = {
+            "Content-Disposition": f'inline; filename="{doc.name}{ext}"',
+            "Cache-Control": "private, max-age=300",
+        }
+        return Response(content=content, media_type=media, headers=headers)
+    # Legacy local file fallback
+    from pathlib import Path as _P
+    fp = _P(doc.file_path)
     if not fp.exists():
-        raise HTTPException(status_code=410, detail="Ficheiro indispon\u00edvel — contacte o administrador.")
-    # Serve inline for preview
+        raise HTTPException(status_code=410, detail="Ficheiro indisponivel. Contacte o administrador.")
     content = fp.read_bytes()
     media = doc.mime_type or "application/octet-stream"
     headers = {
-        "Content-Disposition": f'inline; filename="{doc.name}{Path(doc.file_path).suffix}"',
+        "Content-Disposition": f'inline; filename="{doc.name}{fp.suffix}"',
         "Cache-Control": "private, max-age=300",
     }
     return Response(content=content, media_type=media, headers=headers)

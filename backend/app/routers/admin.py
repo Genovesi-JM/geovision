@@ -674,13 +674,7 @@ async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
 
 # ============ DOCUMENTS MANAGEMENT ============
 
-import os as _os
-import shutil as _shutil
-from pathlib import Path as _Path
-
-# Upload directory — inside /workspace on DO, or local backend dir
-_UPLOAD_DIR = _Path(_os.environ.get("UPLOAD_DIR", _Path(__file__).resolve().parent.parent / "uploads"))
-_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+from app.services.storage import get_storage_service, is_s3_key
 
 
 @router.post("/companies/{company_id}/documents", response_model=DocumentOut)
@@ -704,17 +698,15 @@ async def create_document(
     file_size = 0
     mime = None
 
-    # Save uploaded file
+    # Save uploaded file to DO Spaces (S3)
     if file and file.filename:
-        company_dir = _UPLOAD_DIR / company_id
-        company_dir.mkdir(parents=True, exist_ok=True)
-        safe_name = f"{doc_id}_{file.filename}"
-        dest = company_dir / safe_name
-        with open(dest, "wb") as buf:
-            _shutil.copyfileobj(file.file, buf)
-        file_path = str(dest)
-        file_size = dest.stat().st_size
+        storage = get_storage_service()
+        s3_key = storage.generate_document_key(company_id, doc_id, file.filename)
         mime = file.content_type
+        s3_key, file_size, _md5, _sha = storage.upload_file(
+            file.file, s3_key, content_type=mime
+        )
+        file_path = s3_key  # Store S3 key instead of local path
 
     sid = site_id if site_id and site_id.strip() else None
     doc = DocModel(
@@ -784,6 +776,13 @@ async def delete_document(document_id: str, db: Session = Depends(get_db)):
     from app.models import Document as DocModel
     doc = db.get(DocModel, document_id)
     if not doc: raise HTTPException(404, "Document not found")
+    # Delete file from S3 if it's an S3 key
+    if doc.file_path and is_s3_key(doc.file_path):
+        try:
+            storage = get_storage_service()
+            storage.delete_file(doc.file_path)
+        except Exception:
+            pass  # File may already be gone
     db.delete(doc); db.commit()
     return {"message": "Document deleted", "document_id": document_id}
 
@@ -792,10 +791,27 @@ async def delete_document(document_id: str, db: Session = Depends(get_db)):
 async def download_document(document_id: str, db: Session = Depends(get_db)):
     """Download a document file by its ID."""
     from app.models import Document as DocModel
+    from starlette.responses import Response
     doc = db.get(DocModel, document_id)
     if not doc: raise HTTPException(404, "Document not found")
     if not doc.file_path:
         raise HTTPException(404, "Sem ficheiro associado a este documento")
+    # S3-based download
+    if is_s3_key(doc.file_path):
+        try:
+            storage = get_storage_service()
+            content = storage.download_file(doc.file_path)
+        except Exception:
+            raise HTTPException(410, "Ficheiro indisponível no armazenamento.")
+        ext = '.' + doc.file_path.rsplit('.', 1)[-1] if '.' in doc.file_path else ''
+        filename = doc.name + ext
+        return Response(
+            content=content,
+            media_type=doc.mime_type or "application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    # Legacy local file fallback (pre-migration documents)
+    from pathlib import Path as _Path
     fp = _Path(doc.file_path)
     if not fp.exists():
         raise HTTPException(410, "Ficheiro indisponível — foi eliminado do servidor após re-deploy. Re-envie o documento.")
