@@ -904,3 +904,181 @@ async def get_admin_contacts():
         AdminContactOut(type="sms", label="SMS", value="+244928917269", icon="fa-solid fa-comment-sms"),
         AdminContactOut(type="instagram", label="Instagram", value="@Geovision.operations", icon="fa-brands fa-instagram"),
     ]
+
+
+# ============ PRODUCTS MANAGEMENT ============
+
+class ProductCreate(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    product_type: str = "service"
+    category: str = "flight"
+    execution_type: Optional[str] = None
+    price: int = 0
+    currency: str = "AOA"
+    tax_rate: float = 0.14
+    duration_hours: Optional[int] = None
+    requires_site: bool = False
+    min_area_ha: Optional[int] = None
+    sectors: List[str] = []
+    deliverables: List[str] = []
+    image_url: Optional[str] = None
+    is_active: bool = True
+    is_featured: bool = False
+    track_inventory: bool = False
+    stock_quantity: int = 0
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    product_type: Optional[str] = None
+    category: Optional[str] = None
+    execution_type: Optional[str] = None
+    price: Optional[int] = None
+    currency: Optional[str] = None
+    tax_rate: Optional[float] = None
+    duration_hours: Optional[int] = None
+    requires_site: Optional[bool] = None
+    min_area_ha: Optional[int] = None
+    sectors: Optional[List[str]] = None
+    deliverables: Optional[List[str]] = None
+    image_url: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_featured: Optional[bool] = None
+    track_inventory: Optional[bool] = None
+    stock_quantity: Optional[int] = None
+
+class StockAdjust(BaseModel):
+    adjustment: int
+    reason: Optional[str] = None
+
+
+def _product_to_dict(p):
+    import json as _json
+    return {
+        "id": p.id, "name": p.name, "slug": p.slug,
+        "description": p.description, "short_description": p.short_description,
+        "product_type": p.product_type, "category": p.category,
+        "execution_type": p.execution_type,
+        "price": p.price, "currency": p.currency, "tax_rate": float(p.tax_rate or 0.14),
+        "duration_hours": p.duration_hours, "requires_site": p.requires_site,
+        "min_area_ha": p.min_area_ha,
+        "sectors": _json.loads(p.sectors_json) if p.sectors_json else [],
+        "deliverables": _json.loads(p.deliverables_json) if p.deliverables_json else [],
+        "image_url": p.image_url,
+        "is_active": p.is_active, "is_featured": p.is_featured,
+        "track_inventory": p.track_inventory, "stock_quantity": p.stock_quantity,
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+        "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+    }
+
+
+@router.get("/products")
+async def list_products(
+    product_type: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    is_active: Optional[bool] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """List all shop products with optional filters."""
+    from app.models import ShopProduct as SP
+    q = db.query(SP)
+    if product_type:
+        q = q.filter(SP.product_type == product_type)
+    if category:
+        q = q.filter(SP.category == category)
+    if is_active is not None:
+        q = q.filter(SP.is_active == is_active)
+    products = q.order_by(SP.name).all()
+    return [_product_to_dict(p) for p in products]
+
+
+@router.post("/products")
+async def create_product(data: ProductCreate, db: Session = Depends(get_db)):
+    """Create a new shop product."""
+    from app.models import ShopProduct as SP
+    import re
+
+    slug = data.slug or re.sub(r'[^a-z0-9]+', '-', data.name.lower()).strip('-')
+    # Check slug uniqueness
+    existing = db.query(SP).filter(SP.slug == slug).first()
+    if existing:
+        raise HTTPException(409, f"Produto com slug '{slug}' ja existe")
+
+    product_id = f"prod_{slug.replace('-', '_')[:40]}"
+    existing_id = db.get(SP, product_id)
+    if existing_id:
+        product_id = f"prod_{str(uuid.uuid4())[:8]}"
+
+    p = SP(
+        id=product_id, name=data.name, slug=slug,
+        description=data.description, short_description=data.short_description,
+        product_type=data.product_type, category=data.category,
+        execution_type=data.execution_type,
+        price=data.price, currency=data.currency, tax_rate=data.tax_rate,
+        duration_hours=data.duration_hours, requires_site=data.requires_site,
+        min_area_ha=data.min_area_ha,
+        sectors_json=json.dumps(data.sectors),
+        deliverables_json=json.dumps(data.deliverables),
+        image_url=data.image_url,
+        is_active=data.is_active, is_featured=data.is_featured,
+        track_inventory=data.track_inventory, stock_quantity=data.stock_quantity,
+    )
+    db.add(p)
+    db.commit()
+    db.refresh(p)
+    return _product_to_dict(p)
+
+
+@router.patch("/products/{product_id}")
+async def update_product(product_id: str, data: ProductUpdate, db: Session = Depends(get_db)):
+    """Update an existing shop product."""
+    from app.models import ShopProduct as SP
+    p = db.get(SP, product_id)
+    if not p:
+        raise HTTPException(404, "Produto nao encontrado")
+
+    update_data = data.model_dump(exclude_unset=True)
+    if "sectors" in update_data:
+        p.sectors_json = json.dumps(update_data.pop("sectors"))
+    if "deliverables" in update_data:
+        p.deliverables_json = json.dumps(update_data.pop("deliverables"))
+    for k, v in update_data.items():
+        setattr(p, k, v)
+    p.updated_at = _utcnow()
+    db.commit()
+    db.refresh(p)
+    return _product_to_dict(p)
+
+
+@router.delete("/products/{product_id}")
+async def delete_product(product_id: str, db: Session = Depends(get_db)):
+    """Delete a shop product."""
+    from app.models import ShopProduct as SP
+    p = db.get(SP, product_id)
+    if not p:
+        raise HTTPException(404, "Produto nao encontrado")
+    db.delete(p)
+    db.commit()
+    return {"message": "Produto eliminado", "product_id": product_id}
+
+
+@router.post("/products/{product_id}/stock")
+async def adjust_stock(product_id: str, data: StockAdjust, db: Session = Depends(get_db)):
+    """Adjust stock quantity for a product (positive to add, negative to remove)."""
+    from app.models import ShopProduct as SP
+    p = db.get(SP, product_id)
+    if not p:
+        raise HTTPException(404, "Produto nao encontrado")
+    new_qty = p.stock_quantity + data.adjustment
+    if new_qty < 0:
+        raise HTTPException(400, f"Stock insuficiente. Atual: {p.stock_quantity}, ajuste: {data.adjustment}")
+    p.stock_quantity = new_qty
+    p.updated_at = _utcnow()
+    _log_audit(db, None, "stock_adjusted", "product", product_id,
+               details={"adjustment": data.adjustment, "new_quantity": new_qty, "reason": data.reason})
+    db.commit()
+    return {"product_id": product_id, "stock_quantity": new_qty, "adjustment": data.adjustment}

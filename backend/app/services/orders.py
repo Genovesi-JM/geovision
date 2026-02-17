@@ -246,6 +246,23 @@ class OrderService:
 
         self.db.flush()
 
+        # Decrement stock for items that track inventory
+        try:
+            from sqlalchemy import text as sa_text
+            for item in cart.items:
+                result = self.db.execute(
+                    sa_text("""UPDATE shop_products
+                               SET stock_quantity = stock_quantity - :qty,
+                                   updated_at = :now
+                               WHERE id = :pid AND track_inventory = true
+                                 AND stock_quantity >= :qty"""),
+                    {"qty": item.quantity, "now": now.isoformat(), "pid": item.product_id}
+                )
+                if result.rowcount > 0:
+                    logger.info(f"Stock decremented: product {item.product_id} by {item.quantity}")
+        except Exception as e:
+            logger.warning(f"Stock decrement failed (non-critical): {e}")
+
         cart_svc.clear_cart(cart_id)
 
         payment_data = await self._initiate_payment(order, payment_method)

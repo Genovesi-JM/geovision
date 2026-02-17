@@ -881,6 +881,10 @@
           <span class="sidebar-link-icon"><i class="fa-solid fa-paper-plane"></i></span>
           <span data-i18n="admin.nav.sendReports">Enviar Relatórios</span>
         </a>
+        <a href="#" class="sidebar-link" data-view="products">
+          <span class="sidebar-link-icon"><i class="fa-solid fa-box-open"></i></span>
+          <span data-i18n="admin.nav.products">Produtos & Stock</span>
+        </a>
       </div>
 
       <!-- Integrações -->
@@ -1595,6 +1599,104 @@
           <h1 class="page-title" data-i18n="admin.nav.invoices">Faturas</h1>
         </div>
         <div class="card"><div class="card-body" data-i18n="admin.inDev">Em desenvolvimento...</div></div>
+      </div>
+
+      <!-- ============ PRODUCTS VIEW ============ -->
+      <div class="view-panel" id="view-products">
+        <div class="page-header">
+          <div class="page-eyebrow">Gestão</div>
+          <h1 class="page-title">Produtos & Stock</h1>
+          <p class="page-subtitle">Gerir catálogo de serviços e hardware, preços e stock.</p>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-body" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="showProductModal()" style="display:inline-flex;align-items:center;gap:.4rem;">
+              <i class="fa-solid fa-plus"></i> Novo Produto
+            </button>
+            <select id="prod-filter-type" onchange="loadProducts()" class="form-select" style="width:auto;padding:.4rem .7rem;font-size:.8rem;">
+              <option value="">Todos os tipos</option>
+              <option value="service">Serviços</option>
+              <option value="hardware">Hardware</option>
+            </select>
+            <select id="prod-filter-active" onchange="loadProducts()" class="form-select" style="width:auto;padding:.4rem .7rem;font-size:.8rem;">
+              <option value="">Ativos & Inativos</option>
+              <option value="true" selected>Apenas ativos</option>
+              <option value="false">Apenas inativos</option>
+            </select>
+            <span id="prod-count" style="color: var(--text-muted); font-size: .85rem; margin-left: auto;"></span>
+          </div>
+        </div>
+
+        <!-- Products Table -->
+        <div class="card">
+          <div class="card-body" style="overflow-x:auto;">
+            <table class="data-table" id="products-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Tipo</th>
+                  <th>Categoria</th>
+                  <th>Setores</th>
+                  <th style="text-align:right">Preço (AOA)</th>
+                  <th style="text-align:center">Stock</th>
+                  <th style="text-align:center">Estado</th>
+                  <th style="text-align:center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Product Modal -->
+        <div id="product-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.7);overflow-y:auto;">
+          <div style="max-width:640px;margin:3rem auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;">
+            <h2 id="product-modal-title" style="margin-bottom:1.5rem;">Novo Produto</h2>
+            <form id="product-form" onsubmit="saveProduct(event)">
+              <input type="hidden" id="pf-id" />
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                <div style="grid-column:1/-1;"><label>Nome *</label><input class="form-input" id="pf-name" required /></div>
+                <div><label>Tipo</label><select class="form-select" id="pf-product-type"><option value="service">Serviço</option><option value="hardware">Hardware</option></select></div>
+                <div><label>Categoria</label><select class="form-select" id="pf-category"><option value="flight">Voo / Flight</option><option value="drone">Drone</option><option value="sensor">Sensor</option><option value="iot">IoT</option><option value="subscription">Subscrição</option></select></div>
+                <div><label>Preço (AOA centavos)</label><input class="form-input" id="pf-price" type="number" min="0" value="0" /></div>
+                <div><label>Tipo execução</label><select class="form-select" id="pf-execution-type"><option value="">—</option><option value="pontual">Pontual</option><option value="recorrente">Recorrente</option></select></div>
+                <div style="grid-column:1/-1;"><label>Descrição</label><textarea class="form-input" id="pf-description" rows="2"></textarea></div>
+                <div style="grid-column:1/-1;"><label>Setores (separados por vírgula)</label><input class="form-input" id="pf-sectors" placeholder="mining, agro, infrastructure" /></div>
+                <div><label>Duração (horas)</label><input class="form-input" id="pf-duration" type="number" min="0" /></div>
+                <div><label>Área mínima (ha)</label><input class="form-input" id="pf-min-area" type="number" min="0" /></div>
+                <div style="display:flex;gap:1.5rem;align-items:center;grid-column:1/-1;">
+                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-active" checked /> Ativo</label>
+                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-featured" /> Destaque</label>
+                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-track-inv" onchange="document.getElementById('pf-stock-row').style.display=this.checked?'block':'none'" /> Controlar stock</label>
+                </div>
+                <div id="pf-stock-row" style="display:none;"><label>Quantidade em stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="0" /></div>
+              </div>
+              <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
+                <button type="button" class="btn" onclick="closeProductModal()" style="background:var(--bg-card);border:1px solid var(--border);">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Stock Adjust Modal -->
+        <div id="stock-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.7);">
+          <div style="max-width:400px;margin:6rem auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;">
+            <h3 style="margin-bottom:1rem;">Ajustar Stock</h3>
+            <p id="stock-product-name" style="color:var(--text-secondary);margin-bottom:1rem;"></p>
+            <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
+              <label>Ajuste (+/-):</label>
+              <input class="form-input" id="stock-adjust-val" type="number" style="width:100px;" />
+            </div>
+            <div style="margin-bottom:1rem;"><label>Razão:</label><input class="form-input" id="stock-adjust-reason" placeholder="Opcional" /></div>
+            <div style="display:flex;gap:1rem;justify-content:flex-end;">
+              <button class="btn" onclick="document.getElementById('stock-modal').style.display='none'" style="background:var(--bg-card);border:1px solid var(--border);">Cancelar</button>
+              <button class="btn btn-primary" onclick="submitStockAdjust()">Confirmar</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="view-panel" id="view-alerts">
@@ -2580,6 +2682,219 @@
       }
     }
 
+    // ============ PRODUCTS MANAGEMENT ============
+    let allAdminProducts = [];
+    let editingProductId = null;
+
+    const SECTOR_LABELS = {
+      mining: 'Mineração', infrastructure: 'Infraestrutura', agro: 'Agricultura',
+      demining: 'Desminagem', solar: 'Solar', livestock: 'Pecuária', construction: 'Construção'
+    };
+
+    async function loadProducts() {
+      const token = localStorage.getItem('gv_token');
+      const typeFilter = document.getElementById('prod-filter-type')?.value || '';
+      const activeFilter = document.getElementById('prod-filter-active')?.value || '';
+
+      let url = `${API_BASE}/admin/products?`;
+      if (typeFilter) url += `product_type=${typeFilter}&`;
+      if (activeFilter) url += `is_active=${activeFilter}&`;
+
+      try {
+        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) throw new Error('Failed');
+        allAdminProducts = await res.json();
+        renderProductsTable();
+      } catch (err) {
+        console.error('Erro ao carregar produtos:', err);
+      }
+    }
+
+    function renderProductsTable() {
+      const tbody = document.getElementById('products-tbody');
+      const countEl = document.getElementById('prod-count');
+      if (!tbody) return;
+      countEl.textContent = `${allAdminProducts.length} produto(s)`;
+
+      if (!allAdminProducts.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhum produto encontrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = allAdminProducts.map(p => {
+        const priceFormatted = (p.price / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
+        const sectors = (p.sectors || []).map(s => `<span class="badge badge-trial" style="font-size:.65rem;margin:1px;">${SECTOR_LABELS[s] || s}</span>`).join(' ');
+        const typeLabel = p.product_type === 'hardware' ? '<i class="fa-solid fa-microchip"></i> Hardware' : '<i class="fa-solid fa-plane"></i> Serviço';
+        const stockDisplay = p.track_inventory
+          ? `<span style="font-weight:600;color:${p.stock_quantity > 0 ? 'var(--accent-green)' : '#ef4444'}">${p.stock_quantity}</span>
+             <button class="btn btn-sm" onclick="showStockModal('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.stock_quantity})" style="margin-left:4px;padding:2px 6px;font-size:.7rem;"><i class="fa-solid fa-sliders"></i></button>`
+          : '<span style="color:var(--text-muted);">—</span>';
+        const statusBadge = p.is_active
+          ? '<span class="badge badge-active">Ativo</span>'
+          : '<span class="badge badge-suspended">Inativo</span>';
+
+        return `<tr>
+          <td><strong>${p.name}</strong>${p.is_featured ? ' <i class="fa-solid fa-star" style="color:#fbbf24;font-size:.7rem;"></i>' : ''}</td>
+          <td>${typeLabel}</td>
+          <td>${p.category || '—'}</td>
+          <td>${sectors || '—'}</td>
+          <td style="text-align:right;font-family:monospace;">${priceFormatted}</td>
+          <td style="text-align:center;">${stockDisplay}</td>
+          <td style="text-align:center;">${statusBadge}</td>
+          <td style="text-align:center;white-space:nowrap;">
+            <button class="btn btn-sm btn-primary" onclick="editProduct('${p.id}')" title="Editar"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm" onclick="toggleProductActive('${p.id}', ${!p.is_active})" title="${p.is_active ? 'Desativar' : 'Ativar'}" style="background:${p.is_active ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.15)'};border:1px solid ${p.is_active ? 'rgba(239,68,68,.3)' : 'rgba(34,197,94,.3)'};color:${p.is_active ? '#f87171' : '#22c55e'}"><i class="fa-solid fa-${p.is_active ? 'eye-slash' : 'eye'}"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}', '${p.name.replace(/'/g, "\\'")}')" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function showProductModal(id) {
+      editingProductId = id || null;
+      document.getElementById('product-modal-title').textContent = id ? 'Editar Produto' : 'Novo Produto';
+      const form = document.getElementById('product-form');
+      form.reset();
+      document.getElementById('pf-id').value = '';
+      document.getElementById('pf-active').checked = true;
+      document.getElementById('pf-stock-row').style.display = 'none';
+
+      if (id) {
+        const p = allAdminProducts.find(x => x.id === id);
+        if (p) {
+          document.getElementById('pf-id').value = p.id;
+          document.getElementById('pf-name').value = p.name;
+          document.getElementById('pf-product-type').value = p.product_type || 'service';
+          document.getElementById('pf-category').value = p.category || 'flight';
+          document.getElementById('pf-price').value = p.price || 0;
+          document.getElementById('pf-execution-type').value = p.execution_type || '';
+          document.getElementById('pf-description').value = p.description || '';
+          document.getElementById('pf-sectors').value = (p.sectors || []).join(', ');
+          document.getElementById('pf-duration').value = p.duration_hours || '';
+          document.getElementById('pf-min-area').value = p.min_area_ha || '';
+          document.getElementById('pf-active').checked = p.is_active;
+          document.getElementById('pf-featured').checked = p.is_featured;
+          document.getElementById('pf-track-inv').checked = p.track_inventory;
+          document.getElementById('pf-stock').value = p.stock_quantity || 0;
+          document.getElementById('pf-stock-row').style.display = p.track_inventory ? 'block' : 'none';
+        }
+      }
+
+      document.getElementById('product-modal').style.display = 'block';
+    }
+
+    function closeProductModal() {
+      document.getElementById('product-modal').style.display = 'none';
+      editingProductId = null;
+    }
+
+    async function saveProduct(e) {
+      e.preventDefault();
+      const token = localStorage.getItem('gv_token');
+      const id = document.getElementById('pf-id').value;
+      const sectors = document.getElementById('pf-sectors').value
+        .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+      const body = {
+        name: document.getElementById('pf-name').value,
+        product_type: document.getElementById('pf-product-type').value,
+        category: document.getElementById('pf-category').value,
+        price: parseInt(document.getElementById('pf-price').value) || 0,
+        execution_type: document.getElementById('pf-execution-type').value || null,
+        description: document.getElementById('pf-description').value || null,
+        sectors: sectors,
+        duration_hours: parseInt(document.getElementById('pf-duration').value) || null,
+        min_area_ha: parseInt(document.getElementById('pf-min-area').value) || null,
+        is_active: document.getElementById('pf-active').checked,
+        is_featured: document.getElementById('pf-featured').checked,
+        track_inventory: document.getElementById('pf-track-inv').checked,
+        stock_quantity: parseInt(document.getElementById('pf-stock').value) || 0,
+      };
+
+      const url = id ? `${API_BASE}/admin/products/${id}` : `${API_BASE}/admin/products`;
+      const method = id ? 'PATCH' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Erro ao guardar');
+        }
+        closeProductModal();
+        loadProducts();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function editProduct(id) {
+      showProductModal(id);
+    }
+
+    async function toggleProductActive(id, newState) {
+      const token = localStorage.getItem('gv_token');
+      try {
+        await fetch(`${API_BASE}/admin/products/${id}`, {
+          method: 'PATCH',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: newState }),
+        });
+        loadProducts();
+      } catch (err) {
+        alert('Erro: ' + err.message);
+      }
+    }
+
+    async function deleteProduct(id, name) {
+      if (!confirm(`Eliminar o produto "${name}"? Esta ação é irreversível.`)) return;
+      const token = localStorage.getItem('gv_token');
+      try {
+        const res = await fetch(`${API_BASE}/admin/products/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        if (!res.ok) throw new Error('Falha ao eliminar');
+        loadProducts();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    let stockProductId = null;
+    function showStockModal(id, name, current) {
+      stockProductId = id;
+      document.getElementById('stock-product-name').textContent = `${name} — stock atual: ${current}`;
+      document.getElementById('stock-adjust-val').value = '';
+      document.getElementById('stock-adjust-reason').value = '';
+      document.getElementById('stock-modal').style.display = 'block';
+    }
+
+    async function submitStockAdjust() {
+      const val = parseInt(document.getElementById('stock-adjust-val').value);
+      if (!val && val !== 0) { alert('Preencha o valor de ajuste.'); return; }
+      const reason = document.getElementById('stock-adjust-reason').value;
+      const token = localStorage.getItem('gv_token');
+      try {
+        const res = await fetch(`${API_BASE}/admin/products/${stockProductId}/stock`, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adjustment: val, reason: reason || null }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Erro ao ajustar stock');
+        }
+        document.getElementById('stock-modal').style.display = 'none';
+        loadProducts();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
     // ============ VIEW CHANGE HANDLER ============
     function onViewChange(viewId) {
       switch (viewId) {
@@ -2600,6 +2915,9 @@
           break;
         case 'logs':
           loadAuditLogs();
+          break;
+        case 'products':
+          loadProducts();
           break;
       }
     }
