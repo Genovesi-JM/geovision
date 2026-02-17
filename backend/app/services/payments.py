@@ -39,6 +39,7 @@ class PaymentProvider(str, Enum):
     MULTICAIXA_EXPRESS = "multicaixa_express"
     VISA_MASTERCARD = "visa_mastercard"
     IBAN_TRANSFER = "iban_transfer"
+    PAYPAL = "paypal"
 
 
 class PaymentStatus(str, Enum):
@@ -257,19 +258,31 @@ class VisaMastercardAdapter(PaymentAdapter):
 
 
 class IBANTransferAdapter(PaymentAdapter):
-    def __init__(self):
-        self.company_iban = os.getenv("COMPANY_IBAN")
-        self.company_bic = os.getenv("COMPANY_BIC")
-        self.company_bank_name = os.getenv("COMPANY_BANK_NAME", "Banco de Fomento Angola")
+    """Handles both Angolan (AOA) and international (USD/EUR) bank transfers."""
+
+    # Angolan account (AOA)
+    BANK_AOA = {
+        "iban": os.getenv("COMPANY_IBAN", "AO06004400005506300102101"),
+        "bic": os.getenv("COMPANY_BIC", "BFAOAOAO"),
+        "bank_name": os.getenv("COMPANY_BANK_NAME", "Banco de Fomento Angola"),
+        "beneficiary": "GeoVision Lda",
+    }
+    # International account (USD / EUR)
+    BANK_INTL = {
+        "iban": os.getenv("COMPANY_IBAN_INTL", "PT50003600559910003085730"),
+        "bic": os.getenv("COMPANY_BIC_INTL", "MPIOPTPL"),
+        "bank_name": os.getenv("COMPANY_BANK_INTL", "Banco Millennium BCP"),
+        "beneficiary": "GeoVision Lda",
+    }
 
     async def create_payment(self, intent: PaymentIntent) -> PaymentResult:
         reference = f"GV-{intent.order_id[-8:].upper()}"
+        is_international = intent.currency.value in ("USD", "EUR")
+        bank = self.BANK_INTL if is_international else self.BANK_AOA
         return PaymentResult(success=True, payment_id=intent.id,
             status=PaymentStatus.AWAITING_CONFIRMATION, provider_reference=reference,
             raw_response={"transfer_details": {
-                "iban": self.company_iban or "AO06004400005506300102101",
-                "bic": self.company_bic or "BFAOAOAO", "bank_name": self.company_bank_name,
-                "beneficiary": "GeoVision Lda", "reference": reference,
+                **bank, "reference": reference,
                 "amount": intent.amount / 100, "currency": intent.currency.value},
                 "instructions": "Please include the reference in your transfer description. "
                                 "Payment will be confirmed within 1-2 business days after receipt."})
@@ -286,6 +299,96 @@ class IBANTransferAdapter(PaymentAdapter):
         return True
 
 
+class PayPalAdapter(PaymentAdapter):
+    """PayPal payments — placeholder for full SDK integration.
+    Uses PayPal REST API (v2). Set PAYPAL_CLIENT_ID and PAYPAL_SECRET env vars.
+    Defaults to sandbox mode (PAYPAL_MODE=sandbox|live)."""
+
+    def __init__(self):
+        self.client_id = os.getenv("PAYPAL_CLIENT_ID", "")
+        self.secret = os.getenv("PAYPAL_SECRET", "")
+        mode = os.getenv("PAYPAL_MODE", "sandbox")
+        self.api_url = "https://api-m.paypal.com" if mode == "live" else "https://api-m.sandbox.paypal.com"
+
+    async def _get_token(self) -> Optional[str]:
+        if not self.client_id or not self.secret:
+            return None
+        async with httpx.AsyncClient() as client:
+            r = await client.post(f"{self.api_url}/v1/oauth2/token",
+                auth=(self.client_id, self.secret),
+                data={"grant_type": "client_credentials"}, timeout=15.0)
+            if r.status_code == 200:
+                return r.json().get("access_token")
+        return None
+
+    async def create_payment(self, intent: PaymentIntent) -> PaymentResult:
+        token = await self._get_token()
+        if not token:
+            # Mock mode — no PayPal credentials configured
+            logger.warning("PayPal: no credentials, returning mock payment")
+            mock_id = f"PAYPAL-MOCK-{uuid.uuid4().hex[:12].upper()}"
+            return PaymentResult(success=True, payment_id=intent.id,
+                status=PaymentStatus.PENDING, provider_reference=mock_id,
+                redirect_url=f"https://www.sandbox.paypal.com/checkoutnow?token={mock_id}",
+                raw_response={"mock": True})
+
+        currency = intent.currency.value  # USD or EUR
+        amount_str = f"{intent.amount / 100:.2f}"
+        body = {
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "reference_id": intent.order_id,
+                "description": intent.description,
+                "amount": {"currency_code": currency, "value": amount_str},
+            }],
+            "application_context": {
+                "return_url": os.getenv("PAYPAL_RETURN_URL", "https://geovisionops.com/loja.html?paypal=success"),
+                "cancel_url": os.getenv("PAYPAL_CANCEL_URL", "https://geovisionops.com/loja.html?paypal=cancel"),
+                "brand_name": "GeoVision",
+            },
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.post(f"{self.api_url}/v2/checkout/orders",
+                    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                             "PayPal-Request-Id": intent.idempotency_key or intent.id},
+                    json=body, timeout=30.0)
+                if r.status_code in (200, 201):
+                    data = r.json()
+                    approve_link = next((l["href"] for l in data.get("links", []) if l.get("rel") == "approve"), None)
+                    return PaymentResult(success=True, payment_id=intent.id,
+                        status=PaymentStatus.PENDING, provider_reference=data.get("id"),
+                        redirect_url=approve_link, raw_response=data)
+                return PaymentResult(success=False, payment_id=intent.id,
+                    status=PaymentStatus.FAILED, error_message=r.text)
+            except Exception as e:
+                logger.error(f"PayPal API error: {e}")
+                return PaymentResult(success=False, payment_id=intent.id,
+                    status=PaymentStatus.FAILED, error_message=str(e))
+
+    async def check_status(self, provider_reference: str) -> PaymentStatus:
+        token = await self._get_token()
+        if not token:
+            return PaymentStatus.COMPLETED
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{self.api_url}/v2/checkout/orders/{provider_reference}",
+                headers={"Authorization": f"Bearer {token}"}, timeout=10.0)
+            if r.status_code == 200:
+                st = r.json().get("status", "")
+                m = {"CREATED": PaymentStatus.PENDING, "APPROVED": PaymentStatus.PROCESSING,
+                     "COMPLETED": PaymentStatus.COMPLETED, "VOIDED": PaymentStatus.CANCELLED}
+                return m.get(st, PaymentStatus.PENDING)
+        return PaymentStatus.PENDING
+
+    async def refund(self, provider_reference: str, amount: Optional[int] = None) -> RefundResult:
+        return RefundResult(success=False, refund_id="", amount=amount or 0,
+            status="pending", error_message="PayPal refunds — use PayPal dashboard")
+
+    def verify_webhook(self, payload: bytes, signature: str) -> bool:
+        # PayPal webhook verification requires Webhook ID — implement when webhooks are set up
+        return True
+
+
 # ============ PAYMENT ORCHESTRATOR — DB-backed ============
 
 class PaymentOrchestrator:
@@ -297,6 +400,7 @@ class PaymentOrchestrator:
             PaymentProvider.MULTICAIXA_EXPRESS: MulticaixaExpressAdapter(),
             PaymentProvider.VISA_MASTERCARD: VisaMastercardAdapter(),
             PaymentProvider.IBAN_TRANSFER: IBANTransferAdapter(),
+            PaymentProvider.PAYPAL: PayPalAdapter(),
         }
 
     def _model(self):

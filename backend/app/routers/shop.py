@@ -102,7 +102,8 @@ class BillingInfo(BaseModel):
 
 
 class CheckoutRequest(BaseModel):
-    payment_method: str = Field(..., description="multicaixa_express, visa_mastercard, iban_angola, iban_international")
+    payment_method: str = Field(..., description="multicaixa_express, visa_mastercard, iban_angola, iban_international, paypal")
+    currency: str = Field(default="AOA", description="AOA, USD, or EUR")
     billing_info: BillingInfo
     customer_notes: Optional[str] = None
 
@@ -764,6 +765,16 @@ async def clear_cart(cart_id: str, db: Session = Depends(get_db)):
 
 # ============ CHECKOUT ENDPOINTS ============
 
+@router.get("/payment-methods")
+def get_payment_methods():
+    """Return available payment methods per currency."""
+    from app.services.orders import CURRENCY_PAYMENT_METHODS
+    return {
+        currency: [{"value": m.value, "label": m.value} for m in methods]
+        for currency, methods in CURRENCY_PAYMENT_METHODS.items()
+    }
+
+
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
 async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
@@ -784,7 +795,22 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(
             status_code=400,
             detail=f"Método de pagamento inválido: {request.payment_method}"
         )
-    
+
+    # Validate currency
+    req_currency = (request.currency or "AOA").upper()
+    if req_currency not in ("AOA", "USD", "EUR"):
+        raise HTTPException(status_code=400, detail=f"Moeda inválida: {req_currency}")
+
+    # Validate currency ↔ payment method compatibility
+    from app.services.orders import CURRENCY_PAYMENT_METHODS
+    allowed = CURRENCY_PAYMENT_METHODS.get(req_currency, [])
+    if payment_method not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Método {payment_method.value} não disponível para {req_currency}. "
+                   f"Opções: {', '.join(m.value for m in allowed)}"
+        )
+
     order_service = get_order_service(db)
     
     result = await order_service.checkout(
@@ -793,6 +819,7 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(
         payment_method=payment_method,
         billing_info=request.billing_info.model_dump(),
         customer_notes=request.customer_notes,
+        currency=req_currency,
     )
     
     return CheckoutResponse(

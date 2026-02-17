@@ -47,6 +47,15 @@ class PaymentMethod(str, Enum):
     VISA_MASTERCARD = "visa_mastercard"
     IBAN_ANGOLA = "iban_angola"
     IBAN_INTERNATIONAL = "iban_international"
+    PAYPAL = "paypal"
+
+
+# Currency → allowed payment methods
+CURRENCY_PAYMENT_METHODS = {
+    "AOA": [PaymentMethod.MULTICAIXA_EXPRESS, PaymentMethod.IBAN_ANGOLA],
+    "USD": [PaymentMethod.VISA_MASTERCARD, PaymentMethod.IBAN_INTERNATIONAL, PaymentMethod.PAYPAL],
+    "EUR": [PaymentMethod.VISA_MASTERCARD, PaymentMethod.IBAN_INTERNATIONAL, PaymentMethod.PAYPAL],
+}
 
 
 class EventType(str, Enum):
@@ -196,7 +205,8 @@ class OrderService:
 
     async def checkout(self, cart_id: str, user_id: str, payment_method: PaymentMethod,
                        billing_info: Optional[Dict[str, Any]] = None,
-                       customer_notes: Optional[str] = None) -> CheckoutResult:
+                       customer_notes: Optional[str] = None,
+                       currency: Optional[str] = None) -> CheckoutResult:
         from app.services.cart import get_cart_service
         from app.services.payments import get_payment_orchestrator, PaymentProvider, Currency
 
@@ -220,7 +230,7 @@ class OrderService:
             id=order_id, order_number=order_number, user_id=user_id,
             company_id=cart.company_id, site_id=cart.site_id,
             status=OrderStatus.CREATED.value, payment_method=payment_method.value,
-            payment_reference=payment_reference, currency=cart.currency,
+            payment_reference=payment_reference, currency=currency or cart.currency or "AOA",
             subtotal=cart.subtotal, discount_amount=cart.discount_amount,
             coupon_code=cart.coupon_code, tax_amount=cart.tax_amount,
             delivery_cost=cart.delivery_cost, total=cart.total,
@@ -293,14 +303,20 @@ class OrderService:
             PaymentMethod.VISA_MASTERCARD: PaymentProvider.VISA_MASTERCARD,
             PaymentMethod.IBAN_ANGOLA: PaymentProvider.IBAN_TRANSFER,
             PaymentMethod.IBAN_INTERNATIONAL: PaymentProvider.IBAN_TRANSFER,
+            PaymentMethod.PAYPAL: PaymentProvider.PAYPAL,
         }
         provider = provider_map.get(payment_method)
         if not provider:
             return None
+        # Use the order's currency instead of hardcoded AOA
+        try:
+            order_currency = Currency(order.currency or "AOA")
+        except ValueError:
+            order_currency = Currency.AOA
         result = await orchestrator.create_payment(
             company_id=order.company_id or "default",
             order_id=order.id, amount=order.total,
-            currency=Currency.AOA, provider=provider,
+            currency=order_currency, provider=provider,
             description=f"Pedido {order.order_number}",
             idempotency_key=f"order-{order.id}",
         )

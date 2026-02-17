@@ -744,6 +744,35 @@
       gap: 0.5rem;
     }
 
+    .currency-selector {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .currency-option {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 0.8rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(148,163,184,0.3);
+      background: rgba(15,23,42,0.8);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .currency-option:hover { border-color: #38bdf8; }
+    .currency-option:has(input:checked) {
+      border-color: #22c55e;
+      background: rgba(34,197,94,0.1);
+    }
+    .currency-option input { accent-color: #22c55e; }
+    .currency-flag { font-size: 1.1rem; }
+    @media (max-width: 480px) {
+      .currency-selector { flex-direction: column; }
+    }
+
     .payment-option {
       display: flex;
       align-items: center;
@@ -1214,34 +1243,64 @@
         </div>
 
         <div class="checkout-section">
+          <h4 data-i18n="loja.checkout.currency">Currency</h4>
+          <div class="currency-selector">
+            <label class="currency-option">
+              <input type="radio" name="checkout-currency" value="AOA" checked onchange="onCurrencyChange(this.value)" />
+              <span class="currency-flag">🇦🇴</span>
+              <span>AOA <small style="color:#94a3b8;">Kwanza</small></span>
+            </label>
+            <label class="currency-option">
+              <input type="radio" name="checkout-currency" value="USD" onchange="onCurrencyChange(this.value)" />
+              <span class="currency-flag">🇺🇸</span>
+              <span>USD <small style="color:#94a3b8;">Dollar</small></span>
+            </label>
+            <label class="currency-option">
+              <input type="radio" name="checkout-currency" value="EUR" onchange="onCurrencyChange(this.value)" />
+              <span class="currency-flag">🇪🇺</span>
+              <span>EUR <small style="color:#94a3b8;">Euro</small></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="checkout-section">
           <h4 data-i18n="loja.checkout.paymentMethod">Payment Method</h4>
           <div class="payment-methods">
-            <label class="payment-option" onclick="selectPayment('multicaixa_express')">
+            <!-- AOA methods -->
+            <label class="payment-option" data-currencies="AOA" onclick="selectPayment('multicaixa_express')">
               <input type="radio" name="payment" value="multicaixa_express" checked />
               <div>
                 <div class="payment-label" data-i18n="loja.payment.multicaixa">Multicaixa Express</div>
-                <div class="payment-desc" data-i18n="loja.payment.multicaixaDesc">Payment by QR code or reference</div>
+                <div class="payment-desc" data-i18n="loja.payment.multicaixaDesc">Pagamento por QR code ou referência</div>
               </div>
             </label>
-            <label class="payment-option" onclick="selectPayment('visa_mastercard')">
+            <label class="payment-option" data-currencies="AOA" onclick="selectPayment('iban_angola')">
+              <input type="radio" name="payment" value="iban_angola" />
+              <div>
+                <div class="payment-label" data-i18n="loja.payment.ibanAngola">IBAN Angola</div>
+                <div class="payment-desc" data-i18n="loja.payment.ibanAngolaDesc">Transferência bancária local em AOA</div>
+              </div>
+            </label>
+            <!-- USD/EUR methods -->
+            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('visa_mastercard')" style="display:none;">
               <input type="radio" name="payment" value="visa_mastercard" />
               <div>
                 <div class="payment-label" data-i18n="loja.payment.visa">Visa / Mastercard</div>
-                <div class="payment-desc" data-i18n="loja.payment.visaDesc">International credit/debit card</div>
+                <div class="payment-desc" data-i18n="loja.payment.visaDesc">Cartão de crédito ou débito internacional</div>
               </div>
             </label>
-            <label class="payment-option" onclick="selectPayment('iban_angola')">
-              <input type="radio" name="payment" value="iban_angola" />
-              <div>
-                <div class="payment-label" data-i18n="loja.payment.ibanAngola">IBAN Transfer (Angola)</div>
-                <div class="payment-desc" data-i18n="loja.payment.ibanAngolaDesc">Local AOA bank transfer</div>
-              </div>
-            </label>
-            <label class="payment-option" onclick="selectPayment('iban_international')">
+            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('iban_international')" style="display:none;">
               <input type="radio" name="payment" value="iban_international" />
               <div>
-                <div class="payment-label" data-i18n="loja.payment.ibanIntl">IBAN Transfer (International)</div>
-                <div class="payment-desc" data-i18n="loja.payment.ibanIntlDesc">SWIFT/SEPA in EUR</div>
+                <div class="payment-label" data-i18n="loja.payment.ibanIntl">IBAN Internacional</div>
+                <div class="payment-desc" data-i18n="loja.payment.ibanIntlDesc">SWIFT/SEPA em USD ou EUR</div>
+              </div>
+            </label>
+            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('paypal')" style="display:none;">
+              <input type="radio" name="payment" value="paypal" />
+              <div>
+                <div class="payment-label"><i class="fa-brands fa-paypal" style="color:#003087;"></i> PayPal</div>
+                <div class="payment-desc">Pagamento seguro via PayPal</div>
               </div>
             </label>
           </div>

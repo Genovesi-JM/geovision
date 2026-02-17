@@ -37,19 +37,51 @@ function generateCartId() {
 
 // ============ FORMATAÇÃO ============
 
-function formatAOA(cents) {
+let selectedCurrency = "AOA";
+
+function formatPrice(cents, currency) {
+  const cur = currency || selectedCurrency || "AOA";
   const value = cents / 100;
-  return value.toLocaleString("pt-AO", {
-    style: "currency",
-    currency: "AOA",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+  const locales = { AOA: "pt-AO", USD: "en-US", EUR: "pt-PT" };
+  return value.toLocaleString(locales[cur] || "pt-AO", {
+    style: "currency", currency: cur,
+    minimumFractionDigits: cur === "AOA" ? 0 : 2,
+    maximumFractionDigits: cur === "AOA" ? 0 : 2,
   });
 }
 
+function formatAOA(cents) {
+  return formatPrice(cents, selectedCurrency);
+}
+
 function formatAOASimple(cents) {
-  const value = cents / 100;
-  return value.toLocaleString("pt-AO") + " AOA";
+  return formatPrice(cents, selectedCurrency);
+}
+
+// ============ CURRENCY / PAYMENT TOGGLE ============
+
+function onCurrencyChange(currency) {
+  selectedCurrency = currency;
+  // Show/hide payment methods based on currency
+  document.querySelectorAll('.payment-option[data-currencies]').forEach(el => {
+    const currencies = el.getAttribute('data-currencies').split(',');
+    if (currencies.includes(currency)) {
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'none';
+      // Uncheck hidden radios
+      const radio = el.querySelector('input[type="radio"]');
+      if (radio) radio.checked = false;
+    }
+  });
+  // Auto-select first visible payment method
+  const firstVisible = document.querySelector('.payment-option[data-currencies]:not([style*="display: none"]) input[type="radio"]');
+  if (firstVisible) {
+    firstVisible.checked = true;
+    selectPayment(firstVisible.value);
+  }
+  // Re-render checkout summary with new currency
+  renderCheckoutSummary();
 }
 
 // ============ CARREGAR PRODUTOS ============
@@ -552,6 +584,12 @@ function closeCheckoutModal() {
     paymentInstructions.style.display = "none";
     paymentInstructions.innerHTML = "";
   }
+
+  // Reset currency to AOA
+  selectedCurrency = "AOA";
+  const aoaRadio = document.querySelector('input[name="checkout-currency"][value="AOA"]');
+  if (aoaRadio) aoaRadio.checked = true;
+  onCurrencyChange("AOA");
 }
 
 function renderCheckoutSummary() {
@@ -602,6 +640,7 @@ async function processCheckout() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         payment_method: paymentMethod,
+        currency: selectedCurrency || "AOA",
         billing_info: {
           name,
           email,
@@ -695,22 +734,38 @@ function showPaymentInstructions(result) {
         <div class="bank-details">
           <p><strong>Banco:</strong> ${td.bank_name}</p>
           <p><strong>IBAN:</strong> ${td.iban}</p>
-          <p><strong>Referência:</strong> ${result.order_number}</p>
-          <p><strong>Valor:</strong> ${formatAOA(currentCart?.total || 0)}</p>
+          <p><strong>Beneficiário:</strong> ${td.beneficiary || "GeoVision Lda"}</p>
+          <p><strong>Referência:</strong> ${td.reference || result.order_number}</p>
+          <p><strong>Valor:</strong> ${td.amount?.toLocaleString("pt-AO")} AOA</p>
         </div>
       </div>
     `;
   } else if (result.payment_method === "iban_international" && pd.transfer_details) {
     const td = pd.transfer_details;
+    const cur = td.currency || "EUR";
     html += `
       <div class="payment-instructions">
-        <h3>Transferência Internacional (SWIFT)</h3>
+        <h3>Transferência Internacional (SWIFT/SEPA)</h3>
         <div class="bank-details">
           <p><strong>Banco:</strong> ${td.bank_name}</p>
           <p><strong>IBAN:</strong> ${td.iban}</p>
-          <p><strong>SWIFT/BIC:</strong> ${td.swift_bic}</p>
-          <p><strong>Referência:</strong> ${result.order_number}</p>
+          <p><strong>SWIFT/BIC:</strong> ${td.bic}</p>
+          <p><strong>Beneficiário:</strong> ${td.beneficiary || "GeoVision Lda"}</p>
+          <p><strong>Referência:</strong> ${td.reference || result.order_number}</p>
+          <p><strong>Valor:</strong> ${td.amount?.toLocaleString("pt-PT", {minimumFractionDigits: 2})} ${cur}</p>
         </div>
+      </div>
+    `;
+  } else if (result.payment_method === "paypal" && pd.redirect_url) {
+    html += `
+      <div class="payment-instructions">
+        <h3><i class="fa-brands fa-paypal" style="color:#003087;"></i> Pagar com PayPal</h3>
+        <p>Serás redirecionado para o PayPal para completar o pagamento.</p>
+        <a href="${pd.redirect_url}" class="btn-payment" target="_blank"
+           style="display:inline-flex;align-items:center;gap:.5rem;background:#0070ba;color:#fff;padding:.8rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;margin:1rem 0;">
+          <i class="fa-brands fa-paypal"></i> Pagar com PayPal
+        </a>
+        <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">Ref: ${pd.provider_reference || ""}</p>
       </div>
     `;
   } else {
