@@ -140,6 +140,9 @@ function updateDemoPanel({ payload, response, error, status }) {
 
 // ---------- PRODUTOS / FILTROS ----------
 
+let activeSector = "all";
+let activeType = "all";
+
 function mapCategoryLabel(cat) {
   if (!cat) return "Outros";
   const c = cat.toLowerCase();
@@ -162,11 +165,11 @@ function mapFilterKey(cat) {
   if (c.includes("insumo") || c.includes("semente") || c.includes("fertilizante") || c.includes("ração")) {
     return "insumo";
   }
-  if (c.includes("pacote") || c.includes("pack")) return "pacote";
+  if (c.includes("pacote") || c.includes("pack") || c.includes("subscription")) return "subscription";
   return "outros";
 }
 
-function renderProducts(filterKey = "all") {
+function renderProducts() {
   const grid = document.getElementById("loja-grid");
   const empty = document.getElementById("loja-empty");
 
@@ -175,8 +178,18 @@ function renderProducts(filterKey = "all") {
   grid.innerHTML = "";
 
   let filtered = allProducts;
-  if (filterKey !== "all") {
-    filtered = allProducts.filter((p) => mapFilterKey(p.category) === filterKey);
+
+  // Filter by sector
+  if (activeSector !== "all") {
+    filtered = filtered.filter((p) => {
+      const sectors = p.sectors || [];
+      return sectors.includes(activeSector);
+    });
+  }
+
+  // Filter by type
+  if (activeType !== "all") {
+    filtered = filtered.filter((p) => mapFilterKey(p.category) === activeType);
   }
 
   if (!filtered.length) {
@@ -193,6 +206,17 @@ function renderProducts(filterKey = "all") {
     const catLabel = mapCategoryLabel(p.category);
     const unitText = p.unit_label ? `/${p.unit_label}` : "";
 
+    // Sector badges
+    const sectorLabels = {
+      mining: "Mineração", infrastructure: "Infraestrutura",
+      agro: "Agricultura", demining: "Desminagem",
+      solar: "Solar & Energia", livestock: "Pecuária",
+      construction: "Construção"
+    };
+    const sectorBadges = (p.sectors || []).map(s =>
+      `<span class="sector-badge ${s}">${sectorLabels[s] || s}</span>`
+    ).join("");
+
     card.innerHTML = `
       <div>
         <div class="loja-card-tag">${catLabel}</div>
@@ -200,6 +224,7 @@ function renderProducts(filterKey = "all") {
         <p class="loja-card-desc">
           ${p.description || "Serviço ou produto ligado à inteligência de campo GeoVision."}
         </p>
+        ${sectorBadges ? `<div class="loja-card-sectors">${sectorBadges}</div>` : ""}
       </div>
       <div class="loja-card-footer">
         <div class="loja-price">
@@ -219,13 +244,25 @@ function renderProducts(filterKey = "all") {
 }
 
 function setupFilters() {
-  const buttons = document.querySelectorAll(".loja-filter-btn");
-  buttons.forEach((btn) => {
+  // Sector filters
+  const sectorBtns = document.querySelectorAll("#sector-filters .loja-filter-btn");
+  sectorBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
-      buttons.forEach((b) => b.classList.remove("active"));
+      sectorBtns.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
-      const key = btn.getAttribute("data-filter");
-      renderProducts(key);
+      activeSector = btn.getAttribute("data-sector") || "all";
+      renderProducts();
+    });
+  });
+
+  // Type filters
+  const typeBtns = document.querySelectorAll("#type-filters .loja-filter-btn");
+  typeBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      typeBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      activeType = btn.getAttribute("data-filter") || "all";
+      renderProducts();
     });
   });
 }
@@ -311,9 +348,9 @@ async function loadProductsFromAPI() {
     const data = await res.json();
     allProducts = (data || []).map((p) => ({
       ...p,
-      price_eur: Number(p.price_cents || 0) / 100,
+      price_eur: Number(p.price_cents || p.price || 0) / 100,
     }));
-    renderProducts("all");
+    renderProducts();
   } catch (err) {
     console.error(err);
     document.getElementById("loja-empty").style.display = "block";
