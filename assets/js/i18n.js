@@ -688,6 +688,62 @@ const translations = {
   "about.cta.contactOps": { pt: "Contactar Equipa de Operações", en: "Contact Operations Team", es: "Contactar Equipo de Operaciones" },
   "about.footer.copyright": { pt: "© 2024 GeoVision. Inteligência Operacional para Ativos Estratégicos.", en: "© 2024 GeoVision. Operational Intelligence for Strategic Assets.", es: "© 2024 GeoVision. Inteligencia Operacional para Activos Estratégicos." },
 
+  // ============ TECHNOLOGY PAGE ============
+  "tech.hero.eyebrow": { pt: "O Que Usamos", en: "What We Use", es: "Lo Que Usamos" },
+  "tech.hero.title": { pt: "Tecnologia & Frota de Drones", en: "Technology & Drone Fleet", es: "Tecnología & Flota de Drones" },
+  "tech.hero.subtitle": { pt: "Frota de drones de grau industrial, sensores avançados e stack de software profissional que transforma dados aéreos em inteligência operacional.", en: "Industrial-grade drone fleet, advanced sensors and professional software stack that transforms aerial data into operational intelligence.", es: "Flota de drones de grado industrial, sensores avanzados y stack de software profesional que transforma datos aéreos en inteligencia operacional." },
+
+  // -- Drone Fleet Section --
+  "tech.fleet.eyebrow": { pt: "Frota Aérea", en: "Aerial Fleet", es: "Flota Aérea" },
+  "tech.fleet.title": { pt: "A Nossa Frota de Drones", en: "Our Drone Fleet", es: "Nuestra Flota de Drones" },
+  "tech.fleet.desc": { pt: "Plataformas UAV de grau industrial selecionadas para cada tipo de missão — desde levantamentos volumétricos de alta precisão até inspeções térmicas e pulverização agrícola.", en: "Industrial-grade UAV platforms selected for each mission type — from high-precision volumetric surveys to thermal inspections and agricultural spraying.", es: "Plataformas UAV de grado industrial seleccionadas para cada tipo de misión — desde levantamientos volumétricos de alta precisión hasta inspecciones térmicas y pulverización agrícola." },
+
+  // -- Drone Cards --
+  "tech.drone.m350.role": { pt: "Flagship — Missões Críticas", en: "Flagship — Critical Missions", es: "Flagship — Misiones Críticas" },
+  "tech.drone.m350.desc": { pt: "Plataforma enterprise com precisão RTK centimétrica, resistência IP55 e autonomia de até 55 min. O workhorse para levantamentos volumétricos, LiDAR, inspeções de infraestrutura e missões em condições adversas.", en: "Enterprise platform with centimeter-level RTK precision, IP55 resistance and up to 55 min flight time. The workhorse for volumetric surveys, LiDAR, infrastructure inspections and adverse-condition missions.", es: "Plataforma enterprise con precisión RTK centimétrica, resistencia IP55 y autonomía de hasta 55 min. El workhorse para levantamientos volumétricos, LiDAR, inspecciones de infraestructura y misiones en condiciones adversas." },
+
+  "tech.drone.m3e.role": { pt: "Versátil — Inspeções & Mapeamento Rápido", en: "Versatile — Inspections & Rapid Mapping", es: "Versátil — Inspecciones & Mapeo Rápido" },
+  "tech.drone.m3e.desc": { pt: "Compacto e portátil com câmera 4/3 CMOS de 20 MP, módulo RTK e câmera térmica opcional. Ideal para inspeções rápidas, mapeamento de áreas menores e reconhecimento de sites.", en: "Compact and portable with 20 MP 4/3 CMOS camera, RTK module and optional thermal camera. Ideal for rapid inspections, smaller area mapping and site reconnaissance.", es: "Compacto y portátil con cámara 4/3 CMOS de 20 MP, módulo RTK y cámara térmica opcional. Ideal para inspecciones rápidas, mapeo de áreas menores y reconocimiento de sitios." },
+
+  "tech.drone.m3m.role": { pt: "Agricultura de Precisão", en: "Precision Agriculture", es: "Agricultura de Precisión" },
+  "tech.drone.m3m.desc": { pt: "Equipado com 4 câmeras multiespectrais (Green, Red, Red Edge, NIR) + 1 RGB. Gera índices NDVI, NDRE e mapas de stress hídrico para diagnóstico agrícola preciso e prescrição de tratamento.", en: "Equipped with 4 multispectral cameras (Green, Red, Red Edge, NIR) + 1 RGB. Generates NDVI, NDRE indices and water stress maps for precise agricultural diagnostics and treatment prescription.", es: "Equipado con 4 cámaras multiespectrales (Green, Red, Red Edge, NIR) + 1 RGB. Genera índices NDVI, NDRE y mapas de estrés hídrico para diagnóstico agrícola preciso y prescripción de tratamiento." },
+
+  "tech.drone.t40.role": { pt: "Pulverização & Dispersão", en: "Spraying & Spreading", es: "Pulverización & Dispersión" },
+  "tech.drone.t40.desc": { pt: "O maior drone agrícola da DJI — 40 kg de capacidade de pulverização e 50 kg de dispersão de sementes/fertilizante. Cobertura de até 21 ha/hora com sistema de pulverização omnidirecional.", en: "DJI's largest agricultural drone — 40 kg spray capacity and 50 kg seed/fertilizer spreading. Coverage up to 21 ha/hour with omnidirectional spray system.", es: "El mayor dron agrícola de DJI — 40 kg de capacidad de pulverización y 50 kg de dispersión de semillas/fertilizante. Cobertura de hasta 21 ha/hora con sistema de pulverización omnidireccional." },
+
+  "tech.drone.m30t.role": { pt: "Inspeção Térmica & Segurança", en: "Thermal Inspection & Security", es: "Inspección Térmica & Seguridad" },
+  "tech.drone.m30t.desc": { pt: "Plataforma robusta com câmera térmica 640×512 integrada, zoom óptico 16× e telémetro laser. Inspeção de painéis solares, linhas de transmissão e monitoramento de segurança perimetral.", en: "Robust platform with integrated 640×512 thermal camera, 16× optical zoom and laser rangefinder. Solar panel inspection, transmission line inspection and perimeter security monitoring.", es: "Plataforma robusta con cámara térmica 640×512 integrada, zoom óptico 16× y telémetro láser. Inspección de paneles solares, líneas de transmisión y monitoreo de seguridad perimetral." },
+
+  "tech.drone.dock2.role": { pt: "Estação Autónoma de Voo", en: "Autonomous Flight Station", es: "Estación Autónoma de Vuelo" },
+  "tech.drone.dock2.desc": { pt: "Estação de pouso e carregamento autónoma que permite missões recorrentes sem operador no local. Monitoramento contínuo 24/7 de sites industriais com missões programadas e alertas automáticos.", en: "Autonomous landing and charging station enabling recurring missions without on-site operator. Continuous 24/7 monitoring of industrial sites with scheduled missions and automatic alerts.", es: "Estación de aterrizaje y carga autónoma que permite misiones recurrentes sin operador en el sitio. Monitoreo continuo 24/7 de sitios industriales con misiones programadas y alertas automáticas." },
+
+  // -- Software Stack Section --
+  "tech.sw.eyebrow": { pt: "O Que Usamos", en: "What We Use", es: "Lo Que Usamos" },
+  "tech.sw.title": { pt: "Software & Stack de Inteligência", en: "Software & Intelligence Stack", es: "Software & Stack de Inteligencia" },
+  "tech.sw.desc": { pt: "Ecossistema integrado de plataformas profissionais que transforma dados aéreos em inteligência operacional acionável.", en: "Integrated ecosystem of professional platforms that transforms aerial data into actionable operational intelligence.", es: "Ecosistema integrado de plataformas profesionales que transforma datos aéreos en inteligencia operacional accionable." },
+
+  // -- Why GeoVision Section --
+  "tech.why.eyebrow": { pt: "Nossa Vantagem", en: "Our Advantage", es: "Nuestra Ventaja" },
+  "tech.why.title": { pt: "Porquê a GeoVision", en: "Why GeoVision", es: "Por Qué GeoVision" },
+  "tech.why.multiSector.title": { pt: "Capacidade Multi-Setor", en: "Multi-Sector Capability", es: "Capacidad Multi-Sector" },
+  "tech.why.multiSector.desc": { pt: "Expertise comprovada em mineração, infraestrutura, agricultura, desminagem e energia.", en: "Proven expertise across mining, infrastructure, agriculture, demining and energy sectors.", es: "Experiencia comprobada en minería, infraestructura, agricultura, desminaje y energía." },
+  "tech.why.enterprise.title": { pt: "Enterprise-Ready", en: "Enterprise-Ready", es: "Enterprise-Ready" },
+  "tech.why.enterprise.desc": { pt: "Plataformas de grau industrial com segurança robusta, compliance e escalabilidade.", en: "Industrial-grade platforms with robust security, compliance and scalability.", es: "Plataformas de grado industrial con seguridad robusta, compliance y escalabilidad." },
+  "tech.why.security.title": { pt: "Dados Seguros", en: "Secure Data", es: "Datos Seguros" },
+  "tech.why.security.desc": { pt: "Encriptação end-to-end, controlo de acessos e protocolos de compliance de dados.", en: "End-to-end encryption, access controls and compliant data handling protocols.", es: "Encriptación end-to-end, control de accesos y protocolos de compliance de datos." },
+  "tech.why.risk.title": { pt: "Modelação de Risco", en: "Risk Modeling", es: "Modelado de Riesgo" },
+  "tech.why.risk.desc": { pt: "Frameworks proprietários de risco adaptados a cada setor operacional.", en: "Proprietary risk frameworks tailored to sector-specific operational challenges.", es: "Frameworks propietarios de riesgo adaptados a cada sector operacional." },
+  "tech.why.payment.title": { pt: "Multi-Moeda", en: "Multi-Currency", es: "Multi-Moneda" },
+  "tech.why.payment.desc": { pt: "Pagamento flexível em AOA, USD e EUR com múltiplos métodos de pagamento.", en: "Flexible payment in AOA, USD and EUR with multiple payment methods.", es: "Pago flexible en AOA, USD y EUR con múltiples métodos de pago." },
+  "tech.why.local.title": { pt: "Expertise Local", en: "Local Expertise", es: "Experiencia Local" },
+  "tech.why.local.desc": { pt: "Conhecimento profundo do terreno angolano, regulamentos e contextos operacionais.", en: "Deep understanding of Angolan terrain, regulations and operational contexts.", es: "Conocimiento profundo del terreno angoleño, regulaciones y contextos operacionales." },
+
+  // -- CTA Section --
+  "tech.cta.tagline": { pt: "Inteligência. Precisão. Execução.", en: "Intelligence. Precision. Execution.", es: "Inteligencia. Precisión. Ejecución." },
+  "tech.cta.subtitle": { pt: "Pronto para transformar as suas operações? Fale com a nossa equipa.", en: "Ready to transform your operations? Talk to our team.", es: "¿Listo para transformar sus operaciones? Hable con nuestro equipo." },
+  "tech.cta.services": { pt: "Explorar Serviços", en: "Explore Services", es: "Explorar Servicios" },
+  "tech.cta.contact": { pt: "Contactar Equipa", en: "Contact Team", es: "Contactar Equipo" },
+
   // ============ SECTORS PAGE - MINING STEPS ============
   "sectors.mining.step1.label": { pt: "PASSO 01", en: "STEP 01", es: "PASO 01" },
   "sectors.mining.step1.title": { pt: "Voo e Nuvem de Pontos", en: "Flight & Point Cloud", es: "Vuelo y Nube de Puntos" },
