@@ -737,6 +737,17 @@ const translations = {
   "tech.drone.t40.role": { pt: "Execução Agrícola Inteligente", en: "Smart Agricultural Execution", es: "Ejecución Agrícola Inteligente" },
   "tech.drone.t40.desc": { pt: "40 kg de pulverização e 50 kg de dispersão com sistema omnidirecional. Aplicação de taxa variável baseada em mapas NDVI do Mavic 3M — cobertura até 21 ha/hora com precisão prescritiva por zona.", en: "40 kg spray and 50 kg spread capacity with omnidirectional system. Variable rate application based on NDVI maps from Mavic 3M — coverage up to 21 ha/hour with prescriptive precision per zone.", es: "40 kg de pulverización y 50 kg de dispersión con sistema omnidireccional. Aplicación de tasa variable basada en mapas NDVI del Mavic 3M — cobertura hasta 21 ha/hora con precisión prescriptiva por zona." },
 
+  // -- Sector Tags --
+  "tech.sectors.label": { pt: "Setores", en: "Sectors", es: "Sectores" },
+  "tech.sector.mining": { pt: "Mineração", en: "Mining", es: "Minería" },
+  "tech.sector.infrastructure": { pt: "Infraestrutura", en: "Infrastructure", es: "Infraestructura" },
+  "tech.sector.construction": { pt: "Construção", en: "Construction", es: "Construcción" },
+  "tech.sector.energy": { pt: "Energia", en: "Energy", es: "Energía" },
+  "tech.sector.demining": { pt: "Desminagem", en: "Demining", es: "Desminado" },
+  "tech.sector.agriculture": { pt: "Agricultura", en: "Agriculture", es: "Agricultura" },
+  "tech.sector.livestock": { pt: "Pecuária", en: "Livestock", es: "Ganadería" },
+  "tech.sector.allSectors": { pt: "Todos os Setores", en: "All Sectors", es: "Todos los Sectores" },
+
   "tech.fleet.institutional": { pt: "A frota GeoVision foi concebida para cobrir 100% dos cenários operacionais com máxima eficiência e zero redundância — cada aeronave tem um papel claro no ecossistema.", en: "The GeoVision fleet was designed to cover 100% of operational scenarios with maximum efficiency and zero redundancy — each aircraft has a clear role in the ecosystem.", es: "La flota GeoVision fue diseñada para cubrir el 100% de los escenarios operacionales con máxima eficiencia y cero redundancia — cada aeronave tiene un rol claro en el ecosistema." },
 
   // -- Software Stack Section --
