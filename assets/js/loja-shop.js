@@ -669,9 +669,13 @@ async function processCheckout() {
   });
 
   try {
+    const token = localStorage.getItem("gv_token");
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
     const res = await fetch(`${API_URL}/shop/checkout/${cartId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         payment_method: paymentMethod,
         currency: selectedCurrency || "AOA",
