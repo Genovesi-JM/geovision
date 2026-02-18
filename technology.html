@@ -181,10 +181,40 @@
     @media (max-width: 768px) {
       .navbar-nav { display: none; }
       .navbar-toggle { display: flex; }
+      .navbar-nav.show {
+        display: flex; flex-direction: column; position: absolute;
+        top: 100%; right: 0; background: #0b1428;
+        border-radius: 12px; border: 1px solid rgba(95,212,255,0.3);
+        padding: 0.5rem 0; min-width: 200px; z-index: 9999;
+        box-shadow: 0 14px 36px rgba(0,0,0,0.8);
+      }
+      .navbar-nav.show a { display: block; padding: 0.9rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+      .navbar-nav.show a:last-child { border-bottom: none; }
       .lang-toggle { margin-left: auto; margin-right: 0.5rem; padding-left: 0; border-left: none; }
+      .lang-toggle.show { display: flex; position: static; justify-content: center; padding: 0.7rem 1rem; gap: 0.5rem; border-top: 1px solid rgba(95,212,255,0.2); border-left: none; margin-left: 0; padding-left: 1rem; }
     }
 
     /* ============ LIGHT MODE OVERRIDES ============ */
+    [data-theme="light"] {
+      --bg-dark: #f8fafc !important;
+      --bg-darker: #e2e8f0 !important;
+      --bg-card: rgba(255, 255, 255, 0.92) !important;
+      --bg-surface: rgba(241, 245, 249, 0.8) !important;
+      --border: rgba(51, 65, 85, 0.15) !important;
+      --text-primary: #0f172a !important;
+      --text-secondary: #475569 !important;
+      --text-muted: #64748b !important;
+      --accent: #0284c7 !important;
+      --accent-green: #16a34a !important;
+      --accent-blue: #0284c7 !important;
+      --accent-cyan: #0891b2 !important;
+      --gradient-primary: linear-gradient(135deg, #0284c7, #06b6d4) !important;
+      --gradient-glow: linear-gradient(135deg, rgba(2,132,199,.15), rgba(6,182,212,.15)) !important;
+    }
+    [data-theme="light"] body {
+      background: #f8fafc !important;
+      color: #0f172a !important;
+    }
     [data-theme="light"] .navbar {
       background: rgba(255, 255, 255, 0.92) !important;
       box-shadow: 0 1px 3px rgba(0,0,0,.06);
@@ -194,6 +224,12 @@
     [data-theme="light"] .navbar-link:hover,
     [data-theme="light"] .navbar-link.active { color: #0891b2; }
     [data-theme="light"] .navbar-toggle span { background: #0f172a; }
+    [data-theme="light"] .navbar-nav.show {
+      background: #ffffff;
+      border-color: rgba(51,65,85,.15);
+      box-shadow: 0 14px 36px rgba(0,0,0,.12);
+    }
+    [data-theme="light"] .navbar-nav.show a { border-bottom-color: rgba(51,65,85,.1); }
     [data-theme="light"] .lang-btn { color: #475569; border-color: rgba(51,65,85,.15); }
     [data-theme="light"] .hero {
       background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
