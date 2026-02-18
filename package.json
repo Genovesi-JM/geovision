@@ -4,7 +4,7 @@
   "private": true,
   "devDependencies": {
     "pa11y": "^6.0.0",
-    "playwright": "^1.43.0",
+    "@playwright/test": "^1.43.0",
     "@axe-core/playwright": "^4.0.1"
   },
   "scripts": {

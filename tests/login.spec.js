@@ -1,5 +1,5 @@
 const { test, expect } = require('@playwright/test');
-const { injectAxe, checkA11y } = require('@axe-core/playwright');
+const AxeBuilder = require('@axe-core/playwright').default;
 
 // IMPORTANT: start a static server serving the repo root before running this test.
 // Example: python3 -m http.server 8001 --bind 127.0.0.1
@@ -9,9 +9,6 @@ test.describe('Login smoke + a11y', () => {
   test('can login with demo credentials and has no serious a11y violations', async ({ page }) => {
     const url = `${BASE}/login.html`;
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-
-    // inject axe for accessibility checks
-    await injectAxe(page);
 
     // fill and submit the form
     await page.fill('#login-email', 'teste@admin.com');
@@ -23,14 +20,14 @@ test.describe('Login smoke + a11y', () => {
 
     await btn.click();
 
-    // wait for either success or demo redirect text to appear
+    // wait for either success or redirect
     const success = page.locator('#success-box');
     await expect(success).toBeVisible({ timeout: 5000 });
 
-    // accessibility check - will throw if violations above thresholds are found
-    await checkA11y(page, null, {
-      detailedReport: true,
-      detailedReportOptions: { html: true }
-    });
+    // accessibility check using AxeBuilder (v4 API)
+    const accessibilityScanResults = await new AxeBuilder({ page }).analyze();
+    expect(accessibilityScanResults.violations.filter(v => 
+      v.impact === 'critical' || v.impact === 'serious'
+    )).toEqual([]);
   });
 });

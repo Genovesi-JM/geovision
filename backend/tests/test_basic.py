@@ -6,9 +6,9 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
-# Ensure the app uses the backend/geovision.db (we modified that DB during local fixes).
-# The application reads `database_url` from settings; set an env var override before importing.
-os.environ.setdefault("DATABASE_URL", "sqlite:///./backend/geovision.db")
+
+# Use conftest.py's temporary test database — do NOT set DATABASE_URL to
+# the production DB.  conftest.py already sets up a clean temp DB.
 
 from app.main import app
 from fastapi.testclient import TestClient

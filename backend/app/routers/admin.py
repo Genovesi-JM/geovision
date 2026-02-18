@@ -18,6 +18,7 @@ from enum import Enum
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, EmailStr
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.deps import require_admin, get_db
@@ -402,6 +403,7 @@ async def get_system_stats(db: Session = Depends(get_db)):
     try:
         payments_today = db.query(Payment).filter(
             Payment.status == PS.COMPLETED.value,
+            func.date(Payment.created_at) == today,
         ).count()
         payments_pending = db.query(Payment).filter(
             Payment.status.in_([PS.PENDING.value, PS.PROCESSING.value, PS.AWAITING_CONFIRMATION.value])

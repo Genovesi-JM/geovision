@@ -908,13 +908,14 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] 
 async def list_orders(
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List customer orders."""
+    """List orders for the authenticated user."""
     
     order_service = get_order_service(db)
     orders = order_service.list_orders(
-        user_id="anonymous",  # TODO: Get from auth
+        user_id=user.id,
         status=status,
         limit=limit,
     )

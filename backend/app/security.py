@@ -1,31 +1,20 @@
 # app/security.py
-from datetime import datetime, timedelta
-from jose import jwt, JWTError
-from passlib.context import CryptContext
-from app.config import JWT_SECRET, JWT_ALG, JWT_EXPIRE_MIN
+"""Thin wrapper that re-exports canonical implementations.
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+Password hashing/verification: ``app.utils`` (supports bcrypt + legacy SHA256).
+Token creation/decoding:       ``app.oauth2`` (uses settings directly).
 
+Importing from this module is **deprecated** — prefer importing directly
+from ``app.utils`` or ``app.oauth2``.
+"""
 
-def hash_password(password: str) -> str:
-    """Hash a plain-text password with bcrypt.
-    
-    bcrypt has a 72-byte limit, so we truncate to avoid errors.
-    """
-    if password is None:
-        password = ""
-    # Truncate to 72 bytes (not characters) for bcrypt compatibility
-    pw_truncated = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(pw_truncated)
+# Re-export password helpers from the canonical location (app.utils)
+from app.utils import hash_password, verify_password  # noqa: F401
 
-def verify_password(plain_password: str, password_hash: str) -> bool:
-    """Validate a plain-text password against a stored hash."""
-    return pwd_context.verify(plain_password, password_hash)
+# Re-export token helpers from the canonical location (app.oauth2)
+from app.oauth2 import create_access_token, verify_access_token  # noqa: F401
 
-def create_access_token(payload: dict) -> str:
-    exp = datetime.utcnow() + timedelta(minutes=JWT_EXPIRE_MIN)
-    to_encode = {**payload, "exp": exp}
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALG)
 
 def decode_token(token: str) -> dict:
-    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+    """Alias for verify_access_token (backward compat)."""
+    return verify_access_token(token)

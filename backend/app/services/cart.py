@@ -384,7 +384,7 @@ class CartService:
         items = cart.cart_items
         cart.subtotal = sum(i.total_price for i in items)
         cart.tax_amount = sum(i.tax_amount for i in items)
-        cart.total = max(0, cart.subtotal - (cart.discount_amount or 0) + (cart.delivery_cost or 0))
+        cart.total = max(0, cart.subtotal + cart.tax_amount - (cart.discount_amount or 0) + (cart.delivery_cost or 0))
         cart.updated_at = _utcnow()
 
     def _to_data(self, cart):

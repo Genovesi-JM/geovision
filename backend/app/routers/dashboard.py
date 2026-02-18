@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import User, Product, Order
@@ -14,9 +15,10 @@ def get_db():
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
+    total_revenue = db.query(func.coalesce(func.sum(Order.total), 0)).scalar()
     return {
         "users": db.query(User).count(),
         "products": db.query(Product).count(),
         "orders": db.query(Order).count(),
-        "total_revenue": float(db.query(Order.total).all()[0][0] or 0)
+        "total_revenue": float(total_revenue)
     }

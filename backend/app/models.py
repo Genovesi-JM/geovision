@@ -1,4 +1,4 @@
-# app/models.py
+﻿# app/models.py
 from __future__ import annotations
 
 import uuid
@@ -32,7 +32,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String, nullable=False, default="client")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     addresses = relationship("UserAddress", back_populates="user", cascade="all, delete-orphan")
@@ -59,7 +59,7 @@ class UserProfile(Base):
     avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="profile")
 
@@ -92,7 +92,7 @@ class Account(Base):
     org_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     modules_enabled: Mapped[str] = mapped_column(Text, nullable=False, default='["kpi","projects","store","alerts"]')
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     members = relationship("AccountMember", back_populates="account", cascade="all, delete-orphan", overlaps="accounts,users")
     users = relationship("User", secondary="account_members", back_populates="accounts", overlaps="account_members,members")
@@ -133,7 +133,7 @@ class Product(Base):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     category_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
 
@@ -158,7 +158,7 @@ class Inventory(Base):
     qty_on_hand: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     qty_reserved: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     reorder_level: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     product = relationship("Product", back_populates="inventory")
 
@@ -205,7 +205,7 @@ class Order(Base):
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     user = relationship("User", back_populates="orders")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
@@ -261,7 +261,7 @@ class OAuthState(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-# ── Auth Identity Linking (Google, Microsoft, etc.) ──
+# â”€â”€ Auth Identity Linking (Google, Microsoft, etc.) â”€â”€
 
 class AuthIdentity(Base):
     """Links external OAuth providers to local users (prevents duplicates)."""
@@ -300,7 +300,7 @@ class RefreshTokenModel(Base):
     user = relationship("User")
 
 
-# ── Contact Methods (WhatsApp, Instagram, Email, etc.) ──
+# â”€â”€ Contact Methods (WhatsApp, Instagram, Email, etc.) â”€â”€
 
 class ContactMethod(Base):
     """Configurable contact channels per environment."""
@@ -316,7 +316,7 @@ class ContactMethod(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-# ── KPI Definitions and Values ──
+# â”€â”€ KPI Definitions and Values â”€â”€
 
 class KpiDefinition(Base):
     """Per-sector KPI definitions."""
@@ -352,7 +352,7 @@ class KpiValue(Base):
     account = relationship("Account")
 
 
-# ── Audit Log ──
+# â”€â”€ Audit Log â”€â”€
 
 class AuditLog(Base):
     """Who did what, when, and where."""
@@ -370,7 +370,7 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-# ── Company / Client ──
+# â”€â”€ Company / Client â”€â”€
 
 class Company(Base):
     __tablename__ = "companies"
@@ -391,7 +391,7 @@ class Company(Base):
     current_sites: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     storage_used_gb: Mapped[float] = mapped_column(Numeric(10, 2), default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     sites = relationship("Site", back_populates="company", cascade="all, delete-orphan")
     connectors = relationship("Connector", back_populates="company", cascade="all, delete-orphan")
@@ -416,7 +416,7 @@ class CompanyUser(Base):
     company = relationship("Company", back_populates="company_users")
 
 
-# ── Site / Project Location ──
+# â”€â”€ Site / Project Location â”€â”€
 
 class Site(Base):
     __tablename__ = "sites"
@@ -434,12 +434,12 @@ class Site(Base):
     sector: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     company = relationship("Company", back_populates="sites")
 
 
-# ── Connector ──
+# â”€â”€ Connector â”€â”€
 
 class Connector(Base):
     __tablename__ = "connectors"
@@ -461,7 +461,7 @@ class Connector(Base):
     company = relationship("Company", back_populates="connectors")
 
 
-# ── Document ──
+# â”€â”€ Document â”€â”€
 
 class Document(Base):
     __tablename__ = "documents"
@@ -481,12 +481,12 @@ class Document(Base):
     is_official: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     uploaded_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     company = relationship("Company", back_populates="documents")
 
 
-# ── Integration ──
+# â”€â”€ Integration â”€â”€
 
 class Integration(Base):
     __tablename__ = "integrations"
@@ -509,7 +509,7 @@ class Integration(Base):
     company = relationship("Company", back_populates="integrations")
 
 
-# ── Dataset (multi-tenant) ──
+# â”€â”€ Dataset (multi-tenant) â”€â”€
 
 class Dataset(Base):
     __tablename__ = "datasets"
@@ -530,7 +530,7 @@ class Dataset(Base):
     file_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_size_bytes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     files = relationship("DatasetFile", back_populates="dataset", cascade="all, delete-orphan")
@@ -551,7 +551,7 @@ class DatasetFile(Base):
     dataset = relationship("Dataset", back_populates="files")
 
 
-# ── Cart ──
+# â”€â”€ Cart â”€â”€
 
 class Cart(Base):
     __tablename__ = "carts"
@@ -573,7 +573,7 @@ class Cart(Base):
     currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     cart_items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
@@ -602,7 +602,7 @@ class CartItem(Base):
     cart = relationship("Cart", back_populates="cart_items")
 
 
-# ── Coupon ──
+# â”€â”€ Coupon â”€â”€
 
 class Coupon(Base):
     __tablename__ = "coupons"
@@ -621,7 +621,7 @@ class Coupon(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-# ── Shop Product (rich catalog) ──
+# â”€â”€ Shop Product (rich catalog) â”€â”€
 
 class ShopProduct(Base):
     """Rich product catalog for the shop (flight services, hardware, etc.)."""
@@ -651,10 +651,10 @@ class ShopProduct(Base):
     track_inventory: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     stock_quantity: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
 
-# ── Payment ──
+# â”€â”€ Payment â”€â”€
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -671,11 +671,11 @@ class Payment(Base):
     provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
-# ── Risk Assessment History ──
+# â”€â”€ Risk Assessment History â”€â”€
 
 class RiskAssessment(Base):
     __tablename__ = "risk_assessments"
@@ -691,7 +691,7 @@ class RiskAssessment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
-# ── Order Event (timeline) ──
+# â”€â”€ Order Event (timeline) â”€â”€
 
 class OrderEvent(Base):
     __tablename__ = "order_events"
@@ -709,7 +709,7 @@ class OrderEvent(Base):
     order = relationship("Order", backref="events_rel")
 
 
-# ── Deliverable ──
+# â”€â”€ Deliverable â”€â”€
 
 class Deliverable(Base):
     __tablename__ = "deliverables"
