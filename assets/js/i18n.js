@@ -9,6 +9,7 @@ const translations = {
   "nav.about": { pt: "Sobre", en: "About", es: "Acerca" },
   "nav.sectors": { pt: "Setores", en: "Sectors", es: "Sectores" },
   "nav.services": { pt: "Serviços", en: "Services", es: "Servicios" },
+  "nav.technology": { pt: "Tecnologia", en: "Technology", es: "Tecnología" },
   "nav.portal": { pt: "Portal", en: "Portal", es: "Portal" },
 
   // ============ INDEX PAGE ============
