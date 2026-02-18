@@ -15,7 +15,7 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from pydantic import BaseModel, Field
 
-from app.deps import get_current_user, require_admin
+from app.deps import get_current_user, get_optional_user, require_admin
 from app.models import User
 from sqlalchemy.orm import Session
 from app.deps import get_db
@@ -843,13 +843,15 @@ def get_stripe_config():
 
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
-async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def checkout(cart_id: str, request: CheckoutRequest, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
     """
     Process checkout and create order.
     
+    Supports both authenticated users and guest checkout.
+    
     Payment methods:
     - multicaixa_express: Returns QR code for Multicaixa app
-    - visa_mastercard: Returns Stripe redirect URL
+    - visa_mastercard: Returns Stripe Payment Element
     - iban_angola: Returns Angolan bank transfer details
     - iban_international: Returns international wire transfer details
     """
@@ -882,7 +884,7 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(
     
     result = await order_service.checkout(
         cart_id=cart_id,
-        user_id="anonymous",  # TODO: Get from auth
+        user_id=user.id if user else "anonymous",
         payment_method=payment_method,
         billing_info=request.billing_info.model_dump(),
         customer_notes=request.customer_notes,

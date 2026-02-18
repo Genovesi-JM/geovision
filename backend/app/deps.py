@@ -8,6 +8,7 @@ from app.oauth2 import verify_access_token
 from app.models import User, AccountMember, Account
 
 bearer = HTTPBearer()
+optional_bearer = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
@@ -34,6 +35,29 @@ def get_current_user(
 
     if not user or not user.is_active:
         raise HTTPException(status_code=401, detail="User invA­lido/inativo")
+    return user
+
+
+def get_optional_user(
+    creds: HTTPAuthorizationCredentials = Depends(optional_bearer),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """Like get_current_user but returns None for guests instead of 401."""
+    if not creds or not creds.credentials:
+        return None
+    try:
+        payload = verify_access_token(creds.credentials)
+    except Exception:
+        return None
+    uid = payload.get("uid")
+    sub = payload.get("sub")
+    user = None
+    if uid:
+        user = db.get(User, uid)
+    if not user and sub:
+        user = db.query(User).filter(User.email == sub).first()
+    if not user or not user.is_active:
+        return None
     return user
 
 
