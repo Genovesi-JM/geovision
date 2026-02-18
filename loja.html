@@ -645,63 +645,24 @@
       border: 1px solid rgba(148, 163, 184, 0.5);
     }
 
-    .loja-demo-panel {
-      margin-top: 2rem;
-      border-radius: 1.2rem;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      background: rgba(2, 6, 23, 0.6);
-      padding: 1.2rem;
-      box-shadow: inset 0 0 30px rgba(15, 23, 42, 0.5);
+    /* Multi-currency cart totals */
+    .cart-multi-total {
+      margin-top: 0.5rem;
+      padding: 0.6rem 0.5rem;
+      border-radius: 0.6rem;
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid rgba(56, 189, 248, 0.15);
     }
-
-    .loja-demo-header {
+    .multi-total-row {
       display: flex;
       justify-content: space-between;
-      gap: 0.6rem;
       align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .loja-demo-title {
-      font-size: 1rem;
+      padding: 0.2rem 0;
+      font-size: 0.82rem;
       font-weight: 600;
     }
-
-    .loja-demo-status {
-      font-size: 0.78rem;
-      color: #38bdf8;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-    }
-
-    .loja-demo-grid {
-      display: grid;
-      gap: 0.8rem;
-      margin-top: 0.8rem;
-    }
-
-    .loja-demo-block {
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      border-radius: 0.9rem;
-      padding: 0.8rem;
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    .loja-demo-pre {
-      font-size: 0.75rem;
-      color: #a5b4fc;
-      margin: 0.4rem 0 0;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      max-height: 220px;
-      overflow-y: auto;
-      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-    }
-
-    @media (min-width: 880px) {
-      .loja-demo-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+    .multi-total-row .cur-badge {
+      font-size: 0.65rem;
     }
 
     @media (min-width: 880px) {
@@ -1089,7 +1050,7 @@
             <div class="loja-cart-title" data-i18n="loja.cart.title">Cart</div>
             <div class="loja-cart-count" id="cart-count">0 <span data-i18n="loja.cart.items">items</span></div>
           </div>
-          <small class="loja-cart-note">Multi-Currency — Backend FastAPI</small>
+          <small class="loja-cart-note" data-i18n="loja.cart.multicurrency">AOA · USD · EUR</small>
         </div>
 
         <div class="loja-cart-items" id="cart-items">
@@ -1119,36 +1080,18 @@
           <strong id="cart-total">0 AOA</strong>
         </div>
 
+        <!-- Multi-currency totals -->
+        <div id="cart-multi-total" class="cart-multi-total" style="display:none;"></div>
+
         <div class="loja-cart-buttons">
           <button id="cart-clear" class="btn-sm" data-i18n="loja.cart.clear">Clear</button>
           <button id="cart-checkout" class="btn-sm btn-sm-primary" data-i18n="loja.cart.checkout">Checkout</button>
         </div>
 
-        <p class="form-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:0.6rem;" data-i18n="loja.cart.demo">
-          Demo coupons: WELCOME10 (10% off), DRONE50K (50,000 AOA off)
+        <p class="form-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:0.6rem;" data-i18n="loja.cart.couponHint">
+          Coupons: WELCOME10 (10% off), DRONE50K (50,000 AOA off)
         </p>
       </aside>
-
-      <div class="loja-demo-panel">
-        <div class="loja-demo-header">
-          <div class="loja-demo-title" data-i18n="loja.demo.title">Real-time Demo</div>
-          <div class="loja-demo-status" id="demo-status" data-i18n="loja.demo.status">Awaiting submission...</div>
-        </div>
-        <p class="loja-subtitle" style="margin-bottom:0.8rem;" data-i18n="loja.demo.desc">
-          When you click "Submit Order", we display the payload sent and the response returned by FastAPI below.
-        </p>
-
-        <div class="loja-demo-grid">
-          <div class="loja-demo-block">
-            <div class="loja-card-tag" data-i18n="loja.demo.payloadSent">Payload Sent</div>
-            <pre class="loja-demo-pre" id="demo-request" data-i18n="loja.demo.noData">No order data yet.</pre>
-          </div>
-          <div class="loja-demo-block">
-            <div class="loja-card-tag" data-i18n="loja.demo.backendResponse">Backend Response</div>
-            <pre class="loja-demo-pre" id="demo-response" data-i18n="loja.demo.awaitingResponse">Awaiting first response.</pre>
-          </div>
-        </div>
-      </div>
 
     </section>
 
@@ -1188,7 +1131,7 @@
         © <span id="year"></span> GeoVision — <span data-i18n="loja.footer">Field services and integrated hardware for global operations.</span>
       </div>
       <div class="loja-footer-payments">
-        <span data-i18n="loja.payment.methods">Payment methods (pilot / demo phase):</span>
+        <span data-i18n="loja.payment.methods">Accepted payment methods:</span>
         <div class="loja-payments-logos">
           <!-- Replace with your actual payment logos -->
           <img src="assets/img/payment-multicaixa.png" alt="Multicaixa" />

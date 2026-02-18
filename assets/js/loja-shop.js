@@ -116,7 +116,7 @@ async function onCurrencyChange(currency) {
 async function loadProducts() {
   try {
     const res = await fetch(`${API_URL}/shop/products`);
-    if (!res.ok) throw new Error("Falha ao carregar produtos");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     
     allProducts = await res.json();
     renderProducts("all");
@@ -125,7 +125,7 @@ async function loadProducts() {
     const empty = document.getElementById("loja-empty");
     if (empty) {
       empty.style.display = "block";
-    empty.textContent = "Não foi possível carregar os produtos. Tente novamente.";
+      empty.textContent = "Não foi possível carregar os produtos. Verifique a conexão e tente novamente.";
     }
   }
 }
@@ -158,6 +158,7 @@ function renderCart() {
   const taxRow = document.getElementById("tax-row");
   const totalEl = document.getElementById("cart-total");
   const couponStatus = document.getElementById("coupon-status");
+  const multiTotalEl = document.getElementById("cart-multi-total");
 
   if (!list || !countEl || !totalEl) return;
 
@@ -173,11 +174,14 @@ function renderCart() {
     if (discountRow) discountRow.style.display = "none";
     if (taxRow) taxRow.style.display = "none";
     totalEl.textContent = formatAOA(0);
+    if (multiTotalEl) multiTotalEl.style.display = "none";
     if (couponStatus) couponStatus.style.display = "none";
     return;
   }
 
   currentCart.items.forEach((item) => {
+    // Find the product to get multi-currency prices
+    const product = allProducts.find(p => p.id === item.product_id);
     const row = document.createElement("div");
     row.className = "loja-cart-item";
     row.innerHTML = `
@@ -230,8 +234,45 @@ function renderCart() {
     }
   }
   
-  // Update total
+  // Update main total
   totalEl.textContent = formatAOA(currentCart.total);
+
+  // Compute and show all 3 currency totals
+  if (multiTotalEl) {
+    const totals = computeMultiCurrencyTotals();
+    multiTotalEl.innerHTML = `
+      <div class="multi-total-row"><span class="cur-badge cur-aoa">AOA</span> ${formatPrice(totals.aoa, 'AOA')}</div>
+      <div class="multi-total-row"><span class="cur-badge cur-usd">USD</span> ${formatPrice(totals.usd, 'USD')}</div>
+      <div class="multi-total-row"><span class="cur-badge cur-eur">EUR</span> ${formatPrice(totals.eur, 'EUR')}</div>
+    `;
+    multiTotalEl.style.display = "block";
+  }
+}
+
+/** Compute cart totals in all 3 currencies using admin-defined prices */
+function computeMultiCurrencyTotals() {
+  const totals = { aoa: 0, usd: 0, eur: 0 };
+  if (!currentCart || !currentCart.items) return totals;
+  const taxRate = 0.14;
+
+  currentCart.items.forEach(item => {
+    const product = allProducts.find(p => p.id === item.product_id);
+    if (product) {
+      totals.aoa += product.price * item.quantity;
+      totals.usd += (product.price_usd || 0) * item.quantity;
+      totals.eur += (product.price_eur || 0) * item.quantity;
+    } else {
+      // Fallback: use cart item unit_price for selected currency
+      totals.aoa += item.total_price;
+    }
+  });
+
+  // Apply tax
+  totals.aoa = Math.round(totals.aoa * (1 + taxRate));
+  totals.usd = Math.round(totals.usd * (1 + taxRate));
+  totals.eur = Math.round(totals.eur * (1 + taxRate));
+
+  return totals;
 }
 
 // ============ ADICIONAR AO CARRINHO ============
@@ -641,6 +682,17 @@ function renderCheckoutSummary() {
   }
   html += `<p><strong>IVA (14%):</strong> ${formatAOA(currentCart.tax_amount)}</p>`;
   html += `<p class="checkout-total"><strong>Total:</strong> ${formatAOA(currentCart.total)}</p>`;
+
+  // Multi-currency totals
+  const totals = computeMultiCurrencyTotals();
+  html += `<div class="checkout-multi-totals" style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid rgba(148,163,184,0.2);">
+    <p style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.1em;">Valores em todas as moedas:</p>
+    <div style="display:flex;flex-direction:column;gap:0.3rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-aoa" style="font-size:0.7rem;">AOA</span><strong>${formatPrice(totals.aoa, 'AOA')}</strong></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-usd" style="font-size:0.7rem;">USD</span><strong>${formatPrice(totals.usd, 'USD')}</strong></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-eur" style="font-size:0.7rem;">EUR</span><strong>${formatPrice(totals.eur, 'EUR')}</strong></div>
+    </div>
+  </div>`;
   
   summary.innerHTML = html;
 }
@@ -662,11 +714,6 @@ async function processCheckout() {
     alert("Please select a payment method.");
     return;
   }
-
-  updateDemoPanel({ 
-    payload: { payment_method: paymentMethod, billing_info: { name, email, phone } }, 
-    status: "A processar checkout..." 
-  });
 
   try {
     const token = localStorage.getItem("gv_token");
@@ -696,12 +743,6 @@ async function processCheckout() {
     }
 
     const result = await res.json();
-    
-    updateDemoPanel({
-      payload: { payment_method: paymentMethod },
-      response: result,
-      status: `Pedido ${result.order_number} criado!`,
-    });
 
     // Mostrar resultado baseado no método de pagamento
     showPaymentInstructions(result);
@@ -715,10 +756,6 @@ async function processCheckout() {
 
   } catch (err) {
     console.error("Erro no checkout:", err);
-    updateDemoPanel({
-      error: err,
-      status: "Erro no checkout",
-    });
     alert(err.message);
   }
 }
@@ -890,33 +927,7 @@ async function confirmStripePayment() {
 }
 window.confirmStripePayment = confirmStripePayment;
 
-// ============ DEMO PANEL ============
 
-function updateDemoPanel({ payload, response, error, status }) {
-  const requestEl = document.getElementById("demo-request");
-  const responseEl = document.getElementById("demo-response");
-  const statusEl = document.getElementById("demo-status");
-
-  if (!requestEl || !responseEl || !statusEl) return;
-
-  requestEl.textContent = payload
-    ? JSON.stringify(payload, null, 2)
-    : "Sem dados de pedido ainda.";
-
-  if (error) {
-    responseEl.textContent = error.message || String(error);
-    statusEl.textContent = status || "Erro";
-    statusEl.style.color = "#f97373";
-    return;
-  }
-
-  responseEl.textContent = response
-    ? JSON.stringify(response, null, 2)
-    : "Aguardando resposta.";
-
-  statusEl.textContent = status || "Aguarda envio...";
-  statusEl.style.color = "#38bdf8";
-}
 
 // ============ TOAST ============
 

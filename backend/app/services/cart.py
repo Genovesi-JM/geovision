@@ -128,11 +128,35 @@ SHOP_COUPONS = [
 
 
 def seed_shop_products(db: Session) -> int:
-    """Seed shop products and coupons into DB if not present."""
+    """Seed shop products and coupons into DB. Also syncs prices for existing products."""
     from app.models import ShopProduct, Coupon
 
     existing = db.query(ShopProduct.id).count()
+
     if existing > 0:
+        # Sync prices and fields for existing products
+        updated = 0
+        seed_map = {p["id"]: p for p in SHOP_PRODUCTS}
+        for sp in db.query(ShopProduct).all():
+            src = seed_map.get(sp.id)
+            if not src:
+                continue
+            changed = False
+            # Always sync multi-currency prices from seed data
+            if sp.price_usd != src.get("price_usd", 0):
+                sp.price_usd = src.get("price_usd", 0)
+                changed = True
+            if sp.price_eur != src.get("price_eur", 0):
+                sp.price_eur = src.get("price_eur", 0)
+                changed = True
+            if sp.price != src["price"]:
+                sp.price = src["price"]
+                changed = True
+            if changed:
+                updated += 1
+        if updated:
+            db.commit()
+            logger.info(f"Synced prices for {updated} existing products")
         return 0
 
     count = 0
