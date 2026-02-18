@@ -192,8 +192,12 @@ function renderCart() {
         </div>
       </div>
       <div class="loja-cart-item-actions">
-        <button style="border:none;background:none;color:#f97373;font-size:0.75rem;cursor:pointer;"
-          onclick="removeFromCart('${item.id}')">
+        <div class="qty-stepper">
+          <button class="qty-minus" onclick="updateCartQty('${item.id}', ${item.quantity - 1})" title="Remover 1">−</button>
+          <span class="qty-val">${item.quantity}</span>
+          <button class="qty-plus" onclick="updateCartQty('${item.id}', ${item.quantity + 1})" title="Adicionar 1">+</button>
+        </div>
+        <button class="cart-remove-btn" onclick="removeFromCart('${item.id}')" title="Remover">
           ✕
         </button>
       </div>
@@ -368,6 +372,30 @@ async function addToCart(productId) {
     showToast(`Adicionado ao carrinho!`);
   } catch (err) {
     console.error("Erro ao adicionar ao carrinho:", err);
+    alert(err.message);
+  }
+}
+
+// ============ ATUALIZAR QUANTIDADE ============
+
+async function updateCartQty(itemId, newQty) {
+  if (newQty <= 0) {
+    return removeFromCart(itemId);
+  }
+  try {
+    const res = await fetch(`${API_URL}/shop/cart/${cartId}/items/${itemId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quantity: newQty }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Erro ao atualizar quantidade");
+    }
+    currentCart = await res.json();
+    renderCart();
+  } catch (err) {
+    console.error("Erro ao atualizar quantidade:", err);
     alert(err.message);
   }
 }
@@ -966,6 +994,7 @@ function showToast(message) {
 window.addToCart = addToCart;
 window.handleAddToCart = handleAddToCart;
 window.removeFromCart = removeFromCart;
+window.updateCartQty = updateCartQty;
 window.clearCart = clearCart;
 window.applyCoupon = applyCoupon;
 window.openCheckoutModal = openCheckoutModal;

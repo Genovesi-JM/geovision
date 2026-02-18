@@ -309,7 +309,61 @@
     }
 
     .loja-cart-item-actions {
-      text-align: right;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .qty-stepper {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .qty-stepper button {
+      border: none;
+      background: rgba(255,255,255,0.06);
+      color: #e2e8f0;
+      width: 22px;
+      height: 22px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .qty-stepper button:hover {
+      background: rgba(56, 189, 248, 0.2);
+    }
+    .qty-stepper button.qty-minus:hover {
+      background: rgba(249, 115, 115, 0.2);
+    }
+    .qty-stepper .qty-val {
+      width: 22px;
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      background: rgba(15, 23, 42, 0.5);
+      height: 22px;
+      line-height: 22px;
+    }
+    .cart-remove-btn {
+      border: none;
+      background: none;
+      color: #f97373;
+      font-size: 0.7rem;
+      cursor: pointer;
+      padding: 2px;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+    }
+    .cart-remove-btn:hover {
+      opacity: 1;
     }
 
     .loja-cart-total {
