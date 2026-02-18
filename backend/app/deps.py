@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
+from typing import Optional
 import json
 
 from app.database import get_db
@@ -41,7 +42,7 @@ def get_current_user(
 def get_optional_user(
     creds: HTTPAuthorizationCredentials = Depends(optional_bearer),
     db: Session = Depends(get_db),
-) -> User | None:
+) -> Optional[User]:
     """Like get_current_user but returns None for guests instead of 401."""
     if not creds or not creds.credentials:
         return None

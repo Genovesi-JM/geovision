@@ -843,7 +843,7 @@ def get_stripe_config():
 
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
-async def checkout(cart_id: str, request: CheckoutRequest, user: User | None = Depends(get_optional_user), db: Session = Depends(get_db)):
+async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] = Depends(get_optional_user), db: Session = Depends(get_db)):
     """
     Process checkout and create order.
     
