@@ -125,7 +125,7 @@ async function loadProducts() {
     const empty = document.getElementById("loja-empty");
     if (empty) {
       empty.style.display = "block";
-      empty.textContent = "Não foi possível carregar os produtos. Backend offline?";
+    empty.textContent = "Não foi possível carregar os produtos. Tente novamente.";
     }
   }
 }
@@ -197,7 +197,7 @@ function renderCart() {
     list.appendChild(row);
   });
 
-  const countLabel = currentCart.item_count === 1 ? "1 item" : `${currentCart.item_count} itens`;
+  const countLabel = currentCart.item_count === 1 ? "1 item" : `${currentCart.item_count} items`;
   countEl.textContent = countLabel;
   
   // Update subtotal
@@ -654,12 +654,12 @@ async function processCheckout() {
   const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value;
 
   if (!email || !name) {
-    alert("Preenche o nome e email.");
+    alert("Please fill in name and email.");
     return;
   }
 
   if (!paymentMethod) {
-    alert("Seleciona um método de pagamento.");
+    alert("Please select a payment method.");
     return;
   }
 

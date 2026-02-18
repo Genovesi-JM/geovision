@@ -977,7 +977,7 @@ const translations = {
   "loja.payment.ibanAngola": { pt: "Transferência IBAN (Angola)", en: "IBAN Transfer (Angola)", es: "Transferencia IBAN (Angola)" },
   "loja.payment.ibanAngolaDesc": { pt: "Transferência bancária local AOA", en: "Local AOA bank transfer", es: "Transferencia bancaria local AOA" },
   "loja.payment.ibanIntl": { pt: "Transferência IBAN (Internacional)", en: "IBAN Transfer (International)", es: "Transferencia IBAN (Internacional)" },
-  "loja.payment.ibanIntlDesc": { pt: "SWIFT/SEPA em EUR", en: "SWIFT/SEPA in EUR", es: "SWIFT/SEPA en EUR" },
+  "loja.payment.ibanIntlDesc": { pt: "SWIFT/SEPA em USD ou EUR", en: "SWIFT/SEPA in USD or EUR", es: "SWIFT/SEPA en USD o EUR" },
   "loja.checkout.orderSummary": { pt: "Resumo do Pedido", en: "Order Summary", es: "Resumen del Pedido" },
   "loja.checkout.confirm": { pt: "Confirmar Pedido", en: "Confirm Order", es: "Confirmar Pedido" },
 
@@ -988,6 +988,9 @@ const translations = {
   "loja.sectorWarning.continue": { pt: "Continuar", en: "Continue", es: "Continuar" },
   "loja.sectorWarning.newAccount": { pt: "Criar Nova Conta", en: "Create New Account", es: "Crear Nueva Cuenta" },
   "loja.sectorWarning.info": { pt: "Este aviso é apenas informativo. A compra não está bloqueada.", en: "This warning is informational only. The purchase is not blocked.", es: "Este aviso es solo informativo. La compra no está bloqueada." },
+
+  // ============ LOJA - CHECKOUT EXTRAS ============
+  "loja.checkout.currency": { pt: "Moeda", en: "Currency", es: "Moneda" },
 
   // ============ LOJA - DEMO PANEL ============
   "loja.demo.payloadSent": { pt: "Payload Enviado", en: "Payload Sent", es: "Payload Enviado" },

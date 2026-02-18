@@ -2,7 +2,7 @@ import { API_BASE } from "./config.js";
 
 export async function checkout() {
     const token = localStorage.getItem("gv_token");
-    const cart = JSON.parse(localStorage.getItem("cart") || []);
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
     if (!cart.length) {
         alert("Carrinho vazio.");
