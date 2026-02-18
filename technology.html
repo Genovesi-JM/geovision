@@ -99,11 +99,30 @@
     .fleet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; }
 
     .drone-card {
-      padding: 2rem; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border);
-      transition: all 0.3s; display: flex; flex-direction: column;
+      padding: 0; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border);
+      transition: all 0.3s; display: flex; flex-direction: column; overflow: hidden;
     }
     .drone-card:hover { transform: translateY(-4px); border-color: rgba(34, 197, 94, 0.3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3); }
     .drone-card.flagship { border-color: rgba(34, 197, 94, 0.4); background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, var(--bg-card) 100%); }
+
+    .drone-img-wrap {
+      position: relative; width: 100%; height: 220px; overflow: hidden;
+    }
+    .drone-img-wrap img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.5s ease;
+    }
+    .drone-card:hover .drone-img-wrap img { transform: scale(1.05); }
+    .drone-img-wrap::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
+      background: linear-gradient(to top, var(--bg-card) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    .drone-card.flagship .drone-img-wrap::after {
+      background: linear-gradient(to top, rgba(34, 197, 94, 0.06) 0%, transparent 100%);
+    }
+
+    .drone-card-body { padding: 0 2rem 2rem; }
 
     .drone-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
     .drone-icon { width: 48px; height: 48px; min-width: 48px; border-radius: 12px; background: var(--gradient-glow); border: 1px solid rgba(34, 197, 94, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--accent); }
@@ -262,6 +281,12 @@
       background: linear-gradient(135deg, rgba(2,132,199,0.04) 0%, rgba(255,255,255,0.92) 100%);
       border-color: rgba(2,132,199,.3);
     }
+    [data-theme="light"] .drone-img-wrap::after {
+      background: linear-gradient(to top, rgba(255,255,255,0.92) 0%, transparent 100%);
+    }
+    [data-theme="light"] .drone-card.flagship .drone-img-wrap::after {
+      background: linear-gradient(to top, rgba(255,255,255,0.92) 0%, transparent 100%);
+    }
     [data-theme="light"] .drone-name,
     [data-theme="light"] .sw-card-name,
     [data-theme="light"] .why-title { color: #0f172a; }
@@ -367,6 +392,10 @@
 
       <!-- DJI Matrice 350 RTK -->
       <div class="drone-card flagship">
+        <div class="drone-img-wrap">
+          <img src="assets/img/drone-m350-rtk.jpg" alt="DJI Matrice 350 RTK" loading="lazy" />
+        </div>
+        <div class="drone-card-body">
         <div class="drone-header">
           <div class="drone-icon"><i class="fa-solid fa-helicopter"></i></div>
           <div>
@@ -392,10 +421,15 @@
           <span class="payload-tag">3D Mapping</span>
           <span class="payload-tag">Industrial Grade</span>
         </div>
+        </div>
       </div>
 
       <!-- DJI Mavic 3 Multispectral -->
       <div class="drone-card">
+        <div class="drone-img-wrap">
+          <img src="assets/img/drone-m3m.jpg" alt="DJI Mavic 3 Multispectral" loading="lazy" />
+        </div>
+        <div class="drone-card-body">
         <div class="drone-header">
           <div class="drone-icon"><i class="fa-solid fa-seedling"></i></div>
           <div>
@@ -418,10 +452,15 @@
           <span class="payload-tag">Precision Agriculture</span>
           <span class="payload-tag">RTK ±2 cm</span>
         </div>
+        </div>
       </div>
 
       <!-- DJI Agras T40 -->
       <div class="drone-card">
+        <div class="drone-img-wrap">
+          <img src="assets/img/drone-t40.jpg" alt="DJI Agras T40" loading="lazy" />
+        </div>
+        <div class="drone-card-body">
         <div class="drone-header">
           <div class="drone-icon"><i class="fa-solid fa-spray-can-sparkles"></i></div>
           <div>
@@ -443,6 +482,7 @@
           <span class="payload-tag">Variable Rate</span>
           <span class="payload-tag">High Capacity</span>
           <span class="payload-tag">Agricultural Execution</span>
+        </div>
         </div>
       </div>
 
