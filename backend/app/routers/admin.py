@@ -1088,3 +1088,166 @@ async def adjust_stock(product_id: str, data: StockAdjust, db: Session = Depends
                details={"adjustment": data.adjustment, "new_quantity": new_qty, "reason": data.reason})
     db.commit()
     return {"product_id": product_id, "stock_quantity": new_qty, "adjustment": data.adjustment}
+
+
+# ============ USERS MANAGEMENT ============
+
+@router.get("/users")
+async def list_all_users(db: Session = Depends(get_db)):
+    """List all platform users with their profiles."""
+    from app.models import User, UserProfile
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    result = []
+    for u in users:
+        profile = db.query(UserProfile).filter(UserProfile.user_id == u.id).first()
+        result.append({
+            "id": u.id,
+            "email": u.email,
+            "role": u.role,
+            "is_active": u.is_active,
+            "full_name": profile.full_name if profile else None,
+            "phone": profile.phone if profile else None,
+            "company": profile.company if profile else (profile.org_name if profile else None),
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "updated_at": u.updated_at.isoformat() if u.updated_at else None,
+        })
+    return result
+
+
+@router.patch("/users/{user_id}")
+async def update_user(user_id: str, db: Session = Depends(get_db),
+                      role: Optional[str] = Query(None),
+                      is_active: Optional[bool] = Query(None)):
+    """Update user role or active status."""
+    from app.models import User
+    u = db.get(User, user_id)
+    if not u:
+        raise HTTPException(404, "User not found")
+    if role is not None:
+        u.role = role
+    if is_active is not None:
+        u.is_active = is_active
+    u.updated_at = _utcnow()
+    _log_audit(db, None, "user_updated", "user", user_id,
+               details={"role": role, "is_active": is_active})
+    db.commit()
+    return {"message": "User updated", "user_id": user_id}
+
+
+# ============ ORDERS MANAGEMENT (Admin) ============
+
+@router.get("/orders")
+async def list_all_orders(db: Session = Depends(get_db)):
+    """List all orders for admin view."""
+    from app.models import Order, User, UserProfile
+    orders = db.query(Order).order_by(Order.created_at.desc()).all()
+    result = []
+    for o in orders:
+        user_name = None
+        user_email = None
+        if o.user_id:
+            user = db.query(User).filter(User.id == o.user_id).first()
+            if user:
+                user_email = user.email
+                profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+                user_name = profile.full_name if profile else user.email
+        result.append({
+            "id": o.id,
+            "order_number": o.order_number,
+            "user_name": user_name,
+            "user_email": user_email,
+            "status": o.status,
+            "currency": o.currency,
+            "subtotal": float(o.subtotal),
+            "total": float(o.total),
+            "payment_method": o.payment_method,
+            "payment_reference": o.payment_reference,
+            "items_count": len(o.items) if o.items else 0,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "completed_at": o.completed_at.isoformat() if o.completed_at else None,
+        })
+    return result
+
+
+@router.patch("/orders/{order_id}/status")
+async def update_order_status(order_id: str, status: str = Query(...), db: Session = Depends(get_db)):
+    """Update order status (e.g. pending -> processing -> completed)."""
+    from app.models import Order
+    o = db.get(Order, order_id)
+    if not o:
+        raise HTTPException(404, "Order not found")
+    valid = ["pending", "processing", "confirmed", "in_progress", "completed", "cancelled", "refunded"]
+    if status not in valid:
+        raise HTTPException(400, f"Invalid status. Must be one of: {', '.join(valid)}")
+    o.status = status
+    o.updated_at = _utcnow()
+    if status == "completed":
+        o.completed_at = _utcnow()
+    if status == "cancelled":
+        o.cancelled_at = _utcnow()
+    _log_audit(db, None, "order_status_changed", "order", order_id,
+               details={"new_status": status})
+    db.commit()
+    return {"message": "Order status updated", "order_id": order_id, "status": status}
+
+
+# ============ ADMIN ALERTS ============
+
+@router.get("/alerts")
+async def list_alerts(db: Session = Depends(get_db)):
+    """Generate system alerts based on current state."""
+    from app.models import Order, ShopProduct, Payment
+    alerts = []
+
+    # Low stock alerts
+    try:
+        low_stock = db.query(ShopProduct).filter(
+            ShopProduct.track_inventory == True,
+            ShopProduct.stock_quantity <= 5,
+            ShopProduct.is_active == True
+        ).all()
+        for p in low_stock:
+            alerts.append({
+                "id": f"stock-{p.id}",
+                "type": "warning",
+                "category": "stock",
+                "title": f"Stock baixo: {p.name}",
+                "description": f"Apenas {p.stock_quantity} unidade(s) em stock.",
+                "created_at": _utcnow().isoformat(),
+            })
+    except Exception:
+        db.rollback()
+
+    # Pending orders alerts
+    try:
+        pending_orders = db.query(Order).filter(Order.status == "pending").count()
+        if pending_orders > 0:
+            alerts.append({
+                "id": "pending-orders",
+                "type": "info",
+                "category": "orders",
+                "title": f"{pending_orders} encomenda(s) pendente(s)",
+                "description": "Existem encomendas aguardando processamento.",
+                "created_at": _utcnow().isoformat(),
+            })
+    except Exception:
+        db.rollback()
+
+    # Pending payments
+    try:
+        pending_payments = db.query(Payment).filter(
+            Payment.status.in_(["pending", "processing", "awaiting_confirmation"])
+        ).count()
+        if pending_payments > 0:
+            alerts.append({
+                "id": "pending-payments",
+                "type": "warning",
+                "category": "payments",
+                "title": f"{pending_payments} pagamento(s) pendente(s)",
+                "description": "Pagamentos aguardando confirmação ou processamento.",
+                "created_at": _utcnow().isoformat(),
+            })
+    except Exception:
+        db.rollback()
+
+    return alerts
