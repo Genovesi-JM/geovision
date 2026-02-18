@@ -831,6 +831,17 @@ def get_payment_methods():
     }
 
 
+@router.get("/stripe-config")
+def get_stripe_config():
+    """Return Stripe publishable key for frontend initialization."""
+    import os
+    pk = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    return {
+        "publishable_key": pk,
+        "enabled": bool(pk),
+    }
+
+
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
 async def checkout(cart_id: str, request: CheckoutRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """

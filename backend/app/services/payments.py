@@ -87,6 +87,7 @@ class PaymentResult:
     payment_id: str
     status: PaymentStatus
     provider_reference: Optional[str] = None
+    client_secret: Optional[str] = None
     redirect_url: Optional[str] = None
     qr_code: Optional[str] = None
     error_code: Optional[str] = None
@@ -206,7 +207,9 @@ class VisaMastercardAdapter(PaymentAdapter):
                 if response.status_code == 200:
                     data = response.json()
                     return PaymentResult(success=True, payment_id=intent.id, status=PaymentStatus.PENDING,
-                                        provider_reference=data.get("id"), raw_response=data)
+                                        provider_reference=data.get("id"),
+                                        client_secret=data.get("client_secret"),
+                                        raw_response=data)
                 data = response.json()
                 return PaymentResult(success=False, payment_id=intent.id, status=PaymentStatus.FAILED,
                                     error_code=data.get("error", {}).get("code"),

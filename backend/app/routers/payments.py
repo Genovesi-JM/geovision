@@ -18,6 +18,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Header, Request
 from pydantic import BaseModel, Field
 
+from sqlalchemy.orm import Session
+from app.database import get_db
 from app.deps import get_current_user, require_admin
 from app.models import User
 
@@ -109,7 +111,7 @@ class ProviderConfigResponse(BaseModel):
 # ============ ENDPOINTS ============
 
 @router.post("/", response_model=PaymentResponse)
-async def create_payment(request: PaymentCreateRequest, user: User = Depends(get_current_user)):
+async def create_payment(request: PaymentCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Create a new payment.
     
@@ -124,7 +126,7 @@ async def create_payment(request: PaymentCreateRequest, user: User = Depends(get
     Use `idempotency_key` to safely retry failed requests.
     Same key returns the original result without creating duplicate payments.
     """
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     result = await orchestrator.create_payment(
         company_id=request.company_id,
@@ -156,10 +158,10 @@ async def create_payment(request: PaymentCreateRequest, user: User = Depends(get
 
 
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)
-async def get_payment_status(payment_id: str, user: User = Depends(get_current_user)):
+async def get_payment_status(payment_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get payment status."""
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     payment = orchestrator.get_payment(payment_id)
     
@@ -187,10 +189,11 @@ async def list_payments(
     provider: Optional[PaymentProvider] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     """List payments with filters."""
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     payments = orchestrator.list_payments(
         company_id=company_id,
@@ -217,7 +220,7 @@ async def list_payments(
 
 
 @router.post("/{payment_id}/refund", response_model=RefundResponse)
-async def refund_payment(payment_id: str, request: RefundRequest, admin: User = Depends(require_admin)):
+async def refund_payment(payment_id: str, request: RefundRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """
     Refund a payment.
     
@@ -225,7 +228,7 @@ async def refund_payment(payment_id: str, request: RefundRequest, admin: User = 
     - Partial refund: Specify `amount` in smallest currency unit
     """
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     result = await orchestrator.refund(
         payment_id=payment_id,
@@ -251,14 +254,14 @@ async def refund_payment(payment_id: str, request: RefundRequest, admin: User = 
 # ============ ADMIN ENDPOINTS ============
 
 @router.post("/{payment_id}/confirm-transfer")
-async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, admin: User = Depends(require_admin)):
+async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     """
     **Admin only**: Confirm IBAN bank transfer receipt.
     
     Use this after verifying the bank transfer was received.
     """
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     payment = orchestrator.get_payment(payment_id)
     if not payment:
@@ -292,12 +295,13 @@ async def list_pending_transfers(
     company_id: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     **Admin only**: List IBAN transfers awaiting confirmation.
     """
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     payments = orchestrator.list_payments(
         company_id=company_id,
@@ -329,6 +333,7 @@ async def get_reconciliation_report(
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
 ):
     """
     **Admin only**: Get reconciliation report.
@@ -336,7 +341,7 @@ async def get_reconciliation_report(
     Shows payment totals by status and provider.
     """
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     
     # Get all payments
     all_payments = orchestrator.list_payments(
@@ -392,10 +397,11 @@ async def get_reconciliation_report(
 async def multicaixa_webhook(
     request: Request,
     x_multicaixa_signature: str = Header(..., alias="X-Multicaixa-Signature"),
+    db: Session = Depends(get_db),
 ):
     """Webhook endpoint for Multicaixa Express."""
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     payload = await request.body()
     
     result = await orchestrator.handle_webhook(
@@ -414,10 +420,11 @@ async def multicaixa_webhook(
 async def stripe_webhook(
     request: Request,
     stripe_signature: str = Header(..., alias="Stripe-Signature"),
+    db: Session = Depends(get_db),
 ):
     """Webhook endpoint for Stripe (Visa/Mastercard)."""
     
-    orchestrator = get_payment_orchestrator()
+    orchestrator = get_payment_orchestrator(db)
     payload = await request.body()
     
     result = await orchestrator.handle_webhook(

@@ -17,6 +17,8 @@ let currentCart = null;
 let currentSectorFilter = "all";
 let currentTypeFilter = "all";
 let pendingAddProduct = null;
+let stripeInstance = null;
+let stripeElements = null;
 
 // Sector labels for display
 const SECTOR_LABELS = {
@@ -749,12 +751,27 @@ function showPaymentInstructions(result) {
         <p class="ref-code">Ref: ${pd.provider_reference || ""}</p>
       </div>
     `;
-  } else if (result.payment_method === "visa_mastercard" && pd.redirect_url) {
+  } else if (result.payment_method === "visa_mastercard" && pd.client_secret) {
+    html += `
+      <div class="payment-instructions">
+        <h3><i class="fa-brands fa-cc-stripe" style="color:#635bff;"></i> Pagar com Cartão</h3>
+        <p>Introduz os dados do cartão abaixo:</p>
+        <div id="stripe-payment-element" style="min-height:120px;margin:1rem 0;padding:1rem;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:rgba(0,0,0,0.2);"></div>
+        <div id="stripe-error" style="color:#f97373;font-size:0.85rem;min-height:1.2rem;margin-bottom:0.5rem;"></div>
+        <button id="stripe-pay-btn" class="checkout-btn" style="width:100%;margin-top:0.5rem;" onclick="confirmStripePayment()">
+          Pagar Agora
+        </button>
+        <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">Pagamento seguro via Stripe</p>
+      </div>
+    `;
+    // Mount Stripe Elements after inserting HTML
+    setTimeout(() => mountStripePaymentElement(pd.client_secret), 50);
+  } else if (result.payment_method === "visa_mastercard") {
+    // Stripe not configured or client_secret missing — show fallback
     html += `
       <div class="payment-instructions">
         <h3>Pagar com Cartão</h3>
-        <p>Serás redirecionado para a página de pagamento seguro.</p>
-        <a href="${pd.redirect_url}" class="btn-payment" target="_blank">Pagar Agora</a>
+        <p>O pagamento por cartão está temporariamente indisponível. Tenta outro método.</p>
       </div>
     `;
   } else if (result.payment_method === "iban_angola" && pd.transfer_details) {
@@ -815,6 +832,59 @@ function showPaymentInstructions(result) {
 
   paymentInstructions.innerHTML = html;
 }
+
+// ============ STRIPE PAYMENT ELEMENT ============
+
+async function initStripe() {
+  if (stripeInstance) return;
+  try {
+    const res = await fetch(`${API_URL}/shop/stripe-config`);
+    if (!res.ok) return;
+    const cfg = await res.json();
+    if (cfg.enabled && cfg.publishable_key && typeof Stripe !== "undefined") {
+      stripeInstance = Stripe(cfg.publishable_key);
+    }
+  } catch (e) {
+    console.warn("Stripe init skipped:", e.message);
+  }
+}
+
+function mountStripePaymentElement(clientSecret) {
+  if (!stripeInstance) {
+    const errEl = document.getElementById("stripe-error");
+    if (errEl) errEl.textContent = "Stripe não está configurado. Contacta o suporte.";
+    return;
+  }
+  const appearance = {
+    theme: "night",
+    variables: { colorPrimary: "#38bdf8", colorBackground: "#0f172a", colorText: "#e2e8f0", fontFamily: "system-ui, sans-serif", borderRadius: "8px" },
+  };
+  stripeElements = stripeInstance.elements({ clientSecret, appearance });
+  const paymentEl = stripeElements.create("payment");
+  paymentEl.mount("#stripe-payment-element");
+}
+
+async function confirmStripePayment() {
+  if (!stripeInstance || !stripeElements) return;
+  const btn = document.getElementById("stripe-pay-btn");
+  const errEl = document.getElementById("stripe-error");
+  if (btn) { btn.disabled = true; btn.textContent = "A processar..."; }
+  if (errEl) errEl.textContent = "";
+
+  const { error } = await stripeInstance.confirmPayment({
+    elements: stripeElements,
+    confirmParams: {
+      return_url: window.location.origin + "/loja.html?payment=success",
+    },
+  });
+
+  // If we get here, there was an error (otherwise user is redirected)
+  if (error) {
+    if (errEl) errEl.textContent = error.message;
+    if (btn) { btn.disabled = false; btn.textContent = "Pagar Agora"; }
+  }
+}
+window.confirmStripePayment = confirmStripePayment;
 
 // ============ DEMO PANEL ============
 
@@ -916,6 +986,15 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
   loadCart();
   setupFilters();
+  initStripe();
+
+  // Handle Stripe return redirect
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("payment") === "success" || urlParams.get("redirect_status") === "succeeded") {
+    showToast("Pagamento processado com sucesso! ✓");
+    // Clean URL
+    window.history.replaceState({}, "", window.location.pathname);
+  }
 
   const btnClear = document.getElementById("cart-clear");
   const btnCheckout = document.getElementById("cart-checkout");

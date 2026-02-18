@@ -323,6 +323,7 @@ class OrderService:
         return {
             "payment_id": result.payment_id, "status": result.status.value,
             "provider_reference": result.provider_reference,
+            "client_secret": result.client_secret,
             "qr_code": result.qr_code, "redirect_url": result.redirect_url,
             "transfer_details": result.raw_response.get("transfer_details") if result.raw_response else None,
         }
