@@ -6,6 +6,15 @@ project. `hash_password` will produce a bcrypt hash. `verify_password`
 will detect the hash format and verify accordingly.
 """
 
+# --- bcrypt / passlib compatibility shim ---
+# passlib 1.7.4 reads bcrypt.__about__.__version__ which was removed in
+# bcrypt ≥ 4.1.  Patch it before passlib is imported.
+import bcrypt as _bcrypt
+if not hasattr(_bcrypt, "__about__"):
+    class _About:
+        __version__ = getattr(_bcrypt, "__version__", "4.0.0")
+    _bcrypt.__about__ = _About
+
 from passlib.context import CryptContext
 import hashlib
 

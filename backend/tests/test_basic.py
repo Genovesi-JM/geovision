@@ -31,7 +31,8 @@ def test_demo_login():
     data = r.json()
     # API returns an access_token and user info for the demo seed
     assert "access_token" in data
-    assert data.get("email") == "teste@admin.com"
+    user = data.get("user") or data
+    assert user.get("email") == "teste@admin.com"
 
 
 def test_register_and_login():
@@ -46,11 +47,13 @@ def test_register_and_login():
     assert r.status_code == 201, r.text
     data = r.json()
     assert "access_token" in data
-    assert data.get("email") == email
+    user = data.get("user") or data
+    assert user.get("email") == email
 
     # Login with same credentials
     r2 = client.post("/auth/login", json={"email": email, "password": password})
     assert r2.status_code == 200, r2.text
     d2 = r2.json()
     assert "access_token" in d2
-    assert d2.get("email") == email
+    user2 = d2.get("user") or d2
+    assert user2.get("email") == email
