@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <title>Technology — GeoVision | O Que Usamos</title>
+  <meta name="description" content="Frota de drones, sensores e stack de software profissional que a GeoVision utiliza para entregar inteligência operacional." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/chatbot.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark: #050914;
+      --bg-darker: #020408;
+      --bg-card: rgba(15, 23, 42, 0.85);
+      --bg-surface: rgba(30, 41, 59, 0.5);
+      --border: rgba(148, 163, 184, 0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #22c55e;
+      --accent-green: #22c55e;
+      --accent-blue: #0ea5e9;
+      --accent-cyan: #06b6d4;
+      --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
+      --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ============ NAVBAR ============ */
+    .navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between;
+      background: rgba(5, 9, 20, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .navbar-brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: var(--text-primary); }
+    .navbar-logo { width: 42px; height: 42px; border-radius: 10px; overflow: hidden; }
+    .navbar-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .navbar-brand-text { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.15em; }
+    .navbar-nav { display: flex; align-items: center; gap: 2.5rem; }
+    .navbar-link { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .navbar-link:hover, .navbar-link.active { color: var(--accent-cyan); }
+    .btn-nav { padding: 0.6rem 1.4rem; border-radius: 8px; background: var(--gradient-primary); color: #020617; font-weight: 600; text-decoration: none; font-size: 0.85rem; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-nav:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3); }
+    .navbar-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 0.5rem; }
+    .navbar-toggle span { width: 24px; height: 2px; background: var(--text-primary); transition: 0.3s; }
+    .lang-toggle { display: flex; gap: 0.25rem; margin-left: 1rem; padding-left: 1rem; border-left: 1px solid var(--border); }
+    .lang-btn { padding: 0.35rem 0.6rem; border-radius: 6px; background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .lang-btn:hover { color: var(--text-primary); }
+    .lang-btn.active { background: var(--gradient-primary); color: #020617; border-color: transparent; }
+
+    /* ============ THEME TOGGLE ============ */
+    .theme-toggle {
+      width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-card); cursor: pointer; position: relative; transition: all .2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cline x1='12' y1='1' x2='12' y2='3'/%3E%3Cline x1='12' y1='21' x2='12' y2='23'/%3E%3Cline x1='4.22' y1='4.22' x2='5.64' y2='5.64'/%3E%3Cline x1='18.36' y1='18.36' x2='19.78' y2='19.78'/%3E%3Cline x1='1' y1='12' x2='3' y2='12'/%3E%3Cline x1='21' y1='12' x2='23' y2='12'/%3E%3Cline x1='4.22' y1='19.78' x2='5.64' y2='18.36'/%3E%3Cline x1='18.36' y1='5.64' x2='19.78' y2='4.22'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: center;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    /* ============ HERO ============ */
+    .hero {
+      min-height: 55vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 8rem 2rem 4rem; text-align: center;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(34, 197, 94, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 70% 60%, rgba(14, 165, 233, 0.08) 0%, transparent 40%),
+        linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+    }
+    .hero-eyebrow { font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 1rem; display: inline-block; }
+    .hero-title { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; line-height: 1.15; margin-bottom: 1.25rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero-subtitle { font-size: 1.1rem; color: var(--text-secondary); max-width: 680px; margin: 0 auto; }
+
+    /* ============ SECTIONS ============ */
+    .section { max-width: 1200px; margin: 0 auto; padding: 5rem 2rem; }
+    .section-full { padding: 5rem 2rem; }
+    .section-header { text-align: center; margin-bottom: 3.5rem; }
+    .section-eyebrow { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 0.75rem; }
+    .section-title { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 1rem; }
+    .section-desc { font-size: 1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    /* ============ DRONE FLEET ============ */
+    .fleet-section { background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(34, 197, 94, 0.03) 100%); }
+    .fleet-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto; }
+
+    .drone-card {
+      padding: 2rem; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border);
+      transition: all 0.3s; display: flex; flex-direction: column;
+    }
+    .drone-card:hover { transform: translateY(-4px); border-color: rgba(34, 197, 94, 0.3); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3); }
+    .drone-card.flagship { border-color: rgba(34, 197, 94, 0.4); background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, var(--bg-card) 100%); }
+
+    .drone-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; }
+    .drone-icon { width: 48px; height: 48px; min-width: 48px; border-radius: 12px; background: var(--gradient-glow); border: 1px solid rgba(34, 197, 94, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--accent); }
+    .drone-name { font-size: 1.15rem; font-weight: 700; color: var(--text-primary); }
+    .drone-role { font-size: 0.78rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+    .drone-desc { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; margin-bottom: 1.25rem; }
+
+    .drone-specs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .drone-spec { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); padding: 0.4rem 0.6rem; background: rgba(34, 197, 94, 0.04); border: 1px solid rgba(34, 197, 94, 0.1); border-radius: 8px; }
+    .drone-spec i { color: var(--accent); font-size: 0.7rem; min-width: 14px; }
+
+    .drone-payloads { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; }
+    .payload-tag { font-size: 0.68rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 6px; background: rgba(14, 165, 233, 0.1); color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* ============ WHY GEOVISION ============ */
+    .why-section { background: radial-gradient(circle at 50% 100%, rgba(34, 197, 94, 0.06) 0%, transparent 50%); }
+    .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; max-width: 1100px; margin: 0 auto; }
+    .why-card { padding: 2rem; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border); transition: all 0.3s; }
+    .why-card:hover { transform: translateY(-6px); border-color: rgba(34, 197, 94, 0.3); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3); }
+    .why-icon { width: 50px; height: 50px; border-radius: 12px; background: var(--gradient-glow); border: 1px solid rgba(34, 197, 94, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1.25rem; }
+    .why-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--text-primary); }
+    .why-text { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.7; }
+
+    /* ============ SOFTWARE STACK ============ */
+    .software-section { padding: 5rem 2rem; background: linear-gradient(180deg, rgba(34, 197, 94, 0.02) 0%, var(--bg-dark) 100%); }
+    .sw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto; }
+
+    .sw-card {
+      padding: 1.75rem; border-radius: 14px; background: var(--bg-card); border: 1px solid var(--border);
+      transition: all 0.3s; display: flex; flex-direction: column;
+    }
+    .sw-card:hover { transform: translateY(-3px); border-color: rgba(34, 197, 94, 0.25); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25); }
+    .sw-card.featured { border-color: rgba(34, 197, 94, 0.4); background: linear-gradient(135deg, rgba(34, 197, 94, 0.06) 0%, var(--bg-card) 100%); }
+
+    .sw-card-header { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.9rem; }
+    .sw-card-icon { width: 42px; height: 42px; min-width: 42px; border-radius: 10px; background: var(--gradient-glow); border: 1px solid rgba(34, 197, 94, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--accent); }
+    .sw-card-name { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+    .sw-card-cat { font-size: 0.72rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.4px; }
+    .sw-card-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.65; margin-bottom: 1rem; flex: 1; }
+
+    .sw-card-uses { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; }
+    .sw-use-tag { font-size: 0.65rem; font-weight: 600; padding: 0.2rem 0.5rem; border-radius: 5px; background: rgba(34, 197, 94, 0.08); color: var(--accent); text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* ============ CTA ============ */
+    .cta-final { padding: 5rem 2rem; text-align: center; background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(34, 197, 94, 0.04) 50%, var(--bg-dark) 100%); }
+    .cta-tagline { font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800; margin-bottom: 1rem; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .cta-subtitle { font-size: 1rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2rem; }
+    .cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn { padding: 0.75rem 1.8rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: all 0.3s; cursor: pointer; border: none; }
+    .btn-primary { background: var(--gradient-primary); color: #020617; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(34, 197, 94, 0.3); }
+    .btn-secondary { background: transparent; color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    /* ============ FOOTER ============ */
+    .footer { padding: 4rem 2rem 2rem; text-align: center; border-top: 1px solid var(--border); }
+    .footer-brand { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1.5rem; }
+    .footer-logo { width: 40px; height: 40px; border-radius: 10px; background: var(--gradient-primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; color: #020617; }
+    .footer-brand-text { font-size: 1rem; font-weight: 700; letter-spacing: 0.15em; color: var(--text-primary); }
+    .footer-links { display: flex; gap: 2rem; justify-content: center; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .footer-link { color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+    .footer-link:hover { color: var(--accent); }
+    .contact-info { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+    .contact-item { color: var(--text-muted); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .contact-item span { color: var(--accent); }
+    .footer-divider { height: 1px; background: var(--border); margin-bottom: 1.5rem; }
+    .footer-copyright { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 900px) {
+      .fleet-grid { grid-template-columns: 1fr; }
+      .why-grid { grid-template-columns: 1fr; }
+      .sw-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .navbar-nav { display: none; }
+      .navbar-toggle { display: flex; }
+      .lang-toggle { margin-left: auto; margin-right: 0.5rem; padding-left: 0; border-left: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAVBAR ============ -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo"><img src="assets/img/geovision-logo.png" alt="GeoVision" /></div>
+      <span class="navbar-brand-text">GEOVISION</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="index.html" class="navbar-link" data-i18n="nav.home">Home</a>
+      <a href="about.html" class="navbar-link" data-i18n="nav.about">About</a>
+      <a href="technology.html" class="navbar-link active" data-i18n="nav.technology">Technology</a>
+      <a href="sectors.html" class="navbar-link" data-i18n="nav.sectors">Sectors</a>
+      <a href="loja.html" class="navbar-link" data-i18n="nav.services">Services</a>
+      <a href="login.html" class="btn-nav" data-i18n="nav.portal">Portal</a>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" data-lang="pt">PT</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="es">ES</button>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Ativar modo claro" title="Modo Claro"></button>
+    <button class="navbar-toggle" id="menu-toggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <span class="hero-eyebrow" data-i18n="tech.hero.eyebrow">O Que Usamos</span>
+    <h1 class="hero-title" data-i18n="tech.hero.title">Technology & Drone Fleet</h1>
+    <p class="hero-subtitle" data-i18n="tech.hero.subtitle">
+      Frota de drones de grau industrial, sensores avançados e stack de software profissional que transforma dados aéreos em inteligência operacional.
+    </p>
+  </header>
+
+  <!-- ============ DRONE FLEET ============ -->
+  <section class="section fleet-section">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="tech.fleet.eyebrow">Frota Aérea</div>
+      <h2 class="section-title" data-i18n="tech.fleet.title">Our Drone Fleet</h2>
+      <p class="section-desc" data-i18n="tech.fleet.desc">
+        Plataformas UAV de grau industrial selecionadas para cada tipo de missão — desde levantamentos volumétricos de alta precisão até inspeções térmicas e pulverização agrícola.
+      </p>
+    </div>
+
+    <div class="fleet-grid">
+
+      <!-- DJI Matrice 350 RTK -->
+      <div class="drone-card flagship">
+        <div class="drone-header">
+          <div class="drone-icon"><i class="fa-solid fa-helicopter"></i></div>
+          <div>
+            <div class="drone-name">DJI Matrice 350 RTK</div>
+            <div class="drone-role" data-i18n="tech.drone.m350.role">Flagship — Missões Críticas</div>
+          </div>
+        </div>
+        <p class="drone-desc" data-i18n="tech.drone.m350.desc">
+          Plataforma enterprise com precisão RTK centimétrica, resistência IP55 e autonomia de até 55 min. O workhorse para levantamentos volumétricos, LiDAR, inspeções de infraestrutura e missões em condições adversas.
+        </p>
+        <div class="drone-specs">
+          <div class="drone-spec"><i class="fa-solid fa-clock"></i> Até 55 min voo</div>
+          <div class="drone-spec"><i class="fa-solid fa-wind"></i> Resist. vento 15 m/s</div>
+          <div class="drone-spec"><i class="fa-solid fa-crosshairs"></i> RTK ± 1 cm</div>
+          <div class="drone-spec"><i class="fa-solid fa-weight-hanging"></i> Payload até 2.7 kg</div>
+          <div class="drone-spec"><i class="fa-solid fa-shield-halved"></i> IP55 à prova de água</div>
+          <div class="drone-spec"><i class="fa-solid fa-satellite-dish"></i> Transmissão 20 km</div>
+        </div>
+        <div class="drone-payloads">
+          <span class="payload-tag">Zenmuse P1 (45 MP)</span>
+          <span class="payload-tag">Zenmuse L2 LiDAR</span>
+          <span class="payload-tag">Zenmuse H20T Thermal</span>
+          <span class="payload-tag">Multispectral</span>
+        </div>
+      </div>
+
+      <!-- DJI Mavic 3 Enterprise -->
+      <div class="drone-card">
+        <div class="drone-header">
+          <div class="drone-icon"><i class="fa-solid fa-plane"></i></div>
+          <div>
+            <div class="drone-name">DJI Mavic 3 Enterprise</div>
+            <div class="drone-role" data-i18n="tech.drone.m3e.role">Versátil — Inspeções & Mapeamento Rápido</div>
+          </div>
+        </div>
+        <p class="drone-desc" data-i18n="tech.drone.m3e.desc">
+          Compacto e portátil com câmera 4/3 CMOS de 20 MP, módulo RTK e câmera térmica opcional. Ideal para inspeções rápidas, mapeamento de áreas menores e reconhecimento de sites.
+        </p>
+        <div class="drone-specs">
+          <div class="drone-spec"><i class="fa-solid fa-clock"></i> Até 45 min voo</div>
+          <div class="drone-spec"><i class="fa-solid fa-camera"></i> 20 MP 4/3 CMOS</div>
+          <div class="drone-spec"><i class="fa-solid fa-crosshairs"></i> RTK ± 2 cm</div>
+          <div class="drone-spec"><i class="fa-solid fa-feather"></i> 920 g (ultra-leve)</div>
+        </div>
+        <div class="drone-payloads">
+          <span class="payload-tag">Wide Camera</span>
+          <span class="payload-tag">Tele 56×</span>
+          <span class="payload-tag">Thermal (opcional)</span>
+        </div>
+      </div>
+
+      <!-- DJI Mavic 3 Multispectral -->
+      <div class="drone-card">
+        <div class="drone-header">
+          <div class="drone-icon"><i class="fa-solid fa-seedling"></i></div>
+          <div>
+            <div class="drone-name">DJI Mavic 3 Multispectral</div>
+            <div class="drone-role" data-i18n="tech.drone.m3m.role">Agricultura de Precisão</div>
+          </div>
+        </div>
+        <p class="drone-desc" data-i18n="tech.drone.m3m.desc">
+          Equipado com 4 câmeras multiespectrais (Green, Red, Red Edge, NIR) + 1 RGB. Gera índices NDVI, NDRE e mapas de stress hídrico para diagnóstico agrícola preciso e prescrição de tratamento.
+        </p>
+        <div class="drone-specs">
+          <div class="drone-spec"><i class="fa-solid fa-clock"></i> Até 43 min voo</div>
+          <div class="drone-spec"><i class="fa-solid fa-layer-group"></i> 5 câmeras simultâneas</div>
+          <div class="drone-spec"><i class="fa-solid fa-sun"></i> Sensor solar integrado</div>
+          <div class="drone-spec"><i class="fa-solid fa-crosshairs"></i> RTK ± 2 cm</div>
+        </div>
+        <div class="drone-payloads">
+          <span class="payload-tag">NDVI</span>
+          <span class="payload-tag">NDRE</span>
+          <span class="payload-tag">Stress Hídrico</span>
+          <span class="payload-tag">Clorofila</span>
+        </div>
+      </div>
+
+      <!-- DJI Agras T40 -->
+      <div class="drone-card">
+        <div class="drone-header">
+          <div class="drone-icon"><i class="fa-solid fa-spray-can-sparkles"></i></div>
+          <div>
+            <div class="drone-name">DJI Agras T40</div>
+            <div class="drone-role" data-i18n="tech.drone.t40.role">Pulverização & Dispersão</div>
+          </div>
+        </div>
+        <p class="drone-desc" data-i18n="tech.drone.t40.desc">
+          O maior drone agrícola da DJI — 40 kg de capacidade de pulverização e 50 kg de dispersão de sementes/fertilizante. Cobertura de até 21 ha/hora com sistema de pulverização omnidirecional.
+        </p>
+        <div class="drone-specs">
+          <div class="drone-spec"><i class="fa-solid fa-droplet"></i> Tank 40 L spray</div>
+          <div class="drone-spec"><i class="fa-solid fa-seedling"></i> 50 kg dispersão</div>
+          <div class="drone-spec"><i class="fa-solid fa-gauge-high"></i> 21 ha/hora</div>
+          <div class="drone-spec"><i class="fa-solid fa-satellite-dish"></i> Radar duplo FPV</div>
+        </div>
+        <div class="drone-payloads">
+          <span class="payload-tag">Herbicidas</span>
+          <span class="payload-tag">Fertilizantes</span>
+          <span class="payload-tag">Sementes</span>
+        </div>
+      </div>
+
+      <!-- DJI Matrice 30T -->
+      <div class="drone-card">
+        <div class="drone-header">
+          <div class="drone-icon"><i class="fa-solid fa-temperature-high"></i></div>
+          <div>
+            <div class="drone-name">DJI Matrice 30T</div>
+            <div class="drone-role" data-i18n="tech.drone.m30t.role">Inspeção Térmica & Segurança</div>
+          </div>
+        </div>
+        <p class="drone-desc" data-i18n="tech.drone.m30t.desc">
+          Plataforma robusta com câmera térmica 640×512 integrada, zoom óptico 16× e telémetro laser. Inspeção de painéis solares, linhas de transmissão e monitoramento de segurança perimetral.
+        </p>
+        <div class="drone-specs">
+          <div class="drone-spec"><i class="fa-solid fa-clock"></i> Até 41 min voo</div>
+          <div class="drone-spec"><i class="fa-solid fa-temperature-high"></i> Thermal 640×512</div>
+          <div class="drone-spec"><i class="fa-solid fa-binoculars"></i> Zoom 16× óptico</div>
+          <div class="drone-spec"><i class="fa-solid fa-shield-halved"></i> IP55</div>
+        </div>
+        <div class="drone-payloads">
+          <span class="payload-tag">Térmica</span>
+          <span class="payload-tag">RGB 48 MP</span>
+          <span class="payload-tag">Laser Rangefinder</span>
+        </div>
+      </div>
+
+      <!-- DJI Dock 2 -->
+      <div class="drone-card">
+        <div class="drone-header">
+          <div class="drone-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+          <div>
+            <div class="drone-name">DJI Dock 2</div>
+            <div class="drone-role" data-i18n="tech.drone.dock2.role">Estação Autónoma de Voo</div>
+          </div>
+        </div>
+        <p class="drone-desc" data-i18n="tech.drone.dock2.desc">
+          Estação de pouso e carregamento autónoma que permite missões recorrentes sem operador no local. Monitoramento contínuo 24/7 de sites industriais com missões programadas e alertas automáticos.
+        </p>
+        <div class="drone-specs">
+          <div class="drone-spec"><i class="fa-solid fa-robot"></i> Missão autónoma</div>
+          <div class="drone-spec"><i class="fa-solid fa-clock-rotate-left"></i> 24/7 operação</div>
+          <div class="drone-spec"><i class="fa-solid fa-cloud"></i> Cloud management</div>
+          <div class="drone-spec"><i class="fa-solid fa-bell"></i> Alertas automáticos</div>
+        </div>
+        <div class="drone-payloads">
+          <span class="payload-tag">Matrice 3D/3TD</span>
+          <span class="payload-tag">FlightHub 2</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ SOFTWARE & INTELLIGENCE STACK ============ -->
+  <section class="section software-section">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="tech.sw.eyebrow">O Que Usamos</div>
+      <h2 class="section-title" data-i18n="tech.sw.title">Software & Intelligence Stack</h2>
+      <p class="section-desc" data-i18n="tech.sw.desc">
+        Ecossistema integrado de plataformas profissionais que transforma dados aéreos em inteligência operacional acionável.
+      </p>
+    </div>
+
+    <div class="sw-grid">
+
+      <div class="sw-card">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-cube"></i></div>
+          <div>
+            <div class="sw-card-name">Pix4D / Metashape</div>
+            <div class="sw-card-cat">Fotogrametria & 3D</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Converte imagens aéreas em ortomosaicos georreferenciados, modelos de elevação (DEM) e nuvens de pontos 3D com precisão centimétrica.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">Volumetria</span>
+          <span class="sw-use-tag">Ortomosaicos</span>
+          <span class="sw-use-tag">DEM</span>
+          <span class="sw-use-tag">Nuvens 3D</span>
+        </div>
+      </div>
+
+      <div class="sw-card">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div>
+            <div class="sw-card-name">QGIS / ArcGIS</div>
+            <div class="sw-card-cat">Inteligência Geoespacial</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Plataformas GIS que integram, analisam e visualizam dados espaciais em múltiplas camadas — mapas temáticos, análise cadastral e indicadores operacionais.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">Mapas Temáticos</span>
+          <span class="sw-use-tag">Análise Espacial</span>
+          <span class="sw-use-tag">Risco</span>
+        </div>
+      </div>
+
+      <div class="sw-card">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-seedling"></i></div>
+          <div>
+            <div class="sw-card-name">Pix4Dfields / DJI Terra</div>
+            <div class="sw-card-cat">NDVI & Agricultura</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Análise multiespectral que gera índices NDVI, NDRE, mapas de stress hídrico e diagnósticos prescritivos para gestão agrícola de precisão.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">NDVI</span>
+          <span class="sw-use-tag">Stress Hídrico</span>
+          <span class="sw-use-tag">Irrigação</span>
+        </div>
+      </div>
+
+      <div class="sw-card">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+          <div>
+            <div class="sw-card-name">DJI FlightHub 2</div>
+            <div class="sw-card-cat">Gestão de Frota</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Plataforma cloud de comando e controlo — planeamento de missão, telemetria real-time, logs de conformidade e gestão multi-drone centralizada.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">Telemetria</span>
+          <span class="sw-use-tag">Missões</span>
+          <span class="sw-use-tag">Compliance</span>
+        </div>
+      </div>
+
+      <div class="sw-card">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-mountain-sun"></i></div>
+          <div>
+            <div class="sw-card-name">CloudCompare / LAStools</div>
+            <div class="sw-card-cat">Processamento LiDAR</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Processamento de nuvens de pontos LiDAR — milhões de pontos laser que penetram vegetação densa, revelando a superfície real com precisão milimétrica.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">Nuvens de Pontos</span>
+          <span class="sw-use-tag">Classificação</span>
+          <span class="sw-use-tag">DTM</span>
+        </div>
+      </div>
+
+      <div class="sw-card">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-temperature-high"></i></div>
+          <div>
+            <div class="sw-card-name">FLIR Tools / DJI Thermal</div>
+            <div class="sw-card-cat">Análise Térmica</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Análise de imagem térmica — deteção de hotspots em painéis solares, variações de temperatura e anomalias invisíveis ao espetro visível.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">Hotspots</span>
+          <span class="sw-use-tag">Solar</span>
+          <span class="sw-use-tag">Infraestrutura</span>
+        </div>
+      </div>
+
+      <div class="sw-card featured">
+        <div class="sw-card-header">
+          <div class="sw-card-icon"><i class="fa-solid fa-chart-column"></i></div>
+          <div>
+            <div class="sw-card-name">GeoVision Dashboard</div>
+            <div class="sw-card-cat">Plataforma Proprietária</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Plataforma web que centraliza toda a inteligência operacional — KPIs, alertas, visualizações geoespaciais e status de operações. Controlo de acesso, notificações e exportação de relatórios.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">KPIs</span>
+          <span class="sw-use-tag">Alertas</span>
+          <span class="sw-use-tag">Relatórios</span>
+          <span class="sw-use-tag">Real-Time</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ WHY GEOVISION ============ -->
+  <section class="section why-section">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="tech.why.eyebrow">Nossa Vantagem</div>
+      <h2 class="section-title" data-i18n="tech.why.title">Why GeoVision</h2>
+    </div>
+
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-icon"><i class="fa-solid fa-crosshairs"></i></div>
+        <h4 class="why-title" data-i18n="tech.why.multiSector.title">Multi-Sector Capability</h4>
+        <p class="why-text" data-i18n="tech.why.multiSector.desc">Expertise comprovada em mineração, infraestrutura, agricultura, desminagem e energia.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fa-solid fa-building"></i></div>
+        <h4 class="why-title" data-i18n="tech.why.enterprise.title">Enterprise-Ready</h4>
+        <p class="why-text" data-i18n="tech.why.enterprise.desc">Plataformas de grau industrial com segurança robusta, compliance e escalabilidade.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fa-solid fa-lock"></i></div>
+        <h4 class="why-title" data-i18n="tech.why.security.title">Secure Data</h4>
+        <p class="why-text" data-i18n="tech.why.security.desc">Encriptação end-to-end, controlo de acessos e protocolos de compliance de dados.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <h4 class="why-title" data-i18n="tech.why.risk.title">Risk Modeling</h4>
+        <p class="why-text" data-i18n="tech.why.risk.desc">Frameworks proprietários de risco adaptados a cada setor operacional.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fa-solid fa-credit-card"></i></div>
+        <h4 class="why-title" data-i18n="tech.why.payment.title">Multi-Currency</h4>
+        <p class="why-text" data-i18n="tech.why.payment.desc">Pagamento flexível em AOA, USD e EUR com múltiplos métodos de pagamento.</p>
+      </div>
+      <div class="why-card">
+        <div class="why-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+        <h4 class="why-title" data-i18n="tech.why.local.title">Local Expertise</h4>
+        <p class="why-text" data-i18n="tech.why.local.desc">Conhecimento profundo do terreno angolano, regulamentos e contextos operacionais.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="cta-final" id="contact">
+    <div class="cta-content">
+      <h2 class="cta-tagline" data-i18n="tech.cta.tagline">Intelligence. Precision. Execution.</h2>
+      <p class="cta-subtitle" data-i18n="tech.cta.subtitle">
+        Pronto para transformar as suas operações? Fale com a nossa equipa.
+      </p>
+      <div class="cta-buttons">
+        <a href="loja.html" class="btn btn-primary" data-i18n="tech.cta.services">Explorar Serviços</a>
+        <a href="mailto:operations@geovisionops.com" class="btn btn-secondary" data-i18n="tech.cta.contact">Contactar Equipa</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <div class="footer-logo">G</div>
+      <span class="footer-brand-text">GEOVISION</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html" class="footer-link" data-i18n="nav.home">Home</a>
+      <a href="about.html" class="footer-link" data-i18n="nav.about">About</a>
+      <a href="technology.html" class="footer-link" data-i18n="nav.technology">Technology</a>
+      <a href="loja.html" class="footer-link" data-i18n="nav.services">Services</a>
+      <a href="login.html" class="footer-link" data-i18n="nav.portal">Portal</a>
+    </div>
+    <div class="contact-info">
+      <div class="contact-item"><span><i class="fa-solid fa-location-dot"></i></span> Luanda, Angola</div>
+      <div class="contact-item"><span><i class="fa-solid fa-globe"></i></span> geovisionops.com</div>
+      <div class="contact-item"><span><i class="fa-solid fa-envelope"></i></span> operations@geovisionops.com</div>
+    </div>
+    <div class="footer-divider"></div>
+    <p class="footer-copyright">© 2024 GeoVision. Operational Intelligence for Strategic Assets.</p>
+  </footer>
+
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/session.js?v=1"></script>
+  <script src="assets/js/i18n.js?v=1"></script>
+  <script src="assets/js/config.js?v=4"></script>
+  <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
+  <script src="assets/js/chatbot.js?v=4"></script>
+  <script src="assets/js/contacts.js?v=1"></script>
+  <script src="assets/js/theme.js?v=1"></script>
+
+</body>
+</html>
