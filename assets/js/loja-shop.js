@@ -685,7 +685,7 @@ async function processCheckout() {
           phone: phone || null,
           company: company || null,
           nif: nif || null,
-          country: "AO",
+          country: "",
         },
       }),
     });
@@ -747,8 +747,8 @@ function showPaymentInstructions(result) {
   if (result.payment_method === "multicaixa_express" && pd.qr_code) {
     html += `
       <div class="payment-instructions">
-        <h3>Pagar com Multicaixa Express</h3>
-        <p>Escaneia o QR code com a app Multicaixa Express:</p>
+        <h3>Multicaixa Express</h3>
+        <p>Scan the QR code with the Multicaixa Express app:</p>
         <div class="qr-container">
           <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pd.qr_code)}" alt="QR Code" />
         </div>
@@ -782,8 +782,8 @@ function showPaymentInstructions(result) {
     const td = pd.transfer_details;
     html += `
       <div class="payment-instructions">
-        <h3>Transferência Bancária Angola</h3>
-        <p>Transfere para a conta abaixo e envia o comprovativo:</p>
+        <h3>Bank Transfer</h3>
+        <p>Transfer to the account below and send proof of payment:</p>
         <div class="bank-details">
           <p><strong>Banco:</strong> ${td.bank_name}</p>
           <p><strong>IBAN:</strong> ${td.iban}</p>

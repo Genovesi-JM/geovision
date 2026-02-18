@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       role: "assistant",
       content:
-        "Ola! Sou o assistente da GeoVision. Posso explicar como usamos drones, sensores e mapas em Angola. Em que sector queres focar?"
+        "Ola! Sou o assistente da GeoVision. Posso explicar como usamos drones, sensores e mapas nas nossas operações. Em que sector queres focar?"
     }
   ];
 
