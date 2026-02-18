@@ -289,11 +289,12 @@ async def add_user_to_company(
 @router.post("/companies/{company_id}/connectors", response_model=ConnectorOut)
 async def create_connector(company_id: str, data: ConnectorConfig, db: Session = Depends(get_db)):
     from app.models import Company, Connector
+    from app.crypto import encrypt
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
     conn = Connector(id=str(uuid.uuid4()), company_id=company_id,
                      connector_type=data.connector_type.value, name=data.name,
-                     api_key=data.api_key, enabled=data.enabled)
+                     api_key=encrypt(data.api_key), enabled=data.enabled)
     db.add(conn); db.commit(); db.refresh(conn)
     logger.info(f"Created connector {conn.id} for company {company_id}")
     return ConnectorOut(id=conn.id, company_id=company_id, connector_type=conn.connector_type,
@@ -315,11 +316,12 @@ async def list_connectors(company_id: str, db: Session = Depends(get_db)):
 @router.patch("/companies/{company_id}/connectors/{connector_id}")
 async def update_connector(company_id: str, connector_id: str, data: ConnectorConfig, db: Session = Depends(get_db)):
     from app.models import Connector
+    from app.crypto import encrypt
     conn = db.get(Connector, connector_id)
     if not conn: raise HTTPException(404, "Connector not found")
     if conn.company_id != company_id: raise HTTPException(403, "Connector belongs to different company")
     conn.name = data.name; conn.enabled = data.enabled
-    if data.api_key: conn.api_key = data.api_key
+    if data.api_key: conn.api_key = encrypt(data.api_key)
     db.commit(); db.refresh(conn)
     return ConnectorOut(id=conn.id, company_id=conn.company_id, connector_type=conn.connector_type,
                         name=conn.name, enabled=conn.enabled, last_sync=None,

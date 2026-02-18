@@ -1,14 +1,18 @@
+import secrets
+import warnings
 from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from typing import Optional
 
+_INSECURE_DEFAULT = "CHANGE_ME"
+
 class Settings(BaseSettings):
     app_name: str = "GeoVision Backend"
     env: str = "dev"
 
-    # JWT / Auth
-    secret_key: str = "CHANGE_ME"
+    # JWT / Auth — MUST be set via SECRET_KEY env var in production
+    secret_key: str = _INSECURE_DEFAULT
     algorithm: str = "HS256"
     access_token_expires_minutes: int = 60
 
@@ -55,7 +59,7 @@ class Settings(BaseSettings):
 
     # OpenAI (opcional – para o chatbot AI)
     openai_api_key: Optional[str] = None
-    openai_model: str = "gpt-4.1-mini"
+    openai_model: str = "gpt-4o-mini"
 
     # Pydantic v2 settings: accept extra env vars (ignore unknown variables)
     model_config = {
@@ -64,6 +68,22 @@ class Settings(BaseSettings):
     }
 
 settings = Settings()
+
+# ── Secret key safety check ──────────────────────────────────────
+if settings.secret_key == _INSECURE_DEFAULT:
+    if settings.env in ("production", "prod"):
+        raise RuntimeError(
+            "FATAL: SECRET_KEY env var is not set. "
+            "Refusing to start in production with the insecure default."
+        )
+    # Dev / test: auto-generate a random key so tokens still work
+    _generated = secrets.token_urlsafe(48)
+    warnings.warn(
+        "SECRET_KEY not set — using a random ephemeral key. "
+        "Set SECRET_KEY env var before deploying to production.",
+        stacklevel=1,
+    )
+    settings.secret_key = _generated
 
 # Backwards-compatible names expected elsewhere in the codebase
 JWT_SECRET = settings.secret_key

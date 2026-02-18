@@ -83,7 +83,13 @@
       const r = String(role || '').toLowerCase();
       const params = new URLSearchParams(window.location.search);
       const returnTo = params.get('return');
-      if (returnTo && !returnTo.includes('//')) {
+      // Strict validation: only allow relative paths starting with a
+      // single slash and no protocol/scheme prefix (blocks //, javascript:,
+      // data:, vbscript:, etc.)
+      if (returnTo
+          && returnTo.startsWith('/')
+          && !returnTo.startsWith('//')
+          && !/^[a-z]+:/i.test(returnTo)) {
         window.location.href = returnTo;
         return;
       }

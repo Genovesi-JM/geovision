@@ -21,7 +21,13 @@
   <script>
     (function(){
       function getParams() {
-        const p = new URLSearchParams(window.location.search);
+        // Read from URL fragment (#) to avoid token leaking in server
+        // logs, Referer headers, and browser history.  Falls back to
+        // query params (?) for backward compatibility.
+        var raw = window.location.hash
+          ? window.location.hash.substring(1)
+          : window.location.search.substring(1);
+        const p = new URLSearchParams(raw);
         return {
           token: p.get('token'),
           refresh_token: p.get('refresh_token') || '',
@@ -34,6 +40,10 @@
         };
       }
       const { token, refresh_token, email, name, role, accountId, accountName, redirect } = getParams();
+      // Clear the fragment so the token doesn't linger in the URL bar
+      if (window.location.hash) {
+        try { history.replaceState(null, '', window.location.pathname); } catch(_){}
+      }
       if (!token) {
         document.getElementById('msg').textContent = 'Token ausente. Volta ao login.';
         setTimeout(() => window.location.replace('login.html'), 1200);

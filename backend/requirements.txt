@@ -13,6 +13,9 @@ httpx
 # S3-compatible storage
 boto3>=1.34.0
 
+# Encryption for secrets at rest
+cryptography>=42.0.0
+
 # Validation helpers
 email-validator
 

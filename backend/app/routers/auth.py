@@ -644,12 +644,19 @@ def google_callback(code: str | None = None, state: str | None = None,
 
         access_token = tokres.json().get("access_token")
 
-        if state:
-            st = db.query(OAuthState).filter(OAuthState.state == state).first()
-            if st:
-                st.used = True
-                db.add(st)
-                db.commit()
+        # ── CRITICAL: validate OAuth state (CSRF protection) ──
+        if not state:
+            raise HTTPException(status_code=400, detail="OAuth state ausente.")
+        st = db.query(OAuthState).filter(OAuthState.state == state).first()
+        if not st:
+            raise HTTPException(status_code=400, detail="OAuth state inválido.")
+        if st.used:
+            raise HTTPException(status_code=400, detail="OAuth state já utilizado (replay).")
+        if st.expires_at < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="OAuth state expirado.")
+        st.used = True
+        db.add(st)
+        db.commit()
 
         ures = requests.get("https://www.googleapis.com/oauth2/v2/userinfo",
                             params={"access_token": access_token}, timeout=10)
@@ -681,6 +688,8 @@ def google_callback(code: str | None = None, state: str | None = None,
         redirect_path = "/admin.html" if role == "admin" else "/dashboard.html"
         frontend_base = settings.frontend_base.rstrip("/")
         callback_url = f"{frontend_base}/auth-callback.html"
+        # Use URL fragment (#) instead of query params (?) so the token
+        # never appears in server logs, Referer headers, or browser history.
         params = urlencode({
             "token": token, "email": email, "role": role,
             "name": name or "",
@@ -688,7 +697,7 @@ def google_callback(code: str | None = None, state: str | None = None,
             "account_name": getattr(account, "name", ""),
             "redirect": redirect_path,
         })
-        return RedirectResponse(f"{callback_url}?{params}")
+        return RedirectResponse(f"{callback_url}#{params}")
 
     except HTTPException:
         raise
@@ -842,12 +851,19 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
 
         ms_access_token = tokres.json().get("access_token")
 
-        if state:
-            st = db.query(OAuthState).filter(OAuthState.state == state).first()
-            if st:
-                st.used = True
-                db.add(st)
-                db.commit()
+        # ── CRITICAL: validate OAuth state (CSRF protection) ──
+        if not state:
+            raise HTTPException(status_code=400, detail="OAuth state ausente.")
+        st = db.query(OAuthState).filter(OAuthState.state == state).first()
+        if not st:
+            raise HTTPException(status_code=400, detail="OAuth state inválido.")
+        if st.used:
+            raise HTTPException(status_code=400, detail="OAuth state já utilizado (replay).")
+        if st.expires_at < datetime.utcnow():
+            raise HTTPException(status_code=400, detail="OAuth state expirado.")
+        st.used = True
+        db.add(st)
+        db.commit()
 
         ures = requests.get(
             "https://graph.microsoft.com/v1.0/me",
@@ -890,7 +906,7 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
             "account_name": getattr(account, "name", ""),
             "redirect": redirect_path,
         })
-        return RedirectResponse(f"{callback_url}?{params}")
+        return RedirectResponse(f"{callback_url}#{params}")
 
     except HTTPException:
         raise

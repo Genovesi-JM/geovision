@@ -42,6 +42,12 @@ services:
   - key: SECRET_KEY
     scope: RUN_TIME
     type: SECRET
+  - key: ADMIN_PASSWORD
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENCRYPTION_KEY
+    scope: RUN_TIME
+    type: SECRET
   - key: GOOGLE_CLIENT_ID
     scope: RUN_TIME
     type: SECRET
@@ -59,7 +65,7 @@ services:
     type: SECRET
   - key: OPENAI_MODEL
     scope: RUN_TIME
-    value: gpt-4.1-mini
+    value: gpt-4o-mini
   - key: STRIPE_SECRET_KEY
     scope: RUN_TIME
     type: SECRET

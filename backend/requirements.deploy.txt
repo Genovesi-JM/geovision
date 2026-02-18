@@ -13,4 +13,5 @@ httpx
 email-validator
 requests
 boto3>=1.34.0
+cryptography>=42.0.0
 psycopg2-binary>=2.9.9
