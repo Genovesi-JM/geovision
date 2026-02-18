@@ -502,7 +502,7 @@ class RiskEngine:
     SECTOR_ENGINES = {
         SectorType.MINING: MiningRuleEngine,
         SectorType.INFRASTRUCTURE: InfrastructureRuleEngine,
-        # TODO: Add more sector engines
+        # FUTURE: Add Agro, Construction, Solar, Demining sector engines
     }
     
     RISK_THRESHOLDS = {

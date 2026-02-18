@@ -27,5 +27,5 @@ class RAGPipeline:
         Current implementation is intentionally minimal and returns an empty
         string (initial version of the RAG pipeline).
         """
-        # TODO: wire up retriever + generator; return a useful answer.
+        # FUTURE: wire up retriever + generator; return a useful answer.
         return ""

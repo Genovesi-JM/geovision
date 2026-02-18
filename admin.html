@@ -957,7 +957,7 @@
           <button class="lang-btn" data-lang="es">ES</button>
         </div>
         <div class="topbar-search">
-          <input type="text" data-i18n-placeholder="common.search" placeholder="Pesquisar..." id="global-search" />
+          <input type="text" data-i18n-placeholder="common.search" placeholder="Pesquisar..." id="global-search" aria-label="Pesquisar" />
         </div>
         <button class="topbar-btn" id="btn-notifications" title="Notificações" onclick="switchView('alerts')">
           <i class="fa-solid fa-bell"></i>
@@ -1801,10 +1801,10 @@
             <h3 style="margin-bottom:1rem;">Ajustar Stock</h3>
             <p id="stock-product-name" style="color:var(--text-secondary);margin-bottom:1rem;"></p>
             <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
-              <label>Ajuste (+/-):</label>
+              <label for="stock-adjust-val">Ajuste (+/-):</label>
               <input class="form-input" id="stock-adjust-val" type="number" style="width:100px;" />
             </div>
-            <div style="margin-bottom:1rem;"><label>Razão:</label><input class="form-input" id="stock-adjust-reason" placeholder="Opcional" /></div>
+            <div style="margin-bottom:1rem;"><label for="stock-adjust-reason">Razão:</label><input class="form-input" id="stock-adjust-reason" placeholder="Opcional" /></div>
             <div style="display:flex;gap:1rem;justify-content:flex-end;">
               <button class="btn" onclick="document.getElementById('stock-modal').style.display='none'" style="background:var(--bg-card);border:1px solid var(--border);">Cancelar</button>
               <button class="btn btn-primary" onclick="submitStockAdjust()">Confirmar</button>
@@ -2202,7 +2202,7 @@
     });
 
     // ============ API CALLS ============
-    const API_BASE = window.API_BASE || 'http://127.0.0.1:8010';
+    const API_BASE = window.API_BASE;
 
     function authHeaders(extra = {}) {
       const token = localStorage.getItem('gv_token');
@@ -2426,7 +2426,7 @@
     }
 
     function exportReport() {
-      // TODO: integrate report export endpoint
+      alert('Export de relatórios em breve disponível.');
     }
 
     // ============ SEND REPORTS TO CLIENTS ============

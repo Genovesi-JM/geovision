@@ -8,7 +8,7 @@
  *  - Tracking de pedidos
  */
 
-const API_URL = window.API_BASE || "http://127.0.0.1:8010";
+const API_URL = window.API_BASE;
 
 /* HTML escaping utility (XSS prevention) */
 const esc = window.escapeHTML || (s => { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; });

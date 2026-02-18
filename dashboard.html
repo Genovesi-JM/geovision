@@ -1658,7 +1658,7 @@
   <script src="assets/js/contacts.js?v=1"></script>
   <script>
     // ============ API CONFIG ============
-    const API_URL = window.API_BASE || "http://127.0.0.1:8010";
+    const API_URL = window.API_BASE;
 
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
@@ -2110,7 +2110,7 @@
       // Then fetch fresh data from /auth/me
       const token = localStorage.getItem('gv_token');
       if (token) {
-        const apiUrl = window.API_BASE || 'http://127.0.0.1:8010';
+        const apiUrl = window.API_BASE;
         fetch(apiUrl + '/auth/me', {
           headers: { 'Authorization': 'Bearer ' + token }
         })

@@ -1,6 +1,6 @@
 // assets/js/chatbot.js
 
-const CHAT_API_BASE = window.GV_CHAT_API_BASE || window.API_BASE || "http://127.0.0.1:8010";
+const CHAT_API_BASE = window.GV_CHAT_API_BASE || window.API_BASE;
 
 document.addEventListener("DOMContentLoaded", () => {
   const path = window.location.pathname || "";

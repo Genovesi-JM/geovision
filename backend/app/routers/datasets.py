@@ -358,7 +358,7 @@ async def source_webhook(
     Each tool sends data in its own format, which we normalize.
     """
     
-    # TODO: Implement per-tool webhook handlers
+    # FUTURE: Implement per-tool webhook handlers
     # - DJI Terra: Project export notifications
     # - Pix4D: Processing complete callbacks
     # - BIM 360: Model update webhooks
@@ -385,7 +385,7 @@ async def sync_from_source(
     Requires API credentials configured for the company.
     """
     
-    # TODO: Implement per-tool API sync
+    # FUTURE: Implement per-tool API sync
     # - Pix4D Cloud API
     # - DroneDeploy API
     # - BIM 360 API
