@@ -300,7 +300,7 @@ async function continueAddToCart() {
 
 function redirectToCreateAccount() {
   closeSectorWarning();
-  window.location.href = "login.html?mode=register";
+  window.location.href = "login.html?mode=register&return=loja.html";
 }
 
 async function addToCart(productId) {
@@ -692,6 +692,12 @@ async function processCheckout() {
 
     if (!res.ok) {
       const err = await res.json();
+      if (res.status === 401 || (err.detail && err.detail.includes("authenticated"))) {
+        if (confirm("Precisas de iniciar sessão para finalizar a compra. Ir para login?")) {
+          window.location.href = "login.html?return=loja.html";
+        }
+        return;
+      }
       throw new Error(err.detail || "Erro no checkout");
     }
 

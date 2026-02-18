@@ -81,6 +81,12 @@
 
     function redirectAfterAuth(role) {
       const r = String(role || '').toLowerCase();
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get('return');
+      if (returnTo && !returnTo.includes('//')) {
+        window.location.href = returnTo;
+        return;
+      }
       window.location.href = (r === 'admin') ? 'admin.html' : 'dashboard.html';
     }
 
