@@ -60,6 +60,15 @@ services:
   - key: OPENAI_MODEL
     scope: RUN_TIME
     value: gpt-4.1-mini
+  - key: STRIPE_SECRET_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: STRIPE_PUBLISHABLE_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: STRIPE_WEBHOOK_SECRET
+    scope: RUN_TIME
+    type: SECRET
   github:
     branch: main
     deploy_on_push: true
