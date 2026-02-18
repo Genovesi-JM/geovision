@@ -2107,7 +2107,6 @@
   </div>
 
   <script src="assets/js/i18n.js?v=1"></script>
-  <script src="assets/js/config.js?v=5"></script>
   <script>
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
@@ -3275,14 +3274,8 @@
 
     // ============ LOGOUT ============
     document.getElementById('btn-logout').addEventListener('click', () => {
-      localStorage.removeItem('gv_token');
-      localStorage.removeItem('gv_role');
-      localStorage.removeItem('gv_email');
-      localStorage.removeItem('gv_name');
-      localStorage.removeItem('gv_user');
-      localStorage.removeItem('gv_account_id');
-      localStorage.removeItem('gv_account_name');
-      localStorage.removeItem('gv_refresh_token');
+      ['gv_token','gv_refresh_token','gv_user','gv_email','gv_name',
+       'gv_role','gv_account_id','gv_account_name','gv_toast','gv_active_sector'].forEach(k => localStorage.removeItem(k));
       window.location.href = 'index.html';
     });
 

@@ -10,6 +10,9 @@
 
 const API_URL = window.API_BASE || "http://127.0.0.1:8010";
 
+/* HTML escaping utility (XSS prevention) */
+const esc = window.escapeHTML || (s => { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; });
+
 // Estado da loja
 let allProducts = [];
 let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
@@ -186,18 +189,18 @@ function renderCart() {
     row.className = "loja-cart-item";
     row.innerHTML = `
       <div>
-        <div class="loja-cart-item-name">${item.product_name}</div>
+        <div class="loja-cart-item-name">${esc(item.product_name)}</div>
         <div class="loja-cart-item-meta">
           ${item.quantity} × ${formatAOASimple(item.unit_price)}
         </div>
       </div>
       <div class="loja-cart-item-actions">
         <div class="qty-stepper">
-          <button class="qty-minus" onclick="updateCartQty('${item.id}', ${item.quantity - 1})" title="Remover 1">−</button>
+          <button class="qty-minus" onclick="updateCartQty('${esc(item.id)}', ${item.quantity - 1})" title="Remover 1">−</button>
           <span class="qty-val">${item.quantity}</span>
-          <button class="qty-plus" onclick="updateCartQty('${item.id}', ${item.quantity + 1})" title="Adicionar 1">+</button>
+          <button class="qty-plus" onclick="updateCartQty('${esc(item.id)}', ${item.quantity + 1})" title="Adicionar 1">+</button>
         </div>
-        <button class="cart-remove-btn" onclick="removeFromCart('${item.id}')" title="Remover">
+        <button class="cart-remove-btn" onclick="removeFromCart('${esc(item.id)}')" title="Remover">
           ✕
         </button>
       </div>
@@ -321,8 +324,8 @@ function showSectorWarning(data) {
   const userSectorLabel = SECTOR_LABELS[data.user_sector] || data.user_sector || "não definido";
   
   msgEl.innerHTML = `
-    <p><strong>Atenção:</strong> Este produto pertence ao(s) setor(es) <strong>${productSectorLabels}</strong>, 
-    mas a sua conta está registada no setor <strong>${userSectorLabel}</strong>.</p>
+    <p><strong>Atenção:</strong> Este produto pertence ao(s) setor(es) <strong>${esc(productSectorLabels)}</strong>, 
+    mas a sua conta está registada no setor <strong>${esc(userSectorLabel)}</strong>.</p>
     <p>Deseja continuar assim mesmo?</p>
   `;
   
@@ -529,27 +532,27 @@ function renderProducts() {
     
     // Sector badges
     const sectorBadges = (p.sectors || []).map(s => 
-      `<span class="${getSectorBadgeClass(s)}">${SECTOR_LABELS[s] || s}</span>`
+      `<span class="${getSectorBadgeClass(s)}">${esc(SECTOR_LABELS[s] || s)}</span>`
     ).join("");
 
     // Execution type badge
     const execBadge = p.execution_type 
-      ? `<span class="execution-badge ${p.execution_type}">${p.execution_type === 'pontual' ? 'Pontual' : 'Recorrente'}</span>`
+      ? `<span class="execution-badge ${esc(p.execution_type)}">${p.execution_type === 'pontual' ? 'Pontual' : 'Recorrente'}</span>`
       : '';
 
     // Meta info
     let metaHtml = '';
     if (p.duration_hours) {
-      metaHtml += `<span>⏱️ ${p.duration_hours}h</span>`;
+      metaHtml += `<span>⏱️ ${Number(p.duration_hours)}h</span>`;
     }
     if (p.min_area_ha) {
-      metaHtml += `<span><i class="fa-solid fa-ruler-combined"></i> Min ${p.min_area_ha}ha</span>`;
+      metaHtml += `<span><i class="fa-solid fa-ruler-combined"></i> Min ${Number(p.min_area_ha)}ha</span>`;
     }
 
     // Deliverables preview
     let deliverablesHtml = '';
     if (p.deliverables && p.deliverables.length > 0) {
-      const preview = p.deliverables.slice(0, 3).join(", ");
+      const preview = p.deliverables.slice(0, 3).map(d => esc(d)).join(", ");
       const more = p.deliverables.length > 3 ? ` +${p.deliverables.length - 3}` : '';
       deliverablesHtml = `<div class="deliverables-preview"><i class="fa-solid fa-box"></i> ${preview}${more}</div>`;
     }
@@ -562,10 +565,10 @@ function renderProducts() {
     card.innerHTML = `
       ${featuredBadge}
       <div>
-        <div class="loja-card-tag">${catLabel} ${execBadge}</div>
-        <h3 class="loja-card-title">${p.name}</h3>
+        <div class="loja-card-tag">${esc(catLabel)} ${execBadge}</div>
+        <h3 class="loja-card-title">${esc(p.name)}</h3>
         <p class="loja-card-desc">
-          ${p.short_description || p.description || "Serviço GeoVision integrado."}
+          ${esc(p.short_description || p.description || "Serviço GeoVision integrado.")}
         </p>
         <div class="loja-card-sectors">${sectorBadges}</div>
         ${metaHtml ? `<div class="loja-card-meta">${metaHtml}</div>` : ''}
@@ -575,18 +578,18 @@ function renderProducts() {
         <div class="loja-prices-multi">
           <div class="loja-price-row loja-price-aoa${selectedCurrency === 'AOA' ? ' active' : ''}">
             <span class="cur-badge cur-aoa">AOA</span>
-            ${formatPrice(p.price, 'AOA')}${p.unit_label ? `<span class="unit">/${p.unit_label}</span>` : ""}
+            ${formatPrice(p.price, 'AOA')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
           </div>
           <div class="loja-price-row loja-price-usd${selectedCurrency === 'USD' ? ' active' : ''}">
             <span class="cur-badge cur-usd">USD</span>
-            ${formatPrice(p.price_usd || 0, 'USD')}${p.unit_label ? `<span class="unit">/${p.unit_label}</span>` : ""}
+            ${formatPrice(p.price_usd || 0, 'USD')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
           </div>
           <div class="loja-price-row loja-price-eur${selectedCurrency === 'EUR' ? ' active' : ''}">
             <span class="cur-badge cur-eur">EUR</span>
-            ${formatPrice(p.price_eur || 0, 'EUR')}${p.unit_label ? `<span class="unit">/${p.unit_label}</span>` : ""}
+            ${formatPrice(p.price_eur || 0, 'EUR')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
           </div>
         </div>
-        <button class="btn-add" onclick="handleAddToCart('${p.id}')">
+        <button class="btn-add" onclick="handleAddToCart('${esc(p.id)}')">
           Adicionar
         </button>
       </div>
@@ -701,7 +704,7 @@ function renderCheckoutSummary() {
 
   let html = "<ul>";
   currentCart.items.forEach((item) => {
-    html += `<li>${item.quantity}x ${item.product_name} - ${formatAOA(item.total_price)}</li>`;
+    html += `<li>${item.quantity}x ${esc(item.product_name)} - ${formatAOA(item.total_price)}</li>`;
   });
   html += "</ul>";
   
@@ -804,7 +807,7 @@ function showPaymentInstructions(result) {
   let html = `
     <div class="payment-instructions" style="text-align:center;">
       <p class="order-success" style="font-size:1.3rem;margin-bottom:0.5rem;">✓ Pedido Criado</p>
-      <p style="font-size:1.1rem;font-weight:600;margin-bottom:1rem;">${result.order_number}</p>
+      <p style="font-size:1.1rem;font-weight:600;margin-bottom:1rem;">${esc(result.order_number)}</p>
   `;
 
   const pd = result.payment_data || {};
@@ -817,7 +820,7 @@ function showPaymentInstructions(result) {
         <div class="qr-container">
           <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pd.qr_code)}" alt="QR Code" />
         </div>
-        <p class="ref-code">Ref: ${pd.provider_reference || ""}</p>
+        <p class="ref-code">Ref: ${esc(pd.provider_reference || "")}</p>
       </div>
     `;
   } else if (result.payment_method === "visa_mastercard" && pd.client_secret) {
@@ -850,10 +853,10 @@ function showPaymentInstructions(result) {
         <h3>Bank Transfer</h3>
         <p>Transfer to the account below and send proof of payment:</p>
         <div class="bank-details">
-          <p><strong>Banco:</strong> ${td.bank_name}</p>
-          <p><strong>IBAN:</strong> ${td.iban}</p>
-          <p><strong>Beneficiário:</strong> ${td.beneficiary || "GeoVision Lda"}</p>
-          <p><strong>Referência:</strong> ${td.reference || result.order_number}</p>
+          <p><strong>Banco:</strong> ${esc(td.bank_name)}</p>
+          <p><strong>IBAN:</strong> ${esc(td.iban)}</p>
+          <p><strong>Beneficiário:</strong> ${esc(td.beneficiary || "GeoVision Lda")}</p>
+          <p><strong>Referência:</strong> ${esc(td.reference || result.order_number)}</p>
           <p><strong>Valor:</strong> ${td.amount?.toLocaleString("pt-AO")} AOA</p>
         </div>
       </div>
@@ -865,25 +868,27 @@ function showPaymentInstructions(result) {
       <div class="payment-instructions">
         <h3>Transferência Internacional (SWIFT/SEPA)</h3>
         <div class="bank-details">
-          <p><strong>Banco:</strong> ${td.bank_name}</p>
-          <p><strong>IBAN:</strong> ${td.iban}</p>
-          <p><strong>SWIFT/BIC:</strong> ${td.bic}</p>
-          <p><strong>Beneficiário:</strong> ${td.beneficiary || "GeoVision Lda"}</p>
-          <p><strong>Referência:</strong> ${td.reference || result.order_number}</p>
+          <p><strong>Banco:</strong> ${esc(td.bank_name)}</p>
+          <p><strong>IBAN:</strong> ${esc(td.iban)}</p>
+          <p><strong>SWIFT/BIC:</strong> ${esc(td.bic)}</p>
+          <p><strong>Beneficiário:</strong> ${esc(td.beneficiary || "GeoVision Lda")}</p>
+          <p><strong>Referência:</strong> ${esc(td.reference || result.order_number)}</p>
           <p><strong>Valor:</strong> ${td.amount?.toLocaleString("pt-PT", {minimumFractionDigits: 2})} ${cur}</p>
         </div>
       </div>
     `;
   } else if (result.payment_method === "paypal" && pd.redirect_url) {
+    // Validate PayPal redirect URL - must be https
+    const paypalUrl = /^https:\/\//.test(pd.redirect_url) ? pd.redirect_url : '#';
     html += `
       <div class="payment-instructions">
         <h3><i class="fa-brands fa-paypal" style="color:#003087;"></i> Pagar com PayPal</h3>
         <p>Serás redirecionado para o PayPal para completar o pagamento.</p>
-        <a href="${pd.redirect_url}" class="btn-payment" target="_blank"
+        <a href="${esc(paypalUrl)}" class="btn-payment" target="_blank"
            style="display:inline-flex;align-items:center;gap:.5rem;background:#0070ba;color:#fff;padding:.8rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;margin:1rem 0;">
           <i class="fa-brands fa-paypal"></i> Pagar com PayPal
         </a>
-        <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">Ref: ${pd.provider_reference || ""}</p>
+        <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">Ref: ${esc(pd.provider_reference || "")}</p></p>
       </div>
     `;
   } else {

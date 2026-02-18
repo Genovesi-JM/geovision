@@ -715,7 +715,7 @@ const translations = {
   "about.cta.subtitle2": { pt: "Pronto para transformar as suas capacidades operacionais? Contacte a nossa equipa para discutir como a GeoVision pode apoiar os seus objetivos estratégicos.", en: "Ready to transform your operational capabilities? Connect with our team to discuss how GeoVision can support your strategic objectives.", es: "¿Listo para transformar sus capacidades operacionales? Conecte con nuestro equipo para discutir cómo GeoVision puede apoyar sus objetivos estratégicos." },
   "about.cta.requestProposal": { pt: "Solicitar Proposta", en: "Request Proposal", es: "Solicitar Propuesta" },
   "about.cta.contactOps": { pt: "Contactar Equipa de Operações", en: "Contact Operations Team", es: "Contactar Equipo de Operaciones" },
-  "about.footer.copyright": { pt: "© 2024 GeoVision. Inteligência Operacional para Ativos Estratégicos.", en: "© 2024 GeoVision. Operational Intelligence for Strategic Assets.", es: "© 2024 GeoVision. Inteligencia Operacional para Activos Estratégicos." },
+  "about.footer.copyright": { pt: "© 2025 GeoVision. Inteligência Operacional para Ativos Estratégicos.", en: "© 2025 GeoVision. Operational Intelligence for Strategic Assets.", es: "© 2025 GeoVision. Inteligencia Operacional para Activos Estratégicos." },
 
   // ============ TECHNOLOGY PAGE ============
   "tech.hero.eyebrow": { pt: "O Que Usamos", en: "What We Use", es: "Lo Que Usamos" },

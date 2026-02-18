@@ -16,14 +16,8 @@
 		(window.location.hostname.endsWith("github.io") ||
 		 window.location.hostname.endsWith("geovisionops.com"));
 
-	let override = null;
-	try {
-		override = localStorage.getItem("gv_api_base");
-	} catch (e) {}
-
 	window.API_BASE =
 		window.API_BASE ||
-		(override && override.trim()) ||
 		(isProduction ? PROD_DEFAULT : LOCAL_DEFAULT);
 })();
 

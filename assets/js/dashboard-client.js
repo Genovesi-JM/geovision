@@ -4,6 +4,14 @@ const SESSION_ACCOUNT_KEY = "gv_account_id";
 const SESSION_ACTIVE_SECTOR_KEY = "gv_active_sector";
 const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
 
+/* HTML escaping utility (XSS prevention) */
+function escapeHTML(str) {
+  if (str == null) return "";
+  const d = document.createElement("div");
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
 const SECTOR_LABELS = {
   agro: "Agro & Pecuária",
   mining: "Mineração",
@@ -157,12 +165,12 @@ function renderServices(portfolio) {
   portfolio.services.forEach((svc) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${svc.type}</td>
-      <td>${svc.location}</td>
-      <td>${svc.hectares}</td>
+      <td>${escapeHTML(svc.type)}</td>
+      <td>${escapeHTML(svc.location)}</td>
+      <td>${escapeHTML(svc.hectares)}</td>
       <td>
         <span class="status-pill">
-          <span class="status-pill-dot"></span>${svc.status}
+          <span class="status-pill-dot"></span>${escapeHTML(svc.status)}
         </span>
       </td>
     `;
@@ -188,11 +196,11 @@ function renderHardware(portfolio) {
   portfolio.hardware.forEach((hw) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${hw.name}</td>
-      <td>${hw.location}</td>
+      <td>${escapeHTML(hw.name)}</td>
+      <td>${escapeHTML(hw.location)}</td>
       <td>
         <span class="status-pill">
-          <span class="status-pill-dot"></span>${hw.status}
+          <span class="status-pill-dot"></span>${escapeHTML(hw.status)}
         </span>
       </td>
     `;
@@ -217,10 +225,10 @@ function renderReports(portfolio) {
   portfolio.reports.forEach((rep) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${rep.title}</td>
-      <td>${rep.service}</td>
-      <td>${rep.eta}</td>
-      <td>${rep.status}</td>
+      <td>${escapeHTML(rep.title)}</td>
+      <td>${escapeHTML(rep.service)}</td>
+      <td>${escapeHTML(rep.eta)}</td>
+      <td>${escapeHTML(rep.status)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -354,14 +362,14 @@ async function loadAlerts(accountId, activeSector) {
     
     alertsData.alerts.forEach((alert) => {
       const div = document.createElement("div");
-      div.className = `alert-item alert-${alert.severity}`;
+      div.className = `alert-item alert-${escapeHTML(alert.severity)}`;
       div.innerHTML = `
         <div class="alert-header">
-          <span class="alert-severity ${alert.severity}">${alert.severity.toUpperCase()}</span>
-          <span class="alert-title">${alert.title}</span>
+          <span class="alert-severity ${escapeHTML(alert.severity)}">${escapeHTML(alert.severity).toUpperCase()}</span>
+          <span class="alert-title">${escapeHTML(alert.title)}</span>
         </div>
-        <div class="alert-description">${alert.description}</div>
-        ${alert.location ? `<div class="alert-location"><i class="fa-solid fa-location-dot"></i> ${alert.location}</div>` : ""}
+        <div class="alert-description">${escapeHTML(alert.description)}</div>
+        ${alert.location ? `<div class="alert-location"><i class="fa-solid fa-location-dot"></i> ${escapeHTML(alert.location)}</div>` : ""}
       `;
       container.appendChild(div);
     });
@@ -402,10 +410,10 @@ async function loadOrdersOverrideReports(accountId) {
       const tr = document.createElement("tr");
       const created = o.created_at ? new Date(o.created_at).toLocaleString() : "-";
       tr.innerHTML = `
-        <td>Pedido ${o.id.slice(0, 8)}</td>
+        <td>Pedido ${escapeHTML(String(o.id).slice(0, 8))}</td>
         <td>Loja GeoVision</td>
         <td>${created}</td>
-        <td>${o.status || "-"}</td>
+        <td>${escapeHTML(o.status || "-")}</td>
       `;
       tbody.appendChild(tr);
     });

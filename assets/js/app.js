@@ -118,13 +118,14 @@ function renderProjectsTable(projects) {
     return;
   }
 
+  const esc = window.escapeHTML || (s => { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; });
   projects.forEach((p) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.id}</td>
-      <td>${p.sector || "-"}</td>
-      <td>${p.region || "-"}</td>
-      <td>${p.status || "-"}</td>
+      <td>${esc(p.id)}</td>
+      <td>${esc(p.sector || "-")}</td>
+      <td>${esc(p.region || "-")}</td>
+      <td>${esc(p.status || "-")}</td>
       <td>${new Date(p.created_at).toLocaleDateString("pt-PT")}</td>
     `;
     tbody.appendChild(tr);
@@ -232,11 +233,10 @@ function initLogoutButtons() {
     document.querySelectorAll(sel).forEach((el) => {
       if (el.dataset && el.dataset.gvLogoutAttached === '1') return;
       el.addEventListener('click', () => {
-        try { gvClearToken(); } catch (e) {}
-        try { localStorage.removeItem('gv_user'); } catch (e) {}
-        try { localStorage.removeItem('gv_account_id'); } catch (e) {}
-        try { localStorage.removeItem('gv_role'); } catch (e) {}
-        try { localStorage.removeItem('gv_email'); } catch (e) {}
+        ['gv_token','gv_refresh_token','gv_user','gv_email','gv_name',
+         'gv_role','gv_account_id','gv_account_name','gv_toast','gv_active_sector'].forEach(k => {
+          try { localStorage.removeItem(k); } catch(e) {}
+        });
         window.location.href = 'login.html';
       });
       try { el.dataset.gvLogoutAttached = '1'; } catch (e) {}

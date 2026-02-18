@@ -6,6 +6,15 @@
 */
 
 (function () {
+  /* ── HTML escaping utility (prevents XSS in innerHTML) ── */
+  function escapeHTML(str) {
+    if (str == null) return "";
+    const d = document.createElement("div");
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
+  window.escapeHTML = escapeHTML;
+
   const GV = window.GV || {};
 
   function initMenuToggle() {
@@ -56,6 +65,7 @@
     const closeBtns = modal.querySelectorAll(".video-modal-close");
 
     function openVideo(id) {
+      if (!/^[a-zA-Z0-9_-]+$/.test(id)) return;
       content.innerHTML = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${id}?rel=0" frameborder="0" allowfullscreen></iframe>`;
       modal.style.display = "block";
     }
@@ -85,6 +95,18 @@
   GV.initSite = initSite;
   window.GV = GV;
 
+  // Auto-update copyright year in footers
+  function updateCopyrightYear() {
+    var y = new Date().getFullYear();
+    document.querySelectorAll('.footer-copyright').forEach(function(el) {
+      el.textContent = el.textContent.replace(/© \d{4}/, '© ' + y);
+    });
+  }
+
   // Auto init on DOM ready (safe to call multiple times)
-  document.addEventListener("DOMContentLoaded", initSite);
+  document.addEventListener("DOMContentLoaded", function() {
+    initSite();
+    // Run after i18n may have applied translations
+    setTimeout(updateCopyrightYear, 150);
+  });
 })();

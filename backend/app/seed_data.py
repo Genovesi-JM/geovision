@@ -11,54 +11,6 @@ from app import models
 from app.database import SessionLocal
 from app.utils import hash_password
 
-DEMO_PRODUCTS: List[dict] = [
-    {
-        "name": "NDVI + Pulverização 200 ha",
-        "slug": "ndvi-pulverizacao-200",
-        "category": "servico-drone",
-        "sector": "agricultura",
-        "description": "Missão completa com drone multiespectral + pulverização em precisão para 200 ha.",
-        "price_cents": 245000,
-        "unit_label": "por missão",
-    },
-    {
-        "name": "Kit IoT Pecuária – 25 colares",
-        "slug": "kit-iot-pecuaria-25",
-        "category": "hardware-iot",
-        "sector": "pecuaria",
-        "description": "Colares inteligentes + gateway LoRaWAN para rastrear rebanhos em grandes extensões.",
-        "price_cents": 189000,
-        "unit_label": "por kit",
-    },
-    {
-        "name": "Mapeamento LIDAR para mina",
-        "slug": "mapeamento-lidar-mina",
-        "category": "servico-lidar",
-        "sector": "mining",
-        "description": "Modelo 3D, volumes e perfis de talude com drone LIDAR de classe industrial.",
-        "price_cents": 360000,
-        "unit_label": "por campanha",
-    },
-    {
-        "name": "Sensores estruturais para ponte",
-        "slug": "sensores-ponte",
-        "category": "hardware-sensor",
-        "sector": "infra",
-        "description": "Pacote de sensores de vibração, inclinação e temperatura integrados no dashboard GeoVision.",
-        "price_cents": 275000,
-        "unit_label": "por instalação",
-    },
-    {
-        "name": "Ração mineralizada – 5t",
-        "slug": "racao-mineralizada-5t",
-        "category": "insumo-nutricao",
-        "sector": "pecuaria",
-        "description": "Formulação balanceada para suportar o rebanho durante a época seca.",
-        "price_cents": 82000,
-        "unit_label": "por lote",
-    },
-]
-
 
 # Admin accounts — password read from ADMIN_PASSWORD env var (never hardcoded)
 ADMIN_USERS: List[dict] = [
@@ -67,15 +19,6 @@ ADMIN_USERS: List[dict] = [
         "role": "admin",
     },
 ]
-
-
-def seed_demo_products() -> int:
-    """Populate products if the table is empty.
-
-    Returns:
-        int: number of products inserted.
-    """
-    return 0
 
 
 def seed_admin_users() -> int:

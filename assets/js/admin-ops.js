@@ -1,6 +1,8 @@
 const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
 
+const _esc = window.escapeHTML || (s => { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; });
+
 /* ── Data is loaded from the backend — no hardcoded demo content ── */
 const PROJECT_PIPELINE = [];
 const REPORTS_READY = [];
@@ -32,11 +34,11 @@ function renderPipelineTable() {
   PROJECT_PIPELINE.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.client}</td>
-      <td>${row.service}</td>
-      <td>${row.region}</td>
-      <td>${row.status}</td>
-      <td>${row.next}</td>
+      <td>${_esc(row.client)}</td>
+      <td>${_esc(row.service)}</td>
+      <td>${_esc(row.region)}</td>
+      <td>${_esc(row.status)}</td>
+      <td>${_esc(row.next)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -54,10 +56,10 @@ function renderReportsTable() {
   REPORTS_READY.forEach((row) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.client}</td>
-      <td>${row.report}</td>
-      <td>${row.eta}</td>
-      <td>${row.owner}</td>
+      <td>${_esc(row.client)}</td>
+      <td>${_esc(row.report)}</td>
+      <td>${_esc(row.eta)}</td>
+      <td>${_esc(row.owner)}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -96,9 +98,8 @@ function initAdminOps() {
   const logoutBtn = document.getElementById("btn-admin-logout");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", () => {
-      localStorage.removeItem("gv_token");
-      localStorage.removeItem("gv_role");
-      localStorage.removeItem("gv_email");
+      ['gv_token','gv_refresh_token','gv_user','gv_email','gv_name',
+       'gv_role','gv_account_id','gv_account_name','gv_toast','gv_active_sector'].forEach(k => localStorage.removeItem(k));
       window.location.href = "index.html";
     });
   }

@@ -2,6 +2,8 @@
 
 const API_BASE = (typeof window !== 'undefined' && window.API_BASE) ? window.API_BASE : 'http://127.0.0.1:8010';
 
+const _esc = window.escapeHTML || (s => { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; });
+
 function adminAuthHeaders() {
   const token = localStorage.getItem('gv_token');
   const accountId = localStorage.getItem('gv_account_id');
@@ -56,14 +58,14 @@ function renderProductsTable() {
     const badgeText = p.active ? "Ativo" : "Inativo";
 
     tr.innerHTML = `
-      <td>${p.name}</td>
-      <td>${p.category}</td>
+      <td>${_esc(p.name)}</td>
+      <td>${_esc(p.category)}</td>
       <td>${price} €</td>
-      <td>${p.unit || "-"}</td>
+      <td>${_esc(p.unit || "-")}</td>
       <td><span class="${badgeClass}">${badgeText}</span></td>
       <td class="admin-actions">
-        <button onclick="editProduct(${p.id})">Editar</button>
-        <button onclick="deleteProduct(${p.id})">Apagar</button>
+        <button onclick="editProduct(${Number(p.id)})">Editar</button>
+        <button onclick="deleteProduct(${Number(p.id)})">Apagar</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -160,11 +162,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-reset").addEventListener("click", resetForm);
 
   document.getElementById("btn-admin-logout").addEventListener("click", () => {
-    localStorage.removeItem("gv_token");
-    localStorage.removeItem("gv_role");
-    localStorage.removeItem("gv_email");
-    localStorage.removeItem("gv_user");
-    localStorage.removeItem("gv_account_id");
+    ['gv_token','gv_refresh_token','gv_user','gv_email','gv_name',
+     'gv_role','gv_account_id','gv_account_name','gv_toast','gv_active_sector'].forEach(k => localStorage.removeItem(k));
     window.location.href = "index.html";
   });
 });
