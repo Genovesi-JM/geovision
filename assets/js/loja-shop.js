@@ -746,6 +746,11 @@ async function processCheckout() {
     return;
   }
 
+  // Loading state
+  const btn = document.getElementById("confirm-checkout-btn");
+  const btnOrigText = btn ? btn.textContent : "";
+  if (btn) { btn.disabled = true; btn.textContent = "A processar..."; btn.style.opacity = "0.7"; }
+
   try {
     const token = localStorage.getItem("gv_token");
     const headers = { "Content-Type": "application/json" };
@@ -769,8 +774,8 @@ async function processCheckout() {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "Erro no checkout");
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Erro no checkout (${res.status})`);
     }
 
     const result = await res.json();
@@ -788,6 +793,8 @@ async function processCheckout() {
   } catch (err) {
     console.error("Erro no checkout:", err);
     alert(err.message);
+    // Restore button
+    if (btn) { btn.disabled = false; btn.textContent = btnOrigText; btn.style.opacity = "1"; }
   }
 }
 
@@ -843,7 +850,8 @@ function showPaymentInstructions(result) {
     html += `
       <div class="payment-instructions">
         <h3>Pagar com Cartão</h3>
-        <p>O pagamento por cartão está temporariamente indisponível. Tenta outro método.</p>
+        <p>O pagamento por cartão está temporariamente indisponível.</p>
+        <p style="font-size:.85rem;color:#94a3b8;margin-top:.5rem;">Podes usar <strong>Transferência Bancária (IBAN)</strong> como alternativa.</p>
       </div>
     `;
   } else if (result.payment_method === "iban_angola" && pd.transfer_details) {
@@ -1009,6 +1017,8 @@ window.selectPayment = selectPayment;
 window.closeSectorWarning = closeSectorWarning;
 window.continueAddToCart = continueAddToCart;
 window.redirectToCreateAccount = redirectToCreateAccount;
+window.onCurrencyChange = onCurrencyChange;
+window.continueAsGuest = continueAsGuest;
 
 // ============ SELECT PAYMENT ============
 
