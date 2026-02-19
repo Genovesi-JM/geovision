@@ -884,7 +884,7 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] 
     
     result = await order_service.checkout(
         cart_id=cart_id,
-        user_id=user.id if user else "anonymous",
+        user_id=user.id if user else None,
         payment_method=payment_method,
         billing_info=request.billing_info.model_dump(),
         customer_notes=request.customer_notes,

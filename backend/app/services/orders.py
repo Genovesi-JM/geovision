@@ -231,9 +231,9 @@ class OrderService:
             company_id=cart.company_id, site_id=cart.site_id,
             status=OrderStatus.CREATED.value, payment_method=payment_method.value,
             payment_reference=payment_reference, currency=currency or cart.currency or "AOA",
-            subtotal=cart.subtotal, discount_amount=cart.discount_amount,
+            subtotal=cart.subtotal, discount_total=cart.discount_amount,
             coupon_code=cart.coupon_code, tax_amount=cart.tax_amount,
-            delivery_cost=cart.delivery_cost, total=cart.total,
+            shipping_fee=cart.delivery_cost, total=cart.total,
             delivery_method=cart.delivery_method, customer_notes=customer_notes,
             billing_info_json=json.dumps(billing_info) if billing_info else None,
         )
@@ -242,10 +242,10 @@ class OrderService:
         for item in cart.items:
             oi = OIM(
                 id=str(uuid.uuid4()), order_id=order_id,
-                product_id=item.product_id, product_name=item.product_name,
+                product_id=item.product_id, name=item.product_name,
                 product_type=item.product_type, sku=item.sku,
-                quantity=item.quantity, unit_price=item.unit_price,
-                total_price=item.total_price, tax_rate=item.tax_rate,
+                qty=item.quantity, unit_price=item.unit_price,
+                line_total=item.total_price, tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount, status="pending",
                 scheduled_date=item.scheduled_date,
             )
@@ -513,32 +513,32 @@ class OrderService:
 
     def _to_data(self, order) -> OrderData:
         items = [OrderItemData(
-            id=i.id, product_id=i.product_id, product_name=i.product_name,
-            product_type=i.product_type, sku=i.sku, quantity=i.quantity,
-            unit_price=i.unit_price, total_price=i.total_price,
-            tax_rate=float(i.tax_rate or 0), tax_amount=i.tax_amount or 0,
-            status=i.status or "pending", scheduled_date=i.scheduled_date)
-            for i in order.order_items]
+            id=i.id, product_id=i.product_id, product_name=i.name,
+            product_type=getattr(i, 'product_type', None), sku=i.sku, quantity=i.qty,
+            unit_price=i.unit_price, total_price=i.line_total,
+            tax_rate=float(i.tax_rate or 0), tax_amount=getattr(i, 'tax_amount', 0) or 0,
+            status=getattr(i, 'status', None) or "pending", scheduled_date=getattr(i, 'scheduled_date', None))
+            for i in order.items]
         events = [OrderEventData(
             id=e.id, event_type=e.event_type, title=e.title,
             description=e.description, actor_name=e.actor_name,
             is_customer_visible=e.is_customer_visible, created_at=e.created_at,
             metadata=json.loads(e.metadata_json or "{}"))
-            for e in order.order_events]
+            for e in (order.events_rel or [])]
         deliverables = [DeliverableData(
             id=d.id, name=d.name, description=None,
             deliverable_type=d.deliverable_type, file_size=d.file_size,
             mime_type=None, download_url=d.download_url,
             is_ready=d.is_ready, created_at=d.created_at)
-            for d in order.deliverables]
+            for d in (order.deliverables_rel or [])]
         return OrderData(
             id=order.id, order_number=order.order_number, user_id=order.user_id,
-            company_id=order.company_id, site_id=order.site_id,
+            company_id=getattr(order, 'company_id', None), site_id=getattr(order, 'site_id', None),
             project_name=None, status=order.status,
             payment_method=order.payment_method, payment_reference=order.payment_reference,
             currency=order.currency or "AOA", subtotal=order.subtotal,
-            discount_amount=order.discount_amount or 0, coupon_code=order.coupon_code,
-            tax_amount=order.tax_amount or 0, delivery_cost=order.delivery_cost or 0,
+            discount_amount=order.discount_total or 0, coupon_code=order.coupon_code,
+            tax_amount=order.tax_amount or 0, delivery_cost=order.shipping_fee or 0,
             total=order.total, items=items, events=events, deliverables=deliverables,
             delivery_method=order.delivery_method, delivery_address=None,
             assigned_team=order.assigned_team, scheduled_start=order.scheduled_start,

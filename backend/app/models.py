@@ -167,6 +167,8 @@ class Order(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     user_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    company_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
     status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
     currency: Mapped[str] = mapped_column(String, default="AOA", nullable=False)
@@ -224,10 +226,15 @@ class OrderItem(Base):
     product_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     sku: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    product_type: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
 
     unit_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     qty: Mapped[int] = mapped_column(Integer, nullable=False)
     line_total: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
+    tax_rate: Mapped[float] = mapped_column(Numeric(5, 4), nullable=True, default=0.14)
+    tax_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=True, default=0)
+    status: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, default="pending")
+    scheduled_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     order = relationship("Order", back_populates="items")
 

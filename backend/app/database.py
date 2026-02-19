@@ -281,6 +281,45 @@ def ensure_legacy_schema() -> None:
                     except Exception:
                         pass
 
+        # Orders table: company_id + site_id columns
+        try:
+            order_cols = [c["name"] for c in inspector.get_columns("orders")]
+        except Exception:
+            order_cols = []
+
+        if order_cols:
+            _order_adds = {
+                "company_id": "ALTER TABLE orders ADD COLUMN company_id VARCHAR(36)",
+                "site_id": "ALTER TABLE orders ADD COLUMN site_id VARCHAR(36)",
+            }
+            for col, ddl in _order_adds.items():
+                if col not in order_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
+        # Order items table: extended columns
+        try:
+            oi_cols = [c["name"] for c in inspector.get_columns("order_items")]
+        except Exception:
+            oi_cols = []
+
+        if oi_cols:
+            _oi_adds = {
+                "product_type": "ALTER TABLE order_items ADD COLUMN product_type VARCHAR(30)",
+                "tax_rate": "ALTER TABLE order_items ADD COLUMN tax_rate NUMERIC(5,4) DEFAULT 0.14",
+                "tax_amount": "ALTER TABLE order_items ADD COLUMN tax_amount NUMERIC(12,2) DEFAULT 0",
+                "status": "ALTER TABLE order_items ADD COLUMN status VARCHAR(30) DEFAULT 'pending'",
+                "scheduled_date": "ALTER TABLE order_items ADD COLUMN scheduled_date TIMESTAMP",
+            }
+            for col, ddl in _oi_adds.items():
+                if col not in oi_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
 
 # Initialize the engine by default outside of tests so imports have a usable DB connection.
 if getattr(settings, "env", "dev") != "test":

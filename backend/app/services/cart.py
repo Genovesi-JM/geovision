@@ -283,7 +283,7 @@ class CartService:
                        tax_amount=int(total - total / (1 + tax_rate)),
                        scheduled_date=scheduled_date,
                        custom_options_json=json.dumps(custom_options or {}))
-            self.db.add(item)
+            cart.cart_items.append(item)
         self._recalc(cart)
         self.db.commit(); self.db.refresh(cart)
         return self._to_data(cart)
