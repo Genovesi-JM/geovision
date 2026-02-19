@@ -231,7 +231,7 @@ function renderCart() {
     }
   }
   
-  // Update tax
+  // Show IVA as included (not added on top)
   if (taxRow && taxEl) {
     if (currentCart.tax_amount > 0) {
       taxRow.style.display = "flex";
@@ -241,7 +241,7 @@ function renderCart() {
     }
   }
   
-  // Update main total
+  // Update main total (IVA already included in subtotal)
   totalEl.textContent = formatAOA(currentCart.total);
 
   // Compute and show all 3 currency totals
@@ -260,7 +260,6 @@ function renderCart() {
 function computeMultiCurrencyTotals() {
   const totals = { aoa: 0, usd: 0, eur: 0 };
   if (!currentCart || !currentCart.items) return totals;
-  const taxRate = 0.14;
 
   currentCart.items.forEach(item => {
     const product = allProducts.find(p => p.id === item.product_id);
@@ -274,11 +273,7 @@ function computeMultiCurrencyTotals() {
     }
   });
 
-  // Apply tax
-  totals.aoa = Math.round(totals.aoa * (1 + taxRate));
-  totals.usd = Math.round(totals.usd * (1 + taxRate));
-  totals.eur = Math.round(totals.eur * (1 + taxRate));
-
+  // Prices already include IVA — no tax multiplication needed
   return totals;
 }
 
@@ -711,7 +706,7 @@ function renderCheckoutSummary() {
   if (currentCart.discount_amount > 0) {
     html += `<p><strong>Desconto:</strong> -${formatAOA(currentCart.discount_amount)}</p>`;
   }
-  html += `<p><strong>IVA (14%):</strong> ${formatAOA(currentCart.tax_amount)}</p>`;
+  html += `<p style="font-size:0.85rem;color:#94a3b8;"><em>IVA (14%) incluído: ${formatAOA(currentCart.tax_amount)}</em></p>`;
   html += `<p class="checkout-total"><strong>Total:</strong> ${formatAOA(currentCart.total)}</p>`;
 
   // Multi-currency totals

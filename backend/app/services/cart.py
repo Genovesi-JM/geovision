@@ -76,6 +76,9 @@ class CouponValidation:
 
 
 # ============ TAX CONFIGURATION ============
+# NOTE: All product prices INCLUDE IVA (14%). Tax is not added on top.
+# The tax_amount field represents the IVA portion already embedded in the price.
+# Formula: tax_amount = price - price / (1 + tax_rate)
 
 TAX_RATES = {
     "AO": 0.14,
@@ -268,14 +271,17 @@ class CartService:
         if existing:
             existing.quantity += quantity
             existing.total_price = existing.unit_price * existing.quantity
-            existing.tax_amount = int(existing.total_price * tax_rate)
+            # IVA is included in price: tax portion = price - price / (1 + rate)
+            existing.tax_amount = int(existing.total_price - existing.total_price / (1 + tax_rate))
         else:
+            total = price * quantity
             item = CIM(id=str(uuid.uuid4()), cart_id=cart.id, product_id=product_id,
                        variant_id=variant_id, product_name=product.name,
                        product_type=product.product_type, product_image=product.image_url,
                        sku=product.slug, quantity=quantity, unit_price=price,
-                       total_price=price*quantity, tax_rate=tax_rate,
-                       tax_amount=int(price*quantity*tax_rate), scheduled_date=scheduled_date,
+                       total_price=total, tax_rate=tax_rate,
+                       tax_amount=int(total - total / (1 + tax_rate)),
+                       scheduled_date=scheduled_date,
                        custom_options_json=json.dumps(custom_options or {}))
             self.db.add(item)
         self._recalc(cart)
@@ -296,7 +302,9 @@ class CartService:
                 raise ValueError("Insufficient stock")
             item.quantity = quantity
             item.total_price = item.unit_price * quantity
-            item.tax_amount = int(item.total_price * float(item.tax_rate))
+            # IVA included: tax portion = price - price / (1 + rate)
+            rate = float(item.tax_rate)
+            item.tax_amount = int(item.total_price - item.total_price / (1 + rate))
         self._recalc(cart)
         self.db.commit(); self.db.refresh(cart)
         return self._to_data(cart)
@@ -320,7 +328,9 @@ class CartService:
                 new_price = self._price_for_currency(product, cur)
                 item.unit_price = new_price
                 item.total_price = new_price * item.quantity
-                item.tax_amount = int(item.total_price * float(item.tax_rate))
+                # IVA included: tax portion = price - price / (1 + rate)
+                rate = float(item.tax_rate)
+                item.tax_amount = int(item.total_price - item.total_price / (1 + rate))
         self._recalc(cart)
         self.db.commit()
         self.db.refresh(cart)
@@ -381,10 +391,11 @@ class CartService:
         return True
 
     def _recalc(self, cart):
+        """Recalculate cart totals. Prices already include IVA — tax is NOT added on top."""
         items = cart.cart_items
         cart.subtotal = sum(i.total_price for i in items)
-        cart.tax_amount = sum(i.tax_amount for i in items)
-        cart.total = max(0, cart.subtotal + cart.tax_amount - (cart.discount_amount or 0) + (cart.delivery_cost or 0))
+        cart.tax_amount = sum(i.tax_amount for i in items)  # IVA portion already inside subtotal
+        cart.total = max(0, cart.subtotal - (cart.discount_amount or 0) + (cart.delivery_cost or 0))
         cart.updated_at = _utcnow()
 
     def _to_data(self, cart):
