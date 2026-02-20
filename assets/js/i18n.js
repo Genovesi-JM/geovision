@@ -1226,29 +1226,30 @@ class I18n {
   }
 
   updatePage() {
-    // Portuguese is the HTML default language — skip i18n to preserve
-    // correct PT defaults already in the markup. Only translate for EN/ES.
     if (this.currentLang === 'pt') {
+      // Restore original PT defaults saved from the HTML markup
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        if (el._ptText !== undefined) el.textContent = el._ptText;
+      });
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        if (el._ptPlaceholder !== undefined) el.placeholder = el._ptPlaceholder;
+      });
       document.documentElement.lang = 'pt';
       return;
     }
 
-    // For EN/ES: apply translations only when the key exists in the dict
+    // For EN/ES: save PT defaults on first switch, then apply translations
     document.querySelectorAll('[data-i18n]').forEach(el => {
+      if (el._ptText === undefined) el._ptText = el.textContent;
       const key = el.getAttribute('data-i18n');
       const translation = this.translations[key];
-      if (!translation) return; // key not in dict → keep HTML default
+      if (!translation) return;
       const text = translation[this.currentLang] || translation['en'];
-      if (!text) return;
-      if (el.hasAttribute('data-i18n-placeholder')) {
-        el.placeholder = text;
-      } else {
-        el.textContent = text;
-      }
+      if (text) el.textContent = text;
     });
 
-    // Update elements with data-i18n-placeholder
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      if (el._ptPlaceholder === undefined) el._ptPlaceholder = el.placeholder;
       const key = el.getAttribute('data-i18n-placeholder');
       const translation = this.translations[key];
       if (!translation) return;
@@ -1256,7 +1257,6 @@ class I18n {
       if (text) el.placeholder = text;
     });
 
-    // Update document lang attribute
     document.documentElement.lang = this.currentLang;
   }
 
