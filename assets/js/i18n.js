@@ -80,8 +80,8 @@ const translations = {
   
   // ============ INDEX PAGE - FEATURES SECTION ============
   "index.features2.eyebrow": { pt: "Capacidades", en: "Capabilities", es: "Capacidades" },
-  "index.features2.title": { pt: "Plataforma de Inteligência de Ponta a Ponta", en: "End-to-End Intelligence Platform", es: "Plataforma de Inteligencia de Extremo a Extremo" },
-  "index.features2.subtitle": { pt: "Da aquisição de dados a insights acionáveis — um framework completo de inteligência operacional.", en: "From data acquisition to actionable insights — a complete operational intelligence framework.", es: "Desde la adquisición de datos hasta insights accionables — un framework completo de inteligencia operacional." },
+  "index.features2.title": { pt: "Capacidades Tecnológicas", en: "Technology Capabilities", es: "Capacidades Tecnológicas" },
+  "index.features2.subtitle": { pt: "Da aquisição em campo ao portal cliente — tecnologia operacional completa e integrada.", en: "From field acquisition to client portal — complete and integrated operational technology.", es: "Desde la adquisición en campo al portal cliente — tecnología operacional completa e integrada." },
   "index.feature.aerial.title": { pt: "Captura de Dados Aéreos", en: "Aerial Data Capture", es: "Captura de Datos Aéreos" },
   "index.feature.aerial.desc": { pt: "Drones industriais com sensores multiespectrais, térmicos e LiDAR.", en: "Industrial-grade drones with multispectral, thermal and LiDAR sensor payloads.", es: "Drones industriales con sensores multiespectrales, térmicos y LiDAR." },
   "index.feature.gis.title": { pt: "Análise Geoespacial", en: "Geospatial Analysis", es: "Análisis Geoespacial" },
