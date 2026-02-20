@@ -330,16 +330,64 @@
       justify-content: center;
     }
 
-    .btn-logout {
-      padding: 0.5rem 1rem;
-      border-radius: 999px;
-      border: none;
-      background: linear-gradient(135deg, #ef4444, #f97316);
-      color: white;
-      font-size: 0.8rem;
-      font-weight: 500;
-      cursor: pointer;
+    /* ============ USER DROPDOWN (topbar) ============ */
+    .dash-user-menu { position: relative; }
+    .dash-user-btn {
+      display: flex; align-items: center; gap: .5rem;
+      background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.25);
+      border-radius: 40px; padding: .35rem .8rem .35rem .35rem;
+      cursor: pointer; color: #e2e8f0;
+      font-size: .85rem; font-weight: 500; transition: all .2s;
     }
+    .dash-user-btn:hover { background: rgba(34,197,94,.2); border-color: rgba(34,197,94,.4); }
+    .dash-user-avatar-sm {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem; font-weight: 700; color: #020617;
+      flex-shrink: 0;
+    }
+    .dash-user-avatar-lg {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e, #06b6d4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: .85rem; font-weight: 700; color: #020617;
+      flex-shrink: 0;
+    }
+    .dash-user-name-btn { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dash-user-btn svg { opacity: .6; transition: transform .2s; }
+    .dash-user-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+    .dash-user-dropdown {
+      display: none; position: absolute; top: calc(100% + 8px); right: 0;
+      background: #0f1a2e; border: 1px solid rgba(95,212,255,.2);
+      border-radius: 12px; min-width: 230px; padding: .5rem 0;
+      box-shadow: 0 14px 40px rgba(0,0,0,.7); z-index: 10000;
+    }
+    .dash-user-dropdown.open { display: block; }
+
+    .dash-user-info {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .75rem 1rem;
+    }
+    .dash-user-info-name { font-weight: 600; font-size: .85rem; color: #f1f5f9; }
+    .dash-user-info-role { font-size: .72rem; color: #94a3b8; margin-top: 2px; }
+
+    .dash-user-divider {
+      height: 1px; background: rgba(95,212,255,.1); margin: .3rem 0;
+    }
+
+    .dash-user-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .6rem 1rem; color: #cbd5e1; text-decoration: none;
+      font-size: .82rem; font-weight: 500; transition: background .15s;
+      border: none; background: none; width: 100%; text-align: left; cursor: pointer;
+    }
+    .dash-user-item:hover { background: rgba(34,197,94,.1); color: #22c55e; }
+    .dash-user-item i { width: 16px; text-align: center; font-size: .8rem; }
+
+    .dash-user-logout { color: #f87171 !important; }
+    .dash-user-logout:hover { background: rgba(248,113,113,.1) !important; color: #ef4444 !important; }
 
     /* ============ CONTENT AREA ============ */
     .client-content {
@@ -1277,7 +1325,30 @@
           <i class="fa-solid fa-bell"></i>
           <span class="badge" id="notification-count">0</span>
         </button>
-        <button class="btn-logout" id="logout-btn" data-i18n="common.logout">Terminar sessão</button>
+        <div class="dash-user-menu" id="dash-user-menu">
+          <button class="dash-user-btn" id="dash-user-btn" aria-label="Menu de utilizador" aria-expanded="false">
+            <span class="dash-user-avatar-sm" id="dash-user-avatar-sm">C</span>
+            <span class="dash-user-name-btn" id="dash-user-name-btn">Cliente</span>
+            <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M1 1l4 4 4-4"/></svg>
+          </button>
+          <div class="dash-user-dropdown" id="dash-user-dropdown">
+            <div class="dash-user-info">
+              <div class="dash-user-avatar-lg" id="dash-user-avatar-lg">C</div>
+              <div>
+                <div class="dash-user-info-name" id="dash-user-info-name">Cliente</div>
+                <div class="dash-user-info-role" id="dash-user-info-role">Cliente</div>
+              </div>
+            </div>
+            <div class="dash-user-divider"></div>
+            <a href="loja.html" class="dash-user-item">
+              <i class="fa-solid fa-store"></i> Loja & Serviços
+            </a>
+            <div class="dash-user-divider"></div>
+            <button class="dash-user-item dash-user-logout" id="logout-btn">
+              <i class="fa-solid fa-right-from-bracket"></i> Terminar Sessão
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -2062,6 +2133,24 @@
       document.getElementById("order-modal").classList.remove('open');
     };
 
+    // ============ USER DROPDOWN TOGGLE ============
+    (function() {
+      const menuBtn = document.getElementById('dash-user-btn');
+      const dropdown = document.getElementById('dash-user-dropdown');
+      menuBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const open = dropdown.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', open);
+      });
+      document.addEventListener('click', (e) => {
+        if (!document.getElementById('dash-user-menu').contains(e.target)) {
+          dropdown.classList.remove('open');
+          menuBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+    })();
+
     // ============ LOGOUT ============
     document.getElementById('logout-btn').addEventListener('click', () => {
       ['gv_token','gv_refresh_token','gv_user','gv_email','gv_name',
@@ -2085,11 +2174,32 @@
         localStorage.setItem('gv_email', email);
       }
 
+      function getInitials(name, email) {
+        if (name && name.trim()) {
+          const parts = name.trim().split(/\s+/);
+          return parts.length > 1
+            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+            : parts[0][0].toUpperCase();
+        }
+        return email ? email.charAt(0).toUpperCase() : 'C';
+      }
+
       function applyUserInfo(email, name, role, accountName) {
         const displayName = name || (email !== '—' ? email.split('@')[0] : '—');
+        const initials = getInitials(name, email);
+        const roleLabel = role === 'admin' ? 'Administrador' : 'Cliente';
+
+        // Sidebar footer
         document.getElementById('user-name').textContent = displayName;
-        document.getElementById('user-avatar').textContent = (displayName.charAt(0) || 'C').toUpperCase();
-        document.getElementById('user-role').textContent = role === 'admin' ? 'Administrador' : 'Cliente';
+        document.getElementById('user-avatar').textContent = initials;
+        document.getElementById('user-role').textContent = roleLabel;
+
+        // Topbar user dropdown
+        document.getElementById('dash-user-avatar-sm').textContent = initials;
+        document.getElementById('dash-user-name-btn').textContent = displayName.split(' ')[0];
+        document.getElementById('dash-user-avatar-lg').textContent = initials;
+        document.getElementById('dash-user-info-name').textContent = displayName;
+        document.getElementById('dash-user-info-role').textContent = roleLabel;
 
         // Show admin panel link for admin users
         const adminSection = document.getElementById('sidebar-admin-section');
