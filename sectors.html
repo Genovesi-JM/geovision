@@ -5,8 +5,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  <title>Sectors — GeoVision | Operational Services by Industry</title>
-  <meta name="description" content="GeoVision services across mining, agriculture, construction, infrastructure and demining sectors. Aerial monitoring and geospatial intelligence worldwide." />
+  <title>Setores — GeoVision | Inteligência Operacional por Setor</title>
+  <meta name="description" content="Serviços GeoVision em agropecuária, mineração, construção, infraestruturas e setor ambiental. Monitorização aérea e inteligência geoespacial." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -689,44 +689,37 @@
       <nav>
         <ul class="sidebar-nav">
           <li class="sidebar-item">
-            <a href="#mining" class="sidebar-link active">
-              <span class="sidebar-icon"><i class="fa-solid fa-gem"></i></span>
-              <span class="sidebar-label" data-i18n="sectors.mining">Mining</span>
-              <span class="sidebar-badge">3D</span>
-            </a>
-          </li>
-          <li class="sidebar-item">
-            <a href="#agriculture" class="sidebar-link">
+            <a href="#agropecuaria" class="sidebar-link active">
               <span class="sidebar-icon"><i class="fa-solid fa-seedling"></i></span>
-              <span class="sidebar-label" data-i18n="sectors.agriculture">Agriculture</span>
+              <span class="sidebar-label" data-i18n="sectors.agropecuaria">Agropecuária</span>
               <span class="sidebar-badge">NDVI</span>
             </a>
           </li>
           <li class="sidebar-item">
-            <a href="#livestock" class="sidebar-link">
-              <span class="sidebar-icon"><i class="fa-solid fa-cow"></i></span>
-              <span class="sidebar-label" data-i18n="sectors.livestock">Livestock</span>
-              <span class="sidebar-badge">GPS</span>
+            <a href="#mineracao" class="sidebar-link">
+              <span class="sidebar-icon"><i class="fa-solid fa-gem"></i></span>
+              <span class="sidebar-label" data-i18n="sectors.mineracao">Mineração</span>
+              <span class="sidebar-badge">3D</span>
             </a>
           </li>
           <li class="sidebar-item">
-            <a href="#construction" class="sidebar-link">
+            <a href="#construcao" class="sidebar-link">
               <span class="sidebar-icon"><i class="fa-solid fa-helmet-safety"></i></span>
-              <span class="sidebar-label" data-i18n="sectors.construction">Construction</span>
+              <span class="sidebar-label" data-i18n="sectors.construcao">Construção</span>
               <span class="sidebar-badge">BIM</span>
             </a>
           </li>
           <li class="sidebar-item">
-            <a href="#infrastructure" class="sidebar-link">
+            <a href="#infraestruturas" class="sidebar-link">
               <span class="sidebar-icon"><i class="fa-solid fa-road"></i></span>
-              <span class="sidebar-label" data-i18n="sectors.infrastructure">Infrastructure</span>
+              <span class="sidebar-label" data-i18n="sectors.infraestruturas">Infraestruturas</span>
               <span class="sidebar-badge">GIS</span>
             </a>
           </li>
           <li class="sidebar-item">
-            <a href="#demining" class="sidebar-link">
-              <span class="sidebar-icon"><i class="fa-solid fa-shield-halved"></i></span>
-              <span class="sidebar-label" data-i18n="sectors.demining">Demining</span>
+            <a href="#ambiental" class="sidebar-link">
+              <span class="sidebar-icon"><i class="fa-solid fa-leaf"></i></span>
+              <span class="sidebar-label" data-i18n="sectors.ambiental">Ambiental</span>
               <span class="sidebar-badge">HMA</span>
             </a>
           </li>
@@ -739,122 +732,15 @@
     <!-- ============ MAIN CONTENT ============ -->
     <main class="main-content">
       
-      <!-- ============ MINING SECTION ============ -->
-      <section class="sector-section" id="mining">
-        <div class="sector-header">
-          <div class="sector-icon-large"><i class="fa-solid fa-gem"></i></div>
-          <div class="sector-header-content">
-            <div class="sector-eyebrow" data-i18n="sectors.mining.eyebrow">Mining Operations</div>
-            <h2 class="sector-title" data-i18n="sectors.mining.title">3D Models, Volumes & Risk Monitoring</h2>
-            <p class="sector-description" data-i18n="sectors.mining.desc">
-              GeoVision creates 3D models of open pits, stockpiles and slopes — enabling precise volume calculations, 
-              advance tracking and stability monitoring for safer, more efficient operations.
-            </p>
-          </div>
-        </div>
-
-        <div class="sector-stats">
-          <div class="stat-item">
-            <div class="stat-value">±2cm</div>
-            <div class="stat-label" data-i18n="sectors.stat.accuracy">Survey Accuracy</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">24h</div>
-            <div class="stat-label" data-i18n="sectors.stat.delivery">Report Delivery</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-value">100%</div>
-            <div class="stat-label" data-i18n="sectors.stat.auditable">Auditable Data</div>
-          </div>
-        </div>
-
-        <div class="services-grid">
-          <div class="service-card">
-            <div class="service-number" data-i18n="sectors.mining.step1.label">STEP 01</div>
-            <h3 class="service-title" data-i18n="sectors.mining.step1.title">Flight & Point Cloud</h3>
-            <p class="service-text" data-i18n="sectors.mining.step1.desc">
-              Automated flight planning, orthophoto generation and dense point cloud creation through photogrammetry.
-            </p>
-            <span class="service-tag" data-i18n="sectors.mining.step1.tag">Reliable Geometric Base</span>
-          </div>
-
-          <div class="service-card">
-            <div class="service-number" data-i18n="sectors.mining.step2.label">STEP 02</div>
-            <h3 class="service-title" data-i18n="sectors.mining.step2.title">Digital Terrain Model</h3>
-            <p class="service-text" data-i18n="sectors.mining.step2.desc">
-              Surface and terrain model creation with cuts prepared for volume calculations.
-            </p>
-            <span class="service-tag" data-i18n="sectors.mining.step2.tag">Engineering Ready</span>
-          </div>
-
-          <div class="service-card">
-            <div class="service-number" data-i18n="sectors.mining.step3.label">STEP 03</div>
-            <h3 class="service-title" data-i18n="sectors.mining.step3.title">Volume Calculation</h3>
-            <p class="service-text" data-i18n="sectors.mining.step3.desc">
-              Precise volume measurement of ore and waste, comparing periods and tracking extraction progress.
-            </p>
-            <span class="service-tag" data-i18n="sectors.mining.step3.tag">Comparative Analysis</span>
-          </div>
-
-          <div class="service-card">
-            <div class="service-number" data-i18n="sectors.mining.step4.label">STEP 04</div>
-            <h3 class="service-title" data-i18n="sectors.mining.step4.title">Slope Monitoring</h3>
-            <p class="service-text" data-i18n="sectors.mining.step4.desc">
-              Identification of slopes outside recommended angles, with alerts for geotechnical review.
-            </p>
-            <span class="service-tag" data-i18n="sectors.mining.step4.tag">Safety First</span>
-          </div>
-        </div>
-
-        <div class="use-cases">
-          <h4 class="use-cases-title"><span><i class="fa-solid fa-clipboard"></i></span> <span data-i18n="sectors.applications">Typical Applications</span></h4>
-          <div class="use-cases-list">
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.mining.app1">Open-pit mine volume reconciliation</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.mining.app2">Quarry progress documentation</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.mining.app3">Stockpile inventory management</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.mining.app4">Geotechnical slope analysis</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.mining.app5">Environmental compliance reporting</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.mining.app6">Tailings dam monitoring</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="sector-cta">
-          <div class="sector-cta-content">
-            <h4 data-i18n="sectors.cta.mining">Ready to optimize your mining operations?</h4>
-            <p data-i18n="sectors.cta.subtitle">Contact our team for a customized proposal based on your site requirements.</p>
-          </div>
-          <a href="loja.html?sector=mining" class="btn btn-primary"><span data-i18n="sectors.viewservices">View Mining Services</span> →</a>
-        </div>
-      </section>
-
-      <!-- ============ AGRICULTURE SECTION ============ -->
-      <section class="sector-section" id="agriculture">
+      <!-- ============ AGROPECUÁRIA SECTION ============ -->
+      <section class="sector-section" id="agropecuaria">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-seedling"></i></div>
           <div class="sector-header-content">
-            <div class="sector-eyebrow" data-i18n="sectors.agriculture.eyebrow">Agriculture & Livestock</div>
-            <h2 class="sector-title" data-i18n="sectors.agriculture.title">NDVI, Soil Sensors & Herd Tracking</h2>
-            <p class="sector-description" data-i18n="sectors.agriculture.desc">
-              GeoVision combines NDVI maps, soil sensors and field livestock readings — giving you visibility into 
-              water stress, planting failures and grazing pressure before they become losses.
+            <div class="sector-eyebrow" data-i18n="sectors.agropecuaria.eyebrow">Agropecuária</div>
+            <h2 class="sector-title" data-i18n="sectors.agropecuaria.title">Diagnóstico, Prescrição & Execução Agrícola</h2>
+            <p class="sector-description" data-i18n="sectors.agropecuaria.desc">
+              A GeoVision integra diagnóstico multiespectral, mapas de prescrição e execução aérea seletiva num pipeline unificado — desde a deteção de stress hídrico e nutricional até à aplicação variável com o DJI Agras T40, cobrindo agricultura de precisão e gestão de pastagens.
             </p>
           </div>
         </div>
@@ -862,423 +748,367 @@
         <div class="sector-stats">
           <div class="stat-item">
             <div class="stat-value">5cm</div>
-            <div class="stat-label" data-i18n="sectors.stat.resolution">Ground Resolution</div>
+            <div class="stat-label" data-i18n="sectors.stat.gsd">Resolução GSD</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">7</div>
-            <div class="stat-label" data-i18n="sectors.stat.bands">Spectral Bands</div>
+            <div class="stat-value">4+1</div>
+            <div class="stat-label" data-i18n="sectors.stat.cameras">Câmeras Multiespectrais</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value" data-i18n="sectors.stat.realtime">Real-time</div>
-            <div class="stat-label" data-i18n="sectors.stat.iotflow">IoT Data Flow</div>
+            <div class="stat-value">21 ha/h</div>
+            <div class="stat-label" data-i18n="sectors.stat.sprayrate">Taxa de Aplicação T40</div>
           </div>
         </div>
 
         <div class="services-grid">
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.agriculture.step1.label">STEP 01</div>
-            <h3 class="service-title" data-i18n="sectors.agriculture.step1.title">Aerial Survey</h3>
-            <p class="service-text" data-i18n="sectors.agriculture.step1.desc">
-              Drone flight with multispectral or RGB sensor covering all relevant plots and fields.
+            <div class="service-number" data-i18n="sectors.agropecuaria.step1.label">ETAPA 01 — DIAGNÓSTICO</div>
+            <h3 class="service-title" data-i18n="sectors.agropecuaria.step1.title">Levantamento Multiespectral</h3>
+            <p class="service-text" data-i18n="sectors.agropecuaria.step1.desc">
+              Voo com DJI Mavic 3 Multispectral (4 câmeras multiespectrais + 1 RGB, sensor solar integrado) para aquisição de dados NDVI, NDRE e índices de vigor vegetativo em todas as parcelas relevantes.
             </p>
-            <span class="service-tag" data-i18n="sectors.agriculture.step1.tag">High Resolution Data</span>
+            <span class="service-tag" data-i18n="sectors.agropecuaria.step1.tag">Capacidade Ativa</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.agriculture.step2.label">STEP 02</div>
-            <h3 class="service-title" data-i18n="sectors.agriculture.step2.title">NDVI Processing</h3>
-            <p class="service-text" data-i18n="sectors.agriculture.step2.desc">
-              Generation of NDVI maps, vigor indices and water stress analysis layers.
+            <div class="service-number" data-i18n="sectors.agropecuaria.step2.label">ETAPA 02 — ANÁLISE</div>
+            <h3 class="service-title" data-i18n="sectors.agropecuaria.step2.title">Processamento & Mapas de Prescrição</h3>
+            <p class="service-text" data-i18n="sectors.agropecuaria.step2.desc">
+              Geração de mapas NDVI zonados, identificação de áreas com stress hídrico, falhas de plantio e variabilidade nutricional. Produção de mapas de prescrição para aplicação diferenciada.
             </p>
-            <span class="service-tag" data-i18n="sectors.agriculture.step2.tag">Crop Health Insights</span>
+            <span class="service-tag" data-i18n="sectors.agropecuaria.step2.tag">Inteligência Agrícola</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.agriculture.step3.label">STEP 03</div>
-            <h3 class="service-title" data-i18n="sectors.agriculture.step3.title">Soil Sensors</h3>
-            <p class="service-text" data-i18n="sectors.agriculture.step3.desc">
-              IoT sensor deployment for continuous moisture, temperature and nutrient monitoring.
+            <div class="service-number" data-i18n="sectors.agropecuaria.step3.label">ETAPA 03 — EXECUÇÃO</div>
+            <h3 class="service-title" data-i18n="sectors.agropecuaria.step3.title">Aplicação Variável com Agras T40</h3>
+            <p class="service-text" data-i18n="sectors.agropecuaria.step3.desc">
+              Pulverização seletiva baseada nos mapas de prescrição — aplicação diferenciada por zona (fitossanitários, fertilizantes, reguladores), com tanque de 40L e cobertura de até 21 ha/hora.
             </p>
-            <span class="service-tag" data-i18n="sectors.agriculture.step3.tag">Precision Agriculture</span>
+            <span class="service-tag" data-i18n="sectors.agropecuaria.step3.tag">Capacidade Ativa</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.agriculture.step4.label">STEP 04</div>
-            <h3 class="service-title" data-i18n="sectors.agriculture.step4.title">Livestock GPS</h3>
-            <p class="service-text" data-i18n="sectors.agriculture.step4.desc">
-              Real-time herd tracking and grazing pattern analysis with automated alerts.
+            <div class="service-number" data-i18n="sectors.agropecuaria.step4.label">ETAPA 04 — PECUÁRIA</div>
+            <h3 class="service-title" data-i18n="sectors.agropecuaria.step4.title">Contagem Aérea & Saúde de Pastagens</h3>
+            <p class="service-text" data-i18n="sectors.agropecuaria.step4.desc">
+              Voos com câmera RGB e térmica para contagem visual de efetivos pecuários por fotografia aérea e avaliação do estado das pastagens via índices de vigor (NDVI). Identificação de zonas de sobrepastoreio e planeamento de rotação.
             </p>
-            <span class="service-tag" data-i18n="sectors.agriculture.step4.tag">Smart Ranching</span>
+            <span class="service-tag" data-i18n="sectors.agropecuaria.step4.tag">Gestão Pecuária</span>
           </div>
         </div>
 
-        <div class="use-cases">
-          <h4 class="use-cases-title"><span><i class="fa-solid fa-seedling"></i></span> <span data-i18n="sectors.applications">Typical Applications</span></h4>
+        <!-- Capabilities Differentiation -->
+        <div class="use-cases" style="margin-top: 2rem; border-left: 3px solid var(--accent-green);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i></span> <span data-i18n="sectors.activeCapabilities">Capacidades Ativas</span></h4>
           <div class="use-cases-list">
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.agriculture.app1">Crop health monitoring & stress detection</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.agriculture.app2">Irrigation optimization</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.agriculture.app3">Variable rate application maps</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.agriculture.app4">Yield prediction modeling</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.agriculture.app5">Pasture rotation planning</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.agriculture.app6">Livestock loss prevention</span>
-            </div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active1">Levantamento multiespectral NDVI/NDRE (Mavic 3M)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active2">Mapas de prescrição por zona</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active3">Pulverização variável com DJI Agras T40</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active4">Contagem visual aérea de gado</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active5">Análise de saúde de pastagens (NDVI)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active6">Dispersão de sementes e fertilizantes (T40 — até 50 kg)</span></div>
+          </div>
+        </div>
+
+        <div class="use-cases" style="margin-top: 1rem; border-left: 3px solid var(--accent-cyan);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-expand" style="color: var(--accent-cyan);"></i></span> <span data-i18n="sectors.expandableCapabilities">Capacidades Expandíveis</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand1">Sensores IoT de solo (humidade, temperatura, nutrientes)</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand2">Colares GPS para rastreio periódico de efetivos</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand3">Contagem automatizada com modelos de IA</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand4">Integração com dados de satélite</span></div>
           </div>
         </div>
 
         <div class="sector-cta">
           <div class="sector-cta-content">
-            <h4 data-i18n="sectors.cta.agriculture">Transform your farm with precision agriculture</h4>
-            <p data-i18n="sectors.cta.subtitle">Get a complete assessment of how aerial monitoring can reduce losses and increase yields.</p>
+            <h4 data-i18n="sectors.cta.agropecuaria">Pronto para otimizar a sua operação agropecuária?</h4>
+            <p data-i18n="sectors.cta.agropecuaria.sub">Do diagnóstico à execução — pipeline completo de agricultura de precisão e gestão pecuária.</p>
           </div>
-          <a href="loja.html?sector=agro" class="btn btn-primary"><span data-i18n="sectors.viewservices">View Agriculture Services</span> →</a>
+          <a href="loja.html?sector=agro" class="btn btn-primary"><span data-i18n="sectors.viewservices.agro">Ver Serviços Agro</span> →</a>
         </div>
       </section>
 
-      <!-- ============ LIVESTOCK SECTION ============ -->
-      <section class="sector-section" id="livestock">
+      <!-- ============ MINERAÇÃO SECTION ============ -->
+      <section class="sector-section" id="mineracao">
         <div class="sector-header">
-          <div class="sector-icon-large"><i class="fa-solid fa-cow"></i></div>
+          <div class="sector-icon-large"><i class="fa-solid fa-gem"></i></div>
           <div class="sector-header-content">
-            <div class="sector-eyebrow" data-i18n="sectors.livestock.eyebrow">Livestock Management</div>
-            <h2 class="sector-title" data-i18n="sectors.livestock.title">GPS Tracking, Counting & Grazing Analysis</h2>
-            <p class="sector-description" data-i18n="sectors.livestock.desc">
-              GeoVision deploys GPS collars, drone-based counting and grazing pattern analysis — giving ranchers 
-              real-time visibility into herd movement, health indicators and pasture management.
+            <div class="sector-eyebrow" data-i18n="sectors.mineracao.eyebrow">Mineração</div>
+            <h2 class="sector-title" data-i18n="sectors.mineracao.title">Modelos 3D, Volumetria & Monitorização de Taludes</h2>
+            <p class="sector-description" data-i18n="sectors.mineracao.desc">
+              A GeoVision cria modelos 3D de minas a céu aberto, stockpiles e taludes — permitindo cálculos volumétricos precisos, acompanhamento do avanço de escavação e monitorização da estabilidade geotécnica para operações mais seguras e eficientes.
             </p>
           </div>
         </div>
 
         <div class="sector-stats">
           <div class="stat-item">
-            <div class="stat-value" data-i18n="sectors.stat.realtime">Real-time</div>
-            <div class="stat-label" data-i18n="sectors.stat.tracking">GPS Tracking</div>
+            <div class="stat-value">±2 cm</div>
+            <div class="stat-label" data-i18n="sectors.stat.rtk">Precisão RTK</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">98%</div>
-            <div class="stat-label" data-i18n="sectors.stat.countaccuracy">Count Accuracy</div>
+            <div class="stat-value">m³</div>
+            <div class="stat-label" data-i18n="sectors.stat.volumetry">Volumetria Comparativa</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">24/7</div>
-            <div class="stat-label" data-i18n="sectors.stat.alerts">Alert System</div>
+            <div class="stat-value">100%</div>
+            <div class="stat-label" data-i18n="sectors.stat.auditable">Dados Auditáveis</div>
           </div>
         </div>
 
         <div class="services-grid">
           <div class="service-card">
-            <div class="service-number">STEP 01</div>
-            <h3 class="service-title" data-i18n="sectors.livestock.step1.title">GPS Collar Deployment</h3>
-            <p class="service-text" data-i18n="sectors.livestock.step1.desc">
-              Installation of GPS tracking devices on key animals for real-time herd location and movement patterns.
+            <div class="service-number" data-i18n="sectors.mineracao.step1.label">ETAPA 01</div>
+            <h3 class="service-title" data-i18n="sectors.mineracao.step1.title">Voo RTK & Nuvem de Pontos</h3>
+            <p class="service-text" data-i18n="sectors.mineracao.step1.desc">
+              Planeamento de voo automatizado com DJI Matrice 350 RTK (precisão centimétrica corrigida via estação base ou NTRIP), geração de ortofotomosaico e nuvem de pontos densa por fotogrametria.
             </p>
-            <span class="service-tag" data-i18n="sectors.livestock.step1.tag">Real-Time Location</span>
+            <span class="service-tag" data-i18n="sectors.mineracao.step1.tag">Base Geométrica Fiável</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number">STEP 02</div>
-            <h3 class="service-title" data-i18n="sectors.livestock.step2.title">Aerial Counting</h3>
-            <p class="service-text" data-i18n="sectors.livestock.step2.desc">
-              Drone flights with AI-powered image analysis for automated livestock counting and identification.
+            <div class="service-number" data-i18n="sectors.mineracao.step2.label">ETAPA 02</div>
+            <h3 class="service-title" data-i18n="sectors.mineracao.step2.title">Modelo Digital de Terreno</h3>
+            <p class="service-text" data-i18n="sectors.mineracao.step2.desc">
+              Criação de DSM/DTM processados em DJI Terra com superfícies preparadas para cálculos volumétricos e cortes de engenharia.
             </p>
-            <span class="service-tag" data-i18n="sectors.livestock.step2.tag">AI-Powered</span>
+            <span class="service-tag" data-i18n="sectors.mineracao.step2.tag">Pronto para Engenharia</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number">STEP 03</div>
-            <h3 class="service-title" data-i18n="sectors.livestock.step3.title">Grazing Analysis</h3>
-            <p class="service-text" data-i18n="sectors.livestock.step3.desc">
-              NDVI-based pasture health mapping combined with grazing pressure indicators for optimal rotation planning.
+            <div class="service-number" data-i18n="sectors.mineracao.step3.label">ETAPA 03</div>
+            <h3 class="service-title" data-i18n="sectors.mineracao.step3.title">Cálculo Volumétrico</h3>
+            <p class="service-text" data-i18n="sectors.mineracao.step3.desc">
+              Medição precisa de volumes de minério e estéril, comparação entre períodos e acompanhamento do progresso de extração. KPIs: Área (ha), Volume (m³), Desvio (%), Comparação Temporal.
             </p>
-            <span class="service-tag" data-i18n="sectors.livestock.step3.tag">Pasture Intelligence</span>
+            <span class="service-tag" data-i18n="sectors.mineracao.step3.tag">Análise Comparativa</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number">STEP 04</div>
-            <h3 class="service-title" data-i18n="sectors.livestock.step4.title">Alert & Reporting</h3>
-            <p class="service-text" data-i18n="sectors.livestock.step4.desc">
-              Automated alerts for boundary breaches, anomalous movement, and periodic herd health reports.
+            <div class="service-number" data-i18n="sectors.mineracao.step4.label">ETAPA 04</div>
+            <h3 class="service-title" data-i18n="sectors.mineracao.step4.title">Monitorização de Taludes</h3>
+            <p class="service-text" data-i18n="sectors.mineracao.step4.desc">
+              Identificação de taludes fora dos ângulos recomendados, com alertas para revisão geotécnica. Análise de estabilidade baseada em modelos de elevação.
             </p>
-            <span class="service-tag" data-i18n="sectors.livestock.step4.tag">Smart Alerts</span>
+            <span class="service-tag" data-i18n="sectors.mineracao.step4.tag">Segurança Operacional</span>
           </div>
         </div>
 
         <div class="use-cases">
-          <h4 class="use-cases-title"><span><i class="fa-solid fa-cow"></i></span> <span data-i18n="sectors.applications">Typical Applications</span></h4>
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-clipboard"></i></span> <span data-i18n="sectors.applications">Aplicações Típicas</span></h4>
           <div class="use-cases-list">
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.livestock.app1">Real-time herd location tracking</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.livestock.app2">Automated livestock counting</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.livestock.app3">Pasture rotation optimization</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.livestock.app4">Theft and loss prevention</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.livestock.app5">Water point monitoring</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.livestock.app6">Breeding program support</span>
-            </div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.mineracao.app1">Reconciliação volumétrica de minas a céu aberto</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.mineracao.app2">Documentação de progresso em pedreiras</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.mineracao.app3">Gestão de inventário de stockpiles</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.mineracao.app4">Análise geotécnica de taludes</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.mineracao.app5">Relatórios de conformidade ambiental</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.mineracao.app6">Monitorização de barragens de rejeitados</span></div>
+          </div>
+        </div>
+
+        <!-- Expandable capabilities -->
+        <div class="use-cases" style="margin-top: 1rem; border-left: 3px solid var(--accent-cyan);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-expand" style="color: var(--accent-cyan);"></i></span> <span data-i18n="sectors.expandableCapabilities">Capacidades Expandíveis</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.mineracao.expand1">LiDAR (payload Zenmuse L2 para M350 RTK)</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.mineracao.expand2">Análise de risco preditiva com modelos temporais</span></div>
           </div>
         </div>
 
         <div class="sector-cta">
           <div class="sector-cta-content">
-            <h4 data-i18n="sectors.cta.livestock">Modernize your livestock management with smart tracking</h4>
-            <p data-i18n="sectors.cta.subtitle">Contact our team for a customized proposal based on your site requirements.</p>
+            <h4 data-i18n="sectors.cta.mineracao">Pronto para otimizar as suas operações mineiras?</h4>
+            <p data-i18n="sectors.cta.mineracao.sub">Contacte a nossa equipa para uma proposta personalizada ao seu local.</p>
           </div>
-          <a href="loja.html?sector=livestock" class="btn btn-primary"><span data-i18n="sectors.viewservices">View Livestock Services</span> →</a>
+          <a href="loja.html?sector=mining" class="btn btn-primary"><span data-i18n="sectors.viewservices.mineracao">Ver Serviços de Mineração</span> →</a>
         </div>
       </section>
 
-      <!-- ============ CONSTRUCTION SECTION ============ -->
-      <section class="sector-section" id="construction">
+      <!-- ============ CONSTRUÇÃO SECTION ============ -->
+      <section class="sector-section" id="construcao">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-helmet-safety"></i></div>
           <div class="sector-header-content">
-            <div class="sector-eyebrow" data-i18n="sectors.construction.eyebrow">Construction & Works</div>
-            <h2 class="sector-title" data-i18n="sectors.construction.title">Progress Tracking, Volumetry & As-Built</h2>
-            <p class="sector-description" data-i18n="sectors.construction.desc">
-              GeoVision documents construction progress with recurring aerial views — creating a visual timeline 
-              from first cut to final handover for contractors, supervisors and asset owners.
+            <div class="sector-eyebrow" data-i18n="sectors.construcao.eyebrow">Construção & Obras</div>
+            <h2 class="sector-title" data-i18n="sectors.construcao.title">Acompanhamento de Obra, Volumetria & As-Built</h2>
+            <p class="sector-description" data-i18n="sectors.construcao.desc">
+              A GeoVision documenta o progresso de obra com levantamentos aéreos recorrentes — criando uma linha temporal visual desde a primeira intervenção até à entrega final para empreiteiros, supervisores e donos de obra.
             </p>
           </div>
         </div>
 
         <div class="sector-stats">
           <div class="stat-item">
-            <div class="stat-value" data-i18n="sectors.stat.weekly">Weekly</div>
-            <div class="stat-label" data-i18n="sectors.stat.cadence">Flight Cadence</div>
+            <div class="stat-value" data-i18n="sectors.stat.weekly">Semanal</div>
+            <div class="stat-label" data-i18n="sectors.stat.cadence">Cadência de Voo</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">±3cm</div>
-            <div class="stat-label" data-i18n="sectors.stat.volume">Volume Accuracy</div>
+            <div class="stat-value">±3 cm</div>
+            <div class="stat-label" data-i18n="sectors.stat.volume">Precisão Volumétrica</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">BIM</div>
-            <div class="stat-label" data-i18n="sectors.stat.integration">Integration Ready</div>
+            <div class="stat-label" data-i18n="sectors.stat.integration">Integração Compatible</div>
           </div>
         </div>
 
         <div class="services-grid">
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.construction.step1.label">STEP 01</div>
-            <h3 class="service-title" data-i18n="sectors.construction.step1.title">Baseline Survey</h3>
-            <p class="service-text" data-i18n="sectors.construction.step1.desc">
-              Initial terrain and surroundings documentation before intervention — legal and technical reference.
+            <div class="service-number" data-i18n="sectors.construcao.step1.label">ETAPA 01</div>
+            <h3 class="service-title" data-i18n="sectors.construcao.step1.title">Levantamento Base (Baseline)</h3>
+            <p class="service-text" data-i18n="sectors.construcao.step1.desc">
+              Documentação inicial do terreno e envolvente antes da intervenção — referência legal e técnica para todo o ciclo de obra.
             </p>
-            <span class="service-tag" data-i18n="sectors.construction.step1.tag">Before & After Consistency</span>
+            <span class="service-tag" data-i18n="sectors.construcao.step1.tag">Consistência Antes & Depois</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.construction.step2.label">STEP 02</div>
-            <h3 class="service-title" data-i18n="sectors.construction.step2.title">Recurring Flights</h3>
-            <p class="service-text" data-i18n="sectors.construction.step2.desc">
-              Periodic campaigns (weekly, biweekly, monthly) to document progress and volumetry.
+            <div class="service-number" data-i18n="sectors.construcao.step2.label">ETAPA 02</div>
+            <h3 class="service-title" data-i18n="sectors.construcao.step2.title">Voos Recorrentes</h3>
+            <p class="service-text" data-i18n="sectors.construcao.step2.desc">
+              Campanhas periódicas (semanal, quinzenal, mensal) para documentar progresso, volumetrias e movimentações de terra.
             </p>
-            <span class="service-tag" data-i18n="sectors.construction.step2.tag">Visual Timeline</span>
+            <span class="service-tag" data-i18n="sectors.construcao.step2.tag">Linha Temporal Visual</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.construction.step3.label">STEP 03</div>
-            <h3 class="service-title" data-i18n="sectors.construction.step3.title">Progress Analysis</h3>
-            <p class="service-text" data-i18n="sectors.construction.step3.desc">
-              Comparison between planned vs. executed, identifying delays and areas requiring attention.
+            <div class="service-number" data-i18n="sectors.construcao.step3.label">ETAPA 03</div>
+            <h3 class="service-title" data-i18n="sectors.construcao.step3.title">Análise de Progresso</h3>
+            <p class="service-text" data-i18n="sectors.construcao.step3.desc">
+              Comparação entre planeado vs. executado, identificação de atrasos e áreas que requerem atenção. KPIs: Área (ha), Volume (m³), Desvio (%).
             </p>
-            <span class="service-tag" data-i18n="sectors.construction.step3.tag">Project Control</span>
+            <span class="service-tag" data-i18n="sectors.construcao.step3.tag">Controlo de Projeto</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.construction.step4.label">STEP 04</div>
-            <h3 class="service-title" data-i18n="sectors.construction.step4.title">As-Built Documentation</h3>
-            <p class="service-text" data-i18n="sectors.construction.step4.desc">
-              Final survey for handover documentation, compliance verification and asset records.
+            <div class="service-number" data-i18n="sectors.construcao.step4.label">ETAPA 04</div>
+            <h3 class="service-title" data-i18n="sectors.construcao.step4.title">Documentação As-Built</h3>
+            <p class="service-text" data-i18n="sectors.construcao.step4.desc">
+              Levantamento final para documentação de entrega, verificação de conformidade e registo de ativos.
             </p>
-            <span class="service-tag" data-i18n="sectors.construction.step4.tag">Handover Ready</span>
+            <span class="service-tag" data-i18n="sectors.construcao.step4.tag">Pronto para Entrega</span>
           </div>
         </div>
 
         <div class="use-cases">
-          <h4 class="use-cases-title"><span><i class="fa-solid fa-building"></i></span> <span data-i18n="sectors.applications">Typical Applications</span></h4>
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-building"></i></span> <span data-i18n="sectors.applications">Aplicações Típicas</span></h4>
           <div class="use-cases-list">
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.construction.app1">Site progress documentation</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.construction.app2">Earthworks volume verification</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.construction.app3">Contractor payment certification</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.construction.app4">Safety zone monitoring</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.construction.app5">Quality inspection support</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.construction.app6">Stakeholder reporting</span>
-            </div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app1">Documentação de progresso de obra</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app2">Verificação de volumes de terraplenagem</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app3">Certificação de pagamentos a empreiteiros</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app4">Monitorização de zonas de segurança</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app5">Suporte a inspeções de qualidade</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app6">Relatórios para stakeholders</span></div>
           </div>
         </div>
 
         <div class="sector-cta">
           <div class="sector-cta-content">
-            <h4 data-i18n="sectors.cta.construction">Document your construction projects from the air</h4>
-            <p data-i18n="sectors.cta.subtitle">Get a transparent visual record of every phase for better project control.</p>
+            <h4 data-i18n="sectors.cta.construcao">Documente os seus projetos de construção a partir do ar</h4>
+            <p data-i18n="sectors.cta.construcao.sub">Obtenha um registo visual transparente de cada fase para melhor controlo de projeto.</p>
           </div>
-          <a href="loja.html?sector=construction" class="btn btn-primary"><span data-i18n="sectors.viewservices">View Construction Services</span> →</a>
+          <a href="loja.html?sector=construction" class="btn btn-primary"><span data-i18n="sectors.viewservices.construcao">Ver Serviços de Construção</span> →</a>
         </div>
       </section>
 
-      <!-- ============ INFRASTRUCTURE SECTION ============ -->
-      <section class="sector-section" id="infrastructure">
+      <!-- ============ INFRAESTRUTURAS SECTION ============ -->
+      <section class="sector-section" id="infraestruturas">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-road"></i></div>
           <div class="sector-header-content">
-            <div class="sector-eyebrow" data-i18n="sectors.infrastructure.eyebrow">Critical Infrastructure</div>
-            <h2 class="sector-title" data-i18n="sectors.infrastructure.title">Roads, Dams & Logistics Corridors</h2>
-            <p class="sector-description" data-i18n="sectors.infrastructure.desc">
-              GeoVision provides recurring visual "snapshots" of strategic assets — roads, dams, transmission lines, 
-              drainage channels — supporting maintenance planning and investment decisions.
+            <div class="sector-eyebrow" data-i18n="sectors.infraestruturas.eyebrow">Infraestruturas</div>
+            <h2 class="sector-title" data-i18n="sectors.infraestruturas.title">Estradas, Barragens & Corredores Logísticos</h2>
+            <p class="sector-description" data-i18n="sectors.infraestruturas.desc">
+              A GeoVision fornece "snapshots" visuais recorrentes de ativos estratégicos — estradas, barragens, linhas de transmissão, canais de drenagem — suportando planeamento de manutenção e decisões de investimento baseadas em dados reais.
             </p>
           </div>
         </div>
 
         <div class="sector-stats">
           <div class="stat-item">
-            <div class="stat-value">500km+</div>
-            <div class="stat-label" data-i18n="sectors.stat.coverage">Corridor Coverage</div>
+            <div class="stat-value">500 km+</div>
+            <div class="stat-label" data-i18n="sectors.stat.corridor">Cobertura de Corredor</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value" data-i18n="sectors.stat.monthly">Monthly</div>
-            <div class="stat-label" data-i18n="sectors.stat.cycle">Monitoring Cycle</div>
+            <div class="stat-value" data-i18n="sectors.stat.monthly">Mensal</div>
+            <div class="stat-label" data-i18n="sectors.stat.cycle">Ciclo de Monitorização</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">GIS</div>
-            <div class="stat-label" data-i18n="sectors.stat.format">Data Format</div>
+            <div class="stat-label" data-i18n="sectors.stat.format">Formato de Dados</div>
           </div>
         </div>
 
         <div class="services-grid">
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.infrastructure.step1.label">STEP 01</div>
-            <h3 class="service-title" data-i18n="sectors.infrastructure.step1.title">Asset Segmentation</h3>
-            <p class="service-text" data-i18n="sectors.infrastructure.step1.desc">
-              Divide roads, channels or lines into standard sections for performance comparison.
+            <div class="service-number" data-i18n="sectors.infraestruturas.step1.label">ETAPA 01</div>
+            <h3 class="service-title" data-i18n="sectors.infraestruturas.step1.title">Segmentação de Ativos</h3>
+            <p class="service-text" data-i18n="sectors.infraestruturas.step1.desc">
+              Divisão de estradas, canais ou linhas em secções standard para comparação de performance e estado.
             </p>
-            <span class="service-tag" data-i18n="sectors.infrastructure.step1.tag">Section-Based Management</span>
+            <span class="service-tag" data-i18n="sectors.infraestruturas.step1.tag">Gestão por Secção</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.infrastructure.step2.label">STEP 02</div>
-            <h3 class="service-title" data-i18n="sectors.infrastructure.step2.title">Periodic Inspections</h3>
-            <p class="service-text" data-i18n="sectors.infrastructure.step2.desc">
-              Recurring flights or captures to track damage evolution, erosion or encroachments.
+            <div class="service-number" data-i18n="sectors.infraestruturas.step2.label">ETAPA 02</div>
+            <h3 class="service-title" data-i18n="sectors.infraestruturas.step2.title">Inspeções Periódicas</h3>
+            <p class="service-text" data-i18n="sectors.infraestruturas.step2.desc">
+              Voos recorrentes para rastrear evolução de danos, erosão ou ocupações indevidas. Comparação temporal entre campanhas.
             </p>
-            <span class="service-tag" data-i18n="sectors.infrastructure.step2.tag">Trend Over Time</span>
+            <span class="service-tag" data-i18n="sectors.infraestruturas.step2.tag">Tendência Temporal</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.infrastructure.step3.label">STEP 03</div>
-            <h3 class="service-title" data-i18n="sectors.infrastructure.step3.title">Condition Assessment</h3>
-            <p class="service-text" data-i18n="sectors.infrastructure.step3.desc">
-              Visual analysis identifying priority sections, critical points and intervention needs.
+            <div class="service-number" data-i18n="sectors.infraestruturas.step3.label">ETAPA 03</div>
+            <h3 class="service-title" data-i18n="sectors.infraestruturas.step3.title">Avaliação de Condição</h3>
+            <p class="service-text" data-i18n="sectors.infraestruturas.step3.desc">
+              Análise visual identificando secções prioritárias, pontos críticos e necessidades de intervenção. KPIs: Extensão (km), Área (ha), Frequência de inspeção, Desvio (%).
             </p>
-            <span class="service-tag" data-i18n="sectors.infrastructure.step3.tag">Prioritized Actions</span>
+            <span class="service-tag" data-i18n="sectors.infraestruturas.step3.tag">Ações Priorizadas</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.infrastructure.step4.label">STEP 04</div>
-            <h3 class="service-title" data-i18n="sectors.infrastructure.step4.title">Maintenance Planning</h3>
-            <p class="service-text" data-i18n="sectors.infrastructure.step4.desc">
-              Data-driven recommendations for repair scheduling and budget allocation.
+            <div class="service-number" data-i18n="sectors.infraestruturas.step4.label">ETAPA 04</div>
+            <h3 class="service-title" data-i18n="sectors.infraestruturas.step4.title">Planeamento de Manutenção</h3>
+            <p class="service-text" data-i18n="sectors.infraestruturas.step4.desc">
+              Recomendações baseadas em dados para agendamento de reparações e alocação de orçamento.
             </p>
-            <span class="service-tag" data-i18n="sectors.infrastructure.step4.tag">Optimized CAPEX</span>
+            <span class="service-tag" data-i18n="sectors.infraestruturas.step4.tag">CAPEX Otimizado</span>
           </div>
         </div>
 
         <div class="use-cases">
-          <h4 class="use-cases-title"><span>🌉</span> <span data-i18n="sectors.applications">Typical Applications</span></h4>
+          <h4 class="use-cases-title"><span>🌉</span> <span data-i18n="sectors.applications">Aplicações Típicas</span></h4>
           <div class="use-cases-list">
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.infrastructure.app1">Road pavement condition monitoring</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.infrastructure.app2">Bridge and culvert inspection</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.infrastructure.app3">Dam safety surveillance</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.infrastructure.app4">Transmission line corridors</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.infrastructure.app5">Drainage system analysis</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.infrastructure.app6">Right-of-way encroachment detection</span>
-            </div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.infraestruturas.app1">Monitorização de condição de pavimento rodoviário</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.infraestruturas.app2">Inspeção de pontes e passagens hidráulicas</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.infraestruturas.app3">Vigilância de segurança de barragens</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.infraestruturas.app4">Corredores de linhas de transmissão</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.infraestruturas.app5">Análise de sistemas de drenagem</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.infraestruturas.app6">Deteção de ocupações indevidas em faixas de domínio</span></div>
           </div>
         </div>
 
         <div class="sector-cta">
           <div class="sector-cta-content">
-            <h4 data-i18n="sectors.cta.infrastructure">Monitor your infrastructure assets efficiently</h4>
-            <p data-i18n="sectors.cta.subtitle">Plan maintenance based on actual condition data, not assumptions.</p>
+            <h4 data-i18n="sectors.cta.infraestruturas">Monitorize os seus ativos de infraestrutura de forma eficiente</h4>
+            <p data-i18n="sectors.cta.infraestruturas.sub">Planeie a manutenção com base em dados reais de condição, não em pressupostos.</p>
           </div>
-          <a href="loja.html?sector=infrastructure" class="btn btn-primary"><span data-i18n="sectors.viewservices">View Infrastructure Services</span> →</a>
+          <a href="loja.html?sector=infrastructure" class="btn btn-primary"><span data-i18n="sectors.viewservices.infraestruturas">Ver Serviços de Infraestruturas</span> →</a>
         </div>
       </section>
 
-      <!-- ============ DEMINING SECTION ============ -->
-      <section class="sector-section" id="demining">
+      <!-- ============ AMBIENTAL SECTION ============ -->
+      <section class="sector-section" id="ambiental">
         <div class="sector-header">
-          <div class="sector-icon-large"><i class="fa-solid fa-shield-halved"></i></div>
+          <div class="sector-icon-large"><i class="fa-solid fa-leaf"></i></div>
           <div class="sector-header-content">
-            <div class="sector-eyebrow" data-i18n="sectors.demining.eyebrow">Humanitarian Mine Action</div>
-            <h2 class="sector-title" data-i18n="sectors.demining.title">Visual Support for Demining Programs</h2>
-            <p class="sector-description" data-i18n="sectors.demining.desc">
-              GeoVision doesn't replace fieldwork — but reinforces planning and documentation of cleared areas, 
-              access routes, markers and risk zones for humanitarian demining operations.
+            <div class="sector-eyebrow" data-i18n="sectors.ambiental.eyebrow">Ambiental</div>
+            <h2 class="sector-title" data-i18n="sectors.ambiental.title">Monitorização Ambiental & Apoio a Ação Humanitária contra Minas</h2>
+            <p class="sector-description" data-i18n="sectors.ambiental.desc">
+              A GeoVision combina levantamento aéreo, mapeamento térmico e análise GIS para monitorização ambiental de áreas sensíveis, avaliação de impacto, e suporte visual a programas de desminagem humanitária — reforçando o planeamento e documentação sem substituir o trabalho de campo.
             </p>
           </div>
         </div>
@@ -1286,92 +1116,74 @@
         <div class="sector-stats">
           <div class="stat-item">
             <div class="stat-value">IMAS</div>
-            <div class="stat-label" data-i18n="sectors.stat.compliant">Compliant</div>
+            <div class="stat-label" data-i18n="sectors.stat.compliant">Conformidade</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value" data-i18n="sectors.stat.secure">Secure</div>
-            <div class="stat-label" data-i18n="sectors.stat.datahandling">Data Handling</div>
+            <div class="stat-value">Térmica</div>
+            <div class="stat-label" data-i18n="sectors.stat.thermal">Deteção Especial</div>
           </div>
           <div class="stat-item">
             <div class="stat-value">GIS</div>
-            <div class="stat-label" data-i18n="sectors.stat.export">Export Ready</div>
+            <div class="stat-label" data-i18n="sectors.stat.export">Exportação Pronta</div>
           </div>
         </div>
 
         <div class="services-grid">
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.demining.step1.label">STEP 01</div>
-            <h3 class="service-title" data-i18n="sectors.demining.step1.title">Area Delimitation</h3>
-            <p class="service-text" data-i18n="sectors.demining.step1.desc">
-              Aerial survey and orthophoto creation showing boundaries, access points and obstacles.
+            <div class="service-number" data-i18n="sectors.ambiental.step1.label">ETAPA 01 — AMBIENTAL</div>
+            <h3 class="service-title" data-i18n="sectors.ambiental.step1.title">Levantamento & Mapeamento Ambiental</h3>
+            <p class="service-text" data-i18n="sectors.ambiental.step1.desc">
+              Levantamento aéreo RGB e multiespectral para mapeamento de áreas ambientais sensíveis, zonas de proteção, cobertura vegetal e corpos de água.
             </p>
-            <span class="service-tag" data-i18n="sectors.demining.step1.tag">Planning Foundation</span>
+            <span class="service-tag" data-i18n="sectors.ambiental.step1.tag">Base de Referência</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.demining.step2.label">STEP 02</div>
-            <h3 class="service-title" data-i18n="sectors.demining.step2.title">Progress Registration</h3>
-            <p class="service-text" data-i18n="sectors.demining.step2.desc">
-              Marking of areas already cleared and pending zones, by date and team.
+            <div class="service-number" data-i18n="sectors.ambiental.step2.label">ETAPA 02 — AMBIENTAL</div>
+            <h3 class="service-title" data-i18n="sectors.ambiental.step2.title">Monitorização de Impacto</h3>
+            <p class="service-text" data-i18n="sectors.ambiental.step2.desc">
+              Acompanhamento periódico de áreas de impacto — erosão, desflorestação, contaminação visual, evolução de reabilitação. Comparação temporal com NDVI.
             </p>
-            <span class="service-tag" data-i18n="sectors.demining.step2.tag">Operational Transparency</span>
+            <span class="service-tag" data-i18n="sectors.ambiental.step2.tag">Análise Temporal</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.demining.step3.label">STEP 03</div>
-            <h3 class="service-title" data-i18n="sectors.demining.step3.title">Access Route Mapping</h3>
-            <p class="service-text" data-i18n="sectors.demining.step3.desc">
-              Identification and documentation of safe routes for teams and vehicles.
+            <div class="service-number" data-i18n="sectors.ambiental.step3.label">ETAPA 03 — DESMINAGEM</div>
+            <h3 class="service-title" data-i18n="sectors.ambiental.step3.title">Delimitação & Documentação HMA</h3>
+            <p class="service-text" data-i18n="sectors.ambiental.step3.desc">
+              Suporte visual a programas de desminagem humanitária: ortofotomosaico para delimitação de áreas minadas, documentação de áreas limpas, mapeamento de rotas de acesso seguro e registo de progresso por data e equipa.
             </p>
-            <span class="service-tag" data-i18n="sectors.demining.step3.tag">Team Safety</span>
+            <span class="service-tag" data-i18n="sectors.ambiental.step3.tag">Apoio HMA</span>
           </div>
 
           <div class="service-card">
-            <div class="service-number" data-i18n="sectors.demining.step4.label">STEP 04</div>
-            <h3 class="service-title" data-i18n="sectors.demining.step4.title">Donor Reporting</h3>
-            <p class="service-text" data-i18n="sectors.demining.step4.desc">
-              Visual documentation supporting funding reports and compliance verification.
+            <div class="service-number" data-i18n="sectors.ambiental.step4.label">ETAPA 04 — RELATÓRIOS</div>
+            <h3 class="service-title" data-i18n="sectors.ambiental.step4.title">Relatórios de Conformidade & Doadores</h3>
+            <p class="service-text" data-i18n="sectors.ambiental.step4.desc">
+              Documentação visual para relatórios de conformidade ambiental, suporte a auditorias e relatórios de financiamento para programas humanitários. Exportação GIS completa.
             </p>
-            <span class="service-tag" data-i18n="sectors.demining.step4.tag">Accountability</span>
+            <span class="service-tag" data-i18n="sectors.ambiental.step4.tag">Accountability</span>
           </div>
         </div>
 
         <div class="use-cases">
-          <h4 class="use-cases-title"><span><i class="fa-solid fa-crosshairs"></i></span> <span data-i18n="sectors.applications">Typical Applications</span></h4>
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-leaf"></i></span> <span data-i18n="sectors.applications">Aplicações Típicas</span></h4>
           <div class="use-cases-list">
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.demining.app1">Minefield boundary documentation</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.demining.app2">Clearance progress tracking</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.demining.app3">Safe corridor identification</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.demining.app4">Community impact assessment</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.demining.app5">Land release documentation</span>
-            </div>
-            <div class="use-case-item">
-              <span class="use-case-check">✓</span>
-              <span data-i18n="sectors.demining.app6">Post-clearance verification</span>
-            </div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.ambiental.app1">Monitorização de áreas de proteção ambiental</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.ambiental.app2">Avaliação de impacto ambiental (EIA)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.ambiental.app3">Documentação de limites de campos minados (HMA)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.ambiental.app4">Acompanhamento de progresso de desminagem</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.ambiental.app5">Mapeamento de corredores seguros</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.ambiental.app6">Verificação pós-limpeza e libertação de terrenos</span></div>
           </div>
         </div>
 
         <div class="sector-cta">
           <div class="sector-cta-content">
-            <h4 data-i18n="sectors.cta.demining">Support your demining operations with visual intelligence</h4>
-            <p data-i18n="sectors.cta.subtitle">Contact us to discuss how we can support your humanitarian mission.</p>
+            <h4 data-i18n="sectors.cta.ambiental">Reforce as suas operações ambientais e de segurança territorial</h4>
+            <p data-i18n="sectors.cta.ambiental.sub">Contacte-nos para discutir como a inteligência visual pode apoiar a sua missão.</p>
           </div>
-          <a href="loja.html?sector=demining" class="btn btn-primary"><span data-i18n="sectors.viewservices">View Demining Services</span> →</a>
+          <a href="loja.html?sector=ambiental" class="btn btn-primary"><span data-i18n="sectors.viewservices.ambiental">Ver Serviços Ambientais</span> →</a>
         </div>
       </section>
 
@@ -1380,8 +1192,8 @@
 
   <!-- ============ FOOTER ============ -->
   <footer class="footer">
-    <p class="footer-text">© <span id="year"></span> GeoVision — <span data-i18n="footer.tagline">Operational Intelligence for Strategic Assets</span></p>
-    <p class="footer-tagline" data-i18n="footer.slogan">Intelligence. Precision. Execution.</p>
+    <p class="footer-text">© <span id="year"></span> GeoVision — <span data-i18n="footer.tagline">Inteligência Operacional para Ativos Estratégicos</span></p>
+    <p class="footer-tagline" data-i18n="footer.slogan">Inteligência. Precisão. Execução.</p>
   </footer>
 
   <!-- Mobile Sidebar Toggle -->
