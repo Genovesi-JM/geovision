@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  <title>Setores — GeoVision | Inteligência Operacional por Setor</title>
-  <meta name="description" content="Serviços GeoVision em agropecuária, mineração, construção, infraestruturas e setor ambiental. Monitorização aérea e inteligência geoespacial." />
+  <title>Setores — GeoVision | Inteligência Territorial por Setor</title>
+  <meta name="description" content="Serviços GeoVision em agropecuária, mineração, construção, infraestruturas e setor ambiental. Monitorização geoespacial, rastreio GPS e dashboards setoriais." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -682,8 +682,8 @@
     <!-- ============ SIDEBAR ============ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-title" data-i18n="sectors.sidebar.title">Navigation</div>
-        <div class="sidebar-subtitle" data-i18n="sectors.sidebar.subtitle">Industry Sectors</div>
+        <div class="sidebar-title" data-i18n="sectors.sidebar.title">Navegação</div>
+        <div class="sidebar-subtitle" data-i18n="sectors.sidebar.subtitle">Setores de Atuação</div>
       </div>
       
       <nav>
@@ -738,9 +738,9 @@
           <div class="sector-icon-large"><i class="fa-solid fa-seedling"></i></div>
           <div class="sector-header-content">
             <div class="sector-eyebrow" data-i18n="sectors.agropecuaria.eyebrow">Agropecuária</div>
-            <h2 class="sector-title" data-i18n="sectors.agropecuaria.title">Diagnóstico, Prescrição & Execução Agrícola</h2>
+            <h2 class="sector-title" data-i18n="sectors.agropecuaria.title">Diagnóstico, Prescrição, Execução & Monitorização Pecuária</h2>
             <p class="sector-description" data-i18n="sectors.agropecuaria.desc">
-              A GeoVision integra diagnóstico multiespectral, mapas de prescrição e execução aérea seletiva num pipeline unificado — desde a deteção de stress hídrico e nutricional até à aplicação variável com o DJI Agras T40, cobrindo agricultura de precisão e gestão de pastagens.
+              A GeoVision integra diagnóstico multiespectral, mapas de prescrição, execução aérea seletiva e monitorização pecuária (aérea e GPS) — desde a deteção de stress hídrico até à aplicação variável com Agras T40, contagem aérea de efetivos e rastreio contínuo via colares GPS 4G.
             </p>
           </div>
         </div>
@@ -751,12 +751,12 @@
             <div class="stat-label" data-i18n="sectors.stat.gsd">Resolução GSD</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">4+1</div>
-            <div class="stat-label" data-i18n="sectors.stat.cameras">Câmeras Multiespectrais</div>
+            <div class="stat-value">21 ha/h</div>
+            <div class="stat-label" data-i18n="sectors.stat.sprayrate">Aplicação T40</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">21 ha/h</div>
-            <div class="stat-label" data-i18n="sectors.stat.sprayrate">Taxa de Aplicação T40</div>
+            <div class="stat-value">4G GPS</div>
+            <div class="stat-label" data-i18n="sectors.stat.gps">Rastreio Pecuário</div>
           </div>
         </div>
 
@@ -783,18 +783,25 @@
             <div class="service-number" data-i18n="sectors.agropecuaria.step3.label">ETAPA 03 — EXECUÇÃO</div>
             <h3 class="service-title" data-i18n="sectors.agropecuaria.step3.title">Aplicação Variável com Agras T40</h3>
             <p class="service-text" data-i18n="sectors.agropecuaria.step3.desc">
-              Pulverização seletiva baseada nos mapas de prescrição — aplicação diferenciada por zona (fitossanitários, fertilizantes, reguladores), com tanque de 40L e cobertura de até 21 ha/hora.
+              Pulverização seletiva baseada nos mapas de prescrição — aplicação diferenciada por zona (fitossanitários, fertilizantes, reguladores), com tanque de 40L e cobertura de até 21 ha/hora. Regras agronómicas integradas com cálculos automatizados de kg/ha ou L/ha por zona.
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem; font-style: italic;" data-i18n="sectors.agropecuaria.step3.disclaimer">
+              Nota: As decisões agronómicas finais (produtos, dosagens, calendário) permanecem sob responsabilidade do cliente ou do seu engenheiro agrónomo.
             </p>
             <span class="service-tag" data-i18n="sectors.agropecuaria.step3.tag">Capacidade Ativa</span>
           </div>
 
           <div class="service-card">
             <div class="service-number" data-i18n="sectors.agropecuaria.step4.label">ETAPA 04 — PECUÁRIA</div>
-            <h3 class="service-title" data-i18n="sectors.agropecuaria.step4.title">Contagem Aérea & Saúde de Pastagens</h3>
+            <h3 class="service-title" data-i18n="sectors.agropecuaria.step4.title">Monitorização Pecuária — Aérea & GPS</h3>
             <p class="service-text" data-i18n="sectors.agropecuaria.step4.desc">
-              Voos com câmera RGB e térmica para contagem visual de efetivos pecuários por fotografia aérea e avaliação do estado das pastagens via índices de vigor (NDVI). Identificação de zonas de sobrepastoreio e planeamento de rotação.
+              <strong>Análise aérea:</strong> Voos com câmera RGB e térmica para contagem visual de efetivos pecuários por fotografia aérea e avaliação do estado das pastagens via NDVI.<br>
+              <strong>Rastreio GPS:</strong> Colares GPS com SIM 4G — transmissão periódica de localização, buffer offline em zonas sem cobertura, processamento backend e visualização no portal via mapa interativo. Alertas de geofence automáticos quando animais saem de zonas definidas.
             </p>
-            <span class="service-tag" data-i18n="sectors.agropecuaria.step4.tag">Gestão Pecuária</span>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.75rem;" data-i18n="sectors.agropecuaria.step4.desc2">
+              <strong>Indicadores comportamentais:</strong> Análise baseada em padrões de movimento (não diagnóstico veterinário). Relatórios de comparação sazonal e análise histórica de produção. Identificação de sobrepastoreio e planeamento de rotação.
+            </p>
+            <span class="service-tag" data-i18n="sectors.agropecuaria.step4.tag">Capacidade Ativa — GPS 4G</span>
           </div>
         </div>
 
@@ -803,22 +810,36 @@
           <h4 class="use-cases-title"><span><i class="fa-solid fa-check-circle" style="color: var(--accent-green);"></i></span> <span data-i18n="sectors.activeCapabilities">Capacidades Ativas</span></h4>
           <div class="use-cases-list">
             <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active1">Levantamento multiespectral NDVI/NDRE (Mavic 3M)</span></div>
-            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active2">Mapas de prescrição por zona</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active2">Mapas de prescrição por zona com cálculos kg/ha e L/ha</span></div>
             <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active3">Pulverização variável com DJI Agras T40</span></div>
-            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active4">Contagem visual aérea de gado</span></div>
-            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active5">Análise de saúde de pastagens (NDVI)</span></div>
-            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active6">Dispersão de sementes e fertilizantes (T40 — até 50 kg)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active4">Contagem aérea de gado (RGB/térmica) e análise visual de efetivos</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active5">Rastreio GPS com colares 4G (transmissão periódica, buffer offline, geofence)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active6">Indicadores comportamentais baseados em movimento e análise de pastagens (NDVI)</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active7">Relatórios de comparação sazonal e análise histórica de produção</span></div>
+            <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.agropecuaria.active8">Dispersão de sementes e fertilizantes (T40 — até 50 kg)</span></div>
           </div>
         </div>
 
         <div class="use-cases" style="margin-top: 1rem; border-left: 3px solid var(--accent-cyan);">
           <h4 class="use-cases-title"><span><i class="fa-solid fa-expand" style="color: var(--accent-cyan);"></i></span> <span data-i18n="sectors.expandableCapabilities">Capacidades Expandíveis</span></h4>
           <div class="use-cases-list">
-            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand1">Sensores IoT de solo (humidade, temperatura, nutrientes)</span></div>
-            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand2">Colares GPS para rastreio periódico de efetivos</span></div>
-            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand3">Contagem automatizada com modelos de IA</span></div>
-            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand4">Integração com dados de satélite</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand1">Estações meteorológicas integradas</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand2">Infraestrutura LoRa para zonas remotas</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand3">Sensores IoT estruturais e de solo</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-cyan);">◇</span><span data-i18n="sectors.agropecuaria.expand4">Módulos de inspeção térmica</span></div>
           </div>
+        </div>
+
+        <!-- Dashboard KPIs - Agropecuária -->
+        <div class="use-cases" style="margin-top: 1.5rem; border-left: 3px solid var(--accent-orange);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-chart-line" style="color: var(--accent-orange);"></i></span> <span data-i18n="sectors.dashboardKPIs">Dashboard KPIs (Portal Cliente)</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.agropecuaria.kpi1">NDVI médio por parcela e zona</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.agropecuaria.kpi2">Área tratada (ha) vs. prescrita</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.agropecuaria.kpi3">N.º de efetivos rastreados / alertas geofence</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.agropecuaria.kpi4">Saúde de pastagens (%) e taxa de rotação</span></div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;" data-i18n="sectors.kpi.fullreport">Relatório completo inclui: mapas NDVI, prescrição detalhada, histórico GPS, relatórios sazonais e ficheiros descarregáveis (PDF, DOCX, GIS).</p>
         </div>
 
         <div class="sector-cta">
@@ -854,7 +875,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-value">100%</div>
-            <div class="stat-label" data-i18n="sectors.stat.auditable">Dados Auditáveis</div>
+            <div class="stat-label" data-i18n="sectors.stat.auditable">Rastreabilidade Total</div>
           </div>
         </div>
 
@@ -917,6 +938,18 @@
           </div>
         </div>
 
+        <!-- Dashboard KPIs - Mineração -->
+        <div class="use-cases" style="margin-top: 1.5rem; border-left: 3px solid var(--accent-orange);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-chart-line" style="color: var(--accent-orange);"></i></span> <span data-i18n="sectors.dashboardKPIs">Dashboard KPIs (Portal Cliente)</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.mineracao.kpi1">Volume extraído (m³) por período</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.mineracao.kpi2">Desvio volumétrico (%) vs. período anterior</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.mineracao.kpi3">Ângulos de talude monitorizados</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.mineracao.kpi4">Área mapeada (ha) e precisão RTK</span></div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;" data-i18n="sectors.kpi.fullreport.min">Relatório completo inclui: modelos 3D, nuvens de pontos, comparação temporal, alertas geotécnicos e ficheiros descarregáveis (PDF, DOCX, 3D).</p>
+        </div>
+
         <div class="sector-cta">
           <div class="sector-cta-content">
             <h4 data-i18n="sectors.cta.mineracao">Pronto para otimizar as suas operações mineiras?</h4>
@@ -950,7 +983,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-value">BIM</div>
-            <div class="stat-label" data-i18n="sectors.stat.integration">Integração Compatible</div>
+            <div class="stat-label" data-i18n="sectors.stat.integration">Integração Compatível</div>
           </div>
         </div>
 
@@ -1002,6 +1035,18 @@
             <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app5">Suporte a inspeções de qualidade</span></div>
             <div class="use-case-item"><span class="use-case-check">✓</span><span data-i18n="sectors.construcao.app6">Relatórios para stakeholders</span></div>
           </div>
+        </div>
+
+        <!-- Dashboard KPIs - Construção -->
+        <div class="use-cases" style="margin-top: 1.5rem; border-left: 3px solid var(--accent-orange);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-chart-line" style="color: var(--accent-orange);"></i></span> <span data-i18n="sectors.dashboardKPIs">Dashboard KPIs (Portal Cliente)</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.construcao.kpi1">Progresso de obra (%) planeado vs. executado</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.construcao.kpi2">Volume de terraplenagem (m³) por campanha</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.construcao.kpi3">Timeline visual com sobreposição de campanhas</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.construcao.kpi4">Desvio acumulado (%) e alertas de atraso</span></div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;" data-i18n="sectors.kpi.fullreport.con">Relatório completo inclui: ortofotomosaicos comparativos, modelos 3D, volumetrias e ficheiros descarregáveis (PDF, DOCX, 3D).</p>
         </div>
 
         <div class="sector-cta">
@@ -1091,6 +1136,18 @@
           </div>
         </div>
 
+        <!-- Dashboard KPIs - Infraestruturas -->
+        <div class="use-cases" style="margin-top: 1.5rem; border-left: 3px solid var(--accent-orange);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-chart-line" style="color: var(--accent-orange);"></i></span> <span data-i18n="sectors.dashboardKPIs">Dashboard KPIs (Portal Cliente)</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.infraestruturas.kpi1">Extensão monitorizada (km) por ativo</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.infraestruturas.kpi2">Índice de condição por secção</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.infraestruturas.kpi3">N.º de pontos críticos identificados</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.infraestruturas.kpi4">Frequência de inspeção e tendência temporal</span></div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;" data-i18n="sectors.kpi.fullreport.inf">Relatório completo inclui: ortofotomosaicos, mapas GIS, análise de condição por trecho e ficheiros descarregáveis (PDF, DOCX, GIS).</p>
+        </div>
+
         <div class="sector-cta">
           <div class="sector-cta-content">
             <h4 data-i18n="sectors.cta.infraestruturas">Monitorize os seus ativos de infraestrutura de forma eficiente</h4>
@@ -1178,6 +1235,18 @@
           </div>
         </div>
 
+        <!-- Dashboard KPIs - Ambiental -->
+        <div class="use-cases" style="margin-top: 1.5rem; border-left: 3px solid var(--accent-orange);">
+          <h4 class="use-cases-title"><span><i class="fa-solid fa-chart-line" style="color: var(--accent-orange);"></i></span> <span data-i18n="sectors.dashboardKPIs">Dashboard KPIs (Portal Cliente)</span></h4>
+          <div class="use-cases-list">
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.ambiental.kpi1">Área monitorizada (ha) e cobertura vegetal (%)</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.ambiental.kpi2">Evolução NDVI temporal por zona</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.ambiental.kpi3">Área limpa vs. pendente (HMA)</span></div>
+            <div class="use-case-item"><span class="use-case-check" style="color: var(--accent-orange);">●</span><span data-i18n="sectors.ambiental.kpi4">N.º de relatórios de conformidade gerados</span></div>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem;" data-i18n="sectors.kpi.fullreport.amb">Relatório completo inclui: ortofotomosaicos, mapas de impacto, análise de progresso HMA e ficheiros descarregáveis (PDF, DOCX, GIS).</p>
+        </div>
+
         <div class="sector-cta">
           <div class="sector-cta-content">
             <h4 data-i18n="sectors.cta.ambiental">Reforce as suas operações ambientais e de segurança territorial</h4>
@@ -1192,7 +1261,7 @@
 
   <!-- ============ FOOTER ============ -->
   <footer class="footer">
-    <p class="footer-text">© <span id="year"></span> GeoVision — <span data-i18n="footer.tagline">Inteligência Operacional para Ativos Estratégicos</span></p>
+    <p class="footer-text">© <span id="year"></span> GeoVision — <span data-i18n="footer.tagline">Inteligência Territorial Multissetorial</span></p>
     <p class="footer-tagline" data-i18n="footer.slogan">Inteligência. Precisão. Execução.</p>
   </footer>
 
