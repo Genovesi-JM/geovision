@@ -13,7 +13,7 @@ const translations = {
   "nav.portal": { pt: "Portal", en: "Portal", es: "Portal" },
 
   // ============ INDEX PAGE ============
-  "index.eyebrow": { pt: "Inteligência Operacional", en: "Operational Intelligence", es: "Inteligencia Operacional" },
+  "index.eyebrow": { pt: "Inteligência Territorial", en: "Territorial Intelligence", es: "Inteligencia Territorial" },
   "index.title": { pt: "Camada de Inteligência para Ativos Estratégicos Globais", en: "Intelligence Layer for Strategic Assets Worldwide", es: "Capa de Inteligencia para Activos Estratégicos Globales" },
   "index.subtitle": { pt: "GeoVision combina operações de drone, inteligência geoespacial e monitorização de risco para apoiar operações de mineração, infraestrutura, agricultura e territoriais.", en: "GeoVision combines drone operations, geospatial intelligence and risk monitoring to support mining, infrastructure, agriculture and territorial operations.", es: "GeoVision combina operaciones de drones, inteligencia geoespacial y monitoreo de riesgos para apoyar operaciones mineras, de infraestructura, agrícolas y territoriales." },
   "index.viewServices": { pt: "Ver Serviços", en: "View Services", es: "Ver Servicios" },
@@ -60,8 +60,8 @@ const translations = {
   "index.cta.title": { pt: "Pronto para Transformar as Suas Operações?", en: "Ready to Transform Your Operations?", es: "¿Listo para Transformar Sus Operaciones?" },
   "index.cta.subtitle": { pt: "Contacte a nossa equipa para uma proposta personalizada às suas necessidades.", en: "Contact our team for a customized proposal based on your requirements.", es: "Contacte a nuestro equipo para una propuesta personalizada según sus requisitos." },
   "index.cta.button": { pt: "Começar", en: "Get Started", es: "Comenzar" },
-  "index.footer.tagline": { pt: "Inteligência Operacional Global.", en: "Global Operational Intelligence.", es: "Inteligencia Operacional Global." },
-  "footer.tagline": { pt: "Inteligência Operacional para Ativos Estratégicos", en: "Operational Intelligence for Strategic Assets", es: "Inteligencia Operacional para Activos Estratégicos" },
+  "index.footer.tagline": { pt: "Inteligência Territorial Multissetorial.", en: "Multisector Territorial Intelligence.", es: "Inteligencia Territorial Multisectorial." },
+  "footer.tagline": { pt: "Inteligência Territorial Multissetorial", en: "Multisector Territorial Intelligence", es: "Inteligencia Territorial Multisectorial" },
   "footer.slogan": { pt: "Inteligência. Precisão. Execução.", en: "Intelligence. Precision. Execution.", es: "Inteligencia. Precisión. Ejecución." },
   
   // ============ INDEX PAGE - SECTORS SECTION ============
@@ -102,10 +102,10 @@ const translations = {
   "index.cta.about": { pt: "Sobre a GeoVision", en: "About GeoVision", es: "Sobre GeoVision" },
 
   // ============ ABOUT PAGE ============
-  "about.hero.eyebrow": { pt: "Inteligência Operacional", en: "Operational Intelligence", es: "Inteligencia Operacional" },
-  "about.hero.title": { pt: "Inteligência Operacional para Ativos Estratégicos", en: "Operational Intelligence for Strategic Assets", es: "Inteligencia Operacional para Activos Estratégicos" },
-  "about.hero.subtitle": { pt: "GeoVision oferece monitorização aérea avançada, inteligência geoespacial e execução seletiva de campo em operações de mineração, infraestrutura e territoriais.", en: "GeoVision delivers advanced aerial monitoring, geospatial intelligence and selective field execution across mining, infrastructure and territorial operations.", es: "GeoVision ofrece monitoreo aéreo avanzado, inteligencia geoespacial y ejecución selectiva de campo en operaciones mineras, de infraestructura y territoriales." },
-  "about.hero.cta.services": { pt: "Explorar Serviços", en: "Explore Our Services", es: "Explorar Servicios" },
+  "about.hero.eyebrow": { pt: "Inteligência Territorial", en: "Territorial Intelligence", es: "Inteligencia Territorial" },
+  "about.hero.title": { pt: "Inteligência Territorial", en: "Territorial Intelligence", es: "Inteligencia Territorial" },
+  "about.hero.subtitle": { pt: "Plataforma de Inteligência Territorial Multissetorial — agropecuária, mineração, construção, infraestruturas e setor ambiental.", en: "Multisector Territorial Intelligence Platform — agriculture, mining, construction, infrastructure and environmental.", es: "Plataforma de Inteligencia Territorial Multisectorial — agropecuaria, minería, construcción, infraestructuras y sector ambiental." territoriales." },
+  "about.hero.cta.services": { pt: "GeoVision Supply Hub", en: "GeoVision Supply Hub", es: "GeoVision Supply Hub" },
   "about.hero.cta.contact": { pt: "Contactar Equipa", en: "Contact Our Team", es: "Contactar Equipo" },
   "about.who.eyebrow": { pt: "Quem Somos", en: "Who We Are", es: "Quiénes Somos" },
   "about.who.title": { pt: "Parceiro de Inteligência e Execução", en: "Intelligence & Execution Partner", es: "Socio de Inteligencia y Ejecución" },
@@ -154,7 +154,7 @@ const translations = {
 
   // ============ SECTORS PAGE ============
   "sectors.sidebar.title": { pt: "Navegação", en: "Navigation", es: "Navegación" },
-  "sectors.sidebar.subtitle": { pt: "Setores de Indústria", en: "Industry Sectors", es: "Sectores Industriales" },
+  "sectors.sidebar.subtitle": { pt: "Setores de Atuação", en: "Operating Sectors", es: "Sectores de Actuación" },
   "sectors.mining": { pt: "Mineração", en: "Mining", es: "Minería" },
   "sectors.agriculture": { pt: "Agricultura", en: "Agriculture", es: "Agricultura" },
   "sectors.construction": { pt: "Construção", en: "Construction", es: "Construcción" },
@@ -188,7 +188,7 @@ const translations = {
   "sectors.viewservices": { pt: "Ver Serviços", en: "View Services", es: "Ver Servicios" },
   "sectors.stat.accuracy": { pt: "Precisão de Levantamento", en: "Survey Accuracy", es: "Precisión de Levantamiento" },
   "sectors.stat.delivery": { pt: "Entrega de Relatório", en: "Report Delivery", es: "Entrega de Informe" },
-  "sectors.stat.auditable": { pt: "Dados Auditáveis", en: "Auditable Data", es: "Datos Auditables" },
+  "sectors.stat.auditable": { pt: "Rastreabilidade Total", en: "Full Traceability", es: "Trazabilidad Total" },
   "sectors.stat.resolution": { pt: "Resolução de Solo", en: "Ground Resolution", es: "Resolución de Suelo" },
   "sectors.stat.bands": { pt: "Bandas Espectrais", en: "Spectral Bands", es: "Bandas Espectrales" },
   "sectors.stat.realtime": { pt: "Tempo Real", en: "Real-time", es: "Tiempo Real" },
@@ -720,7 +720,7 @@ const translations = {
   // ============ TECHNOLOGY PAGE ============
   "tech.hero.eyebrow": { pt: "O Que Usamos", en: "What We Use", es: "Lo Que Usamos" },
   "tech.hero.title": { pt: "Tecnologia & Frota de Drones", en: "Technology & Drone Fleet", es: "Tecnología & Flota de Drones" },
-  "tech.hero.subtitle": { pt: "Frota de drones de grau industrial, sensores avançados e stack de software profissional que transforma dados aéreos em inteligência operacional.", en: "Industrial-grade drone fleet, advanced sensors and professional software stack that transforms aerial data into operational intelligence.", es: "Flota de drones de grado industrial, sensores avanzados y stack de software profesional que transforma datos aéreos en inteligencia operacional." },
+  "tech.hero.subtitle": { pt: "Frota de drones de grau industrial, dispositivos GPS 4G, sensores avançados e stack de software profissional que transforma dados de campo em inteligência territorial estruturada.", en: "Industrial-grade drone fleet, 4G GPS devices, advanced sensors and professional software stack that transforms field data into structured territorial intelligence.", es: "Flota de drones de grado industrial, dispositivos GPS 4G, sensores avanzados y stack de software profesional que transforma datos de campo en inteligencia territorial estructurada." },
 
   // -- Drone Fleet Section --
   "tech.fleet.eyebrow": { pt: "Frota Aérea", en: "Aerial Fleet", es: "Flota Aérea" },
@@ -740,7 +740,7 @@ const translations = {
   // -- Sector Tags --
   "tech.sectors.label": { pt: "Setores", en: "Sectors", es: "Sectores" },
   "tech.sector.mining": { pt: "Mineração", en: "Mining", es: "Minería" },
-  "tech.sector.infrastructure": { pt: "Infraestrutura", en: "Infrastructure", es: "Infraestructura" },
+  "tech.sector.infrastructure": { pt: "Infraestruturas", en: "Infrastructure", es: "Infraestructuras" },
   "tech.sector.construction": { pt: "Construção", en: "Construction", es: "Construcción" },
   "tech.sector.energy": { pt: "Energia", en: "Energy", es: "Energía" },
   "tech.sector.demining": { pt: "Desminagem", en: "Demining", es: "Desminado" },
@@ -762,37 +762,37 @@ const translations = {
   "tech.sw.pix4d.cat": { pt: "Fotogrametria & 3D", en: "Photogrammetry & 3D", es: "Fotogrametría & 3D" },
   "tech.sw.pix4d.desc": { pt: "Processamento profissional de ortomosaicos georreferenciados, modelos 3D, DSM/DTM e cálculos volumétricos com precisão centimétrica para operações de mineração e infraestrutura.", en: "Professional processing of georeferenced orthomosaics, 3D models, DSM/DTM and volumetric calculations with centimeter precision for mining and infrastructure operations.", es: "Procesamiento profesional de ortomosaicos georreferenciados, modelos 3D, DSM/DTM y cálculos volumétricos con precisión centimétrica para operaciones de minería e infraestructura." },
 
-  "tech.sw.terra.cat": { pt: "LiDAR & Missão Drone", en: "LiDAR & Drone Mission", es: "LiDAR & Misión Drone" },
-  "tech.sw.terra.desc": { pt: "Processamento direto de dados Zenmuse L2, planeamento de missão, geração de nuvens de pontos LiDAR e modelos digitais de terreno com integração nativa à frota DJI.", en: "Direct processing of Zenmuse L2 data, mission planning, LiDAR point cloud generation and digital terrain models with native DJI fleet integration.", es: "Procesamiento directo de datos Zenmuse L2, planificación de misión, generación de nubes de puntos LiDAR y modelos digitales de terreno con integración nativa a la flota DJI." },
+  "tech.sw.terra.cat": { pt: "Fotogrametria RTK", en: "RTK Photogrammetry", es: "Fotogrametría RTK" },
+  "tech.sw.terra.desc": { pt: "Fotogrametria RTK com processamento direto de dados DJI, planeamento de missão, geração de nuvens de pontos e modelos digitais de terreno com integração nativa à frota DJI. Processamento LiDAR disponível como capacidade expandível (payload Zenmuse L2).", en: "RTK photogrammetry with direct DJI data processing, mission planning, point cloud generation and digital terrain models with native DJI fleet integration. LiDAR processing available as expandable capability (Zenmuse L2 payload).", es: "Fotogrametría RTK con procesamiento directo de datos DJI, planificación de misión, generación de nubes de puntos y modelos digitales de terreno con integración nativa a la flota DJI. Procesamiento LiDAR disponible como capacidad expandible (payload Zenmuse L2)."ativa a la flota DJI." },
 
   "tech.sw.flighthub.cat": { pt: "Gestão de Frota", en: "Fleet Management", es: "Gestión de Flota" },
   "tech.sw.flighthub.desc": { pt: "Monitorização em tempo real, gestão de missões, coordenação de equipa e histórico de voos completo. Controlo centralizado de toda a frota de drones.", en: "Real-time monitoring, mission management, team coordination and complete flight history. Centralized control of the entire drone fleet.", es: "Monitorización en tiempo real, gestión de misiones, coordinación de equipo e historial de vuelos completo. Control centralizado de toda la flota de drones." },
 
   "tech.sw.dashboard.cat": { pt: "Plataforma Proprietária", en: "Proprietary Platform", es: "Plataforma Propietaria" },
-  "tech.sw.dashboard.desc": { pt: "Plataforma web proprietária que centraliza KPIs setoriais, relatórios automáticos, análise de performance e interface cliente. Centralização de dados operacionais com controlo de acesso e notificações.", en: "Proprietary web platform centralizing sector KPIs, automated reports, performance analysis and client interface. Operational data centralization with access control and notifications.", es: "Plataforma web propietaria que centraliza KPIs sectoriales, informes automáticos, análisis de rendimiento e interfaz cliente. Centralización de datos operacionales con control de acceso y notificaciones." },
+  "tech.sw.dashboard.desc": { pt: "Portal Cliente proprietário com dashboards KPI setoriais, mapas interativos, visualização 3D, relatórios estruturados (PDF, DOCX, ficheiros 3D) e controlo de acesso. Rastreio GPS pecuário em tempo real, alertas de geofence e notificações automáticas.", en: "Proprietary Client Portal with sector KPI dashboards, interactive maps, 3D visualization, structured reports (PDF, DOCX, 3D files) and access control. Real-time livestock GPS tracking, geofence alerts and automatic notifications.", es: "Portal Cliente propietario con dashboards KPI sectoriales, mapas interactivos, visualización 3D, informes estructurados (PDF, DOCX, archivos 3D) y control de acceso. Rastreo GPS pecuario en tiempo real, alertas de geofence y notificaciones automáticas."máticos, análisis de rendimiento e interfaz cliente. Centralización de datos operacionales con control de acceso y notificaciones." },
 
-  "tech.sw.institutional": { pt: "O stack tecnológico GeoVision foi desenhado para garantir máxima performance operacional, integração de dados e escalabilidade sem redundância de sistemas.", en: "The GeoVision technology stack was designed to ensure maximum operational performance, data integration and scalability without system redundancy.", es: "El stack tecnológico GeoVision fue diseñado para garantizar máximo rendimiento operacional, integración de datos y escalabilidad sin redundancia de sistemas." },
+  "tech.sw.institutional": { pt: "O stack tecnológico GeoVision segue uma arquitetura em 4 camadas — Campo, Processamento, Dados (API Backend, PostgreSQL/PostGIS, Cloud) e Interface (Portal Cliente) — garantindo integração completa e escalabilidade.", en: "The GeoVision technology stack follows a 4-layer architecture — Field, Processing, Data (API Backend, PostgreSQL/PostGIS, Cloud) and Interface (Client Portal) — ensuring complete integration and scalability.", es: "El stack tecnológico GeoVision sigue una arquitectura en 4 capas — Campo, Procesamiento, Datos (API Backend, PostgreSQL/PostGIS, Cloud) e Interfaz (Portal Cliente) — garantizando integración completa y escalabilidad."" },
 
   // -- Why GeoVision Section --
   "tech.why.eyebrow": { pt: "Nossa Vantagem", en: "Our Advantage", es: "Nuestra Ventaja" },
   "tech.why.title": { pt: "Porquê a GeoVision", en: "Why GeoVision", es: "Por Qué GeoVision" },
   "tech.why.multiSector.title": { pt: "Capacidade Multi-Setor", en: "Multi-Sector Capability", es: "Capacidad Multi-Sector" },
-  "tech.why.multiSector.desc": { pt: "Expertise comprovada em mineração, infraestrutura, agricultura, desminagem e energia.", en: "Proven expertise across mining, infrastructure, agriculture, demining and energy sectors.", es: "Experiencia comprobada en minería, infraestructura, agricultura, desminaje y energía." },
-  "tech.why.enterprise.title": { pt: "Enterprise-Ready", en: "Enterprise-Ready", es: "Enterprise-Ready" },
+  "tech.why.multiSector.desc": { pt: "Experiência comprovada em agropecuária, mineração, construção, infraestruturas e setor ambiental.", en: "Proven expertise across agriculture, mining, construction, infrastructure and environmental sectors.", es: "Experiencia comprobada en agropecuaria, minería, construcción, infraestructuras y sector ambiental." },
+  "tech.why.enterprise.title": { pt: "Nível Empresarial", en: "Enterprise-Grade", es: "Nivel Empresarial" },
   "tech.why.enterprise.desc": { pt: "Plataformas de grau industrial com segurança robusta, compliance e escalabilidade.", en: "Industrial-grade platforms with robust security, compliance and scalability.", es: "Plataformas de grado industrial con seguridad robusta, compliance y escalabilidad." },
   "tech.why.security.title": { pt: "Dados Seguros", en: "Secure Data", es: "Datos Seguros" },
   "tech.why.security.desc": { pt: "Encriptação end-to-end, controlo de acessos e protocolos de compliance de dados.", en: "End-to-end encryption, access controls and compliant data handling protocols.", es: "Encriptación end-to-end, control de accesos y protocolos de compliance de datos." },
-  "tech.why.risk.title": { pt: "Modelação de Risco", en: "Risk Modeling", es: "Modelado de Riesgo" },
-  "tech.why.risk.desc": { pt: "Frameworks proprietários de risco adaptados a cada setor operacional.", en: "Proprietary risk frameworks tailored to sector-specific operational challenges.", es: "Frameworks propietarios de riesgo adaptados a cada sector operacional." },
+  "tech.why.risk.title": { pt: "Apoio à Decisão", en: "Decision Support", es: "Apoyo a la Decisión" },
+  "tech.why.risk.desc": { pt: "Dashboards KPI setoriais e relatórios estruturados que suportam a tomada de decisão com dados reais.", en: "Sector KPI dashboards and structured reports that support decision-making with real data.", es: "Dashboards KPI sectoriales e informes estructurados que apoyan la toma de decisiones con datos reales." },
   "tech.why.payment.title": { pt: "Multi-Moeda", en: "Multi-Currency", es: "Multi-Moneda" },
   "tech.why.payment.desc": { pt: "Pagamento flexível em AOA, USD e EUR com múltiplos métodos de pagamento.", en: "Flexible payment in AOA, USD and EUR with multiple payment methods.", es: "Pago flexible en AOA, USD y EUR con múltiples métodos de pago." },
-  "tech.why.local.title": { pt: "Expertise Local", en: "Local Expertise", es: "Experiencia Local" },
-  "tech.why.local.desc": { pt: "Conhecimento profundo do terreno angolano e experiência adaptável a contextos operacionais em todo o mundo.", en: "Deep understanding of Angolan terrain and adaptable expertise for operational contexts worldwide.", es: "Conocimiento profundo del terreno angoleño y experiencia adaptable a contextos operacionales en todo el mundo." },
+  "tech.why.local.title": { pt: "Conhecimento Local", en: "Local Knowledge", es: "Conocimiento Local" },
+  "tech.why.local.desc": { pt: "Profundo conhecimento do terreno, regulamentação e contextos operacionais em cada região.", en: "Deep knowledge of terrain, regulations and operational contexts in each region.", es: "Profundo conocimiento del terreno, regulamentación y contextos operacionales en cada región." },
 
   // -- CTA Section --
   "tech.cta.tagline": { pt: "Inteligência. Precisão. Execução.", en: "Intelligence. Precision. Execution.", es: "Inteligencia. Precisión. Ejecución." },
-  "tech.cta.subtitle": { pt: "Pronto para transformar as suas operações? Fale com a nossa equipa.", en: "Ready to transform your operations? Talk to our team.", es: "¿Listo para transformar sus operaciones? Hable con nuestro equipo." },
-  "tech.cta.services": { pt: "Explorar Serviços", en: "Explore Services", es: "Explorar Servicios" },
+  "tech.cta.subtitle": { pt: "Pronto para estruturar a inteligência territorial do seu projeto? Fale com a nossa equipa.", en: "Ready to structure your project's territorial intelligence? Talk to our team.", es: "¿Listo para estructurar la inteligencia territorial de su proyecto? Hable con nuestro equipo." },
+  "tech.cta.services": { pt: "GeoVision Supply Hub", en: "GeoVision Supply Hub", es: "GeoVision Supply Hub" },
   "tech.cta.contact": { pt: "Contactar Equipa", en: "Contact Team", es: "Contactar Equipo" },
 
   // ============ SECTORS PAGE - MINING STEPS ============
@@ -1226,23 +1226,34 @@ class I18n {
   }
 
   updatePage() {
-    // Update all elements with data-i18n attribute
+    // Portuguese is the HTML default language — skip i18n to preserve
+    // correct PT defaults already in the markup. Only translate for EN/ES.
+    if (this.currentLang === 'pt') {
+      document.documentElement.lang = 'pt';
+      return;
+    }
+
+    // For EN/ES: apply translations only when the key exists in the dict
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
-      const translation = this.t(key);
-      
-      // Check if it's an input placeholder
+      const translation = this.translations[key];
+      if (!translation) return; // key not in dict → keep HTML default
+      const text = translation[this.currentLang] || translation['en'];
+      if (!text) return;
       if (el.hasAttribute('data-i18n-placeholder')) {
-        el.placeholder = translation;
+        el.placeholder = text;
       } else {
-        el.textContent = translation;
+        el.textContent = text;
       }
     });
 
     // Update elements with data-i18n-placeholder
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
-      el.placeholder = this.t(key);
+      const translation = this.translations[key];
+      if (!translation) return;
+      const text = translation[this.currentLang] || translation['en'];
+      if (text) el.placeholder = text;
     });
 
     // Update document lang attribute

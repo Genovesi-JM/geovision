@@ -570,32 +570,6 @@
         </div>
       </div>
 
-      <!-- Pix4D -->
-      <div class="sw-card">
-        <div class="sw-card-header">
-          <div class="sw-card-icon"><i class="fa-solid fa-cube"></i></div>
-          <div>
-            <div class="sw-card-name">Pix4D</div>
-            <div class="sw-card-cat" data-i18n="tech.sw.pix4d.cat">Fotogrametria & 3D</div>
-          </div>
-        </div>
-        <p class="sw-card-desc" data-i18n="tech.sw.pix4d.desc">Processamento profissional de ortomosaicos georreferenciados, modelos 3D, DSM/DTM e cálculos volumétricos com precisão centimétrica para operações de mineração e infraestrutura.</p>
-        <div class="sw-card-uses">
-          <span class="sw-use-tag">Ortomosaicos</span>
-          <span class="sw-use-tag">Modelos 3D</span>
-          <span class="sw-use-tag">DSM/DTM</span>
-          <span class="sw-use-tag">Volumetria Mining</span>
-        </div>
-        <div class="sw-sectors">
-          <span class="sectors-label" data-i18n="tech.sectors.label">Setores</span>
-          <div class="sector-tags">
-            <span class="sector-tag" data-i18n="tech.sector.mining">Mineração</span>
-            <span class="sector-tag" data-i18n="tech.sector.infrastructure">Infraestruturas</span>
-            <span class="sector-tag" data-i18n="tech.sector.construction">Construção</span>
-          </div>
-        </div>
-      </div>
-
       <!-- DJI Terra -->
       <div class="sw-card">
         <div class="sw-card-header">
@@ -607,10 +581,11 @@
         </div>
         <p class="sw-card-desc" data-i18n="tech.sw.terra.desc">Fotogrametria RTK com processamento direto de dados DJI, planeamento de missão, geração de nuvens de pontos e modelos digitais de terreno com integração nativa à frota DJI. Processamento LiDAR disponível como capacidade expandível (payload Zenmuse L2).</p>
         <div class="sw-card-uses">
-          <span class="sw-use-tag">LiDAR Processing</span>
+          <span class="sw-use-tag">Fotogrametria RTK</span>
           <span class="sw-use-tag">Planeamento Missão</span>
           <span class="sw-use-tag">Nuvem de Pontos</span>
-          <span class="sw-use-tag">DTM</span>
+          <span class="sw-use-tag">DSM/DTM</span>
+          <span class="sw-use-tag">Ortomosaicos</span>
         </div>
         <div class="sw-sectors">
           <span class="sectors-label" data-i18n="tech.sectors.label">Setores</span>
@@ -619,30 +594,6 @@
             <span class="sector-tag" data-i18n="tech.sector.infrastructure">Infraestruturas</span>
             <span class="sector-tag" data-i18n="tech.sector.construction">Construção</span>
             <span class="sector-tag" data-i18n="tech.sector.ambiental">Ambiental</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- DJI FlightHub 2 -->
-      <div class="sw-card">
-        <div class="sw-card-header">
-          <div class="sw-card-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
-          <div>
-            <div class="sw-card-name">DJI FlightHub 2</div>
-            <div class="sw-card-cat" data-i18n="tech.sw.flighthub.cat">Gestão de Frota</div>
-          </div>
-        </div>
-        <p class="sw-card-desc" data-i18n="tech.sw.flighthub.desc">Monitorização em tempo real, gestão de missões, coordenação de equipa e histórico de voos completo. Controlo centralizado de toda a frota de drones.</p>
-        <div class="sw-card-uses">
-          <span class="sw-use-tag">Real-Time</span>
-          <span class="sw-use-tag">Missões</span>
-          <span class="sw-use-tag">Coordenação</span>
-          <span class="sw-use-tag">Histórico</span>
-        </div>
-        <div class="sw-sectors">
-          <span class="sectors-label" data-i18n="tech.sectors.label">Setores</span>
-          <div class="sector-tags">
-            <span class="sector-tag all" data-i18n="tech.sector.allSectors">Todos os Setores</span>
           </div>
         </div>
       </div>
@@ -677,6 +628,48 @@
 
       <p class="section-desc" style="margin-top: 2.5rem; font-style: italic; font-size: 0.9rem;" data-i18n="tech.sw.institutional">
       O stack tecnológico GeoVision segue uma arquitetura em 4 camadas — Campo, Processamento, Dados (API Backend, PostgreSQL/PostGIS, Cloud) e Interface (Portal Cliente) — garantindo integração completa e escalabilidade.
+    </p>
+  </section>
+
+  <!-- ============ HARDWARE DE CAMPO ============ -->
+  <section class="section" style="padding: 3.5rem 2rem; background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(34, 197, 94, 0.02) 100%);">
+    <div class="section-header">
+      <div class="section-eyebrow">Hardware de Campo</div>
+      <h2 class="section-title">Dispositivos GPS 4G — Rastreio Pecuário</h2>
+      <p class="section-desc">
+        Colares GPS com conectividade celular 4G para monitorização contínua de efetivos pecuários, integrados com o Portal Cliente GeoVision.
+      </p>
+    </div>
+
+    <div style="max-width: 700px; margin: 2rem auto;">
+      <div class="sw-card featured">
+        <div class="sw-card-header">
+          <div class="sw-card-icon" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(34, 197, 94, 0.15)); border-color: rgba(251, 191, 36, 0.3);"><i class="fa-solid fa-location-dot" style="color: #fbbf24;"></i></div>
+          <div>
+            <div class="sw-card-name">Colares GPS 4G</div>
+            <div class="sw-card-cat" style="color: #fbbf24;">Rastreio Pecuário — Capacidade Ativa</div>
+          </div>
+        </div>
+        <p class="sw-card-desc">Dispositivos GPS com SIM 4G integrado para transmissão periódica de localização. Buffer offline para zonas sem cobertura celular — os dados são sincronizados automaticamente quando o sinal é restabelecido. Alertas de geofence, indicadores comportamentais baseados em movimento e integração direta com o Dashboard GeoVision.</p>
+        <div class="sw-card-uses">
+          <span class="sw-use-tag">Transmissão 4G</span>
+          <span class="sw-use-tag">Buffer Offline</span>
+          <span class="sw-use-tag">Geofence</span>
+          <span class="sw-use-tag">Alertas Automáticos</span>
+          <span class="sw-use-tag">Comportamento Animal</span>
+          <span class="sw-use-tag">Dashboard Integration</span>
+        </div>
+        <div class="sw-sectors">
+          <span class="sectors-label">Setor</span>
+          <div class="sector-tags">
+            <span class="sector-tag" style="background: rgba(251, 191, 36, 0.12); color: #fbbf24;">Agropecuária</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-desc" style="margin-top: 1.5rem; font-style: italic; font-size: 0.85rem; color: var(--text-muted);">
+      Hardware adicional expandível — estações meteorológicas, sensores IoT de solo e infraestrutura LoRa — pode ser integrado sob consulta de projeto.
     </p>
   </section>
 
