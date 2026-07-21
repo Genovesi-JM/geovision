@@ -20,7 +20,7 @@ reported as complete.
 | ERP/accounting platform | Fiscal invoicing, procurement, warehouse and reconciliation | Integration boundary planned; not required for MVP | Provider-dependent | Provider-dependent | ERP sandbox | Yes (provider/business decision) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |
-| IoT (MQTT/vendor) | Device readings | **Mock working** | — | Backend bridge | Mock provider | Yes (hardware) |
+| IoT multi-provider bridge | API, MQTT, webhooks, BLE provisioning, LoRaWAN and Modbus gateways | Contract + mock outcomes working · backend adapter prepared | `GV_IOT_PROVIDER=mock|backend` | Backend bridge | Unit outcome matrix | Yes (vendor credentials/hardware) |
 | DJI / Pix4D / DroneDeploy | Drone + photogrammetry | Interface planned (backend-side) | — | Vendor | — | Yes |
 | Google / Microsoft / Apple sign-in | OAuth | Backend routes exist; mobile prepared | — | Redirect | Sandbox | Yes (client IDs) |
 
@@ -29,6 +29,14 @@ reported as complete.
 2. Select it via the feature-flag `--dart-define`.
 3. Add credentials through `--dart-define` / secret manager — never in git.
 4. Add a mock-parity test; document the gate here and in `HUMAN_GATES.md`.
+
+### IoT outcome contract
+
+Every provisioning, diagnostic and command operation returns one typed state:
+`success`, `pending`, `offline`, `permissionRequired`, `credentialsRequired`,
+`unsupported`, `rejected`, `timeout` or `error`. Remote commands default to
+explicit confirmation. Vendor secrets remain in the backend; the phone only
+uses BLE for nearby setup and the GeoVision API for durable monitoring.
 
 ### Commercial source of truth
 

@@ -5,6 +5,8 @@
   "navSites": "Locais",
   "navAlerts": "Alertas",
   "navWork": "Trabalho",
+  "navRequest": "Pedido",
+  "navStore": "Loja",
   "navAccount": "Conta",
   "demoBadge": "Dados demo",
   "signIn": "Entrar",
@@ -36,5 +38,17 @@
   "devices": "Dispositivos",
   "orders": "Encomendas",
   "catalogue": "Catálogo",
-  "lastUpdated": "Última atualização"
+  "lastUpdated": "Última atualização",
+  "language": "Idioma",
+  "deviceOnline": "Ligado",
+  "deviceOffline": "Offline",
+  "deviceMaintenance": "Manutenção",
+  "devicePairing": "A emparelhar",
+  "deviceNeedsCredentials": "Credenciais necessárias",
+  "deviceUnsupported": "Não compatível",
+  "deviceError": "Erro de ligação",
+  "deviceDemo": "Demonstração",
+  "diagnose": "Executar diagnóstico",
+  "configure": "Configurar",
+  "retry": "Tentar novamente"
 }

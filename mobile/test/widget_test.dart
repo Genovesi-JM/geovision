@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   testWidgets('GeoVision demo opens the customer home', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({'gv_preferred_language': 'en'});
     final prefs = await SharedPreferences.getInstance();
     const config = AppConfig(
       flavor: AppFlavor.dev,

@@ -1,0 +1,8 @@
+{
+  "@@locale": "es",
+  "appTitle": "GeoVision", "navHome": "Inicio", "navSites": "Sitios", "navAlerts": "Alertas", "navWork": "Trabajo", "navRequest": "Solicitud", "navStore": "Tienda", "navAccount": "Cuenta",
+  "demoBadge": "Datos de demostración", "signIn": "Iniciar sesión", "signOut": "Cerrar sesión", "continueDemo": "Explorar demo", "email": "Correo electrónico", "password": "Contraseña", "forgotPassword": "¿Olvidó su contraseña?",
+  "quickActions": "Acciones rápidas", "criticalAlerts": "Alertas críticas", "activeOperations": "Operaciones activas", "latestReport": "Último informe", "deviceHealth": "Estado de los dispositivos", "requestService": "Solicitar un servicio", "openSiteMap": "Abrir mapa del sitio", "viewReport": "Ver informe", "contactSupport": "Contactar soporte",
+  "sites": "Sitios", "searchSites": "Buscar sitios", "kpiSummary": "Resumen de KPI", "fields": "Campos", "acknowledge": "Confirmar", "requestIntervention": "Solicitar intervención", "recommendedAction": "Acción recomendada", "newRequest": "Nueva solicitud", "urgency": "Urgencia", "submit": "Enviar", "reports": "Informes", "devices": "Dispositivos", "orders": "Pedidos", "catalogue": "Catálogo", "lastUpdated": "Última actualización",
+  "language": "Idioma", "deviceOnline": "En línea", "deviceOffline": "Sin conexión", "deviceMaintenance": "Mantenimiento", "devicePairing": "Emparejando", "deviceNeedsCredentials": "Credenciales necesarias", "deviceUnsupported": "No compatible", "deviceError": "Error de conexión", "deviceDemo": "Demostración", "diagnose": "Ejecutar diagnóstico", "configure": "Configurar", "retry": "Reintentar"
+}

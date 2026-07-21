@@ -7,7 +7,7 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |
 | Dart formatting | PASS | 89 Dart files checked |
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
-| Flutter unit/widget tests | PASS | 17 tests passed |
+| Flutter unit/widget tests | PASS | 21 tests passed |
 | Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
 | FastAPI backend tests | PASS | 6 tests passed, including authenticated mobile site/service-request contracts |
 | Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
@@ -40,6 +40,12 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 - Added working product search, type filters, sector filters and service deliverables.
 - Replaced presentation-only currency conversion for catalogue items with explicit backend-aligned AKZ/AOA, USD and EUR price-list values.
 - Reframed HMA as aerial documentation/GIS support and explicitly excluded mine detection or replacement of accredited field teams.
+- Added persistent Portuguese, English, Spanish and French language selection, generated localization classes and iOS locale declarations.
+- Localized the persistent navigation and device integration states; established the localization keys used for progressive screen coverage.
+- Expanded the IoT contract across API, MQTT, webhook, BLE, LoRaWAN and Modbus gateway transports.
+- Added typed success, pending, offline, permission, credential, unsupported, rejected, timeout and error outcomes.
+- Added a backend IoT bridge, safe polling fallback, diagnostic/provisioning/command contracts and explicit command confirmation.
+- Added demo devices covering every meaningful operational state and automated tests for outcome handling.
 
 ## Remaining before commercial release
 

@@ -5,6 +5,8 @@
   "navSites": "Sites",
   "navAlerts": "Alerts",
   "navWork": "Work",
+  "navRequest": "Request",
+  "navStore": "Store",
   "navAccount": "Account",
   "demoBadge": "Demo data",
   "signIn": "Sign in",
@@ -36,5 +38,17 @@
   "devices": "Devices",
   "orders": "Orders",
   "catalogue": "Catalogue",
-  "lastUpdated": "Last updated"
+  "lastUpdated": "Last updated",
+  "language": "Language",
+  "deviceOnline": "Online",
+  "deviceOffline": "Offline",
+  "deviceMaintenance": "Maintenance",
+  "devicePairing": "Pairing",
+  "deviceNeedsCredentials": "Credentials required",
+  "deviceUnsupported": "Unsupported",
+  "deviceError": "Connection error",
+  "deviceDemo": "Demo",
+  "diagnose": "Run diagnostics",
+  "configure": "Configure",
+  "retry": "Retry"
 }

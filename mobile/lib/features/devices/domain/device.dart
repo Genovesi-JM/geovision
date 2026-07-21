@@ -10,6 +10,10 @@ class GvDevice {
     this.lastReadingAt,
     this.lastReadingLabel,
     this.lastMaintenanceAt,
+    this.providerId = 'unknown',
+    this.transport = 'api',
+    this.capabilities = const [],
+    this.integrationMessage,
   });
 
   final String id;
@@ -22,6 +26,10 @@ class GvDevice {
   final DateTime? lastReadingAt;
   final String? lastReadingLabel;
   final DateTime? lastMaintenanceAt;
+  final String providerId;
+  final String transport; // api|mqtt|webhook|ble|lorawan|modbus_gateway
+  final List<String> capabilities;
+  final String? integrationMessage;
 
   factory GvDevice.fromJson(Map<String, dynamic> j) => GvDevice(
         id: j['id'].toString(),
@@ -35,5 +43,12 @@ class GvDevice {
         lastReadingLabel: j['last_reading_label'] as String?,
         lastMaintenanceAt:
             DateTime.tryParse('${j['last_maintenance_at'] ?? ''}'),
+        providerId: (j['provider_id'] ?? 'unknown').toString(),
+        transport: (j['transport'] ?? 'api').toString(),
+        capabilities: (j['capabilities'] as List?)
+                ?.map((value) => value.toString())
+                .toList() ??
+            const [],
+        integrationMessage: j['integration_message'] as String?,
       );
 }

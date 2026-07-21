@@ -7,6 +7,9 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../data/devices_repository.dart';
+import '../domain/device.dart';
+import '../../../integrations/iot/iot_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 class DevicesScreen extends ConsumerWidget {
   const DevicesScreen({super.key});
@@ -17,9 +20,31 @@ class DevicesScreen extends ConsumerWidget {
         return GvColors.accentGreen;
       case 'maintenance':
         return GvColors.medium;
+      case 'pairing':
+        return GvColors.info;
+      case 'credentials_required':
+        return GvColors.high;
+      case 'unsupported':
+      case 'error':
+        return GvColors.critical;
       default:
         return GvColors.textMuted;
     }
+  }
+
+  String _statusLabel(BuildContext context, String status) {
+    final text = AppLocalizations.of(context);
+    return switch (status) {
+      'online' => text.deviceOnline,
+      'offline' => text.deviceOffline,
+      'maintenance' => text.deviceMaintenance,
+      'pairing' => text.devicePairing,
+      'credentials_required' => text.deviceNeedsCredentials,
+      'unsupported' => text.deviceUnsupported,
+      'error' => text.deviceError,
+      'demo' => text.deviceDemo,
+      _ => status,
+    };
   }
 
   IconData _typeIcon(String t) {
@@ -39,7 +64,7 @@ class DevicesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(devicesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Devices')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).devices)),
       body: async.when(
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(message: '$e'),
@@ -78,7 +103,7 @@ class DevicesScreen extends ConsumerWidget {
                           borderRadius:
                               BorderRadius.circular(GvSpacing.radiusPill),
                         ),
-                        child: Text(d.status,
+                        child: Text(_statusLabel(context, d.status),
                             style: TextStyle(
                                 color: _statusColor(d.status),
                                 fontSize: 10,
@@ -108,11 +133,94 @@ class DevicesScreen extends ConsumerWidget {
                         style: const TextStyle(
                             color: GvColors.accentSky, fontSize: 12)),
                   ],
+                  if (d.integrationMessage != null) ...[
+                    const SizedBox(height: GvSpacing.sm),
+                    Text(d.integrationMessage!,
+                        style: const TextStyle(
+                            color: GvColors.textMuted, fontSize: 11)),
+                  ],
+                  const SizedBox(height: GvSpacing.sm),
+                  Wrap(spacing: 6, runSpacing: 6, children: [
+                    Chip(
+                        avatar: const Icon(Icons.hub_outlined, size: 14),
+                        label: Text(d.transport.toUpperCase())),
+                    ...d.capabilities.take(3).map((capability) => Chip(
+                        label: Text(capability),
+                        visualDensity: VisualDensity.compact)),
+                  ]),
+                  const SizedBox(height: GvSpacing.sm),
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _diagnose(context, ref, d.id),
+                        icon: const Icon(Icons.health_and_safety_outlined),
+                        label: Text(AppLocalizations.of(context).diagnose),
+                      ),
+                    ),
+                    if (d.status == 'pairing' ||
+                        d.status == 'credentials_required') ...[
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
+                        tooltip: AppLocalizations.of(context).configure,
+                        onPressed: () => _configure(context, ref, d),
+                        icon: const Icon(Icons.settings_input_antenna),
+                      ),
+                    ],
+                  ]),
                 ],
               ),
             );
           },
         ),
+      ),
+    );
+  }
+
+  Future<void> _diagnose(
+      BuildContext context, WidgetRef ref, String deviceId) async {
+    final result = await ref.read(devicesRepositoryProvider).diagnose(deviceId);
+    if (!context.mounted) return;
+    await _showOutcome(context, result);
+  }
+
+  Future<void> _configure(
+      BuildContext context, WidgetRef ref, GvDevice device) async {
+    final transport = switch (device.transport) {
+      'mqtt' => IotTransport.mqtt,
+      'webhook' => IotTransport.webhook,
+      'ble' => IotTransport.bluetooth,
+      'lorawan' => IotTransport.lorawan,
+      'modbus_gateway' => IotTransport.modbusGateway,
+      _ => IotTransport.api,
+    };
+    final result = await ref.read(devicesRepositoryProvider).provision(
+          DeviceProvisioningRequest(
+            deviceId: device.id,
+            transport: transport,
+            siteId: device.siteName,
+          ),
+        );
+    if (!context.mounted) return;
+    await _showOutcome(context, result);
+  }
+
+  Future<void> _showOutcome(
+      BuildContext context, IotOperationResult result) async {
+    final color = result.succeeded ? GvColors.accentGreen : GvColors.high;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(
+          result.succeeded ? Icons.check_circle : Icons.info_outline,
+          color: color,
+        ),
+        title: Text(result.outcome.name),
+        content: Text(result.message ?? 'No additional information.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('OK')),
+        ],
       ),
     );
   }

@@ -1,7 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/config/app_config.dart';
+import '../core/localization/locale_controller.dart';
 import '../core/networking/api_client.dart';
 import '../core/networking/connectivity_service.dart';
 import '../core/storage/local_store.dart';
@@ -9,6 +11,7 @@ import '../core/storage/offline_queue.dart';
 import '../core/storage/offline_sync_service.dart';
 import '../core/storage/secure_token_store.dart';
 import '../integrations/iot/iot_provider.dart';
+import '../integrations/iot/backend_iot_provider.dart';
 import '../integrations/iot/mock_iot_provider.dart';
 import '../integrations/maps/demo_map_provider.dart';
 import '../integrations/maps/map_provider.dart';
@@ -26,6 +29,10 @@ final appConfigProvider =
 /// Injected in main() after async init so widgets can read synchronously.
 final sharedPrefsProvider =
     Provider<SharedPreferences>((ref) => throw UnimplementedError());
+
+final localeProvider = StateNotifierProvider<LocaleController, Locale>(
+  (ref) => LocaleController(ref.watch(sharedPrefsProvider)),
+);
 
 final secureTokenStoreProvider =
     Provider<SecureTokenStore>((ref) => SecureTokenStore());
@@ -84,5 +91,11 @@ final paymentProviderProvider = Provider<PaymentProvider>((ref) {
 final pushProviderProvider =
     Provider<PushProvider>((ref) => MockPushProvider());
 
-final iotProviderProvider =
-    Provider<IotProvider>((ref) => const MockIotProvider());
+final iotProviderProvider = Provider<IotProvider>((ref) {
+  const provider =
+      String.fromEnvironment('GV_IOT_PROVIDER', defaultValue: 'mock');
+  if (provider == 'backend') {
+    return BackendIotProvider(ref.watch(apiClientProvider));
+  }
+  return const MockIotProvider();
+});

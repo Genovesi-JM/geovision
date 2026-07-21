@@ -14,6 +14,7 @@ class GeoVisionApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final config = ref.watch(appConfigProvider);
+    final locale = ref.watch(localeProvider);
 
     ref.listen(connectivityStatusProvider, (previous, next) {
       if (next.value == true && previous?.value != true) {
@@ -28,6 +29,7 @@ class GeoVisionApp extends ConsumerWidget {
       routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      locale: locale,
       builder: (context, child) => EnvBanner(
         flavor: config.flavor,
         demoMode: config.demoMode,

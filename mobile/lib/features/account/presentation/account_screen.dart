@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../authentication/presentation/auth_controller.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -17,6 +18,8 @@ class AccountScreen extends ConsumerWidget {
     final session = ref.watch(authControllerProvider);
     final config = ref.watch(appConfigProvider);
     final profile = session.profile;
+    final language = ref.watch(localeProvider).languageCode.toUpperCase();
+    final text = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
@@ -92,8 +95,8 @@ class AccountScreen extends ConsumerWidget {
                 onTap: () => context.go('/devices')),
             _Tile(
                 icon: Icons.language,
-                label: 'Language (EN / PT)',
-                onTap: () {}),
+                label: '${text.language} ($language)',
+                onTap: () => _selectLanguage(context, ref)),
           ]),
           const SizedBox(height: GvSpacing.md),
           _Group(children: [
@@ -131,6 +134,42 @@ class AccountScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _selectLanguage(BuildContext context, WidgetRef ref) async {
+    const languages = {
+      'pt': 'Português',
+      'en': 'English',
+      'es': 'Español',
+      'fr': 'Français',
+    };
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(AppLocalizations.of(sheetContext).language,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            for (final language in languages.entries)
+              ListTile(
+                title: Text(language.value),
+                trailing: ref.read(localeProvider).languageCode == language.key
+                    ? const Icon(Icons.check_circle,
+                        color: GvColors.accentGreen)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, language.key),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      await ref.read(localeProvider.notifier).select(Locale(selected));
+    }
   }
 }
 

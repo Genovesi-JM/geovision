@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/widgets/sync_banner.dart';
+import '../l10n/app_localizations.dart';
 import 'providers.dart';
 
 /// Customer shell with direct access to the most frequent field and commercial
@@ -36,6 +37,7 @@ class AppShell extends ConsumerWidget {
     final location = GoRouterState.of(context).matchedLocation;
     final index = _indexFor(location);
     final online = ref.watch(connectivityStatusProvider).value ?? true;
+    final text = AppLocalizations.of(context);
 
     return Scaffold(
       body: Column(
@@ -53,35 +55,35 @@ class AppShell extends ConsumerWidget {
         unselectedItemColor: const Color(0xFF64748B),
         backgroundColor: const Color(0xFF020617),
         onTap: (i) => context.go(_tabs[i]),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home'),
+              icon: const Icon(Icons.home_outlined),
+              activeIcon: const Icon(Icons.home),
+              label: text.navHome),
           BottomNavigationBarItem(
-              icon: Icon(Icons.terrain_outlined),
-              activeIcon: Icon(Icons.terrain),
-              label: 'Sites'),
+              icon: const Icon(Icons.terrain_outlined),
+              activeIcon: const Icon(Icons.terrain),
+              label: text.navSites),
           BottomNavigationBarItem(
-              icon: Icon(Icons.notifications_outlined),
-              activeIcon: Icon(Icons.notifications),
-              label: 'Alerts'),
+              icon: const Icon(Icons.notifications_outlined),
+              activeIcon: const Icon(Icons.notifications),
+              label: text.navAlerts),
           BottomNavigationBarItem(
-              icon: Icon(Icons.work_outline),
-              activeIcon: Icon(Icons.work),
-              label: 'Work'),
+              icon: const Icon(Icons.work_outline),
+              activeIcon: const Icon(Icons.work),
+              label: text.navWork),
           BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              activeIcon: Icon(Icons.add_circle),
-              label: 'Request'),
+              icon: const Icon(Icons.add_circle_outline),
+              activeIcon: const Icon(Icons.add_circle),
+              label: text.navRequest),
           BottomNavigationBarItem(
-              icon: Icon(Icons.storefront_outlined),
-              activeIcon: Icon(Icons.storefront),
-              label: 'Store'),
+              icon: const Icon(Icons.storefront_outlined),
+              activeIcon: const Icon(Icons.storefront),
+              label: text.navStore),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Account'),
+              icon: const Icon(Icons.person_outline),
+              activeIcon: const Icon(Icons.person),
+              label: text.navAccount),
         ],
       ),
     );
