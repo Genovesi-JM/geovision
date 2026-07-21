@@ -32,7 +32,7 @@ class SitesRepository {
     final online = await _connectivity.isOnline;
     if (online) {
       try {
-        final res = await _api.raw.get('/sites');
+        final res = await _api.raw.get('/mobile/sites');
         final list = (res.data as List)
             .map((e) => Site.fromJson((e as Map).cast<String, dynamic>()))
             .toList();

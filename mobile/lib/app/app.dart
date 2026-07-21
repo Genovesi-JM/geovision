@@ -15,6 +15,12 @@ class GeoVisionApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final config = ref.watch(appConfigProvider);
 
+    ref.listen(connectivityStatusProvider, (previous, next) {
+      if (next.value == true && previous?.value != true) {
+        ref.read(offlineSyncServiceProvider).syncNow();
+      }
+    });
+
     return MaterialApp.router(
       title: 'GeoVision',
       debugShowCheckedModeBanner: false,

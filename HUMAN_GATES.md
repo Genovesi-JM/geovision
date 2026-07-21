@@ -4,8 +4,8 @@ Actions the autonomous loop will NOT perform. For each: reason · action · wher
 how to confirm · what the automation does afterwards.
 
 ## 1. Xcode licence / iOS toolchain
-- **Reason:** `flutter doctor` reports Xcode first-launch components missing, Xcode 15.4 below Flutter's recommended Xcode 16+, and CocoaPods missing.
-- **Action:** Update Xcode, open it once and install prompted components, run `sudo xcodebuild -runFirstLaunch`, install an iOS Simulator runtime, and install CocoaPods.
+- **Reason:** The iOS Simulator build passes, but Xcode 15.4 is below Flutter's recommended Xcode 16+ and no simulator device has been used for the critical journey yet.
+- **Action:** Update Xcode through the App Store and install/select a current iOS Simulator runtime.
 - **Where:** Mac terminal / Xcode.
 - **Confirm:** `flutter doctor` shows iOS green.
 - **After:** launcher runs the iOS Simulator build automatically.
@@ -22,12 +22,6 @@ how to confirm · what the automation does afterwards.
 - **Action:** Create keystore + `android/key.properties` (git-ignored).
 - **Confirm:** `flutter build appbundle --release` succeeds.
 - **After:** debug builds already run; release wiring is ready.
-
-## 3a. Android development toolchain
-- **Reason:** No Android SDK is currently installed, so even debug builds cannot run.
-- **Action:** Install Android Studio and its SDK/platform tools, accept Android licences, and create an emulator.
-- **Confirm:** `flutter doctor -v` shows the Android toolchain and `flutter devices` lists the emulator.
-- **After:** run `flutter build apk --debug` and the mobile integration journey.
 
 ## 4. Real payment credentials (Stripe / Multicaixa / Apple/Google Pay)
 - **Reason:** Live payments + store billing rules.

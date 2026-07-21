@@ -6,6 +6,7 @@ import '../core/networking/api_client.dart';
 import '../core/networking/connectivity_service.dart';
 import '../core/storage/local_store.dart';
 import '../core/storage/offline_queue.dart';
+import '../core/storage/offline_sync_service.dart';
 import '../core/storage/secure_token_store.dart';
 import '../integrations/iot/iot_provider.dart';
 import '../integrations/iot/mock_iot_provider.dart';
@@ -46,6 +47,14 @@ final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(
       config: ref.watch(appConfigProvider),
       tokenStore: ref.watch(secureTokenStoreProvider),
     ));
+
+final offlineSyncServiceProvider = Provider<OfflineSyncService>(
+  (ref) => OfflineSyncService(
+    ref.watch(offlineQueueProvider),
+    ref.watch(apiClientProvider),
+    ref.watch(appConfigProvider),
+  ),
+);
 
 // ── Pluggable provider adapters (feature-flag selected) ────────────────────
 

@@ -7,6 +7,7 @@ import '../../features/alerts/presentation/alerts_screen.dart';
 import '../../features/authentication/domain/auth_session.dart';
 import '../../features/authentication/presentation/auth_controller.dart';
 import '../../features/authentication/presentation/login_screen.dart';
+import '../../features/authentication/presentation/reset_password_screen.dart';
 import '../../features/devices/presentation/devices_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/maps/presentation/site_map_screen.dart';
@@ -32,6 +33,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
+      GoRoute(
+        path: '/reset-password',
+        builder: (c, s) => ResetPasswordScreen(
+          token: s.uri.queryParameters['token'] ?? '',
+        ),
+      ),
       ShellRoute(
         builder: (c, s, child) => AppShell(child: child),
         routes: [

@@ -31,7 +31,7 @@ class WorkRepository {
         _config.demoMode ? DemoData.serviceRequests() : <ServiceRequest>[];
     if (!_config.demoMode && await _connectivity.isOnline) {
       try {
-        final res = await _api.raw.get('/services');
+        final res = await _api.raw.get('/mobile/service-requests');
         final list = (res.data as List)
             .map((e) =>
                 ServiceRequest.fromJson((e as Map).cast<String, dynamic>()))
@@ -65,7 +65,8 @@ class WorkRepository {
     final online = await _connectivity.isOnline;
     if (!_config.demoMode && online) {
       try {
-        final res = await _api.raw.post('/services', data: payload);
+        final res =
+            await _api.raw.post('/mobile/service-requests', data: payload);
         return ServiceRequest.fromJson(
             (res.data as Map).cast<String, dynamic>());
       } catch (_) {

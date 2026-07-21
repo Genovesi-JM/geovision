@@ -88,6 +88,18 @@ class AuthRepository {
     }
   }
 
+  Future<Result<void>> resetPassword(String token, String password) async {
+    try {
+      await _api.raw.post('/auth/reset-password', data: {
+        'token': token,
+        'new_password': password,
+      });
+      return const Ok(null);
+    } catch (e) {
+      return Err(_api.mapError(e));
+    }
+  }
+
   Future<void> logout() async {
     final refresh = await _tokens.readRefresh();
     try {

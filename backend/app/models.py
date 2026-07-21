@@ -446,6 +446,32 @@ class Site(Base):
     company = relationship("Company", back_populates="sites")
 
 
+class MobileServiceRequest(Base):
+    """Customer service request submitted from the mobile application."""
+
+    __tablename__ = "mobile_service_requests"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    site_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    site_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    request_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    urgency: Mapped[str] = mapped_column(String(20), nullable=False, default="normal")
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="submitted")
+    progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    attachments_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    assigned_team: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
 # â”€â”€ Connector â”€â”€
 
 class Connector(Base):

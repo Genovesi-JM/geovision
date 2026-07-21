@@ -40,6 +40,20 @@ for c in /opt/homebrew/Caskroom/flutter/*/flutter/bin /usr/local/Caskroom/flutte
   [ -d "$c" ] && PATH="$c:$PATH"
 done
 export PATH
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
+# Android SDK installed by Android Studio or the command-line-tools setup.
+if [ -d "$HOME/Library/Android/sdk" ]; then
+  export ANDROID_HOME="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
+  export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+  PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
+fi
+if [ -d "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home" ]; then
+  export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home}"
+  PATH="$JAVA_HOME/bin:$PATH"
+fi
+export PATH
 
 # Colours
 B="\033[1m"; G="\033[32m"; Y="\033[33m"; RD="\033[31m"; N="\033[0m"

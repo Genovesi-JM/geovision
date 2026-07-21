@@ -4,28 +4,34 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 
 | Check | Result | Evidence |
 |---|---|---|
-| Flutter dependency resolution | PASS | `flutter pub get` completed with Flutter 3.44.7 |
-| Dart formatting | PASS | 82 Dart files checked |
+| Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |
+| Dart formatting | PASS | 84 Dart files checked |
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
 | Flutter unit/widget tests | PASS | 11 tests passed |
-| FastAPI backend tests | PASS | 4 tests passed on Python 3.12 |
-| Critical integration journey | BLOCKED | no supported iOS/Android device is installed |
-| iOS Simulator build | BLOCKED | Xcode first-launch components/runtime unavailable; Xcode 15.4 is below Flutter's recommended 16+; CocoaPods missing |
-| Android build | BLOCKED | Android SDK not installed |
+| Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
+| FastAPI backend tests | PASS | 6 tests passed, including authenticated mobile site/service-request contracts |
+| Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
+| Android debug build | PASS | `build/app/outputs/flutter-apk/app-debug.apk` |
+| iOS Simulator build | PASS | `build/ios/iphonesimulator/Runner.app` |
+| iOS customer journey | NOT RUN | iOS build passes; an iOS Simulator runtime/device still needs to be selected for interactive testing |
 
-## Repairs completed in this run
+## Completed in this milestone
 
-- Preserved all existing work and moved development from `main` to `autodev/mobile-build`.
-- Recovered from the stale Git index lock without deleting repository data.
-- Corrected invalid Dart failure constructors and API error mapping.
-- Fixed the development/demo environment banner startup crash.
-- Replaced the generated counter test with a GeoVision customer-home smoke test.
-- Corrected extension imports, stale generated-test assumptions, formatting and analyzer findings.
-- Updated the Google OAuth test to match the secure fragment-based redirect contract.
-- Hardened the Mac launcher so it does not reset an existing branch and uses Python 3.12/3.11 when available.
+- Installed CocoaPods 1.17, Android command-line tools, Android SDK 36, Java 17, platform tools, build tools, NDK and CMake.
+- Accepted Android SDK licences and created the `geovision_api35` emulator.
+- Added authenticated `/mobile/sites` and `/mobile/service-requests` FastAPI contracts.
+- Added persistent, tenant-checked mobile service requests and a reversible Alembic migration.
+- Connected real-mode Sites, Work and Reports repositories to compatible backend responses.
+- Added durable FIFO offline replay when connectivity returns; failed actions remain queued.
+- Added the mobile reset-password completion route and secure backend integration.
+- Updated the Mac launcher for CocoaPods UTF-8, Android SDK and Java 17 discovery.
 
-## Product completion state
+## Remaining before commercial release
 
-The customer-focused demo foundation is implemented for Home, Sites, maps, alerts, devices, Work, reports, orders, payments, offline storage and authentication. It is not yet a finished commercial release. Real-mode API contracts for sites and service requests, complete report/file handling, full offline synchronisation, platform integrations, signing and device testing remain.
+- Run the same critical journey on an iOS Simulator and physical devices.
+- Add real upload transport, signed report URLs, map tiles, push delivery and hardware-provider credentials.
+- Configure OAuth mobile redirect schemes, Apple signing, production secrets and store records.
+- Complete UX/accessibility review, privacy/legal content, telemetry and production monitoring.
+- Validate real provider sandboxes and physical IoT/drone hardware.
 
-Re-run executable checks with `./START_AUTODEV_MAC.command` after completing the toolchain gates in `HUMAN_GATES.md`.
+No production deployment or production database migration was performed.
