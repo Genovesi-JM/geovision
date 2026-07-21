@@ -20,6 +20,8 @@ class OrdersScreen extends ConsumerStatefulWidget {
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   String category = 'all';
+  String sector = 'all';
+  String query = '';
   bool showOrders = false;
 
   @override
@@ -84,8 +86,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           ),
           const SizedBox(height: GvSpacing.lg),
           if (!showOrders) ...[
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              onChanged: (value) => setState(() => query = value.trim()),
+              decoration: const InputDecoration(
                 hintText: 'Pesquisar produtos e serviços…',
                 prefixIcon: Icon(Icons.search),
               ),
@@ -102,6 +105,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   'equipment': 'Equipamentos',
                   'hardware': 'Sensores & IoT',
                   'service': 'Serviços',
+                  'subscription': 'Subscrições',
                 }
                     .entries
                     .map((e) => Padding(
@@ -115,14 +119,59 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                     .toList(),
               ),
             ),
+            const SizedBox(height: GvSpacing.sm),
+            SizedBox(
+              height: 34,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: {
+                  'all': 'Todos os setores',
+                  'agro': 'Agro',
+                  'livestock': 'Pecuária',
+                  'mining': 'Mineração',
+                  'construction': 'Construção',
+                  'infrastructure': 'Infraestruturas',
+                  'environment': 'Ambiental',
+                }
+                    .entries
+                    .map((entry) => Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(entry.value),
+                            selected: sector == entry.key,
+                            onSelected: (_) =>
+                                setState(() => sector = entry.key),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ),
             const SizedBox(height: GvSpacing.md),
             catalogue.when(
               loading: () => const GvLoading(),
               error: (e, _) => GvErrorState(message: '$e'),
               data: (products) {
-                final filtered = category == 'all'
-                    ? products
-                    : products.where((p) => p.category == category).toList();
+                final normalizedQuery = query.toLowerCase();
+                final filtered = products.where((product) {
+                  final categoryMatches =
+                      category == 'all' || product.category == category;
+                  final sectorMatches =
+                      sector == 'all' || product.sectors.contains(sector);
+                  final queryMatches = normalizedQuery.isEmpty ||
+                      product.name.toLowerCase().contains(normalizedQuery) ||
+                      product.description
+                          .toLowerCase()
+                          .contains(normalizedQuery);
+                  return categoryMatches && sectorMatches && queryMatches;
+                }).toList();
+                if (filtered.isEmpty) {
+                  return const GvCard(
+                    child: Text(
+                      'Nenhuma solução corresponde aos filtros selecionados.',
+                      style: TextStyle(color: GvColors.textSecondary),
+                    ),
+                  );
+                }
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -248,6 +297,7 @@ class _ProductCard extends ConsumerWidget {
         'equipment' => Icons.agriculture,
         'hardware' => Icons.sensors,
         'service' => Icons.flight_takeoff,
+        'subscription' => Icons.dashboard_customize_outlined,
         _ => Icons.inventory_2_outlined,
       };
   @override
@@ -282,8 +332,8 @@ class _ProductCard extends ConsumerWidget {
                       fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 5),
               Text(
-                  StoreMoney.formatUsdCents(
-                      product.priceCents, ref.watch(storeCurrencyProvider)),
+                  StoreMoney.formatProduct(
+                      product, ref.watch(storeCurrencyProvider)),
                   style: const TextStyle(
                       color: GvColors.accentCyan, fontWeight: FontWeight.w800)),
               Row(children: [

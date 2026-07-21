@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'product.dart';
+
 enum StoreCurrency { akz, eur, usd }
 
 extension StoreCurrencyValue on StoreCurrency {
@@ -33,6 +35,10 @@ abstract final class StoreMoney {
 
   static String formatUsdCents(int usdCents, StoreCurrency target) {
     final cents = convertUsdCents(usdCents, target);
+    return formatCents(cents, target);
+  }
+
+  static String formatCents(int cents, StoreCurrency target) {
     final locale = target == StoreCurrency.akz ? 'pt_AO' : 'en_US';
     return NumberFormat.currency(
       locale: locale,
@@ -44,6 +50,25 @@ abstract final class StoreMoney {
   static List<String> allPrices(int usdCents) => StoreCurrency.values
       .map((currency) => formatUsdCents(usdCents, currency))
       .toList();
+
+  static int productCents(GvProduct product, StoreCurrency target) =>
+      switch (target) {
+        StoreCurrency.usd => product.priceCents,
+        StoreCurrency.eur =>
+          product.priceEurCents ?? convertUsdCents(product.priceCents, target),
+        StoreCurrency.akz =>
+          product.priceAkzCents ?? convertUsdCents(product.priceCents, target),
+      };
+
+  static String formatProduct(GvProduct product, StoreCurrency target) {
+    final cents = productCents(product, target);
+    return formatCents(cents, target);
+  }
+
+  static List<String> allProductPrices(GvProduct product) =>
+      StoreCurrency.values
+          .map((currency) => formatProduct(product, currency))
+          .toList();
 }
 
 final storeCurrencyProvider =

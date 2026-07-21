@@ -35,7 +35,8 @@ reported as complete.
 PostgreSQL remains the MVP source of truth for catalogue, explicit AKZ/AOA,
 EUR and USD price lists, stock, carts, orders, payment state and delivery events.
 `AKZ` is shown to customers as requested; integrations must use the ISO currency
-code `AOA`. Demo conversions are presentation-only and must never determine a
-production checkout total. An ERP becomes appropriate for statutory invoicing,
+code `AOA`. The mobile demo now mirrors explicit price lists instead of deriving
+catalogue prices from live exchange rates; production checkout always accepts
+the API's recorded price. An ERP becomes appropriate for statutory invoicing,
 supplier purchasing, multiple warehouses and accounting reconciliation; it
 should synchronize through an adapter instead of replacing the mobile API.

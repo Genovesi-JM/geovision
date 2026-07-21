@@ -39,4 +39,33 @@ void main() {
         StoreMoney.formatUsdCents(usdCents, StoreCurrency.akz), contains('Kz'));
     expect(StoreMoney.allPrices(usdCents), hasLength(3));
   });
+
+  test('catalogue matches GeoVision sectors and declares deliverables', () {
+    final products = DemoData.products();
+    final sectors = products.expand((product) => product.sectors).toSet();
+    expect(
+        sectors,
+        containsAll([
+          'agro',
+          'livestock',
+          'mining',
+          'construction',
+          'infrastructure',
+          'environment'
+        ]));
+    expect(
+        products.every((product) => product.description.length > 80), isTrue);
+    expect(
+        products.every((product) => product.deliverables.isNotEmpty), isTrue);
+  });
+
+  test('catalogue uses explicit backend-aligned currency price lists', () {
+    final product = DemoData.products().first;
+    expect(product.priceAkzCents, isNotNull);
+    expect(product.priceEurCents, isNotNull);
+    expect(
+      StoreMoney.productCents(product, StoreCurrency.akz),
+      product.priceAkzCents,
+    );
+  });
 }

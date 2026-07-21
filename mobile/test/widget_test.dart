@@ -38,6 +38,14 @@ void main() {
     expect(find.text('Sites'), findsWidgets);
     expect(find.text('Alerts'), findsWidgets);
     expect(find.text('Work'), findsWidgets);
+    expect(find.text('Request'), findsWidgets);
+    expect(find.text('Store'), findsWidgets);
     expect(find.text('Account'), findsWidgets);
+
+    await tester.tap(find.text('Store').last);
+    await tester.pumpAndSettle();
+    expect(find.text('GeoVision Store'), findsOneWidget);
+    expect(find.text('Análise NDVI/NDRE de culturas'), findsOneWidget);
+    expect(find.text('AKZ'), findsOneWidget);
   });
 }

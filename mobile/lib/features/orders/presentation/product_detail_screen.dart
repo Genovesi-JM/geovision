@@ -60,8 +60,7 @@ class _ProductBody extends ConsumerWidget {
         ]),
         const SizedBox(height: 8),
         Text(
-            StoreMoney.formatUsdCents(
-                product.priceCents, ref.watch(storeCurrencyProvider)),
+            StoreMoney.formatProduct(product, ref.watch(storeCurrencyProvider)),
             style: const TextStyle(
                 fontSize: 21,
                 color: GvColors.accentCyan,
@@ -76,7 +75,7 @@ class _ProductBody extends ConsumerWidget {
           children: StoreCurrency.values
               .map((currency) => Chip(
                     label: Text(
-                        '${currency.code}  ${StoreMoney.formatUsdCents(product.priceCents, currency)}'),
+                        '${currency.code}  ${StoreMoney.formatProduct(product, currency)}'),
                   ))
               .toList(),
         ),
@@ -84,6 +83,21 @@ class _ProductBody extends ConsumerWidget {
         Text(product.description,
             style: const TextStyle(color: GvColors.textSecondary, height: 1.5)),
         const SizedBox(height: 20),
+        if (product.deliverables.isNotEmpty) ...[
+          const Text('Inclui',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 8),
+          ...product.deliverables.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(children: [
+                  const Icon(Icons.check_circle,
+                      size: 17, color: GvColors.accentGreen),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(item)),
+                ]),
+              )),
+          const SizedBox(height: 16),
+        ],
         const Wrap(spacing: 8, runSpacing: 8, children: [
           Chip(
               avatar: Icon(Icons.verified, size: 16),

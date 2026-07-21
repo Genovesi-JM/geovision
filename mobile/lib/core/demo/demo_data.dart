@@ -1,6 +1,7 @@
 import '../../features/alerts/domain/alert.dart';
 import '../../features/devices/domain/device.dart';
 import '../../features/orders/domain/product.dart';
+import '../../features/orders/data/demo_store_catalog.dart';
 import '../../features/reports/domain/report.dart';
 import '../../features/sites/domain/sector.dart';
 import '../../features/sites/domain/site.dart';
@@ -316,7 +317,10 @@ abstract final class DemoData {
             lastMaintenanceAt: _dAgo(90)),
       ];
 
-  static List<GvProduct> products() => const [
+  static List<GvProduct> products() => DemoStoreCatalog.products;
+
+  /* Legacy inline catalogue retained below for migration reference.
+  static List<GvProduct> legacyProducts() => const [
         GvProduct(
             id: 'seed-maize-1',
             name: 'Sementes de milho GV 28810 PRO3',
@@ -410,7 +414,7 @@ abstract final class DemoData {
             description:
                 'Inspeção combinada RGB e termográfica para localizar aquecimento anómalo, infiltrações e defeitos visíveis. Entrega evidências georreferenciadas, classificação de prioridade e relatório técnico para planeamento de manutenção.',
             unit: 'serviço'),
-      ];
+      ]; */
 
   static List<GvOrder> orders() => [
         GvOrder(

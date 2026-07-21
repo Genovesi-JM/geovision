@@ -7,7 +7,7 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |
 | Dart formatting | PASS | 89 Dart files checked |
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
-| Flutter unit/widget tests | PASS | 14 tests passed |
+| Flutter unit/widget tests | PASS | 17 tests passed |
 | Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
 | FastAPI backend tests | PASS | 6 tests passed, including authenticated mobile site/service-request contracts |
 | Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
@@ -35,6 +35,11 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 - Added AKZ, EUR and USD store presentation with AKZ as the default customer currency and explicit demo-rate safeguards.
 - Expanded product descriptions with suitability, included services and responsible-use context.
 - Promoted Request and Store into the persistent customer footer alongside Home, Sites, Alerts, Work and Account.
+- Reconciled the mobile catalogue against the live Supply Hub, sector pages and backend seed catalogue.
+- Expanded the demo catalogue to 23 sector-aware offerings across agro, livestock, mining, construction, infrastructure and environmental operations.
+- Added working product search, type filters, sector filters and service deliverables.
+- Replaced presentation-only currency conversion for catalogue items with explicit backend-aligned AKZ/AOA, USD and EUR price-list values.
+- Reframed HMA as aerial documentation/GIS support and explicitly excluded mine detection or replacement of accredited field teams.
 
 ## Remaining before commercial release
 

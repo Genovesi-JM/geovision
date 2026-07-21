@@ -18,8 +18,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   @override
   Widget build(BuildContext context) {
     final lines = ref.watch(cartProvider);
-    final total = ref.watch(cartTotalProvider);
     final currency = ref.watch(storeCurrencyProvider);
+    int totalFor(StoreCurrency target) => lines.fold(
+        0,
+        (sum, line) =>
+            sum +
+            StoreMoney.productCents(line.product, target) * line.quantity);
     return Scaffold(
         appBar: AppBar(title: const Text('Carrinho')),
         body: ListView(padding: const EdgeInsets.all(GvSpacing.lg), children: [
@@ -47,9 +51,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         Text(line.product.name,
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
-                        Text(
-                            StoreMoney.formatUsdCents(
-                                line.product.priceCents, currency),
+                        Text(StoreMoney.formatProduct(line.product, currency),
                             style: const TextStyle(color: GvColors.textMuted))
                       ])),
                   IconButton(
@@ -100,7 +102,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text('Total',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              Text(StoreMoney.formatUsdCents(total, currency),
+              Text(StoreMoney.formatCents(totalFor(currency), currency),
                   style: const TextStyle(
                       fontSize: 18,
                       color: GvColors.accentCyan,
@@ -110,7 +112,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                StoreMoney.allPrices(total).join('  ·  '),
+                StoreCurrency.values
+                    .map((target) =>
+                        StoreMoney.formatCents(totalFor(target), target))
+                    .join('  ·  '),
                 style: const TextStyle(color: GvColors.textMuted, fontSize: 11),
               ),
             ),

@@ -5,20 +5,30 @@ class GvProduct {
     required this.category,
     required this.priceCents,
     required this.currency,
+    this.priceAkzCents,
+    this.priceEurCents,
     this.description = '',
     this.unit,
     this.stockStatus = 'in_stock',
     this.featured = false,
+    this.sectors = const [],
+    this.deliverables = const [],
+    this.indicativePrice = true,
   });
   final String id;
   final String name;
   final String category; // service|hardware|subscription|input|report
   final int priceCents;
   final String currency;
+  final int? priceAkzCents;
+  final int? priceEurCents;
   final String description;
   final String? unit;
   final String stockStatus;
   final bool featured;
+  final List<String> sectors;
+  final List<String> deliverables;
+  final bool indicativePrice;
 
   String get priceLabel => '${(priceCents / 100).toStringAsFixed(2)} $currency';
 
@@ -26,12 +36,22 @@ class GvProduct {
         id: j['id'].toString(),
         name: (j['name'] ?? '').toString(),
         category: (j['category'] ?? 'service').toString(),
-        priceCents: (j['price_cents'] as num?)?.toInt() ?? 0,
+        priceCents: (j['price_cents'] as num?)?.toInt() ??
+            (j['price_usd'] as num?)?.toInt() ??
+            0,
         currency: (j['currency'] ?? 'USD').toString(),
+        priceAkzCents: (j['price'] as num?)?.toInt(),
+        priceEurCents: (j['price_eur'] as num?)?.toInt(),
         description: (j['description'] ?? '').toString(),
-        unit: j['unit'] as String?,
+        unit: (j['unit'] ?? j['unit_label']) as String?,
         stockStatus: (j['stock_status'] ?? 'in_stock').toString(),
-        featured: j['featured'] == true,
+        featured: j['featured'] == true || j['is_featured'] == true,
+        sectors: (j['sectors'] as List?)?.map((v) => v.toString()).toList() ??
+            const [],
+        deliverables:
+            (j['deliverables'] as List?)?.map((v) => v.toString()).toList() ??
+                const [],
+        indicativePrice: j['indicative_price'] != false,
       );
 }
 
