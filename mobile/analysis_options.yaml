@@ -1,0 +1,14 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    invalid_annotation_target: ignore
+  exclude:
+    - lib/l10n/app_localizations*.dart
+
+# Baseline flutter_lints only. Stricter project rules (strict-casts,
+# prefer_const_constructors, etc.) can be enabled after the first
+# `flutter analyze` pass on the Mac toolchain, so warnings are visible.
+linter:
+  rules:
+    avoid_print: true

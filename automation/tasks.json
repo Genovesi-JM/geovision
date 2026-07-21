@@ -1,0 +1,21 @@
+{
+  "product": "GeoVision mobile (Flutter, iOS + Android)",
+  "branch": "autodev/mobile-build",
+  "retry_limit_per_task": 3,
+  "tasks": [
+    {"id": "P0", "phase": 0, "title": "Audit + preflight + docs", "status": "done", "evidence": "MOBILE_ARCHITECTURE.md, INTEGRATIONS.md, HUMAN_GATES.md"},
+    {"id": "P1", "phase": 1, "title": "Flutter foundation (shell, routing, DI, networking, storage, demo)", "status": "done", "evidence": "mobile/lib/core, mobile/lib/app"},
+    {"id": "P2", "phase": 2, "title": "GeoVision mobile design system", "status": "done", "evidence": "mobile/lib/core/theme, core/widgets"},
+    {"id": "P3", "phase": 3, "title": "Home + Sites + agricultural KPIs", "status": "done", "evidence": "features/home, features/sites"},
+    {"id": "P4", "phase": 4, "title": "Maps + datasets (demo provider)", "status": "done", "evidence": "features/maps, integrations/maps"},
+    {"id": "P5", "phase": 5, "title": "Alerts + push adapter + deep links", "status": "done", "evidence": "features/alerts, integrations/push"},
+    {"id": "P6", "phase": 6, "title": "Devices + IoT mock", "status": "done", "evidence": "features/devices, integrations/iot"},
+    {"id": "P7", "phase": 7, "title": "Work + service requests + offline queue", "status": "done", "evidence": "features/work, core/storage/offline_queue.dart"},
+    {"id": "P8", "phase": 8, "title": "Reports + secure files", "status": "partial", "evidence": "features/reports (signed-URL flow mocked)"},
+    {"id": "P9", "phase": 9, "title": "Orders + mock payments + provider adapters", "status": "done", "evidence": "features/orders, integrations/payments"},
+    {"id": "P10", "phase": 10, "title": "Offline completion + conflict handling", "status": "partial", "evidence": "DataEnvelope + OfflineQueue; conflict policy pending"},
+    {"id": "P11", "phase": 11, "title": "Authentication completion (login/refresh/reset/OAuth)", "status": "partial", "evidence": "features/authentication wired to FastAPI; OAuth prepared, credential-gated"},
+    {"id": "P12", "phase": 12, "title": "Commercial hardening (perf, a11y, CI, release config)", "status": "in_progress", "evidence": ".github/workflows/mobile-ci.yml; release signing = human gate"},
+    {"id": "V1", "phase": 99, "title": "Objective verification on Mac (analyze/test/iOS/Android builds)", "status": "pending_mac_run", "evidence": "run ./START_AUTODEV_MAC.command -> AUTODEV_STATUS.md"}
+  ]
+}

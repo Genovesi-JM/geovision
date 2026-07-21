@@ -7,8 +7,10 @@ from app.config import settings
 
 
 class DummyResp:
-    def __init__(self, data):
+    def __init__(self, data, status_code=200):
         self._data = data
+        self.status_code = status_code
+        self.text = json.dumps(data)
 
     def raise_for_status(self):
         return None
@@ -65,11 +67,15 @@ def test_google_flow_monkeypatch(monkeypatch, tmp_path):
     monkeypatch.setattr('requests.get', fake_get)
 
     # Call callback with code and state
-    cb = client.get('/auth/google/callback', params={'code': 'abc', 'state': state})
-    assert cb.status_code == 200
-    text = cb.text
-    assert 'localStorage.setItem' in text
-    assert 'test-google@example.com' in text
+    cb = client.get(
+        '/auth/google/callback',
+        params={'code': 'abc', 'state': state},
+        follow_redirects=False,
+    )
+    assert cb.status_code in (302, 307)
+    callback_location = cb.headers['location']
+    assert '/auth-callback.html' in callback_location
+    assert '#token=' in callback_location
 
     # Verify user created in DB using a fresh SessionLocal (engine is
     # initialized by conftest so visibility should be consistent).
