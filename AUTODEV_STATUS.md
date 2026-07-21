@@ -9,7 +9,7 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
 | Flutter unit/widget tests | PASS | 23 tests passed |
 | Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
-| FastAPI backend tests | PASS | 8 tests passed, including the authenticated commerce lifecycle |
+| FastAPI backend tests | PASS | 9 tests passed, including authenticated commerce and customer site creation |
 | Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
 | Android debug build | PASS | `build/app/outputs/flutter-apk/app-debug.apk` |
 | iOS Simulator build | PASS | `build/ios/iphonesimulator/Runner.app` |
@@ -53,6 +53,9 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 - Fixed checkout payment persistence by normalising numeric order totals to integer minor units.
 - Added a backend contract test covering catalogue price lists, cart quantities, AKZ/USD conversion, checkout, ownership enforcement and order history.
 - Rebuilt Android and iOS, then installed and launched the updated app on the iPhone 15 Pro Simulator.
+- Simplified the persistent footer to six destinations: Home, Sites, Alerts, Work, Store and Account; service requests remain available from Home and Work.
+- Added an authenticated customer flow to create a new organisation site with sector, country, province, municipality, area and optional coordinates.
+- Enforced organisation ownership and subscription site limits in the FastAPI creation endpoint, with a credential-free demo implementation in Flutter.
 
 ## Remaining before commercial release
 

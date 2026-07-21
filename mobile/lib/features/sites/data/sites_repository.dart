@@ -7,6 +7,7 @@ import '../../../core/networking/api_client.dart';
 import '../../../core/networking/connectivity_service.dart';
 import '../../../core/networking/data_envelope.dart';
 import '../../../core/storage/local_store.dart';
+import '../domain/sector.dart';
 import '../domain/site.dart';
 
 /// Offline-first sites repository. Strategy: when online + not demo, fetch from
@@ -20,10 +21,11 @@ class SitesRepository {
   final AppConfig _config;
 
   static const _ns = 'sites';
+  final List<Site> _demoAdded = [];
 
   Future<DataEnvelope<List<Site>>> getSites() async {
     if (_config.demoMode) {
-      final sites = DemoData.sites();
+      final sites = [..._demoAdded, ...DemoData.sites()];
       await _store.writeJson(_ns, sites.map((e) => e.toJson()).toList());
       return DataEnvelope(
           value: sites, syncedAt: DateTime.now(), fromCache: false);
@@ -64,6 +66,58 @@ class SitesRepository {
       if (s.id == id) return s;
     }
     return null;
+  }
+
+  Future<Site> createSite({
+    required String name,
+    required Sector sector,
+    required String country,
+    String? province,
+    String? municipality,
+    double? latitude,
+    double? longitude,
+    double? areaHectares,
+  }) async {
+    final payload = {
+      'name': name.trim(),
+      'sector': sector.id,
+      'country': country.trim(),
+      'province': province?.trim(),
+      'municipality': municipality?.trim(),
+      'latitude': latitude,
+      'longitude': longitude,
+      'area_hectares': areaHectares,
+    };
+
+    if (_config.demoMode) {
+      final site = Site.fromJson({
+        'id': 'demo-${DateTime.now().microsecondsSinceEpoch}',
+        ...payload,
+        'status': 'active',
+        'location': [municipality, province, country]
+            .where((part) => part != null && part.trim().isNotEmpty)
+            .join(', '),
+        'center': {'lat': latitude ?? 0, 'lng': longitude ?? 0},
+        'boundary': const [],
+        'areas': const [],
+        'kpis': const [],
+        'total_hectares': areaHectares ?? 0,
+        'open_alerts': 0,
+      });
+      _demoAdded.insert(0, site);
+      return site;
+    }
+
+    if (!await _connectivity.isOnline) {
+      throw StateError('Internet connection required to add a new site.');
+    }
+    final response = await _api.raw.post('/mobile/sites', data: payload);
+    final site = Site.fromJson((response.data as Map).cast<String, dynamic>());
+    final cached = _store.readJson(_ns);
+    final rows =
+        cached?.data is List ? List<dynamic>.from(cached!.data as List) : [];
+    await _store.writeJson(_ns, [site.toJson(), ...rows]);
+    return site;
   }
 }
 

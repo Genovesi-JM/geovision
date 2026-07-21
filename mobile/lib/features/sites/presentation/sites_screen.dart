@@ -34,7 +34,17 @@ class SitesScreen extends ConsumerWidget {
     final sectorFilter = ref.watch(_sectorFilterProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sites')),
+      appBar: AppBar(
+        title: const Text('Locais'),
+        actions: [
+          IconButton(
+            tooltip: 'Adicionar local',
+            onPressed: () => context.go('/sites/new'),
+            icon: const Icon(Icons.add_location_alt_outlined),
+          ),
+          const SizedBox(width: GvSpacing.sm),
+        ],
+      ),
       body: sitesAsync.when(
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(

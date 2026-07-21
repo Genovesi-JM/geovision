@@ -71,4 +71,31 @@ def test_mobile_sites_and_service_request_contract(client):
 
 def test_mobile_routes_require_authentication(client):
     assert client.get("/mobile/sites").status_code == 403
+    assert client.post("/mobile/sites", json={"name": "Forbidden"}).status_code == 403
     assert client.get("/mobile/service-requests").status_code == 403
+
+
+def test_customer_can_add_site_only_to_own_organisation(client):
+    headers = _login_headers(client)
+    created = client.post(
+        "/mobile/sites",
+        headers=headers,
+        json={
+            "name": "Fazenda Nova Esperança",
+            "sector": "agriculture",
+            "country": "Angola",
+            "province": "Huambo",
+            "municipality": "Caála",
+            "latitude": -12.852,
+            "longitude": 15.561,
+            "area_hectares": 380.5,
+        },
+    )
+    assert created.status_code == 201, created.text
+    payload = created.json()
+    assert payload["name"] == "Fazenda Nova Esperança"
+    assert payload["location"] == "Caála, Huambo, Angola"
+    assert payload["center"] == {"lat": -12.852, "lng": 15.561}
+
+    listed = client.get("/mobile/sites", headers=headers)
+    assert any(site["id"] == payload["id"] for site in listed.json())

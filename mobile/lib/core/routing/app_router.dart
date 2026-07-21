@@ -17,6 +17,7 @@ import '../../features/orders/presentation/order_detail_screen.dart';
 import '../../features/orders/presentation/product_detail_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/sites/presentation/site_detail_screen.dart';
+import '../../features/sites/presentation/new_site_screen.dart';
 import '../../features/sites/presentation/sites_screen.dart';
 import '../../features/work/presentation/new_request_screen.dart';
 import '../../features/work/presentation/work_screen.dart';
@@ -50,6 +51,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/sites',
             builder: (c, s) => const SitesScreen(),
             routes: [
+              GoRoute(path: 'new', builder: (c, s) => const NewSiteScreen()),
               GoRoute(
                   path: ':id',
                   builder: (c, s) =>

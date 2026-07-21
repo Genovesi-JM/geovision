@@ -17,15 +17,13 @@ class AppShell extends ConsumerWidget {
     '/sites',
     '/alerts',
     '/work',
-    '/work/new',
     '/orders',
     '/account',
   ];
 
   int _indexFor(String location) {
-    if (location.startsWith('/work/new')) return 4;
-    if (location.startsWith('/orders')) return 5;
-    if (location.startsWith('/account')) return 6;
+    if (location.startsWith('/orders')) return 4;
+    if (location.startsWith('/account')) return 5;
     for (var i = 0; i < _tabs.length; i++) {
       if (location.startsWith(_tabs[i])) return i;
     }
@@ -72,10 +70,6 @@ class AppShell extends ConsumerWidget {
               icon: const Icon(Icons.work_outline),
               activeIcon: const Icon(Icons.work),
               label: text.navWork),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.add_circle_outline),
-              activeIcon: const Icon(Icons.add_circle),
-              label: text.navRequest),
           BottomNavigationBarItem(
               icon: const Icon(Icons.storefront_outlined),
               activeIcon: const Icon(Icons.storefront),
