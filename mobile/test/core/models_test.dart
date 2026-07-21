@@ -4,8 +4,11 @@ import 'package:geovision/features/sites/domain/angola_locations.dart';
 import 'package:geovision/features/alerts/domain/alert.dart';
 import 'package:geovision/features/sites/domain/kpi_definition.dart';
 import 'package:geovision/features/sites/domain/sector.dart';
+import 'package:geovision/features/sites/domain/site_geography.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('Angola location catalogue follows the 2025 administrative division',
       () {
     expect(angolaMunicipalities, hasLength(21));
@@ -16,6 +19,16 @@ void main() {
     );
     expect(angolaMunicipalities['Luanda'], contains('Viana'));
     expect(angolaMunicipalities['Icolo e Bengo'], contains('Catete'));
+  });
+
+  test('site geography includes international GeoVision markets', () async {
+    final countries = await SiteGeography.countries();
+    expect(countries.map((item) => item.code),
+        containsAll(['AO', 'MZ', 'NA', 'ZA', 'PT', 'ES', 'FR', 'BR']));
+    final portugal = await SiteGeography.regions('PT');
+    expect(portugal, isNotEmpty);
+    final cities = await SiteGeography.municipalities('PT', portugal.first);
+    expect(cities, isNotEmpty);
   });
 
   group('Site model', () {

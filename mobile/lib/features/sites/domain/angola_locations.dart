@@ -370,5 +370,3 @@ const angolaMunicipalities = <String, List<String>>{
     'Quindeje'
   ],
 };
-
-const supportedSiteCountries = ['Angola'];

@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../data/sites_repository.dart';
-import '../domain/angola_locations.dart';
 import '../domain/sector.dart';
 import '../domain/site.dart';
+import '../domain/site_geography.dart';
 import 'location_picker_screen.dart';
 
 class NewSiteScreen extends ConsumerStatefulWidget {
@@ -22,11 +22,22 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
   final name = TextEditingController();
   final area = TextEditingController();
   Sector sector = Sector.agriculture;
-  String country = supportedSiteCountries.first;
-  String? province;
+  String country = 'Angola';
+  String countryCode = 'AO';
+  SiteRegion? province;
   String? municipality;
+  List<SiteCountry> countries = const [];
+  List<SiteRegion> provinces = const [];
+  List<String> municipalities = const [];
+  bool loadingGeography = true;
   GeoPoint? location;
   bool submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGeography();
+  }
 
   @override
   void dispose() {
@@ -43,9 +54,6 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
   @override
   Widget build(BuildContext context) {
     final copy = _SiteFormCopy.of(context);
-    final municipalities = province == null
-        ? const <String>[]
-        : angolaMunicipalities[province!] ?? const <String>[];
     return Scaffold(
       appBar: AppBar(title: Text(copy.title)),
       body: Form(
@@ -82,35 +90,35 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
             ),
             const SizedBox(height: GvSpacing.md),
             DropdownButtonFormField<String>(
-              initialValue: country,
+              key: ValueKey(countryCode),
+              initialValue: countryCode,
+              isExpanded: true,
               decoration: InputDecoration(
                 labelText: copy.country,
                 prefixIcon: const Icon(Icons.public),
               ),
-              items: supportedSiteCountries
-                  .map((value) =>
-                      DropdownMenuItem(value: value, child: Text(value)))
+              items: countries
+                  .map((value) => DropdownMenuItem(
+                        value: value.code,
+                        child:
+                            Text('${value.flag}  ${copy.countryName(value)}'),
+                      ))
                   .toList(),
-              onChanged: (value) => setState(() {
-                country = value!;
-                province = null;
-                municipality = null;
-              }),
+              onChanged:
+                  loadingGeography ? null : (value) => _selectCountry(value!),
             ),
             const SizedBox(height: GvSpacing.md),
-            DropdownButtonFormField<String>(
-              key: ValueKey(province),
+            DropdownButtonFormField<SiteRegion>(
+              key: ValueKey('$countryCode-${province?.code}'),
               initialValue: province,
               isExpanded: true,
               decoration: InputDecoration(labelText: copy.province),
-              items: angolaMunicipalities.keys
+              items: provinces
                   .map((value) =>
-                      DropdownMenuItem(value: value, child: Text(value)))
+                      DropdownMenuItem(value: value, child: Text(value.name)))
                   .toList(),
-              onChanged: (value) => setState(() {
-                province = value;
-                municipality = null;
-              }),
+              onChanged:
+                  loadingGeography ? null : (value) => _selectProvince(value!),
               validator: (value) => value == null ? copy.requiredField : null,
             ),
             const SizedBox(height: GvSpacing.md),
@@ -123,7 +131,7 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
                   .map((value) =>
                       DropdownMenuItem(value: value, child: Text(value)))
                   .toList(),
-              onChanged: province == null
+              onChanged: province == null || loadingGeography
                   ? null
                   : (value) => setState(() => municipality = value),
               validator: (value) => value == null ? copy.requiredField : null,
@@ -206,7 +214,7 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
             name: name.text,
             sector: sector,
             country: country,
-            province: province,
+            province: province?.name,
             municipality: municipality,
             areaHectares: parsedArea,
             latitude: location?.lat,
@@ -226,6 +234,51 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
     } finally {
       if (mounted) setState(() => submitting = false);
     }
+  }
+
+  Future<void> _loadGeography() async {
+    final loadedCountries = await SiteGeography.countries();
+    final loadedProvinces = await SiteGeography.regions(countryCode);
+    if (!mounted) return;
+    setState(() {
+      countries = loadedCountries;
+      provinces = loadedProvinces;
+      loadingGeography = false;
+    });
+  }
+
+  Future<void> _selectCountry(String code) async {
+    final selected = countries.firstWhere((item) => item.code == code);
+    setState(() {
+      countryCode = code;
+      country = selected.name;
+      province = null;
+      municipality = null;
+      provinces = const [];
+      municipalities = const [];
+      loadingGeography = true;
+    });
+    final loaded = await SiteGeography.regions(code);
+    if (!mounted || countryCode != code) return;
+    setState(() {
+      provinces = loaded;
+      loadingGeography = false;
+    });
+  }
+
+  Future<void> _selectProvince(SiteRegion selected) async {
+    setState(() {
+      province = selected;
+      municipality = null;
+      municipalities = const [];
+      loadingGeography = true;
+    });
+    final loaded = await SiteGeography.municipalities(countryCode, selected);
+    if (!mounted || province?.code != selected.code) return;
+    setState(() {
+      municipalities = loaded;
+      loadingGeography = false;
+    });
   }
 }
 
@@ -296,6 +349,27 @@ class _SiteFormCopy {
       'Could not add the site: $error',
       'No se pudo añadir el sitio: $error',
       'Impossible d’ajouter le site : $error');
+
+  String countryName(SiteCountry country) => switch (country.code) {
+        'AO' => 'Angola',
+        'MZ' => _pick('Moçambique', 'Mozambique', 'Mozambique', 'Mozambique'),
+        'NA' => _pick('Namíbia', 'Namibia', 'Namibia', 'Namibie'),
+        'ZM' => _pick('Zâmbia', 'Zambia', 'Zambia', 'Zambie'),
+        'ZA' =>
+          _pick('África do Sul', 'South Africa', 'Sudáfrica', 'Afrique du Sud'),
+        'CD' => _pick(
+            'República Democrática do Congo',
+            'Democratic Republic of the Congo',
+            'República Democrática del Congo',
+            'République démocratique du Congo'),
+        'CG' => _pick('República do Congo', 'Republic of the Congo',
+            'República del Congo', 'République du Congo'),
+        'PT' => _pick('Portugal', 'Portugal', 'Portugal', 'Portugal'),
+        'ES' => _pick('Espanha', 'Spain', 'España', 'Espagne'),
+        'FR' => _pick('França', 'France', 'Francia', 'France'),
+        'BR' => _pick('Brasil', 'Brazil', 'Brasil', 'Brésil'),
+        _ => country.name,
+      };
 
   String sectorName(Sector value) => switch (value) {
         Sector.agriculture =>

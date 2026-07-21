@@ -100,14 +100,13 @@ def test_customer_can_add_site_only_to_own_organisation(client):
     listed = client.get("/mobile/sites", headers=headers)
     assert any(site["id"] == payload["id"] for site in listed.json())
 
-    invalid_country = client.post(
+    incomplete_geography = client.post(
         "/mobile/sites",
         headers=headers,
         json={
             "name": "Invalid geography",
-            "country": "Free text",
+            "country": "Portugal",
             "province": "Huambo",
-            "municipality": "Caála",
         },
     )
-    assert invalid_country.status_code == 422
+    assert incomplete_geography.status_code == 422
