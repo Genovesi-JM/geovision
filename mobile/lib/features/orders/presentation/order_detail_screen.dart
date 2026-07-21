@@ -64,8 +64,8 @@ class OrderDetailScreen extends ConsumerWidget {
                                   style:
                                       TextStyle(fontWeight: FontWeight.w800)),
                               Text(
-                                  StoreMoney.formatUsdCents(order.totalCents,
-                                      ref.watch(storeCurrencyProvider)),
+                                  StoreMoney.formatOrder(
+                                      order.totalCents, order.currency),
                                   style: const TextStyle(
                                       color: GvColors.accentCyan,
                                       fontWeight: FontWeight.w800))

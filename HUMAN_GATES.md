@@ -4,7 +4,7 @@ Actions the autonomous loop will NOT perform. For each: reason · action · wher
 how to confirm · what the automation does afterwards.
 
 ## 1. Xcode licence / iOS toolchain
-- **Reason:** The iOS Simulator build passes, but Xcode 15.4 is below Flutter's recommended Xcode 16+ and no simulator device has been used for the critical journey yet.
+- **Reason:** The iOS Simulator build and interactive launch pass, but Xcode 15.4 is below Flutter's recommended Xcode 16+.
 - **Action:** Update Xcode through the App Store and install/select a current iOS Simulator runtime.
 - **Where:** Mac terminal / Xcode.
 - **Confirm:** `flutter doctor` shows iOS green.

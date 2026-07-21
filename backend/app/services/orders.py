@@ -315,7 +315,10 @@ class OrderService:
             order_currency = Currency.AOA
         result = await orchestrator.create_payment(
             company_id=order.company_id or "default",
-            order_id=order.id, amount=order.total,
+            # Orders currently use a Numeric column while payments store the
+            # smallest currency unit as an Integer. Normalise explicitly so
+            # SQLite and PostgreSQL receive the same contract.
+            order_id=order.id, amount=int(order.total),
             currency=order_currency, provider=provider,
             description=f"Pedido {order.order_number}",
             idempotency_key=f"order-{order.id}",

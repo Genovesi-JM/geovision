@@ -915,7 +915,7 @@ async def list_orders(
     
     order_service = get_order_service(db)
     orders = order_service.list_orders(
-        user_id=user.id,
+        user_id=str(user.id),
         status=status,
         limit=limit,
     )
@@ -936,13 +936,15 @@ async def list_orders(
 
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str, db: Session = Depends(get_db)):
+async def get_order(order_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get full order details with timeline."""
     
     order_service = get_order_service(db)
     order = order_service.get_order(order_id)
     
     if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if str(order.user_id or "") != str(user.id) and user.role != "admin":
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     
     return OrderResponse(
@@ -1011,13 +1013,15 @@ async def get_order(order_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/orders/number/{order_number}", response_model=OrderResponse)
-async def get_order_by_number(order_number: str, db: Session = Depends(get_db)):
+async def get_order_by_number(order_number: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get order by order number (e.g., GV-2025-000001)."""
     
     order_service = get_order_service(db)
     order = order_service.get_order_by_number(order_number)
     
     if not order:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    if str(order.user_id or "") != str(user.id) and user.role != "admin":
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     
     return OrderResponse(

@@ -16,7 +16,8 @@ reported as complete.
 | Stripe | Card payments | Interface prepared · Credential required | `GV_PAYMENT_PROVIDER=stripe`, keys | Yes | Stripe sandbox | Yes (keys + store review) |
 | Apple Pay / Google Pay | Wallet | Interface prepared | — | — | — | Yes |
 | Multicaixa (Angola) | Local payments | Interface prepared | — | Yes | Sandbox | Yes |
-| GeoVision commerce catalogue | Seeds, inputs, equipment, sensors and services | **Mock working** | Demo data | — | Unit + widget/manual | No |
+| GeoVision commerce API | Catalogue, price lists, cart, checkout and owned order history | **Backend contract working** · production not activated | `GV_API_BASE_URL`, `GV_DEMO_MODE=false` | Payment-provider dependent | FastAPI contract + Flutter mapping | No for local/staging |
+| GeoVision demo commerce | Seeds, inputs, equipment, sensors and services | **Mock working** | `GV_DEMO_MODE=true` | — | Unit + iOS Simulator | No |
 | ERP/accounting platform | Fiscal invoicing, procurement, warehouse and reconciliation | Integration boundary planned; not required for MVP | Provider-dependent | Provider-dependent | ERP sandbox | Yes (provider/business decision) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |

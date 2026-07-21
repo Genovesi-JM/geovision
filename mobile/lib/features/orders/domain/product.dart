@@ -35,7 +35,7 @@ class GvProduct {
   factory GvProduct.fromJson(Map<String, dynamic> j) => GvProduct(
         id: j['id'].toString(),
         name: (j['name'] ?? '').toString(),
-        category: (j['category'] ?? 'service').toString(),
+        category: _mobileCategory(j),
         priceCents: (j['price_cents'] as num?)?.toInt() ??
             (j['price_usd'] as num?)?.toInt() ??
             0,
@@ -53,6 +53,23 @@ class GvProduct {
                 const [],
         indicativePrice: j['indicative_price'] != false,
       );
+
+  static String _mobileCategory(Map<String, dynamic> json) {
+    final type = (json['product_type'] ?? '').toString();
+    final category = (json['category'] ?? '').toString();
+    if (const [
+      'service',
+      'hardware',
+      'equipment',
+      'seeds',
+      'inputs',
+      'subscription'
+    ].contains(type)) {
+      return type;
+    }
+    if (category == 'flight') return 'service';
+    return category.isEmpty ? 'service' : category;
+  }
 }
 
 class CartLine {

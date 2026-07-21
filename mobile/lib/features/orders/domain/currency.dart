@@ -6,6 +6,12 @@ import 'product.dart';
 enum StoreCurrency { akz, eur, usd }
 
 extension StoreCurrencyValue on StoreCurrency {
+  static StoreCurrency fromCode(String code) => switch (code.toUpperCase()) {
+        'AOA' || 'AKZ' => StoreCurrency.akz,
+        'EUR' => StoreCurrency.eur,
+        _ => StoreCurrency.usd,
+      };
+
   String get code => switch (this) {
         StoreCurrency.akz => 'AKZ',
         StoreCurrency.eur => 'EUR',
@@ -64,6 +70,9 @@ abstract final class StoreMoney {
     final cents = productCents(product, target);
     return formatCents(cents, target);
   }
+
+  static String formatOrder(int cents, String currency) =>
+      formatCents(cents, StoreCurrencyValue.fromCode(currency));
 
   static List<String> allProductPrices(GvProduct product) =>
       StoreCurrency.values

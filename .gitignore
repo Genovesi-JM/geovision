@@ -4,6 +4,7 @@ __pycache__/
 
 # Virtual env
 backend/.venv/
+backend/.venv-test/
 
 # Root venv (if present)
 .venv/

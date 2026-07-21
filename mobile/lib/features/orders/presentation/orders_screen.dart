@@ -48,6 +48,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               onChanged: (value) {
                 if (value != null) {
                   ref.read(storeCurrencyProvider.notifier).state = value;
+                  ref.read(cartProvider.notifier).changeCurrency(value);
                 }
               },
             ),
@@ -235,8 +236,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                        StoreMoney.formatUsdCents(
-                                            o.totalCents, currency),
+                                        StoreMoney.formatOrder(
+                                            o.totalCents, o.currency),
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w700)),
                                     if (o.delivery != null)

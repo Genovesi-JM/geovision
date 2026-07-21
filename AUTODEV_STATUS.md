@@ -1,15 +1,15 @@
 # GeoVision — verified development status
 
-_Updated: 21 July 2026 on branch `autodev/mobile-build`._
+_Updated: 22 July 2026 on branch `autodev/mobile-build`._
 
 | Check | Result | Evidence |
 |---|---|---|
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |
 | Dart formatting | PASS | 89 Dart files checked |
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
-| Flutter unit/widget tests | PASS | 21 tests passed |
+| Flutter unit/widget tests | PASS | 23 tests passed |
 | Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
-| FastAPI backend tests | PASS | 6 tests passed, including authenticated mobile site/service-request contracts |
+| FastAPI backend tests | PASS | 8 tests passed, including the authenticated commerce lifecycle |
 | Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
 | Android debug build | PASS | `build/app/outputs/flutter-apk/app-debug.apk` |
 | iOS Simulator build | PASS | `build/ios/iphonesimulator/Runner.app` |
@@ -46,6 +46,13 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 - Added typed success, pending, offline, permission, credential, unsupported, rejected, timeout and error outcomes.
 - Added a backend IoT bridge, safe polling fallback, diagnostic/provisioning/command contracts and explicit command confirmation.
 - Added demo devices covering every meaningful operational state and automated tests for outcome handling.
+- Connected real-mode mobile catalogue, persistent cart, quantity updates, currency selection, authenticated checkout and order history to FastAPI/PostgreSQL.
+- Kept demo commerce operational without credentials and added typed cart/checkout response models.
+- Added an editable delivery address and currency-faithful order totals; recorded AKZ as ISO `AOA` at the API boundary.
+- Restricted order details and order-number lookup to the owning customer or an administrator.
+- Fixed checkout payment persistence by normalising numeric order totals to integer minor units.
+- Added a backend contract test covering catalogue price lists, cart quantities, AKZ/USD conversion, checkout, ownership enforcement and order history.
+- Rebuilt Android and iOS, then installed and launched the updated app on the iPhone 15 Pro Simulator.
 
 ## Remaining before commercial release
 
@@ -54,6 +61,6 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 - Configure OAuth mobile redirect schemes, Apple signing, production secrets and store records.
 - Complete UX/accessibility review, privacy/legal content, telemetry and production monitoring.
 - Validate real provider sandboxes and physical IoT/drone hardware.
-- Connect the store to backend inventory, tax, delivery quotations and real logistics status.
+- Connect real supplier stock, tax/fiscal invoicing, delivery quotations and live logistics status.
 
 No production deployment or production database migration was performed.
