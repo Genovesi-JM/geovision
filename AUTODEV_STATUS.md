@@ -32,6 +32,9 @@ _Updated: 21 July 2026 on branch `autodev/mobile-build`._
 - Added a `DeliveryTrackingProvider` boundary plus explicit Google Maps placeholder; no key or live location is embedded.
 - Replaced the Home reports shortcut with Store while keeping reports available from Account.
 - Corrected a fractional KPI-card overflow found during live iPhone Simulator verification.
+- Added AKZ, EUR and USD store presentation with AKZ as the default customer currency and explicit demo-rate safeguards.
+- Expanded product descriptions with suitability, included services and responsible-use context.
+- Promoted Request and Store into the persistent customer footer alongside Home, Sites, Alerts, Work and Account.
 
 ## Remaining before commercial release
 

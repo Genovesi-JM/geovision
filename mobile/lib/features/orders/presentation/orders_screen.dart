@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../data/orders_repository.dart';
+import '../domain/currency.dart';
 import '../domain/product.dart';
 import 'cart_controller.dart';
 
@@ -27,10 +28,28 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final orders = ref.watch(ordersProvider);
     final cartCount =
         ref.watch(cartProvider).fold<int>(0, (s, l) => s + l.quantity);
+    final currency = ref.watch(storeCurrencyProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('GeoVision Store'),
         actions: [
+          DropdownButtonHideUnderline(
+            child: DropdownButton<StoreCurrency>(
+              value: currency,
+              items: StoreCurrency.values
+                  .map((value) => DropdownMenuItem(
+                        value: value,
+                        child: Text(value.code,
+                            style: const TextStyle(fontSize: 12)),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(storeCurrencyProvider.notifier).state = value;
+                }
+              },
+            ),
+          ),
           Badge(
             isLabelVisible: cartCount > 0,
             label: Text('$cartCount'),
@@ -166,7 +185,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                               Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(o.totalLabel,
+                                    Text(
+                                        StoreMoney.formatUsdCents(
+                                            o.totalCents, currency),
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w700)),
                                     if (o.delivery != null)
@@ -260,7 +281,9 @@ class _ProductCard extends ConsumerWidget {
                   style: const TextStyle(
                       fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 5),
-              Text(product.priceLabel,
+              Text(
+                  StoreMoney.formatUsdCents(
+                      product.priceCents, ref.watch(storeCurrencyProvider)),
                   style: const TextStyle(
                       color: GvColors.accentCyan, fontWeight: FontWeight.w800)),
               Row(children: [

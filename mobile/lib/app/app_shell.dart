@@ -5,15 +5,26 @@ import 'package:go_router/go_router.dart';
 import '../core/widgets/sync_banner.dart';
 import 'providers.dart';
 
-/// The five-destination customer shell: Home, Sites, Alerts, Work, Account.
-/// Maps, reports, devices and orders live inside these flows — not the nav bar.
+/// Customer shell with direct access to the most frequent field and commercial
+/// actions. Compact labels keep all destinations usable on phone screens.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.child});
   final Widget child;
 
-  static const _tabs = ['/home', '/sites', '/alerts', '/work', '/account'];
+  static const _tabs = [
+    '/home',
+    '/sites',
+    '/alerts',
+    '/work',
+    '/work/new',
+    '/orders',
+    '/account',
+  ];
 
   int _indexFor(String location) {
+    if (location.startsWith('/work/new')) return 4;
+    if (location.startsWith('/orders')) return 5;
+    if (location.startsWith('/account')) return 6;
     for (var i = 0; i < _tabs.length; i++) {
       if (location.startsWith(_tabs[i])) return i;
     }
@@ -33,29 +44,43 @@ class AppShell extends ConsumerWidget {
           Expanded(child: child),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => context.go(_tabs[i]),
-        destinations: const [
-          NavigationDestination(
-              icon: Icon(Icons.dashboard_outlined),
-              selectedIcon: Icon(Icons.dashboard),
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: index,
+        selectedFontSize: 9,
+        unselectedFontSize: 9,
+        selectedItemColor: const Color(0xFF06B6D4),
+        unselectedItemColor: const Color(0xFF64748B),
+        backgroundColor: const Color(0xFF020617),
+        onTap: (i) => context.go(_tabs[i]),
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
               label: 'Home'),
-          NavigationDestination(
+          BottomNavigationBarItem(
               icon: Icon(Icons.terrain_outlined),
-              selectedIcon: Icon(Icons.terrain),
+              activeIcon: Icon(Icons.terrain),
               label: 'Sites'),
-          NavigationDestination(
+          BottomNavigationBarItem(
               icon: Icon(Icons.notifications_outlined),
-              selectedIcon: Icon(Icons.notifications),
+              activeIcon: Icon(Icons.notifications),
               label: 'Alerts'),
-          NavigationDestination(
+          BottomNavigationBarItem(
               icon: Icon(Icons.work_outline),
-              selectedIcon: Icon(Icons.work),
+              activeIcon: Icon(Icons.work),
               label: 'Work'),
-          NavigationDestination(
+          BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline),
+              activeIcon: Icon(Icons.add_circle),
+              label: 'Request'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.storefront_outlined),
+              activeIcon: Icon(Icons.storefront),
+              label: 'Store'),
+          BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
+              activeIcon: Icon(Icons.person),
               label: 'Account'),
         ],
       ),

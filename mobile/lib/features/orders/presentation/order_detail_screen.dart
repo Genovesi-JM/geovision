@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../data/orders_repository.dart';
+import '../domain/currency.dart';
 import '../domain/product.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
@@ -62,7 +63,9 @@ class OrderDetailScreen extends ConsumerWidget {
                               const Text('Total',
                                   style:
                                       TextStyle(fontWeight: FontWeight.w800)),
-                              Text(order.totalLabel,
+                              Text(
+                                  StoreMoney.formatUsdCents(order.totalCents,
+                                      ref.watch(storeCurrencyProvider)),
                                   style: const TextStyle(
                                       color: GvColors.accentCyan,
                                       fontWeight: FontWeight.w800))

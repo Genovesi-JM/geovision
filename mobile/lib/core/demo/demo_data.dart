@@ -324,7 +324,7 @@ abstract final class DemoData {
             priceCents: 17500,
             currency: 'USD',
             description:
-                'Híbrido de alta produtividade, adaptado a regiões tropicais.',
+                'Híbrido de ciclo médio desenvolvido para clima tropical. Boa tolerância ao calor, estabilidade de espiga e elevado potencial produtivo quando combinado com adubação equilibrada. Saco selado com lote e rastreabilidade; recomendação agronómica disponível antes da compra.',
             unit: 'saco',
             featured: true),
         GvProduct(
@@ -333,7 +333,8 @@ abstract final class DemoData {
             category: 'seeds',
             priceCents: 9650,
             currency: 'USD',
-            description: 'Semente certificada com alto potencial produtivo.',
+            description:
+                'Semente certificada de soja com germinação uniforme e vigor inicial elevado. Indicada para produtores que procuram um estabelecimento de cultura consistente, com informação de lote, validade e orientação técnica de sementeira.',
             unit: 'saco'),
         GvProduct(
             id: 'input-fertilizer-1',
@@ -342,23 +343,25 @@ abstract final class DemoData {
             priceCents: 3800,
             currency: 'USD',
             description:
-                'Nutrição equilibrada para culturas de alto rendimento.',
+                'Formulação granulada NPK para nutrição equilibrada e distribuição homogénea no campo. Adequada a planos de fertilização orientados por análise de solo; a dose final deve ser validada por um técnico agrónomo.',
             unit: 'saco'),
         GvProduct(
             id: 'pr-1',
-            name: 'Multispectral Drone Survey',
+            name: 'Levantamento multiespectral por drone',
             category: 'service',
             priceCents: 45000,
             currency: 'USD',
-            description: 'Per-flight NDVI/NDRE survey up to 150 ha.',
-            unit: 'flight'),
+            description:
+                'Operação de campo até 150 ha com captura RGB e multiespectral, processamento NDVI/NDRE, identificação de zonas de stress e entrega de mapa, relatório técnico e recomendações prioritárias.',
+            unit: 'operação'),
         GvProduct(
             id: 'pr-2',
-            name: 'Soil NPK Sensor Kit',
+            name: 'Kit sensor de solo GV Soil Pro',
             category: 'hardware',
             priceCents: 32000,
             currency: 'USD',
-            description: 'IoT soil sensor with installation.',
+            description:
+                'Kit IoT para monitorização de humidade, temperatura e indicadores de fertilidade do solo. Inclui gateway, instalação inicial, calibração e ligação ao painel GeoVision para alertas e histórico.',
             unit: 'unidade',
             featured: true),
         GvProduct(
@@ -367,7 +370,8 @@ abstract final class DemoData {
             category: 'equipment',
             priceCents: 12900000,
             currency: 'USD',
-            description: 'Trator robusto de 120 cv para operações agrícolas.',
+            description:
+                'Trator agrícola de 120 cv para preparação de solo, sementeira e transporte. Cabina ergonómica, tomada de força, engate de três pontos e preparação para telemetria GeoVision. Entrega técnica e formação do operador sob consulta.',
             unit: 'unidade'),
         GvProduct(
             id: 'pr-sprayer',
@@ -375,7 +379,8 @@ abstract final class DemoData {
             category: 'equipment',
             priceCents: 1890000,
             currency: 'USD',
-            description: 'Aplicação de precisão com controlo de secções.',
+            description:
+                'Pulverizador de precisão com controlo independente de secções, regulação eletrónica de caudal e registo da aplicação. Reduz sobreposições e permite documentar cada intervenção no historial da exploração.',
             unit: 'unidade'),
         GvProduct(
             id: 'pr-drone',
@@ -383,25 +388,28 @@ abstract final class DemoData {
             category: 'equipment',
             priceCents: 2150000,
             currency: 'USD',
-            description: 'Drone para pulverização e operações de precisão.',
+            description:
+                'Plataforma aérea para pulverização e distribuição de precisão, com planeamento de rotas, controlo de caudal e registo operacional. A proposta comercial inclui avaliação da propriedade, configuração e formação; utilização sujeita à regulamentação aplicável.',
             unit: 'unidade',
             featured: true),
         GvProduct(
             id: 'pr-3',
-            name: 'Monitoring — Pro (monthly)',
+            name: 'Monitorização GeoVision Pro',
             category: 'subscription',
             priceCents: 19900,
             currency: 'USD',
-            description: 'Continuous alerts, dashboards and monthly reports.',
-            unit: 'month'),
+            description:
+                'Plano mensal com dashboards, alertas operacionais, consolidação de dados IoT e relatório de desempenho. Inclui acompanhamento remoto e prioridade no suporte; equipamentos e operações de campo são orçados separadamente.',
+            unit: 'mês'),
         GvProduct(
             id: 'pr-4',
-            name: 'Thermal Infrastructure Inspection',
+            name: 'Inspeção térmica de infraestruturas',
             category: 'service',
             priceCents: 60000,
             currency: 'USD',
-            description: 'Thermal + RGB inspection with defect report.',
-            unit: 'job'),
+            description:
+                'Inspeção combinada RGB e termográfica para localizar aquecimento anómalo, infiltrações e defeitos visíveis. Entrega evidências georreferenciadas, classificação de prioridade e relatório técnico para planeamento de manutenção.',
+            unit: 'serviço'),
       ];
 
   static List<GvOrder> orders() => [

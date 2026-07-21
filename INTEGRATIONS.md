@@ -17,6 +17,7 @@ reported as complete.
 | Apple Pay / Google Pay | Wallet | Interface prepared | — | — | — | Yes |
 | Multicaixa (Angola) | Local payments | Interface prepared | — | Yes | Sandbox | Yes |
 | GeoVision commerce catalogue | Seeds, inputs, equipment, sensors and services | **Mock working** | Demo data | — | Unit + widget/manual | No |
+| ERP/accounting platform | Fiscal invoicing, procurement, warehouse and reconciliation | Integration boundary planned; not required for MVP | Provider-dependent | Provider-dependent | ERP sandbox | Yes (provider/business decision) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |
 | IoT (MQTT/vendor) | Device readings | **Mock working** | — | Backend bridge | Mock provider | Yes (hardware) |
@@ -28,3 +29,13 @@ reported as complete.
 2. Select it via the feature-flag `--dart-define`.
 3. Add credentials through `--dart-define` / secret manager — never in git.
 4. Add a mock-parity test; document the gate here and in `HUMAN_GATES.md`.
+
+### Commercial source of truth
+
+PostgreSQL remains the MVP source of truth for catalogue, explicit AKZ/AOA,
+EUR and USD price lists, stock, carts, orders, payment state and delivery events.
+`AKZ` is shown to customers as requested; integrations must use the ISO currency
+code `AOA`. Demo conversions are presentation-only and must never determine a
+production checkout total. An ERP becomes appropriate for statutory invoicing,
+supplier purchasing, multiple warehouses and accounting reconciliation; it
+should synchronize through an adapter instead of replacing the mobile API.

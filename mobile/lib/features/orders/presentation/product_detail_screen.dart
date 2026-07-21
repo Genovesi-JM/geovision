@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../data/orders_repository.dart';
+import '../domain/currency.dart';
 import '../domain/product.dart';
 import 'cart_controller.dart';
 
@@ -58,7 +59,9 @@ class _ProductBody extends ConsumerWidget {
           const Chip(label: Text('Em stock'))
         ]),
         const SizedBox(height: 8),
-        Text(product.priceLabel,
+        Text(
+            StoreMoney.formatUsdCents(
+                product.priceCents, ref.watch(storeCurrencyProvider)),
             style: const TextStyle(
                 fontSize: 21,
                 color: GvColors.accentCyan,
@@ -66,6 +69,17 @@ class _ProductBody extends ConsumerWidget {
         if (product.unit != null)
           Text('por ${product.unit}',
               style: const TextStyle(color: GvColors.textMuted)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: StoreCurrency.values
+              .map((currency) => Chip(
+                    label: Text(
+                        '${currency.code}  ${StoreMoney.formatUsdCents(product.priceCents, currency)}'),
+                  ))
+              .toList(),
+        ),
         const SizedBox(height: 18),
         Text(product.description,
             style: const TextStyle(color: GvColors.textSecondary, height: 1.5)),
