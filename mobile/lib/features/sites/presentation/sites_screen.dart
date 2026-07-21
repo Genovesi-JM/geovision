@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/sites_repository.dart';
 import '../domain/sector.dart';
 import '../domain/site.dart';
@@ -29,16 +30,19 @@ class SitesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final text = AppLocalizations.of(context);
+    final language = Localizations.localeOf(context).languageCode;
     final sitesAsync = ref.watch(sitesProvider);
     final query = ref.watch(_queryProvider).toLowerCase();
     final sectorFilter = ref.watch(_sectorFilterProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Locais'),
+        title: Text(text.sites),
         actions: [
           IconButton(
-            tooltip: 'Adicionar local',
+            tooltip: _siteText(language, 'Adicionar local', 'Add site',
+                'Añadir sitio', 'Ajouter un site'),
             onPressed: () => context.go('/sites/new'),
             icon: const Icon(Icons.add_location_alt_outlined),
           ),
@@ -65,8 +69,9 @@ class SitesScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(GvSpacing.lg),
                 child: TextField(
                   onChanged: (v) => ref.read(_queryProvider.notifier).state = v,
-                  decoration: const InputDecoration(
-                      hintText: 'Search sites', prefixIcon: Icon(Icons.search)),
+                  decoration: InputDecoration(
+                      hintText: text.searchSites,
+                      prefixIcon: const Icon(Icons.search)),
                 ),
               ),
               SizedBox(
@@ -76,14 +81,15 @@ class SitesScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: GvSpacing.lg),
                   children: [
                     _FilterChip(
-                      label: 'All',
+                      label:
+                          _siteText(language, 'Todos', 'All', 'Todos', 'Tous'),
                       selected: sectorFilter == null,
                       onTap: () =>
                           ref.read(_sectorFilterProvider.notifier).state = null,
                     ),
                     for (final sec in Sector.values)
                       _FilterChip(
-                        label: sec.label,
+                        label: _localizedSector(sec, language),
                         selected: sectorFilter == sec,
                         onTap: () => ref
                             .read(_sectorFilterProvider.notifier)
@@ -95,7 +101,14 @@ class SitesScreen extends ConsumerWidget {
               const SizedBox(height: GvSpacing.sm),
               Expanded(
                 child: sites.isEmpty
-                    ? const GvEmpty(message: 'No sites match your filters.')
+                    ? GvEmpty(
+                        message: _siteText(
+                            language,
+                            'Nenhum local corresponde aos filtros.',
+                            'No sites match your filters.',
+                            'Ningún sitio coincide con los filtros.',
+                            'Aucun site ne correspond aux filtres.'),
+                      )
                     : ListView.separated(
                         padding: const EdgeInsets.all(GvSpacing.lg),
                         itemCount: sites.length,
@@ -124,7 +137,8 @@ class SitesScreen extends ConsumerWidget {
                                           style: const TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize: 15)),
-                                      Text('${s.location} · ${s.sector.label}',
+                                      Text(
+                                          '${s.location} · ${_localizedSector(s.sector, language)}',
                                           style: const TextStyle(
                                               color: GvColors.textMuted,
                                               fontSize: 12)),
@@ -140,7 +154,8 @@ class SitesScreen extends ConsumerWidget {
                                             color: GvColors.textSecondary,
                                             fontSize: 12)),
                                     if (s.openAlerts > 0)
-                                      Text('${s.openAlerts} alerts',
+                                      Text(
+                                          '${s.openAlerts} ${_siteText(language, 'alertas', 'alerts', 'alertas', 'alertes')}',
                                           style: const TextStyle(
                                               color: GvColors.high,
                                               fontSize: 12)),
@@ -159,6 +174,22 @@ class SitesScreen extends ConsumerWidget {
     );
   }
 }
+
+String _siteText(String language, String pt, String en, String es, String fr) =>
+    switch (language) { 'pt' => pt, 'es' => es, 'fr' => fr, _ => en };
+
+String _localizedSector(Sector sector, String language) => switch (sector) {
+      Sector.agriculture => _siteText(
+          language, 'Agricultura', 'Agriculture', 'Agricultura', 'Agriculture'),
+      Sector.livestock =>
+        _siteText(language, 'Pecuária', 'Livestock', 'Ganadería', 'Élevage'),
+      Sector.infrastructure => _siteText(language, 'Infraestruturas',
+          'Infrastructure', 'Infraestructuras', 'Infrastructures'),
+      Sector.mining =>
+        _siteText(language, 'Mineração', 'Mining', 'Minería', 'Mines'),
+      Sector.environment => _siteText(language, 'Ambiente', 'Environment',
+          'Medio ambiente', 'Environnement'),
+    };
 
 class _FilterChip extends StatelessWidget {
   const _FilterChip(

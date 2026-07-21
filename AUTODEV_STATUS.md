@@ -7,7 +7,7 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |
 | Dart formatting | PASS | 89 Dart files checked |
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
-| Flutter unit/widget tests | PASS | 23 tests passed |
+| Flutter unit/widget tests | PASS | 24 tests passed |
 | Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
 | FastAPI backend tests | PASS | 9 tests passed, including authenticated commerce and customer site creation |
 | Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
@@ -56,6 +56,9 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 - Simplified the persistent footer to six destinations: Home, Sites, Alerts, Work, Store and Account; service requests remain available from Home and Work.
 - Added an authenticated customer flow to create a new organisation site with sector, country, province, municipality, area and optional coordinates.
 - Enforced organisation ownership and subscription site limits in the FastAPI creation endpoint, with a credential-free demo implementation in Flutter.
+- Replaced free-text country, province and municipality fields with the official current Angola hierarchy: 21 provinces and 326 dependent municipality options.
+- Added precise site positioning on an OpenStreetMap map and optional high-accuracy device location, requested only after explicit customer action.
+- Added iOS and Android foreground-location permission declarations and localized the complete site-creation flow in Portuguese, English, Spanish and French.
 
 ## Remaining before commercial release
 

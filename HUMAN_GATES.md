@@ -54,3 +54,8 @@ how to confirm · what the automation does afterwards.
 ## 8. Physical hardware / drone tests
 - **Reason:** Requires real devices on site.
 - **After:** mock IoT + BLE provisioning prepared until hardware is available.
+
+## 9. Physical-device GPS and location privacy review
+- **Reason:** The simulator and native builds validate the integration, but field accuracy and the final privacy wording require a real device and legal review.
+- **Action:** Test foreground location on one iPhone and one Android device; approve the privacy-policy description before release.
+- **After:** tune accuracy/timeouts if required; background location remains disabled.

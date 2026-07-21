@@ -7,6 +7,8 @@ reported as complete.
 | Provider | Purpose | State | Env / define | Webhooks | Test method | Human gate |
 |----------|---------|-------|--------------|----------|-------------|------------|
 | Demo map | Credential-free operational map | **Mock working** | `GV_MAP_PROVIDER=demo` | — | Widget/manual | No |
+| OpenStreetMap | Credential-free site point selection | **Working** | No key; attribution required | — | iOS/Android build + simulator | No |
+| Device location | Optional precise site coordinates | **Working** with foreground permission | iOS/Android permission declarations | — | Simulator + physical-device follow-up | User permission |
 | Mapbox | Satellite tiles + layers | Interface prepared · Credential required | `GV_MAP_PROVIDER=mapbox`, `GV_MAPBOX_TOKEN` | — | Token in staging | Yes (account/token) |
 | ArcGIS | Enterprise GIS layers | Interface prepared | `GV_MAP_PROVIDER=arcgis` | — | — | Yes |
 | Demo delivery map | Order route, vehicle position and progress timeline | **Mock working** | Default in demo mode | — | Unit + iOS Simulator | No |

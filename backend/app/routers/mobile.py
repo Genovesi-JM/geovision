@@ -61,9 +61,9 @@ class SiteCreate(BaseModel):
         default="agriculture",
         pattern="^(agriculture|livestock|infrastructure|mining|environment)$",
     )
-    country: str = Field(default="Angola", min_length=2, max_length=100)
-    province: str | None = Field(default=None, max_length=100)
-    municipality: str | None = Field(default=None, max_length=100)
+    country: str = Field(default="Angola", pattern="^Angola$")
+    province: str = Field(min_length=2, max_length=100)
+    municipality: str = Field(min_length=2, max_length=100)
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
     area_hectares: float | None = Field(default=None, gt=0, le=100_000_000)

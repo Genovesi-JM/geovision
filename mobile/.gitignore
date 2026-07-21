@@ -3,7 +3,7 @@
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-pubspec.lock
+# This is an application, so pubspec.lock is committed for reproducible builds.
 ios/Pods/
 ios/.symlinks/
 ios/Flutter/Flutter.framework

@@ -1,10 +1,23 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geovision/features/sites/domain/site.dart';
+import 'package:geovision/features/sites/domain/angola_locations.dart';
 import 'package:geovision/features/alerts/domain/alert.dart';
 import 'package:geovision/features/sites/domain/kpi_definition.dart';
 import 'package:geovision/features/sites/domain/sector.dart';
 
 void main() {
+  test('Angola location catalogue follows the 2025 administrative division',
+      () {
+    expect(angolaMunicipalities, hasLength(21));
+    expect(
+      angolaMunicipalities.values
+          .fold<int>(0, (sum, rows) => sum + rows.length),
+      326,
+    );
+    expect(angolaMunicipalities['Luanda'], contains('Viana'));
+    expect(angolaMunicipalities['Icolo e Bengo'], contains('Catete'));
+  });
+
   group('Site model', () {
     test('round-trips through JSON', () {
       final site = Site(
