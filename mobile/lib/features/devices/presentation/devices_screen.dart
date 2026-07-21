@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -64,7 +65,16 @@ class DevicesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(devicesProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context).devices)),
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).devices),
+        actions: [
+          IconButton(
+            tooltip: 'Guias visuais',
+            onPressed: () => context.go('/guides'),
+            icon: const Icon(Icons.menu_book_outlined),
+          ),
+        ],
+      ),
       body: async.when(
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(message: '$e'),

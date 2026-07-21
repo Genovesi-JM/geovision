@@ -10,6 +10,7 @@ import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/reset_password_screen.dart';
 import '../../features/devices/presentation/devices_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/guides/presentation/guides_screen.dart';
 import '../../features/maps/presentation/site_map_screen.dart';
 import '../../features/orders/presentation/orders_screen.dart';
 import '../../features/orders/presentation/cart_screen.dart';
@@ -81,6 +82,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/account', builder: (c, s) => const AccountScreen()),
           GoRoute(path: '/reports', builder: (c, s) => const ReportsScreen()),
+          GoRoute(
+            path: '/guides',
+            builder: (c, s) => const GuidesScreen(),
+            routes: [
+              GoRoute(
+                  path: ':id',
+                  builder: (c, s) =>
+                      GuideDetailScreen(guideId: s.pathParameters['id']!)),
+            ],
+          ),
           GoRoute(
             path: '/orders',
             builder: (c, s) => const OrdersScreen(),

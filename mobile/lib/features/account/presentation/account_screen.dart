@@ -94,6 +94,11 @@ class AccountScreen extends ConsumerWidget {
                 label: 'Devices',
                 onTap: () => context.go('/devices')),
             _Tile(
+                icon: Icons.menu_book_outlined,
+                label: _label(language, 'Guias visuais', 'Visual guides',
+                    'Guías visuales', 'Guides visuels'),
+                onTap: () => context.go('/guides')),
+            _Tile(
                 icon: Icons.language,
                 label: '${text.language} ($language)',
                 onTap: () => _selectLanguage(context, ref)),
@@ -172,6 +177,14 @@ class AccountScreen extends ConsumerWidget {
     }
   }
 }
+
+String _label(String language, String pt, String en, String es, String fr) =>
+    switch (language.toLowerCase()) {
+      'pt' => pt,
+      'es' => es,
+      'fr' => fr,
+      _ => en,
+    };
 
 class _Group extends StatelessWidget {
   const _Group({required this.children});

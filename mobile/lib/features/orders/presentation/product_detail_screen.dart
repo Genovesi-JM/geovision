@@ -109,6 +109,15 @@ class _ProductBody extends ConsumerWidget {
               avatar: Icon(Icons.support_agent, size: 16),
               label: Text('Suporte GeoVision'))
         ]),
+        if (product.category == 'equipment' ||
+            product.category == 'hardware') ...[
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/guides'),
+            icon: const Icon(Icons.menu_book_outlined),
+            label: const Text('Ver instalação, utilização e segurança'),
+          ),
+        ],
         const SizedBox(height: 28),
         FilledButton.icon(
             onPressed: () {

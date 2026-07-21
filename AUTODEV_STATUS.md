@@ -7,7 +7,7 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |
 | Dart formatting | PASS | 89 Dart files checked |
 | Flutter static analysis | PASS | `flutter analyze`: no issues found |
-| Flutter unit/widget tests | PASS | 25 tests passed |
+| Flutter unit/widget tests | PASS | 27 tests passed |
 | Android customer journey | PASS | Integration test passed on API 35 ARM emulator: launch → Home → Sites → Alerts → Work |
 | FastAPI backend tests | PASS | 9 tests passed, including authenticated commerce and customer site creation |
 | Alembic migration | PASS | Clean upgrade, one-step downgrade and re-upgrade passed; one migration head remains |
@@ -61,6 +61,9 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 - Added iOS and Android foreground-location permission declarations and localized the complete site-creation flow in Portuguese, English, Spanish and French.
 - Expanded structured offline geography to Angola, Mozambique, Namibia, Zambia, South Africa, Democratic Republic of the Congo, Republic of the Congo, Portugal, Spain, France and Brazil.
 - Added dependent country → province/state → city/municipality selection with localized country names; Angola retains its verified 21-province/326-municipality override.
+- Added an offline Visual Guides centre accessible from Account, Devices and relevant Store products.
+- Added illustrated step-by-step guidance for soil sensors, weather stations, equipment maintenance, alerts/KPIs, offline synchronisation and drone-operation preparation.
+- Added localized Portuguese, English, Spanish and French guide content, category/search filters, safety warnings and direct technician-request actions for high-risk work.
 
 ## Remaining before commercial release
 
