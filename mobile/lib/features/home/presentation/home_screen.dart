@@ -76,9 +76,9 @@ class HomeScreen extends ConsumerWidget {
                       label: 'Request',
                       onTap: () => context.go('/work/new')),
                   QuickAction(
-                      icon: Icons.description_outlined,
-                      label: 'Reports',
-                      onTap: () => context.go('/reports')),
+                      icon: Icons.storefront_outlined,
+                      label: 'Store',
+                      onTap: () => context.go('/orders')),
                   QuickAction(
                       icon: Icons.warning_amber,
                       label: 'Alerts',

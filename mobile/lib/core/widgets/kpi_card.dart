@@ -103,7 +103,7 @@ class KpiCard extends StatelessWidget {
           ),
           if (spark.length > 1) ...[
             const SizedBox(height: GvSpacing.sm),
-            SizedBox(height: 28, child: _Spark(spark, _statusColor)),
+            SizedBox(height: 26, child: _Spark(spark, _statusColor)),
           ],
         ],
       ),

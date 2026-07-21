@@ -12,6 +12,9 @@ import '../../features/devices/presentation/devices_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/maps/presentation/site_map_screen.dart';
 import '../../features/orders/presentation/orders_screen.dart';
+import '../../features/orders/presentation/cart_screen.dart';
+import '../../features/orders/presentation/order_detail_screen.dart';
+import '../../features/orders/presentation/product_detail_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/sites/presentation/site_detail_screen.dart';
 import '../../features/sites/presentation/sites_screen.dart';
@@ -76,7 +79,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/account', builder: (c, s) => const AccountScreen()),
           GoRoute(path: '/reports', builder: (c, s) => const ReportsScreen()),
-          GoRoute(path: '/orders', builder: (c, s) => const OrdersScreen()),
+          GoRoute(
+            path: '/orders',
+            builder: (c, s) => const OrdersScreen(),
+            routes: [
+              GoRoute(path: 'cart', builder: (c, s) => const CartScreen()),
+              GoRoute(
+                  path: 'product/:id',
+                  builder: (c, s) =>
+                      ProductDetailScreen(productId: s.pathParameters['id']!)),
+              GoRoute(
+                  path: ':id',
+                  builder: (c, s) =>
+                      OrderDetailScreen(orderId: s.pathParameters['id']!),
+                  routes: [
+                    GoRoute(
+                        path: 'tracking',
+                        builder: (c, s) => DeliveryTrackingScreen(
+                            orderId: s.pathParameters['id']!)),
+                  ]),
+            ],
+          ),
           GoRoute(path: '/devices', builder: (c, s) => const DevicesScreen()),
         ],
       ),

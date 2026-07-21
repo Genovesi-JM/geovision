@@ -84,7 +84,7 @@ class AccountScreen extends ConsumerWidget {
                 onTap: () => context.go('/reports')),
             _Tile(
                 icon: Icons.shopping_bag_outlined,
-                label: 'Orders & payments',
+                label: 'Loja, pedidos & pagamentos',
                 onTap: () => context.go('/orders')),
             _Tile(
                 icon: Icons.sensors,

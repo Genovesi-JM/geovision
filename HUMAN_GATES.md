@@ -34,6 +34,14 @@ how to confirm · what the automation does afterwards.
 - **Action:** Provide tokens via `--dart-define` / secret manager.
 - **After:** demo/mock stays default; real adapter activates behind its flag.
 
+## 5a. Google Maps and delivery/logistics provider
+- **Reason:** The current order tracker is a safe, fully local demonstration. Live
+  courier position requires a Google Maps key, billing-enabled project and a
+  logistics-provider tracking feed or GeoVision driver application.
+- **Action:** Choose the delivery partner and provide restricted staging keys.
+- **After:** implement the existing `DeliveryTrackingProvider`; the customer UI
+  and demo fallback remain unchanged.
+
 ## 6. OAuth client IDs (Google / Microsoft / Apple sign-in)
 - **Action:** Provide client IDs/secrets to the backend + redirect URIs.
 - **After:** mobile OAuth buttons wire to existing backend routes.

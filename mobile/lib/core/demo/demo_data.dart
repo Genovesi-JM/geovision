@@ -318,6 +318,33 @@ abstract final class DemoData {
 
   static List<GvProduct> products() => const [
         GvProduct(
+            id: 'seed-maize-1',
+            name: 'Sementes de milho GV 28810 PRO3',
+            category: 'seeds',
+            priceCents: 17500,
+            currency: 'USD',
+            description:
+                'Híbrido de alta produtividade, adaptado a regiões tropicais.',
+            unit: 'saco',
+            featured: true),
+        GvProduct(
+            id: 'seed-soy-1',
+            name: 'Sementes de soja GV 8080 PRO',
+            category: 'seeds',
+            priceCents: 9650,
+            currency: 'USD',
+            description: 'Semente certificada com alto potencial produtivo.',
+            unit: 'saco'),
+        GvProduct(
+            id: 'input-fertilizer-1',
+            name: 'Fertilizante NPK 20-10-20',
+            category: 'inputs',
+            priceCents: 3800,
+            currency: 'USD',
+            description:
+                'Nutrição equilibrada para culturas de alto rendimento.',
+            unit: 'saco'),
+        GvProduct(
             id: 'pr-1',
             name: 'Multispectral Drone Survey',
             category: 'service',
@@ -332,7 +359,33 @@ abstract final class DemoData {
             priceCents: 32000,
             currency: 'USD',
             description: 'IoT soil sensor with installation.',
-            unit: 'unit'),
+            unit: 'unidade',
+            featured: true),
+        GvProduct(
+            id: 'pr-tractor',
+            name: 'Trator agrícola GV 120',
+            category: 'equipment',
+            priceCents: 12900000,
+            currency: 'USD',
+            description: 'Trator robusto de 120 cv para operações agrícolas.',
+            unit: 'unidade'),
+        GvProduct(
+            id: 'pr-sprayer',
+            name: 'Pulverizador inteligente 3000',
+            category: 'equipment',
+            priceCents: 1890000,
+            currency: 'USD',
+            description: 'Aplicação de precisão com controlo de secções.',
+            unit: 'unidade'),
+        GvProduct(
+            id: 'pr-drone',
+            name: 'Drone agrícola GeoVision A20',
+            category: 'equipment',
+            priceCents: 2150000,
+            currency: 'USD',
+            description: 'Drone para pulverização e operações de precisão.',
+            unit: 'unidade',
+            featured: true),
         GvProduct(
             id: 'pr-3',
             name: 'Monitoring — Pro (monthly)',
@@ -368,5 +421,26 @@ abstract final class DemoData {
             status: 'confirmed',
             paymentStatus: 'pending',
             items: const ['Monitoring — Pro (monthly)']),
+        GvOrder(
+            id: 'GV-2405-0187',
+            createdAt: _dAgo(1),
+            totalCents: 54245,
+            currency: 'USD',
+            status: 'in_transit',
+            paymentStatus: 'paid',
+            items: const [
+              'Sementes de milho',
+              'Sensor de solo',
+              'Fertilizante NPK'
+            ],
+            delivery: GvDelivery(
+              trackingCode: 'GV-2405-0187',
+              status: 'Em trânsito',
+              destination: 'Fazenda Boa Vista, Viana, Luanda',
+              estimatedArrival: DateTime(2026, 7, 22, 15, 30),
+              progress: .68,
+              vehicleLatitude: -8.894,
+              vehicleLongitude: 13.366,
+            )),
       ];
 }
