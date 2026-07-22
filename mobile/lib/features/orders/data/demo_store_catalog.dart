@@ -89,6 +89,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'operação',
         sectors: ['agro', 'livestock'],
+        image: 'assets/images/store/livestock-aerial-count.jpg',
         description:
             'Captura RGB ou térmica para apoio à contagem visual de animais e análise da distribuição do efetivo. Não substitui diagnóstico veterinário.',
         deliverables: [
@@ -179,6 +180,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'lote',
         sectors: ['environment'],
+        image: 'assets/images/store/reforestation-seeds.jpg',
         description:
             'Lote definido por projeto de recuperação vegetal, espécies autorizadas e condições locais. Pode ser associado ao serviço de dispersão aérea e monitorização NDVI.',
         deliverables: [
@@ -215,6 +217,7 @@ abstract final class DemoStoreCatalog {
         unit: 'campanha',
         featured: true,
         sectors: ['mining'],
+        image: 'assets/images/store/mining-drone-survey.jpg',
         description:
             'Levantamento RTK para cálculo comparativo de volumes de minério, estéril, cavas e stockpiles, com rastreabilidade por campanha.',
         deliverables: [
@@ -232,6 +235,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'projeto',
         sectors: ['mining'],
+        image: 'assets/images/store/mining-drone-survey.jpg',
         description:
             'Mapeamento topográfico RTK por fotogrametria ou LiDAR quando contratado, preparado para engenharia, superfícies e cortes.',
         deliverables: [
@@ -250,6 +254,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'campanha',
         sectors: ['mining'],
+        image: 'assets/images/store/mining-drone-survey.jpg',
         description:
             'Comparação de modelos de elevação e identificação de setores que requerem revisão geotécnica. Não substitui parecer de engenheiro geotécnico.',
         deliverables: [
@@ -268,6 +273,7 @@ abstract final class DemoStoreCatalog {
         unit: 'campanha',
         featured: true,
         sectors: ['construction'],
+        image: 'assets/images/store/construction-progress.jpg',
         description:
             'Campanhas recorrentes para documentar progresso, comparar planeado e executado e manter uma linha temporal visual para equipas e stakeholders.',
         deliverables: [
@@ -286,6 +292,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'projeto',
         sectors: ['construction', 'infrastructure'],
+        image: 'assets/images/store/construction-progress.jpg',
         description:
             'Medição de terraplenagem com comparação entre superfícies e documentação para controlo de obra.',
         deliverables: [
@@ -303,6 +310,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'inspeção',
         sectors: ['infrastructure'],
+        image: 'assets/images/store/infrastructure-inspection.jpg',
         description:
             'Inspeção de pontes, estradas, barragens, linhas e estruturas com evidências georreferenciadas e priorização de pontos para revisão técnica.',
         deliverables: [
@@ -320,6 +328,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'projeto',
         sectors: ['infrastructure'],
+        image: 'assets/images/store/infrastructure-inspection.jpg',
         description:
             'Mapeamento linear de estradas, canais, pipelines ou linhas de transmissão, segmentado para comparação de condição e manutenção.',
         deliverables: [
@@ -337,6 +346,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'projeto',
         sectors: ['environment'],
+        image: 'assets/images/store/environmental-monitoring.jpg',
         description:
             'Mapeamento RGB, multiespectral e GIS de cobertura vegetal, corpos de água, áreas sensíveis e zonas de proteção para criar uma base comparável.',
         deliverables: [
@@ -355,6 +365,7 @@ abstract final class DemoStoreCatalog {
         unit: 'operação',
         featured: true,
         sectors: ['environment'],
+        image: 'assets/images/store/environmental-monitoring.jpg',
         description:
             'Planeamento e dispersão aérea de sementes com Agras T40 para recuperação vegetal, seguida de monitorização periódica. Espécies e plano ambiental requerem aprovação do projeto.',
         deliverables: [
@@ -372,6 +383,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'campanha',
         sectors: ['environment'],
+        image: 'assets/images/store/hma-safe-corridor.jpg',
         description:
             'Suporte visual e GIS para delimitação, rotas de acesso, documentação de progresso e auditoria em programas de desminagem humanitária. Não deteta minas nem substitui equipas acreditadas.',
         deliverables: [
@@ -413,6 +425,7 @@ abstract final class DemoStoreCatalog {
           'infrastructure',
           'environment'
         ],
+        image: 'assets/images/store/geovision-intelligence-pro.jpg',
         description:
             'Acesso mensal a dashboards setoriais, mapas interativos, alertas, histórico, relatórios e suporte remoto. Operações de campo, hardware e processamento extraordinário são orçados separadamente.',
         deliverables: [

@@ -72,11 +72,13 @@ void main() {
   });
 
   test('commercial catalogue includes bundled product photography', () {
-    final illustrated = DemoData.products()
+    final products = DemoData.products();
+    final illustrated = products
         .where((product) =>
             product.image?.startsWith('assets/images/store/') == true)
         .toList();
-    expect(illustrated.length, greaterThanOrEqualTo(7));
+    expect(illustrated.length, products.length,
+        reason: 'Every commercial card must have a product image.');
     expect(illustrated.any((product) => product.category == 'seeds'), isTrue);
     expect(
         illustrated.any((product) => product.category == 'hardware'), isTrue);

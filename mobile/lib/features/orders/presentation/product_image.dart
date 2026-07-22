@@ -25,20 +25,46 @@ class ProductImage extends StatelessWidget {
         _ => Icons.inventory_2_outlined,
       };
 
+  String get _fallbackAsset {
+    if (product.sectors.contains('mining')) {
+      return 'assets/images/store/mining-drone-survey.jpg';
+    }
+    if (product.sectors.contains('construction')) {
+      return 'assets/images/store/construction-progress.jpg';
+    }
+    if (product.sectors.contains('infrastructure')) {
+      return 'assets/images/store/infrastructure-inspection.jpg';
+    }
+    if (product.sectors.contains('livestock')) {
+      return 'assets/images/store/livestock-aerial-count.jpg';
+    }
+    if (product.sectors.contains('environment')) {
+      return 'assets/images/store/environmental-monitoring.jpg';
+    }
+    return switch (product.category) {
+      'seeds' => 'assets/images/store/certified-maize-seeds.jpg',
+      'inputs' => 'assets/images/store/fertilizer-inputs.jpg',
+      'equipment' => 'assets/images/store/rtk-field-system.jpg',
+      'hardware' => 'assets/images/store/soil-iot-kit.jpg',
+      'subscription' => 'assets/images/store/geovision-intelligence-pro.jpg',
+      _ => 'assets/images/store/multispectral-drone-service.jpg',
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final image = product.image;
+    final image = product.image ?? _fallbackAsset;
     return ClipRRect(
       borderRadius: borderRadius,
-      child: image == null || image.isEmpty
-          ? _fallback()
+      child: image.isEmpty
+          ? _assetFallback()
           : image.startsWith('https://')
               ? Image.network(
                   image,
                   fit: fit,
                   width: double.infinity,
                   height: double.infinity,
-                  errorBuilder: (_, __, ___) => _fallback(),
+                  errorBuilder: (_, __, ___) => _assetFallback(),
                 )
               : Image.asset(
                   image,
@@ -49,6 +75,14 @@ class ProductImage extends StatelessWidget {
                 ),
     );
   }
+
+  Widget _assetFallback() => Image.asset(
+        _fallbackAsset,
+        fit: fit,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => _fallback(),
+      );
 
   Widget _fallback() => DecoratedBox(
         decoration: BoxDecoration(
