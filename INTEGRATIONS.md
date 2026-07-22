@@ -21,6 +21,9 @@ reported as complete.
 | Multicaixa (Angola) | Local payments | Interface prepared | — | Yes | Sandbox | Yes |
 | GeoVision commerce API | Catalogue, price lists, cart, checkout and owned order history | **Backend contract working** · production not activated | `GV_API_BASE_URL`, `GV_DEMO_MODE=false` | Payment-provider dependent | FastAPI contract + Flutter mapping | No for local/staging |
 | GeoVision demo commerce | Seeds, inputs, equipment, sensors and services | **Mock working** | `GV_DEMO_MODE=true` | — | Unit + iOS Simulator | No |
+| GAIA assistant | Native customer help using the existing FastAPI `/ai/chat` contract | **Working** with backend demo fallback · production model credential required | Backend `OPENAI_API_KEY`, `OPENAI_MODEL` | — | Flutter analyze/build + backend endpoint | Yes (production API key) |
+| GeoVision support channels | WhatsApp, Instagram and support email from the public website | **Working** through native external links | Maintained website contact records | — | iOS/Android native build | No |
+| Website payment methods | Multicaixa Express, Angola IBAN, Visa/Mastercard, international IBAN and PayPal presentation | **Working in mobile UI and checkout selection** · live providers gated | Backend/provider-specific | Provider-dependent | Flutter tests + native builds | Yes for live processing |
 | ERP/accounting platform | Fiscal invoicing, procurement, warehouse and reconciliation | Integration boundary planned; not required for MVP | Provider-dependent | Provider-dependent | ERP sandbox | Yes (provider/business decision) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |

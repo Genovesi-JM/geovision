@@ -17,6 +17,7 @@ class HelpGuide {
     required this.icon,
     required this.title,
     required this.summary,
+    required this.imageAsset,
     required this.steps,
     this.warning,
     this.requiresTechnician = false,
@@ -27,6 +28,7 @@ class HelpGuide {
   final IconData icon;
   final Map<String, String> title;
   final Map<String, String> summary;
+  final String imageAsset;
   final List<GuideStep> steps;
   final Map<String, String>? warning;
   final bool requiresTechnician;
@@ -46,6 +48,7 @@ GuideStep _step(
 final helpGuides = <HelpGuide>[
   HelpGuide(
     id: 'soil-sensor-install',
+    imageAsset: 'assets/images/guides/soil-sensor.png',
     category: GuideCategory.devices,
     icon: Icons.sensors,
     minutes: 12,
@@ -100,6 +103,7 @@ final helpGuides = <HelpGuide>[
   ),
   HelpGuide(
     id: 'weather-station',
+    imageAsset: 'assets/images/guides/weather-station.png',
     category: GuideCategory.devices,
     icon: Icons.cloud_outlined,
     minutes: 15,
@@ -157,6 +161,7 @@ final helpGuides = <HelpGuide>[
   ),
   HelpGuide(
     id: 'equipment-care',
+    imageAsset: 'assets/images/guides/equipment-care.png',
     category: GuideCategory.equipment,
     icon: Icons.agriculture,
     minutes: 8,
@@ -213,6 +218,7 @@ final helpGuides = <HelpGuide>[
   ),
   HelpGuide(
     id: 'alerts-kpis',
+    imageAsset: 'assets/images/guides/alerts-kpis.png',
     category: GuideCategory.insights,
     icon: Icons.monitor_heart_outlined,
     minutes: 6,
@@ -264,6 +270,7 @@ final helpGuides = <HelpGuide>[
   ),
   HelpGuide(
     id: 'offline-sync',
+    imageAsset: 'assets/images/guides/offline-sync.png',
     category: GuideCategory.app,
     icon: Icons.sync,
     minutes: 4,
@@ -315,6 +322,7 @@ final helpGuides = <HelpGuide>[
   ),
   HelpGuide(
     id: 'drone-safety',
+    imageAsset: 'assets/images/guides/drone-safety.png',
     category: GuideCategory.safety,
     icon: Icons.flight_takeoff,
     minutes: 7,

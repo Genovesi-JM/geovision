@@ -90,6 +90,11 @@ class AccountScreen extends ConsumerWidget {
                 label: 'Loja, pedidos & pagamentos',
                 onTap: () => context.go('/orders')),
             _Tile(
+                icon: Icons.payments_outlined,
+                label: _label(language, 'Formas de pagamento',
+                    'Payment methods', 'Métodos de pago', 'Moyens de paiement'),
+                onTap: () => context.go('/payment-methods')),
+            _Tile(
                 icon: Icons.sensors,
                 label: 'Devices',
                 onTap: () => context.go('/devices')),
@@ -105,13 +110,26 @@ class AccountScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: GvSpacing.md),
           _Group(children: [
+            _Tile(
+                icon: Icons.auto_awesome,
+                label: _label(language, 'Assistente GAIA', 'GAIA assistant',
+                    'Asistente GAIA', 'Assistant GAIA'),
+                onTap: () => context.go('/assistant')),
             _Tile(icon: Icons.security, label: 'Security', onTap: () {}),
             _Tile(
                 icon: Icons.privacy_tip_outlined,
                 label: 'Privacy',
                 onTap: () {}),
             _Tile(icon: Icons.gavel_outlined, label: 'Terms', onTap: () {}),
-            _Tile(icon: Icons.support_agent, label: 'Support', onTap: () {}),
+            _Tile(
+                icon: Icons.support_agent,
+                label: _label(
+                    language,
+                    'Contacto e suporte',
+                    'Contact & support',
+                    'Contacto y soporte',
+                    'Contact et assistance'),
+                onTap: () => context.go('/support')),
           ]),
           const SizedBox(height: GvSpacing.md),
           if (session.isDemo)

@@ -87,14 +87,10 @@ class _GuidesScreenState extends State<GuidesScreen> {
                 child: GvCard(
                   onTap: () => context.go('/guides/${guide.id}'),
                   child: Row(children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: GvColors.accentCyan.withValues(alpha: .14),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(guide.icon, color: GvColors.accentCyan),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: Image.asset(guide.imageAsset,
+                          width: 72, height: 60, fit: BoxFit.cover),
                     ),
                     const SizedBox(width: GvSpacing.md),
                     Expanded(
@@ -152,9 +148,16 @@ class GuideDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(guideText(guide.title, language))),
       body: ListView(
-        padding: const EdgeInsets.all(GvSpacing.lg),
+        padding: const EdgeInsets.fromLTRB(
+            GvSpacing.lg, GvSpacing.sm, GvSpacing.lg, GvSpacing.lg),
         children: [
-          Icon(guide.icon, size: 68, color: GvColors.accentCyan),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Image.asset(guide.imageAsset, fit: BoxFit.cover),
+            ),
+          ),
           const SizedBox(height: GvSpacing.md),
           Text(guideText(guide.title, language),
               textAlign: TextAlign.center,

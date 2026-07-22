@@ -7,6 +7,8 @@ void main() {
     expect(helpGuides.map((guide) => guide.category).toSet(),
         containsAll(GuideCategory.values));
     for (final guide in helpGuides) {
+      expect(guide.imageAsset, startsWith('assets/images/guides/'));
+      expect(guide.imageAsset, endsWith('.png'));
       expect(guide.steps.length, greaterThanOrEqualTo(4));
       for (final language in ['pt', 'en', 'es', 'fr']) {
         expect(guideText(guide.title, language), isNotEmpty);

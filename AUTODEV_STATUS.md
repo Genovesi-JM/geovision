@@ -64,6 +64,11 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 - Added an offline Visual Guides centre accessible from Account, Devices and relevant Store products.
 - Added illustrated step-by-step guidance for soil sensors, weather stations, equipment maintenance, alerts/KPIs, offline synchronisation and drone-operation preparation.
 - Added localized Portuguese, English, Spanish and French guide content, category/search filters, safety warnings and direct technician-request actions for high-risk work.
+- Replaced guide placeholders with six original GeoVision-branded agritech illustrations bundled for offline use.
+- Added a native multilingual GAIA assistant connected to the existing FastAPI `/ai/chat` contract, with backend demo fallback, quick prompts, error recovery and a visible safety notice.
+- Added official WhatsApp, Instagram and support-email contact actions sourced from the public website.
+- Added a multilingual payment-method centre for Multicaixa Express, Angola IBAN, Visa/Mastercard, international IBAN and PayPal, reusing the website payment marks without exposing banking secrets.
+- Added global GAIA access above the customer footer and verified the new native plugin in iOS Simulator and Android debug builds.
 
 ## Remaining before commercial release
 

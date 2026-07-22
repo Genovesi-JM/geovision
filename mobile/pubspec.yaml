@@ -39,6 +39,7 @@ dependencies:
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
   country_state_city: ^0.1.6
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -52,6 +53,8 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    - assets/images/guides/
+    - assets/images/payments/
     - assets/demo/
 
   # Uncomment after adding Inter TTFs to assets/fonts/ (see assets/fonts/README.md)

@@ -29,6 +29,11 @@ how to confirm · what the automation does afterwards.
   mix of physical services, hardware and digital subscriptions.
 - **After:** mock stays default; provider activates behind its flag only.
 
+## 4a. Production GAIA model credential and AI governance
+- **Reason:** The native GAIA chat is connected to the existing `/ai/chat` backend and has a safe demo response, but production AI usage needs an account-bound API key, spending controls and approved customer-data policy.
+- **Action:** Supply `OPENAI_API_KEY` through the backend secret manager, choose the production model and approve retention/escalation wording.
+- **After:** the same mobile chat activates without embedding any secret in the app; human support remains available as fallback.
+
 ## 5. Map/vendor credentials (Mapbox, ArcGIS, DJI, Pix4D, satellite, weather)
 - **Reason:** Tokens/SDKs are account-bound.
 - **Action:** Provide tokens via `--dart-define` / secret manager.

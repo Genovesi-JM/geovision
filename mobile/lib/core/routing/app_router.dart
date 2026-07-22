@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/account/presentation/account_screen.dart';
+import '../../features/account/presentation/payment_methods_screen.dart';
+import '../../features/account/presentation/support_screen.dart';
+import '../../features/assistant/presentation/gaia_screen.dart';
 import '../../features/alerts/presentation/alert_detail_screen.dart';
 import '../../features/alerts/presentation/alerts_screen.dart';
 import '../../features/authentication/domain/auth_session.dart';
@@ -81,6 +84,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: '/account', builder: (c, s) => const AccountScreen()),
+          GoRoute(path: '/assistant', builder: (c, s) => const GaiaScreen()),
+          GoRoute(path: '/support', builder: (c, s) => const SupportScreen()),
+          GoRoute(
+              path: '/payment-methods',
+              builder: (c, s) => const PaymentMethodsScreen()),
           GoRoute(path: '/reports', builder: (c, s) => const ReportsScreen()),
           GoRoute(
             path: '/guides',

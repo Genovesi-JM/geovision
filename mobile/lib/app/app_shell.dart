@@ -44,6 +44,14 @@ class AppShell extends ConsumerWidget {
           Expanded(child: child),
         ],
       ),
+      floatingActionButton: location == '/assistant'
+          ? null
+          : FloatingActionButton.small(
+              heroTag: 'gaia-assistant',
+              tooltip: 'GAIA',
+              onPressed: () => context.go('/assistant'),
+              child: const Icon(Icons.auto_awesome),
+            ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         currentIndex: index,
