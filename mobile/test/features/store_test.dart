@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geovision/core/demo/demo_data.dart';
 import 'package:geovision/features/orders/presentation/cart_controller.dart';
 import 'package:geovision/features/orders/domain/currency.dart';
 import 'package:geovision/features/orders/domain/commerce.dart';
 import 'package:geovision/features/orders/domain/product.dart';
+import 'package:geovision/features/orders/presentation/product_image.dart';
 
 void main() {
   test('commerce catalogue covers customer product categories', () {
@@ -109,6 +111,24 @@ void main() {
     expect(product.priceEurCents, 50000);
     expect(product.deliverables, ['Mapa NDVI']);
     expect(product.featured, isTrue);
+  });
+
+  testWidgets('legacy backend image paths render a bundled photo fallback',
+      (tester) async {
+    final product = GvProduct.fromJson({
+      'id': 'prod_agro_ndvi',
+      'name': 'NDVI',
+      'product_type': 'service',
+      'image_url': '/assets/img/products/agro-ndvi.jpg',
+      'sectors': ['agro'],
+    });
+    await tester.pumpWidget(MaterialApp(
+      home: SizedBox(
+          width: 180, height: 180, child: ProductImage(product: product)),
+    ));
+    final image = tester.widget<Image>(find.byType(Image));
+    expect((image.image as AssetImage).assetName,
+        'assets/images/store/multispectral-drone-service.jpg');
   });
 
   test('maps backend cart and checkout responses without losing totals', () {

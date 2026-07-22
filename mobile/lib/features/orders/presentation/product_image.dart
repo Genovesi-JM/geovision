@@ -53,26 +53,33 @@ class ProductImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = product.image ?? _fallbackAsset;
+    final image = product.image?.trim();
     return ClipRRect(
       borderRadius: borderRadius,
-      child: image.isEmpty
-          ? _assetFallback()
-          : image.startsWith('https://')
-              ? Image.network(
-                  image,
-                  fit: fit,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, __, ___) => _assetFallback(),
-                )
-              : Image.asset(
-                  image,
-                  fit: fit,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, __, ___) => _fallback(),
-                ),
+      child: switch (image) {
+        final path when path != null && path.startsWith('assets/') =>
+          Image.asset(
+            path,
+            fit: fit,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, __, ___) => _assetFallback(),
+          ),
+        final url
+            when url != null &&
+                (url.startsWith('https://') || url.startsWith('http://')) =>
+          Image.network(
+            url,
+            fit: fit,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, __, ___) => _assetFallback(),
+          ),
+        // Legacy backend paths such as /assets/img/products/foo.jpg are not
+        // bundled mobile assets and are not absolute public URLs. Use the
+        // deterministic product/sector photograph instead of a broken icon.
+        _ => _assetFallback(),
+      },
     );
   }
 
