@@ -7,7 +7,16 @@ import '../../../core/theme/app_spacing.dart';
 import '../data/gaia_repository.dart';
 
 class GaiaScreen extends ConsumerStatefulWidget {
-  const GaiaScreen({super.key});
+  const GaiaScreen({
+    this.siteId,
+    this.productId,
+    this.sourcePage = 'assistant',
+    super.key,
+  });
+
+  final String? siteId;
+  final String? productId;
+  final String sourcePage;
 
   @override
   ConsumerState<GaiaScreen> createState() => _GaiaScreenState();
@@ -137,6 +146,9 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
       final reply = await ref.read(gaiaRepositoryProvider).send(
             messages,
             language: Localizations.localeOf(context).languageCode,
+            siteId: widget.siteId,
+            productId: widget.productId,
+            sourcePage: widget.sourcePage,
           );
       if (mounted) {
         setState(

@@ -90,3 +90,14 @@ No production deployment or production database migration was performed.
 - Flutter live-account screen added in PT, EN, ES and FR.
 - Mock ERP remains the safe default; credentials and Angolan fiscal validation
   are documented human gates.
+
+# Store imagery and contextual GAIA milestone (2026-07-22)
+
+- Seven optimized commercial store images generated and bundled for seeds,
+  fertilizer, soil IoT, weather station, RTK, GPS livestock and drone services.
+- Product cards/details accept bundled assets and future HTTPS catalogue images.
+- GAIA now receives only customer-visible app context for sites, areas, KPIs,
+  alerts, devices, service requests and the open product.
+- Site and product screens can open GAIA with the relevant context already set.
+- Responses default to a short summary and action instead of asking the customer
+  to repeat information already available in the app.

@@ -8,6 +8,7 @@ import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
 import 'cart_controller.dart';
+import 'product_image.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   const ProductDetailScreen({required this.productId, super.key});
@@ -17,6 +18,11 @@ class ProductDetailScreen extends ConsumerWidget {
     final catalogue = ref.watch(catalogueProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Detalhes do produto'), actions: [
+        IconButton(
+            tooltip: 'Perguntar à GAIA sobre este produto',
+            onPressed: () =>
+                context.go('/assistant?from=store&product=$productId'),
+            icon: const Icon(Icons.auto_awesome)),
         IconButton(
             onPressed: () => context.go('/orders/cart'),
             icon: const Icon(Icons.shopping_cart_outlined))
@@ -42,14 +48,13 @@ class _ProductBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) =>
       ListView(padding: const EdgeInsets.all(GvSpacing.lg), children: [
-        Container(
-            height: 230,
-            decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                    colors: [Color(0xFF064E3B), GvColors.surfaceDeep]),
-                borderRadius: BorderRadius.circular(22)),
-            child:
-                const Icon(Icons.eco, size: 110, color: GvColors.accentGreen)),
+        SizedBox(
+          height: 230,
+          child: ProductImage(
+            product: product,
+            borderRadius: BorderRadius.circular(22),
+          ),
+        ),
         const SizedBox(height: 20),
         Row(children: [
           Expanded(

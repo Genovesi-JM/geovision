@@ -15,6 +15,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'operação',
         featured: true,
+        image: 'assets/images/store/multispectral-drone-service.jpg',
         sectors: ['agro'],
         description:
             'Levantamento com sensor multiespectral para avaliar vigor, stress hídrico, falhas de plantio e variabilidade por parcela. Requer seleção do local e validação da área antes da proposta final.',
@@ -33,6 +34,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'projeto',
         sectors: ['agro'],
+        image: 'assets/images/store/multispectral-drone-service.jpg',
         description:
             'Transforma dados de campo e imagens multiespectrais em zonas operacionais para aplicação diferenciada. As dosagens finais permanecem sob responsabilidade do cliente ou engenheiro agrónomo.',
         deliverables: [
@@ -50,6 +52,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'operação',
         featured: true,
+        image: 'assets/images/store/multispectral-drone-service.jpg',
         sectors: ['agro', 'environment'],
         description:
             'Execução aérea seletiva baseada em mapa de prescrição, com registo da cobertura e consumo. Produto aplicado, dose, condições meteorológicas e autorizações são confirmados antes do agendamento.',
@@ -68,6 +71,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'projeto',
         sectors: ['agro'],
+        image: 'assets/images/store/multispectral-drone-service.jpg',
         description:
             'Análise térmica e multiespectral para localizar variações de humidade, possíveis falhas e zonas que requerem inspeção no terreno.',
         deliverables: [
@@ -102,6 +106,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'unidade',
         featured: true,
+        image: 'assets/images/store/gps-livestock-collar.jpg',
         sectors: ['agro', 'livestock'],
         description:
             'Dispositivo GPS com SIM 4G, transmissão periódica, buffer offline e alertas de geofence na plataforma GeoVision. Plano de dados e cobertura são confirmados por local.',
@@ -120,6 +125,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'kit',
         sectors: ['agro'],
+        image: 'assets/images/store/soil-iot-kit.jpg',
         description:
             'Kit expandível para humidade, temperatura e parâmetros agronómicos compatíveis, com instalação e integração na plataforma. Disponibilidade depende do fornecedor certificado.',
         deliverables: [
@@ -137,6 +143,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'estação',
         sectors: ['agro', 'environment'],
+        image: 'assets/images/store/connected-weather-station.jpg',
         description:
             'Estação de campo para chuva, temperatura, humidade, vento e outros canais opcionais, integrada com alertas e histórico GeoVision. Solução expandível sujeita a levantamento de conectividade.',
         deliverables: [
@@ -154,6 +161,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'saco',
         sectors: ['agro'],
+        image: 'assets/images/store/certified-maize-seeds.jpg',
         description:
             'Categoria de sementes certificadas para cotação conforme variedade, ciclo, região, lote e disponibilidade. A GeoVision confirma a especificação agronómica e o fornecedor antes da encomenda.',
         deliverables: [
@@ -188,6 +196,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'saco',
         sectors: ['agro'],
+        image: 'assets/images/store/fertilizer-inputs.jpg',
         description:
             'Categoria para cotação de fertilizantes ou corretivos definidos por análise e prescrição agronómica. Formulação, dose e fornecedor são confirmados antes da venda.',
         deliverables: [
@@ -380,6 +389,7 @@ abstract final class DemoStoreCatalog {
         currency: 'USD',
         unit: 'sistema',
         sectors: ['agro', 'mining', 'construction', 'infrastructure'],
+        image: 'assets/images/store/rtk-field-system.jpg',
         description:
             'Estação base RTK e configuração operacional para missões que requerem precisão centimétrica. O equipamento exato e a alternativa NTRIP são definidos após avaliação de cobertura.',
         deliverables: [

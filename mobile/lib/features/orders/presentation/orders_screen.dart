@@ -11,6 +11,7 @@ import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
 import 'cart_controller.dart';
+import 'product_image.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -292,36 +293,18 @@ class _CommerceHero extends StatelessWidget {
 class _ProductCard extends ConsumerWidget {
   const _ProductCard({required this.product});
   final GvProduct product;
-  IconData get icon => switch (product.category) {
-        'seeds' => Icons.grass,
-        'inputs' => Icons.science_outlined,
-        'equipment' => Icons.agriculture,
-        'hardware' => Icons.sensors,
-        'service' => Icons.flight_takeoff,
-        'subscription' => Icons.dashboard_customize_outlined,
-        _ => Icons.inventory_2_outlined,
-      };
   @override
   Widget build(BuildContext context, WidgetRef ref) => GvCard(
         padding: EdgeInsets.zero,
         onTap: () => context.go('/orders/product/${product.id}'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
-              child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    GvColors.accentGreen.withValues(alpha: .25),
-                    GvColors.surfaceDeep
-                  ]),
+            child: ProductImage(
+              product: product,
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(15)),
             ),
-            child: Icon(icon, size: 56, color: GvColors.accentGreen),
-          )),
+          ),
           Padding(
             padding: const EdgeInsets.all(11),
             child:

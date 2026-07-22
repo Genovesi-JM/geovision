@@ -71,6 +71,20 @@ void main() {
     );
   });
 
+  test('commercial catalogue includes bundled product photography', () {
+    final illustrated = DemoData.products()
+        .where((product) =>
+            product.image?.startsWith('assets/images/store/') == true)
+        .toList();
+    expect(illustrated.length, greaterThanOrEqualTo(7));
+    expect(illustrated.any((product) => product.category == 'seeds'), isTrue);
+    expect(
+        illustrated.any((product) => product.category == 'hardware'), isTrue);
+    expect(
+        illustrated.any((product) => product.category == 'equipment'), isTrue);
+    expect(illustrated.any((product) => product.category == 'service'), isTrue);
+  });
+
   test('maps the FastAPI product contract into mobile catalogue fields', () {
     final product = GvProduct.fromJson({
       'id': 'prod_agro_ndvi',

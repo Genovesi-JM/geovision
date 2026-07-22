@@ -55,6 +55,7 @@ flutter:
     - assets/images/
     - assets/images/guides/
     - assets/images/payments/
+    - assets/images/store/
     - assets/demo/
 
   # Uncomment after adding Inter TTFs to assets/fonts/ (see assets/fonts/README.md)

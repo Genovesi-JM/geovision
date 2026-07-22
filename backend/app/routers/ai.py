@@ -3,6 +3,7 @@
 import logging
 import os
 import asyncio
+import unicodedata
 from typing import List, Optional, Literal
 
 import httpx
@@ -43,7 +44,7 @@ class AIStatusResponse(BaseModel):
 
 
 SYSTEM_PROMPT = """
-Es o assistente comercial AI da GeoVision (Gaia), focado em Angola.
+Es a GAIA, assistente operacional da aplicacao GeoVision.
 
 Tens acesso a contexto adicional da pagina enviada pelo backend:
 - `page_text`: texto visivel extraido do DOM da pagina actual.
@@ -52,6 +53,19 @@ Tens acesso a contexto adicional da pagina enviada pelo backend:
 - `sector`: sector estimado (ex.: Agricultura, Mineração, Construção, etc.).
 
 Regras importantes:
+- Responde no idioma preferido indicado no contexto.
+- Comeca pela resposta util, nunca por uma explicacao sobre as tuas limitacoes.
+- Por defeito usa no maximo 3 bullets curtos ou 70 palavras. So desenvolve se o
+  cliente pedir mais detalhes.
+- Quando o cliente escreve apenas o nome de um local, parcela, alerta,
+  equipamento, pedido ou produto, resume imediatamente: estado, dado mais
+  importante e proximo passo. Nao lhe pecas informacao que ja existe no contexto.
+- Usa exclusivamente dados marcados como contexto autorizado do cliente. Nunca
+  reveles dados internos, margens, credenciais ou informacao de outra empresa.
+- Distingue factos observados de recomendacoes. Se um valor nao consta no
+  contexto, diz simplesmente "nao registado"; nunca o inventes.
+- Comandos de equipamentos, pagamentos, cancelamentos e decisoes agronomicas ou
+  de seguranca exigem confirmacao humana fora do chat.
 - Usa sempre o `page_text` e o `page_title` quando o utilizador pergunta
     sobre "esta pagina", "informacao aqui" ou conteudo especifico.
 - NUNCA digas que nao consegues ver ou ler a pagina. Em vez disso,
@@ -63,7 +77,7 @@ Regras importantes:
 Objectivo geral:
 - Ajudar clientes a entender os servicos (agricultura, pecuaria, mineracao,
     construcao, infraestruturas, desminagem).
-- Fazer perguntas para perceber sector, regiao e desafios.
+- Fazer no maximo uma pergunta quando ela for realmente necessaria.
 - Explicar drones, sensores, mapas e modelos 3D em linguagem clara.
 - Mostrar beneficios (seguranca, reducao de custos, produtividade).
 - Ser profissional, simpatico e objectivo.
@@ -83,47 +97,21 @@ def _demo_reply(
     page_text: Optional[str] = None,
     page_title: Optional[str] = None,
 ) -> str:
-    """Resposta simples em modo demo, usando o contexto da página se existir.
+    """Fast, context-aware fallback used when the external model is unavailable."""
 
-    Isto evita respostas do tipo "nao consigo ler a pagina" e mostra
-    explicitamente ao utilizador que o assistente está a ver o texto
-    actual, mesmo sem modelo externo configurado.
-    """
+    last = messages[-1].content.strip() if messages else ""
+    last_lower = last.lower()
+    context_lines = [line.strip() for line in (page_text or "").splitlines() if line.strip()]
 
-    last = messages[-1].content if messages else ""
+    def normalise(value: str) -> str:
+        plain = "".join(
+            char for char in unicodedata.normalize("NFKD", value.lower())
+            if not unicodedata.combining(char)
+        )
+        return plain.replace("bloco", "block").replace("milho", "maize")
 
-    context_bits: list[str] = []
-    if page_title:
-        context_bits.append(f"Titulo da pagina: {page_title}")
-    if page:
-        context_bits.append(f"Caminho da pagina: {page}")
-    if sector:
-        context_bits.append(f"Sector estimado: {sector}")
-
-    page_snippet = None
-    if page_text:
-        snippet = page_text.strip()
-        if len(snippet) > 600:
-            snippet = snippet[:600] + " ..."
-        page_snippet = snippet
-
-    parts: list[str] = []
-    parts.append(
-        "Consigo ler o texto que esta na pagina actual, "
-        "mas estou em modo demo (sem ligacao ao modelo OpenAI configurado)."
-    )
-
-    if context_bits:
-        parts.append("Contexto detectado: " + " | ".join(context_bits))
-
-    if page_snippet:
-        parts.append("Aqui vai um excerto da informacao que vejo na pagina:\n\n" + page_snippet)
-
-    # Resumo especial para perguntas sobre operacoes/alertas no dashboard
-    last_lower = last.lower() if last else ""
-    text_lower = (page_text or "").lower()
-    wants_ops_summary = "operacoes em curso" in last_lower or "operações em curso" in last_lower or "operacoes" in last_lower
-    wants_alerts_summary = "alertas" in last_lower or "alerta" in last_lower
+    wants_alerts_summary = "alerta" in normalise(last)
+    wants_ops_summary = any(term in normalise(last) for term in ("operac", "servico", "trabalho"))
 
     wants_indoor_agriculture = any(
         term in last_lower
@@ -139,49 +127,51 @@ def _demo_reply(
     )
 
     if wants_indoor_agriculture:
-        parts.append(
-            "A agricultura indoor pode ser gerida pela GeoVision como um modulo "
-            "operacional dentro da mesma plataforma. Cada instalacao teria salas "
-            "ou zonas de cultivo, lotes e ciclos, receitas agronomicas, inventario "
-            "e sensores de temperatura, humidade, CO2, luz, pH, EC, nivel de agua "
-            "e energia. A app mostraria desvios, alertas, tarefas, rendimento e "
-            "rastreabilidade. Controlos de bombas, luzes ou climatizacao devem "
-            "passar por um gateway seguro, regras do backend e confirmacao humana; "
-            "nunca por comandos livres do chatbot."
+        return (
+            "A agricultura indoor sera um modulo GeoVision para salas, ciclos, "
+            "inventario e sensores de temperatura, humidade, CO2, luz, pH, EC, "
+            "agua e energia. A app resume desvios, alertas e tarefas. Bombas, "
+            "luzes e climatizacao exigem regras seguras e confirmacao humana."
         )
 
-    if wants_ops_summary or wants_alerts_summary:
-        ops_line = None
-        alerts_line = None
+    if wants_alerts_summary:
+        alerts = [line.removeprefix("Alert: ") for line in context_lines if line.startswith("Alert: ")]
+        if not alerts:
+            return "Nao vejo alertas abertos nos dados atuais da sua conta."
+        return "Alertas prioritarios:\n" + "\n".join(f"• {line}" for line in alerts[:3])
 
-        if "operacoes em curso" in text_lower or "operações em curso" in text_lower:
-            if "ainda nao existem servicos registados" in text_lower:
-                ops_line = "Nesta conta ainda nao ha operacoes em curso registadas."
-            else:
-                ops_line = (
-                    "Vejo servicos listados na secao 'Operacoes em curso', "
-                    "o que indica que ha operacoes activas em andamento."
-                )
+    if wants_ops_summary:
+        requests = [
+            line.removeprefix("Service request: ")
+            for line in context_lines
+            if line.startswith("Service request: ")
+        ]
+        if requests:
+            return "Servicos em curso:\n" + "\n".join(f"• {line}" for line in requests[:3])
 
-        if "alertas & aten" in text_lower or "alertas e atenc" in text_lower:
-            if "sem alertas" in text_lower:
-                alerts_line = "Neste momento nao ha alertas activos assinalados no painel."
-            else:
-                alerts_line = (
-                    "Vejo um ou mais alertas listados na secao 'Alertas & atencao', "
-                    "o que indica pontos que merecem atencao nesta conta."
-                )
+    # A short noun-only question (for example "Bloco A maize") should resolve
+    # directly against a site/area/device/product already visible in the app.
+    query_tokens = {token for token in normalise(last).split() if len(token) >= 3}
+    candidates = [
+        line for line in context_lines
+        if line.startswith(("Selected site:", "Area:", "Device:", "Open product:"))
+    ]
+    ranked = sorted(
+        candidates,
+        key=lambda line: sum(token in normalise(line) for token in query_tokens),
+        reverse=True,
+    )
+    if ranked and query_tokens:
+        score = sum(token in normalise(ranked[0]) for token in query_tokens)
+        if score >= min(2, len(query_tokens)):
+            return f"Resumo rapido:\n• {ranked[0]}\n• Abra o respetivo detalhe para ver historico e alertas."
 
-        if ops_line or alerts_line:
-            summary_bits = [b for b in [ops_line, alerts_line] if b]
-            parts.append("Resumo das operacoes e alertas desta conta:\n" + "\n".join(summary_bits))
-
-    if last and not wants_indoor_agriculture:
-        parts.append("Sobre a tua pergunta especifica, de forma resumida: " + last)
-
-    parts.append(reason.strip())
-
-    return "\n\n".join(parts)
+    totals = next((line for line in context_lines if line.startswith("Totals:")), None)
+    selected = next((line for line in context_lines if line.startswith("Selected site:")), None)
+    visible = [line for line in (totals, selected) if line]
+    if visible:
+        return "O que vejo agora:\n" + "\n".join(f"• {line.split(': ', 1)[-1]}" for line in visible)
+    return "Ainda nao ha dados suficientes neste ecra. Abra um local, alerta, dispositivo ou produto e pergunte novamente."
 
 
 async def call_openai(

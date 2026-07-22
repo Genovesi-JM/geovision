@@ -27,3 +27,29 @@ def test_gaia_demo_explains_indoor_agriculture_without_provider_key(monkeypatch)
     assert "modulo" in reply
     assert "CO2" in reply
     assert "confirmacao humana" in reply
+
+
+def test_gaia_demo_resolves_short_area_name_from_authorized_app_context(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(settings, "openai_api_key", None)
+    with TestClient(app) as client:
+        response = client.post(
+            "/ai/chat",
+            json={
+                "messages": [{"role": "user", "content": "Bloco A maize"}],
+                "page": "/mobile/site",
+                "page_title": "GeoVision mobile · site",
+                "sector": "Agricultura",
+                "page_text": (
+                    "AUTHORIZED APP CONTEXT (customer-visible data only)\n"
+                    "Selected site: Kilombo North Fields | Malanje, Angola | 142 ha.\n"
+                    "Area: Block A — Maize | crop Maize | 48.0 ha | Average NDVI 0.72 (ok), Water stress 23% (warning)."
+                ),
+            },
+        )
+
+    assert response.status_code == 200
+    reply = response.json()["reply"]
+    assert "Block A" in reply
+    assert "48.0 ha" in reply
+    assert "mais detalhes" not in reply.lower()

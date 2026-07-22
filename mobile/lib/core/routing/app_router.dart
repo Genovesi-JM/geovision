@@ -85,8 +85,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: '/account', builder: (c, s) => const AccountScreen()),
-          GoRoute(path: '/account-live', builder: (c, s) => const AccountLiveScreen()),
-          GoRoute(path: '/assistant', builder: (c, s) => const GaiaScreen()),
+          GoRoute(
+              path: '/account-live',
+              builder: (c, s) => const AccountLiveScreen()),
+          GoRoute(
+            path: '/assistant',
+            builder: (c, s) => GaiaScreen(
+              siteId: s.uri.queryParameters['site'],
+              productId: s.uri.queryParameters['product'],
+              sourcePage: s.uri.queryParameters['from'] ?? 'assistant',
+            ),
+          ),
           GoRoute(path: '/support', builder: (c, s) => const SupportScreen()),
           GoRoute(
               path: '/payment-methods',

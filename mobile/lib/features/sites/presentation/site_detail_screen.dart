@@ -26,6 +26,11 @@ class SiteDetailScreen extends ConsumerWidget {
         title: const Text('Site detail'),
         actions: [
           IconButton(
+            tooltip: 'Perguntar à GAIA sobre este local',
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: () => context.go('/assistant?from=site&site=$siteId'),
+          ),
+          IconButton(
             icon: const Icon(Icons.map_outlined),
             onPressed: () => context.go('/sites/$siteId/map'),
           ),

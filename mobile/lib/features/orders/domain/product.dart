@@ -14,6 +14,7 @@ class GvProduct {
     this.sectors = const [],
     this.deliverables = const [],
     this.indicativePrice = true,
+    this.image,
   });
   final String id;
   final String name;
@@ -29,6 +30,9 @@ class GvProduct {
   final List<String> sectors;
   final List<String> deliverables;
   final bool indicativePrice;
+
+  /// Bundled asset path in demo mode or HTTPS URL supplied by the commerce API.
+  final String? image;
 
   String get priceLabel => '${(priceCents / 100).toStringAsFixed(2)} $currency';
 
@@ -52,6 +56,7 @@ class GvProduct {
             (j['deliverables'] as List?)?.map((v) => v.toString()).toList() ??
                 const [],
         indicativePrice: j['indicative_price'] != false,
+        image: (j['image_url'] ?? j['image'])?.toString(),
       );
 
   static String _mobileCategory(Map<String, dynamic> json) {
