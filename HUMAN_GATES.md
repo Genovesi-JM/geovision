@@ -64,3 +64,16 @@ how to confirm · what the automation does afterwards.
 - **Reason:** The simulator and native builds validate the integration, but field accuracy and the final privacy wording require a real device and legal review.
 - **Action:** Test foreground location on one iPhone and one Android device; approve the privacy-policy description before release.
 - **After:** tune accuracy/timeouts if required; background location remains disabled.
+
+## 10. ERPNext staging and Angolan fiscal validation
+- **Reason:** The ERPNext adapter, outbox and mobile account view are implemented,
+  but production accounting requires hosting, a restricted API user, accounts,
+  warehouses, taxes and numbering approved for the operating companies. Generic
+  ERP capability is not proof of AGT compliance.
+- **Action:** Create an ERPNext staging company/API user and have an Angolan
+  accountant validate IVA, SAF-T/AGT requirements and invoice workflow.
+- **Where:** ERPNext staging and GeoVision's secret manager; never Git.
+- **Confirm:** One sandbox order completes order → invoice → payment → delivery
+  reconciliation and the accountant signs off the configuration.
+- **After:** Set `ERP_PROVIDER=erpnext`, add restricted credentials, map custom
+  fields and enable scheduled outbox processing.

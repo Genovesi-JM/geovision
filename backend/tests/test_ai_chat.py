@@ -1,10 +1,14 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.config import settings
 
 
 def test_gaia_demo_explains_indoor_agriculture_without_provider_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    # Settings loads backend/.env once at import time, so clearing only the
+    # process environment is insufficient on a developer machine with a key.
+    monkeypatch.setattr(settings, "openai_api_key", None)
     with TestClient(app) as client:
         response = client.post(
             "/ai/chat",

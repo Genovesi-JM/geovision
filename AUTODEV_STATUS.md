@@ -82,3 +82,11 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 - Connect real supplier stock, tax/fiscal invoicing, delivery quotations and live logistics status.
 
 No production deployment or production database migration was performed.
+# ERP and live account milestone (2026-07-22)
+
+- ERPNext selected behind a replaceable backend adapter.
+- Durable, idempotent ERP outbox and reversible migration added.
+- Customer-scoped overview, event history and SSE stream added.
+- Flutter live-account screen added in PT, EN, ES and FR.
+- Mock ERP remains the safe default; credentials and Angolan fiscal validation
+  are documented human gates.

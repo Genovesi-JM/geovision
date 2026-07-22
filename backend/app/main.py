@@ -14,7 +14,7 @@ from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRed
 from .routers import auth, projects, ai, accounts, me, kpi
 from .routers import products, orders, customer_accounts, employees
 from .routers import datasets, risk, payments, admin, mobile
-from .routers import shop, contacts
+from .routers import shop, contacts, integrations
 from .seed_data import (
     seed_admin_users,
 )
@@ -127,6 +127,7 @@ def create_application() -> FastAPI:
     application.include_router(shop.router)      # /shop (e-commerce)
     application.include_router(contacts.router)  # /contacts
     application.include_router(mobile.router)    # /mobile (Flutter contracts)
+    application.include_router(integrations.router)
 
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:

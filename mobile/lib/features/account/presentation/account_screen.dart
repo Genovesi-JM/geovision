@@ -76,6 +76,17 @@ class AccountScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: GvSpacing.md),
+          FilledButton.icon(
+            onPressed: () => context.go('/account-live'),
+            icon: const Icon(Icons.podcasts),
+            label: Text(_label(
+                language,
+                'Ver conta em tempo real',
+                'View live account',
+                'Ver cuenta en tiempo real',
+                'Voir le compte en temps réel')),
+          ),
+          const SizedBox(height: GvSpacing.md),
           _Group(children: [
             _Tile(
                 icon: Icons.notifications_outlined,

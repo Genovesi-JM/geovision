@@ -1,17 +1,29 @@
 """Authenticated API contracts used by the GeoVision Flutter application."""
 
 import json
+import asyncio
 import uuid
+from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.deps import get_current_user
-from app.models import Company, MobileServiceRequest, Site, User
+from app.models import (
+    AccountEvent,
+    Company,
+    MobileServiceRequest,
+    Order,
+    Payment,
+    Site,
+    User,
+)
 from app.routers.me import _get_user_company_id
+from app.services.erp_sync import publish_account_event
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
 
@@ -105,6 +117,15 @@ def create_site(
     )
     db.add(site)
     company.current_sites = current + 1
+    publish_account_event(
+        db,
+        company_id=company.id,
+        event_type="site.created",
+        resource_type="site",
+        resource_id=site.id,
+        title=f"Novo local: {site.name}",
+        payload={"name": site.name, "sector": site.sector},
+    )
     db.commit()
     db.refresh(site)
     return _site_payload(site)
@@ -173,6 +194,164 @@ def create_service_request(
         attachments_json=json.dumps(payload.attachments),
     )
     db.add(item)
+    if company_id:
+        publish_account_event(
+            db,
+            company_id=company_id,
+            event_type="service_request.created",
+            resource_type="service_request",
+            resource_id=item.id,
+            title=f"Pedido de serviço recebido: {site.name}",
+            payload={"status": item.status, "urgency": item.urgency},
+        )
     db.commit()
     db.refresh(item)
     return _request_payload(item)
+
+
+def _event_payload(item: AccountEvent) -> dict[str, Any]:
+    try:
+        data = json.loads(item.payload_json or "{}")
+    except (TypeError, json.JSONDecodeError):
+        data = {}
+    return {
+        "id": item.id,
+        "type": item.event_type,
+        "resource_type": item.resource_type,
+        "resource_id": item.resource_id,
+        "title": item.title,
+        "data": data,
+        "created_at": item.created_at.isoformat(),
+    }
+
+
+@router.get("/account/overview")
+def account_overview(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Tenant-isolated, customer-visible account snapshot for the mobile app."""
+    company_id = _get_user_company_id(user, db)
+    company = db.get(Company, company_id) if company_id else None
+    if not company:
+        raise HTTPException(status_code=403, detail="Organisation not found")
+
+    orders = (
+        db.query(Order)
+        .filter((Order.company_id == company.id) | (Order.user_id == user.id))
+        .order_by(Order.updated_at.desc())
+        .limit(20)
+        .all()
+    )
+    payments = (
+        db.query(Payment)
+        .filter(Payment.company_id == company.id)
+        .order_by(Payment.updated_at.desc())
+        .limit(20)
+        .all()
+    )
+    requests = (
+        db.query(MobileServiceRequest)
+        .filter(MobileServiceRequest.user_id == user.id)
+        .order_by(MobileServiceRequest.updated_at.desc())
+        .limit(20)
+        .all()
+    )
+    sites = db.query(Site).filter(Site.company_id == company.id).count()
+    outstanding = sum(
+        int(payment.amount)
+        for payment in payments
+        if payment.status not in {"paid", "completed", "confirmed", "refunded"}
+    )
+    latest = max(
+        [company.updated_at]
+        + [item.updated_at for item in orders]
+        + [item.updated_at for item in payments]
+        + [item.updated_at for item in requests]
+    )
+    return {
+        "organisation": {
+            "id": company.id,
+            "name": company.name,
+            "plan": company.subscription_plan,
+            "status": company.status,
+        },
+        "financial": {
+            "currency": "AOA",
+            "outstanding_cents": outstanding,
+            "paid_payments": sum(1 for p in payments if p.status in {"paid", "completed", "confirmed"}),
+            "pending_payments": sum(1 for p in payments if p.status not in {"paid", "completed", "confirmed", "refunded"}),
+        },
+        "activity": {
+            "sites": sites,
+            "orders": len(orders),
+            "active_orders": sum(1 for o in orders if o.status not in {"completed", "cancelled", "refunded"}),
+            "service_requests": len(requests),
+            "active_requests": sum(1 for r in requests if r.status not in {"completed", "cancelled"}),
+        },
+        "recent_orders": [
+            {
+                "id": order.id,
+                "number": order.order_number or order.id[:8],
+                "status": order.status,
+                "total_cents": int(order.total),
+                "currency": order.currency,
+                "updated_at": order.updated_at.isoformat(),
+            }
+            for order in orders[:5]
+        ],
+        "last_updated_at": latest.isoformat(),
+    }
+
+
+@router.get("/account/events")
+def account_events(
+    after: datetime | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        raise HTTPException(status_code=403, detail="Organisation not found")
+    query = db.query(AccountEvent).filter(AccountEvent.company_id == company_id)
+    if after:
+        query = query.filter(AccountEvent.created_at > after)
+    rows = query.order_by(AccountEvent.created_at.desc()).limit(limit).all()
+    return [_event_payload(row) for row in reversed(rows)]
+
+
+@router.get("/account/stream")
+def account_stream(
+    after: datetime | None = Query(default=None),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """SSE feed with heartbeat; mobile uses polling fallback after disconnects."""
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        raise HTTPException(status_code=403, detail="Organisation not found")
+
+    async def generate():
+        cursor = after or datetime.utcnow()
+        yield "event: ready\ndata: {}\n\n"
+        while True:
+            rows = (
+                db.query(AccountEvent)
+                .filter(AccountEvent.company_id == company_id, AccountEvent.created_at > cursor)
+                .order_by(AccountEvent.created_at.asc())
+                .limit(100)
+                .all()
+            )
+            for row in rows:
+                cursor = max(cursor, row.created_at)
+                yield f"id: {row.id}\nevent: account\ndata: {json.dumps(_event_payload(row))}\n\n"
+            if not rows:
+                yield ": heartbeat\n\n"
+            await asyncio.sleep(5)
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

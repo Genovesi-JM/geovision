@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = None
     openai_model: str = "gpt-4o-mini"
 
+    # ERP integration. GeoVision remains the customer-facing source of truth;
+    # ERPNext receives commercial/accounting documents through an outbox.
+    erp_provider: str = "mock"
+    erpnext_base_url: Optional[str] = None
+    erpnext_api_key: Optional[str] = None
+    erpnext_api_secret: Optional[str] = None
+    erpnext_webhook_secret: Optional[str] = None
+
     # Pydantic v2 settings: accept extra env vars (ignore unknown variables)
     model_config = {
         "env_file": Path(__file__).resolve().parent.parent / ".env",

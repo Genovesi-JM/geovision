@@ -16,11 +16,12 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from pydantic import BaseModel, Field
 
 from app.deps import get_current_user, get_optional_user, require_admin
-from app.models import User
+from app.models import Order, User
 from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.services.cart import get_cart_service, get_sector_labels
 from app.services.orders import get_order_service, OrderStatus, PaymentMethod, EventType
+from app.services.erp_sync import enqueue_erp_event, publish_account_event
 
 logger = logging.getLogger(__name__)
 
@@ -890,6 +891,48 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] 
         customer_notes=request.customer_notes,
         currency=req_currency,
     )
+
+    # Persist the ERP hand-off and customer live event after a successful
+    # checkout. This is deliberately asynchronous from ERP availability:
+    # checkout succeeds locally and the durable outbox can retry later.
+    if result.success and result.order_id:
+        order = db.get(Order, result.order_id)
+        if order:
+            payload = {
+                "customer_reference": order.company_id or order.user_id,
+                "transaction_date": order.created_at.date().isoformat(),
+                "currency": order.currency,
+                "order_type": "Sales",
+                "items": [
+                    {
+                        "item_code": item.sku or item.product_id,
+                        "item_name": item.name,
+                        "qty": item.qty,
+                        "rate": int(item.unit_price) / 100,
+                    }
+                    for item in order.items
+                ],
+            }
+            enqueue_erp_event(
+                db,
+                company_id=order.company_id,
+                aggregate_type="order",
+                aggregate_id=order.id,
+                event_type="order.created",
+                payload=payload,
+                version=order.updated_at.isoformat(),
+            )
+            if order.company_id:
+                publish_account_event(
+                    db,
+                    company_id=order.company_id,
+                    event_type="order.created",
+                    resource_type="order",
+                    resource_id=order.id,
+                    title=f"Pedido {order.order_number or order.id[:8]} criado",
+                    payload={"status": order.status, "total_cents": int(order.total), "currency": order.currency},
+                )
+            db.commit()
     
     return CheckoutResponse(
         success=result.success,

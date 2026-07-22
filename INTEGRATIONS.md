@@ -24,7 +24,7 @@ reported as complete.
 | GAIA assistant | Native customer help using the existing FastAPI `/ai/chat` contract | **Working** with backend demo fallback · production model credential required | Backend `OPENAI_API_KEY`, `OPENAI_MODEL` | — | Flutter analyze/build + backend endpoint | Yes (production API key) |
 | GeoVision support channels | WhatsApp, Instagram and support email from the public website | **Working** through native external links | Maintained website contact records | — | iOS/Android native build | No |
 | Website payment methods | Multicaixa Express, Angola IBAN, Visa/Mastercard, international IBAN and PayPal presentation | **Working in mobile UI and checkout selection** · live providers gated | Backend/provider-specific | Provider-dependent | Flutter tests + native builds | Yes for live processing |
-| ERP/accounting platform | Fiscal invoicing, procurement, warehouse and reconciliation | Integration boundary planned; not required for MVP | Provider-dependent | Provider-dependent | ERP sandbox | Yes (provider/business decision) |
+| ERPNext | Sales, purchasing, inventory, warehouse, invoices and reconciliation | **Adapter + durable outbox working in mock mode** · staging credentials required | `ERP_PROVIDER=erpnext`, `ERPNEXT_BASE_URL`, restricted API credentials | Inbound webhook after staging schema approval | Mock adapter + backend contract | Yes (hosting, credentials, fiscal validation) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |
 | IoT multi-provider bridge | API, MQTT, webhooks, BLE provisioning, LoRaWAN and Modbus gateways | Contract + mock outcomes working · backend adapter prepared | `GV_IOT_PROVIDER=mock|backend` | Backend bridge | Unit outcome matrix | Yes (vendor credentials/hardware) |
@@ -55,3 +55,12 @@ catalogue prices from live exchange rates; production checkout always accepts
 the API's recorded price. An ERP becomes appropriate for statutory invoicing,
 supplier purchasing, multiple warehouses and accounting reconciliation; it
 should synchronize through an adapter instead of replacing the mobile API.
+
+### ERPNext document mapping
+
+GeoVision remains the only API used by the mobile app. The durable outbox maps
+customer, product, order, invoice, payment and delivery events to ERPNext
+`Customer`, `Item`, `Sales Order`, `Sales Invoice`, `Payment Entry` and
+`Delivery Note` documents. Retries use a unique idempotency key. ERP downtime
+does not block customer checkout; failed events remain available for retry. No
+ERP credential or internal accounting data is returned to the mobile app.

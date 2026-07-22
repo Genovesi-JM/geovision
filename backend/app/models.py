@@ -742,6 +742,41 @@ class OrderEvent(Base):
     order = relationship("Order", backref="events_rel")
 
 
+class IntegrationOutbox(Base):
+    """Durable, idempotent queue for ERP and other external integrations."""
+    __tablename__ = "integration_outbox"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    provider: Mapped[str] = mapped_column(String(30), nullable=False, default="erpnext")
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    aggregate_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True, index=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    external_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    next_attempt_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class AccountEvent(Base):
+    """Customer-visible event feed used by mobile polling/SSE clients."""
+    __tablename__ = "account_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    resource_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    payload_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 # â”€â”€ Deliverable â”€â”€
 
 class Deliverable(Base):
