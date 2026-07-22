@@ -9,11 +9,12 @@ required) for iOS and Android, backed by the existing **FastAPI** backend in
 ```bash
 ./START_AUTODEV_MAC.command      # full build + verify loop on the Mac toolchain
 # or
-make dev                         # run the app on a simulator/emulator (demo mode)
+make dev                         # start FastAPI + GAIA + app in one command
 ```
 
-The app boots in **demo mode** with a realistic agricultural dataset — no backend
-or provider credentials required.
+The app boots with a realistic agricultural demo dataset. `make dev` also starts
+the local FastAPI backend so GAIA remains available; without an OpenAI key GAIA
+uses the backend's clearly labelled deterministic demo knowledge.
 
 ## One-time setup
 

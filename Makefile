@@ -22,7 +22,7 @@ autodev:
 	./START_AUTODEV_MAC.command
 
 dev:
-	cd $(MOBILE) && flutter run --dart-define=GV_FLAVOR=dev
+	./scripts/run_mobile_dev.sh
 
 analyze:
 	cd $(MOBILE) && flutter pub get && flutter analyze

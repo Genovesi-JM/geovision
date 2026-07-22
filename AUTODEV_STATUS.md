@@ -69,6 +69,8 @@ _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 - Added official WhatsApp, Instagram and support-email contact actions sourced from the public website.
 - Added a multilingual payment-method centre for Multicaixa Express, Angola IBAN, Visa/Mastercard, international IBAN and PayPal, reusing the website payment marks without exposing banking secrets.
 - Added global GAIA access above the customer footer and verified the new native plugin in iOS Simulator and Android debug builds.
+- Made GAIA resilient when the AI provider or local backend is unavailable, added tested indoor-agriculture demo knowledge and a one-command backend + mobile development launcher.
+- Defined indoor agriculture as a reusable site module (facilities, rooms, zones, crop cycles, recipes, IoT, inventory and safe command outcomes) to be developed on a temporary feature branch and merged into the shared product.
 
 ## Remaining before commercial release
 

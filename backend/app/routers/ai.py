@@ -125,6 +125,31 @@ def _demo_reply(
     wants_ops_summary = "operacoes em curso" in last_lower or "operações em curso" in last_lower or "operacoes" in last_lower
     wants_alerts_summary = "alertas" in last_lower or "alerta" in last_lower
 
+    wants_indoor_agriculture = any(
+        term in last_lower
+        for term in (
+            "indoor agriculture",
+            "agricultura indoor",
+            "agricultura interior",
+            "vertical farming",
+            "fazenda vertical",
+            "hidroponia",
+            "hydroponic",
+        )
+    )
+
+    if wants_indoor_agriculture:
+        parts.append(
+            "A agricultura indoor pode ser gerida pela GeoVision como um modulo "
+            "operacional dentro da mesma plataforma. Cada instalacao teria salas "
+            "ou zonas de cultivo, lotes e ciclos, receitas agronomicas, inventario "
+            "e sensores de temperatura, humidade, CO2, luz, pH, EC, nivel de agua "
+            "e energia. A app mostraria desvios, alertas, tarefas, rendimento e "
+            "rastreabilidade. Controlos de bombas, luzes ou climatizacao devem "
+            "passar por um gateway seguro, regras do backend e confirmacao humana; "
+            "nunca por comandos livres do chatbot."
+        )
+
     if wants_ops_summary or wants_alerts_summary:
         ops_line = None
         alerts_line = None
@@ -151,7 +176,7 @@ def _demo_reply(
             summary_bits = [b for b in [ops_line, alerts_line] if b]
             parts.append("Resumo das operacoes e alertas desta conta:\n" + "\n".join(summary_bits))
 
-    if last:
+    if last and not wants_indoor_agriculture:
         parts.append("Sobre a tua pergunta especifica, de forma resumida: " + last)
 
     parts.append(reason.strip())

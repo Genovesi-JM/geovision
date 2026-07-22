@@ -145,8 +145,8 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
     } catch (_) {
       if (mounted) {
         final copy = _Copy(Localizations.localeOf(context).languageCode);
-        setState(() => messages
-            .add(GaiaMessage(role: 'assistant', content: copy.offline)));
+        setState(() => messages.add(
+            GaiaMessage(role: 'assistant', content: copy.offlineReply(text))));
       }
     } finally {
       if (mounted) setState(() => sending = false);
@@ -216,6 +216,20 @@ class _Copy {
       'I could not reach the assistant. Please try again or contact GeoVision support.',
       'No pude conectar con el asistente. Inténtelo de nuevo o contacte con soporte.',
       'Je ne peux pas joindre l’assistant. Réessayez ou contactez le support.');
+  String offlineReply(String question) {
+    final normalized = question.toLowerCase();
+    if (normalized.contains('indoor') ||
+        normalized.contains('vertical') ||
+        normalized.contains('hidropon')) {
+      return t(
+          'Modo offline: a agricultura indoor será um módulo GeoVision para salas e zonas de cultivo, ciclos, receitas, inventário e sensores de temperatura, humidade, CO₂, luz, pH, EC, água e energia. Alertas e tarefas funcionarão na mesma app; comandos de bombas, luzes e climatização exigirão regras seguras e confirmação humana.',
+          'Offline mode: indoor agriculture will be a GeoVision module for grow rooms and zones, cycles, recipes, inventory, and temperature, humidity, CO₂, light, pH, EC, water and energy sensors. Alerts and tasks stay in the same app; pump, light and climate commands require safe rules and human confirmation.',
+          'Modo sin conexión: la agricultura indoor será un módulo GeoVision para salas y zonas, ciclos, recetas, inventario y sensores de temperatura, humedad, CO₂, luz, pH, EC, agua y energía. Los comandos requieren reglas seguras y confirmación humana.',
+          'Mode hors ligne : l’agriculture indoor sera un module GeoVision pour salles et zones, cycles, recettes, stocks et capteurs de température, humidité, CO₂, lumière, pH, EC, eau et énergie. Les commandes exigent des règles sûres et une confirmation humaine.');
+    }
+    return offline;
+  }
+
   List<String> get prompts => [
         t('Como instalar um sensor?', 'How do I install a sensor?',
             '¿Cómo instalo un sensor?', 'Comment installer un capteur ?'),
