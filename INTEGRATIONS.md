@@ -4,6 +4,20 @@ Accurate states: **Interface prepared** · **Mock working** · **Credential requ
 · **Sandbox working** · **Production not activated**. A placeholder is never
 reported as complete.
 
+## DJI drones and automated missions
+
+| Capability | Current state | Production requirement |
+|---|---|---|
+| DJI Neo | Media import and operation history prepared | Physical iPhone/Android import test |
+| Mission planning | Boundary, altitude, speed and overlap contracts implemented | Supported aircraft and final route generator |
+| Flight safety | Mandatory pilot, airspace, weather, people and aircraft checklist | Operational/legal approval |
+| DJI MSDK handoff | Typed readiness and provider boundary implemented | DJI Developer credentials and native Android SDK adapter |
+| Telemetry/media sync | Provider capabilities and backend storage prepared | Supported aircraft, SDK and field test |
+
+The application never represents DJI Neo as an automated-flight aircraft. Flight
+execution is separated from planning and requires an explicit provider handoff
+plus pilot supervision.
+
 | Provider | Purpose | State | Env / define | Webhooks | Test method | Human gate |
 |----------|---------|-------|--------------|----------|-------------|------------|
 | Demo map | Credential-free operational map | **Mock working** | `GV_MAP_PROVIDER=demo` | — | Widget/manual | No |

@@ -16,6 +16,8 @@ from app.deps import get_current_user
 from app.models import (
     AccountEvent,
     Company,
+    DroneAircraft,
+    DroneMission,
     MobileServiceRequest,
     Order,
     Payment,
@@ -26,6 +28,19 @@ from app.routers.me import _get_user_company_id
 from app.services.erp_sync import publish_account_event
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
+
+DJI_AUTOMATION_SUPPORT = {
+    "DJI Mini 3": "mobile_sdk",
+    "DJI Mini 3 Pro": "mobile_sdk",
+    "DJI Mini 4 Pro": "mobile_sdk",
+    "DJI Mavic 3 Enterprise": "mobile_sdk",
+    "DJI Mavic 3M": "mobile_sdk",
+    "DJI Matrice 30": "mobile_sdk",
+    "DJI Matrice 30T": "mobile_sdk",
+    "DJI Matrice 350 RTK": "mobile_sdk",
+    "DJI Matrice 4E": "mobile_sdk",
+    "DJI Matrice 4T": "mobile_sdk",
+}
 
 
 def _site_payload(site: Site) -> dict[str, Any]:
@@ -207,6 +222,208 @@ def create_service_request(
     db.commit()
     db.refresh(item)
     return _request_payload(item)
+
+
+class AircraftCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    model: str = Field(min_length=2, max_length=100)
+    serial_number: str | None = Field(default=None, max_length=150)
+    site_id: str | None = None
+
+
+def _aircraft_payload(item: DroneAircraft) -> dict[str, Any]:
+    capabilities = json.loads(item.capabilities_json or "[]")
+    return {
+        "id": item.id,
+        "name": item.name,
+        "manufacturer": item.manufacturer,
+        "model": item.model,
+        "serial_number": item.serial_number,
+        "site_id": item.site_id,
+        "provider": item.provider,
+        "connection_mode": item.connection_mode,
+        "sdk_supported": item.sdk_supported,
+        "status": item.status,
+        "capabilities": capabilities,
+        "automation_readiness": (
+            "credentials_required" if item.sdk_supported else "media_import_only"
+        ),
+    }
+
+
+@router.get("/drones")
+def list_drones(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        raise HTTPException(status_code=403, detail="Organisation not found")
+    rows = (
+        db.query(DroneAircraft)
+        .filter(DroneAircraft.company_id == company_id)
+        .order_by(DroneAircraft.updated_at.desc())
+        .all()
+    )
+    return [_aircraft_payload(row) for row in rows]
+
+
+@router.post("/drones", status_code=status.HTTP_201_CREATED)
+def register_drone(
+    payload: AircraftCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        raise HTTPException(status_code=403, detail="Organisation not found")
+    site = db.get(Site, payload.site_id) if payload.site_id else None
+    if payload.site_id and (not site or site.company_id != company_id):
+        raise HTTPException(status_code=404, detail="Site not found")
+    canonical = payload.model.strip()
+    sdk_supported = canonical in DJI_AUTOMATION_SUPPORT
+    item = DroneAircraft(
+        company_id=company_id,
+        site_id=payload.site_id,
+        name=payload.name.strip(),
+        model=canonical,
+        serial_number=payload.serial_number,
+        provider="dji_mobile_sdk" if sdk_supported else "manual_import",
+        connection_mode="sdk_handoff" if sdk_supported else "media_import",
+        sdk_supported=sdk_supported,
+        capabilities_json=json.dumps(
+            ["mission_planning", "telemetry", "media_sync"]
+            if sdk_supported
+            else ["media_import", "operation_history"]
+        ),
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return _aircraft_payload(item)
+
+
+class MissionCreate(BaseModel):
+    site_id: str
+    aircraft_id: str
+    name: str = Field(min_length=3, max_length=160)
+    mission_type: str = Field(
+        default="mapping_grid",
+        pattern="^(mapping_grid|inspection|corridor|multispectral|thermal)$",
+    )
+    altitude_m: int = Field(default=80, ge=20, le=120)
+    speed_mps: float = Field(default=5, gt=0, le=15)
+    front_overlap_percent: int = Field(default=80, ge=50, le=95)
+    side_overlap_percent: int = Field(default=70, ge=50, le=95)
+    boundary: list[dict[str, float]] = Field(min_length=3, max_length=500)
+
+
+def _mission_payload(item: DroneMission) -> dict[str, Any]:
+    return {
+        "id": item.id,
+        "site_id": item.site_id,
+        "aircraft_id": item.aircraft_id,
+        "name": item.name,
+        "mission_type": item.mission_type,
+        "status": item.status,
+        "altitude_m": item.altitude_m,
+        "speed_mps": float(item.speed_mps),
+        "front_overlap_percent": item.front_overlap_percent,
+        "side_overlap_percent": item.side_overlap_percent,
+        "boundary": json.loads(item.boundary_json or "[]"),
+        "route": json.loads(item.route_json or "[]"),
+        "checklist": json.loads(item.checklist_json or "{}"),
+        "provider_reference": item.provider_reference,
+        "updated_at": item.updated_at.isoformat(),
+    }
+
+
+@router.get("/drone-missions")
+def list_drone_missions(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    company_id = _get_user_company_id(user, db)
+    rows = (
+        db.query(DroneMission)
+        .filter(DroneMission.company_id == company_id)
+        .order_by(DroneMission.updated_at.desc())
+        .all()
+    ) if company_id else []
+    return [_mission_payload(row) for row in rows]
+
+
+@router.post("/drone-missions", status_code=status.HTTP_201_CREATED)
+def create_drone_mission(
+    payload: MissionCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    company_id = _get_user_company_id(user, db)
+    site = db.get(Site, payload.site_id)
+    aircraft = db.get(DroneAircraft, payload.aircraft_id)
+    if not company_id or not site or site.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Site not found")
+    if not aircraft or aircraft.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+    if not aircraft.sdk_supported:
+        raise HTTPException(
+            status_code=409,
+            detail="This aircraft supports media import only; automated missions require a supported SDK aircraft.",
+        )
+    item = DroneMission(
+        company_id=company_id,
+        site_id=site.id,
+        aircraft_id=aircraft.id,
+        created_by=user.id,
+        name=payload.name.strip(),
+        mission_type=payload.mission_type,
+        altitude_m=payload.altitude_m,
+        speed_mps=payload.speed_mps,
+        front_overlap_percent=payload.front_overlap_percent,
+        side_overlap_percent=payload.side_overlap_percent,
+        boundary_json=json.dumps(payload.boundary),
+        # Provider SDK generates the final terrain-aware route during handoff.
+        route_json=json.dumps(payload.boundary),
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return _mission_payload(item)
+
+
+class MissionApproval(BaseModel):
+    pilot_confirmed: bool
+    airspace_checked: bool
+    weather_checked: bool
+    people_clear: bool
+    aircraft_checked: bool
+
+
+@router.post("/drone-missions/{mission_id}/approve")
+def approve_drone_mission(
+    mission_id: str,
+    payload: MissionApproval,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    company_id = _get_user_company_id(user, db)
+    item = db.get(DroneMission, mission_id)
+    if not item or item.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    checklist = payload.model_dump()
+    if not all(checklist.values()):
+        raise HTTPException(status_code=409, detail="Every safety check must be confirmed")
+    aircraft = db.get(DroneAircraft, item.aircraft_id)
+    if not aircraft or not aircraft.sdk_supported:
+        raise HTTPException(status_code=409, detail="Aircraft cannot execute automated missions")
+    item.checklist_json = json.dumps(checklist)
+    item.status = "approved_for_provider_handoff"
+    db.commit()
+    db.refresh(item)
+    return {
+        **_mission_payload(item),
+        "execution": "provider_handoff_required",
+        "message": "Open the approved DJI provider to upload and supervise this mission.",
+    }
 
 
 def _event_payload(item: AccountEvent) -> dict[str, Any]:

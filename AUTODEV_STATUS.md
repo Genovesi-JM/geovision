@@ -101,3 +101,15 @@ No production deployment or production database migration was performed.
 - Site and product screens can open GAIA with the relevant context already set.
 - Responses default to a short summary and action instead of asking the customer
   to repeat information already available in the app.
+
+# Guarded drone automation milestone (2026-07-22)
+
+- Added tenant-isolated aircraft and mission models with a reversible migration.
+- Added authenticated registration, mission planning and safety-approval APIs.
+- Explicitly blocks automated missions for DJI Neo while supporting media import.
+- Added Flutter drone/provider contracts, backend and demo adapters, aircraft
+  readiness, planned mission cards and multi-photo Neo import.
+- A supported aircraft remains credential-gated and requires provider handoff;
+  GeoVision does not issue an unsupervised takeoff command.
+- Added backend and Flutter regression tests for supported, unsupported and
+  incomplete-safety-check outcomes.

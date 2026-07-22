@@ -60,6 +60,20 @@ how to confirm · what the automation does afterwards.
 - **Reason:** Requires real devices on site.
 - **After:** mock IoT + BLE provisioning prepared until hardware is available.
 
+## 8a. DJI automated-flight activation
+- **Reason:** Mission execution requires a DJI Developer application, supported
+  aircraft/firmware, provider credentials, pilot validation and field safety tests.
+  DJI Neo is deliberately limited to media import because it is not an MSDK V5
+  automated-flight aircraft.
+- **Action:** Register the GeoVision Android application with DJI Developer,
+  provide restricted staging credentials, select a supported aircraft and approve
+  the operational checklist with the responsible pilot/regulator.
+- **Confirm:** A supervised staging mission completes planning → provider handoff
+  → telemetry → media sync without bypassing geofencing or pilot controls.
+- **After:** Activate the native DJI adapter behind its feature flag. The backend
+  will continue to store plans/audit state and will never hold unrestricted
+  production flight authority.
+
 ## 9. Physical-device GPS and location privacy review
 - **Reason:** The simulator and native builds validate the integration, but field accuracy and the final privacy wording require a real device and legal review.
 - **Action:** Test foreground location on one iPhone and one Android device; approve the privacy-policy description before release.

@@ -31,7 +31,16 @@ class WorkScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(serviceRequestsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Work')),
+      appBar: AppBar(
+        title: const Text('Work'),
+        actions: [
+          IconButton(
+            tooltip: 'Drones e missões',
+            onPressed: () => context.go('/drones'),
+            icon: const Icon(Icons.flight_takeoff),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/work/new'),
         backgroundColor: GvColors.accentCyan,

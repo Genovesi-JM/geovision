@@ -13,6 +13,9 @@ import '../core/storage/secure_token_store.dart';
 import '../integrations/iot/iot_provider.dart';
 import '../integrations/iot/backend_iot_provider.dart';
 import '../integrations/iot/mock_iot_provider.dart';
+import '../integrations/drones/backend_drone_provider.dart';
+import '../integrations/drones/drone_provider.dart';
+import '../integrations/drones/mock_drone_provider.dart';
 import '../integrations/maps/demo_map_provider.dart';
 import '../integrations/maps/map_provider.dart';
 import '../integrations/maps/mapbox_map_provider.dart';
@@ -98,4 +101,11 @@ final iotProviderProvider = Provider<IotProvider>((ref) {
     return BackendIotProvider(ref.watch(apiClientProvider));
   }
   return const MockIotProvider();
+});
+
+final droneProviderProvider = Provider<DroneProvider>((ref) {
+  final config = ref.watch(appConfigProvider);
+  return config.demoMode
+      ? const MockDroneProvider()
+      : BackendDroneProvider(ref.watch(apiClientProvider));
 });

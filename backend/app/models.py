@@ -472,6 +472,68 @@ class MobileServiceRequest(Base):
     )
 
 
+class DroneAircraft(Base):
+    """Customer-owned aircraft registry; credentials always live in integrations."""
+
+    __tablename__ = "drone_aircraft"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    site_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    manufacturer: Mapped[str] = mapped_column(String(50), nullable=False, default="DJI")
+    model: Mapped[str] = mapped_column(String(100), nullable=False)
+    serial_number: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="manual_import")
+    connection_mode: Mapped[str] = mapped_column(String(40), nullable=False, default="media_import")
+    sdk_supported: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="registered")
+    capabilities_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
+class DroneMission(Base):
+    """Mission plan and audit state. Flight execution remains in the approved provider SDK."""
+
+    __tablename__ = "drone_missions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    site_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    aircraft_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("drone_aircraft.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    created_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    mission_type: Mapped[str] = mapped_column(String(40), nullable=False, default="mapping_grid")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="draft")
+    altitude_m: Mapped[int] = mapped_column(Integer, nullable=False, default=80)
+    speed_mps: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False, default=5)
+    front_overlap_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=80)
+    side_overlap_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=70)
+    boundary_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    route_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    checklist_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
 # â”€â”€ Connector â”€â”€
 
 class Connector(Base):

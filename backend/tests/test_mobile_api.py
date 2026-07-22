@@ -110,3 +110,89 @@ def test_customer_can_add_site_only_to_own_organisation(client):
         },
     )
     assert incomplete_geography.status_code == 422
+
+
+def test_drone_registry_separates_neo_import_from_automated_missions(client):
+    headers = _login_headers(client)
+    site_id = _create_customer_site()
+    neo = client.post(
+        "/mobile/drones",
+        headers=headers,
+        json={"name": "Meu Neo", "model": "DJI Neo", "site_id": site_id},
+    )
+    assert neo.status_code == 201, neo.text
+    assert neo.json()["sdk_supported"] is False
+    assert neo.json()["connection_mode"] == "media_import"
+
+    rejected = client.post(
+        "/mobile/drone-missions",
+        headers=headers,
+        json={
+            "site_id": site_id,
+            "aircraft_id": neo.json()["id"],
+            "name": "Neo must not fly this grid",
+            "boundary": [
+                {"lat": -9.54, "lng": 16.34},
+                {"lat": -9.55, "lng": 16.34},
+                {"lat": -9.55, "lng": 16.35},
+            ],
+        },
+    )
+    assert rejected.status_code == 409
+
+    enterprise = client.post(
+        "/mobile/drones",
+        headers=headers,
+        json={
+            "name": "Mapping aircraft",
+            "model": "DJI Mavic 3 Enterprise",
+            "site_id": site_id,
+        },
+    )
+    assert enterprise.status_code == 201, enterprise.text
+    assert enterprise.json()["sdk_supported"] is True
+
+    mission = client.post(
+        "/mobile/drone-missions",
+        headers=headers,
+        json={
+            "site_id": site_id,
+            "aircraft_id": enterprise.json()["id"],
+            "name": "Block A mapping",
+            "altitude_m": 80,
+            "boundary": [
+                {"lat": -9.54, "lng": 16.34},
+                {"lat": -9.55, "lng": 16.34},
+                {"lat": -9.55, "lng": 16.35},
+            ],
+        },
+    )
+    assert mission.status_code == 201, mission.text
+    assert mission.json()["status"] == "draft"
+
+    incomplete = client.post(
+        f"/mobile/drone-missions/{mission.json()['id']}/approve",
+        headers=headers,
+        json={
+            "pilot_confirmed": True,
+            "airspace_checked": True,
+            "weather_checked": False,
+            "people_clear": True,
+            "aircraft_checked": True,
+        },
+    )
+    assert incomplete.status_code == 409
+
+    approved = client.post(
+        f"/mobile/drone-missions/{mission.json()['id']}/approve",
+        headers=headers,
+        json={
+            "pilot_confirmed": True,
+            "airspace_checked": True,
+            "weather_checked": True,
+            "people_clear": True,
+            "aircraft_checked": True,
+        },
+    )
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["execution"] == "provider_handoff_required"

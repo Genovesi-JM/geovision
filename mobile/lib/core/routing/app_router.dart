@@ -13,6 +13,7 @@ import '../../features/authentication/presentation/auth_controller.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/reset_password_screen.dart';
 import '../../features/devices/presentation/devices_screen.dart';
+import '../../features/drones/presentation/drones_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/guides/presentation/guides_screen.dart';
 import '../../features/maps/presentation/site_map_screen.dart';
@@ -133,6 +134,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(path: '/devices', builder: (c, s) => const DevicesScreen()),
+          GoRoute(path: '/drones', builder: (c, s) => const DronesScreen()),
         ],
       ),
     ],
