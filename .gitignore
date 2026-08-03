@@ -15,6 +15,8 @@ backend/app/.env
 .env
 .env.*
 !backend/.env.example
+!.env.iot.example
+.iot/
 
 # SQLite / local databases
 *.db
@@ -55,6 +57,9 @@ geovision_app/ios/Flutter/Flutter.podspec
 .idea/
 .vscode/
 .pytest_cache/
+
+# PlatformIO generated dependencies and build products
+firmware/esp32/.pio/
 
 # macOS
 .DS_Store

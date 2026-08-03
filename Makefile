@@ -3,14 +3,20 @@ SHELL := /bin/bash
 MOBILE := mobile
 BACKEND := backend
 
-.PHONY: help autodev dev analyze test l10n ios android backend-run backend-test format clean doctor
+.PHONY: help autodev dev mobile-dev setup simulator test logs stop analyze mobile-test l10n ios android backend-run backend-test format clean doctor
 
 help:
 	@echo "GeoVision make targets:"
 	@echo "  make autodev       Run the full Mac build/verify loop (START_AUTODEV_MAC.command)"
-	@echo "  make dev           Run the app on a simulator/emulator (demo mode)"
+	@echo "  make setup         Prepare and start the local IoT stack"
+	@echo "  make dev           Start the GeoVision IoT Docker stack"
+	@echo "  make simulator     Start the real-protocol sensor simulator"
+	@echo "  make test          Run backend, frontend and firmware checks"
+	@echo "  make logs          Follow local stack logs"
+	@echo "  make stop          Stop the local stack (data is preserved)"
+	@echo "  make mobile-dev    Run the Flutter app on a simulator/emulator"
 	@echo "  make analyze       flutter analyze"
-	@echo "  make test          flutter test"
+	@echo "  make mobile-test   Run Flutter tests"
 	@echo "  make l10n          Regenerate localisations"
 	@echo "  make ios           Build iOS Simulator (debug)"
 	@echo "  make android       Build Android debug APK"
@@ -21,14 +27,32 @@ help:
 autodev:
 	./START_AUTODEV_MAC.command
 
+setup:
+	./start_geovision_iot.command
+
 dev:
+	docker compose --env-file .env.iot up -d
+
+mobile-dev:
 	./scripts/run_mobile_dev.sh
 
 analyze:
 	cd $(MOBILE) && flutter pub get && flutter analyze
 
-test:
+mobile-test:
 	cd $(MOBILE) && flutter test
+
+test: backend-test mobile-test
+	npm test --if-present
+
+simulator:
+	docker compose --env-file .env.iot --profile simulator up -d --build simulator
+
+logs:
+	docker compose --env-file .env.iot logs -f --tail=200
+
+stop:
+	docker compose --env-file .env.iot down
 
 l10n:
 	cd $(MOBILE) && flutter gen-l10n
@@ -46,7 +70,7 @@ backend-run:
 	cd $(BACKEND) && python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt && python start.py
 
 backend-test:
-	cd $(BACKEND) && . .venv/bin/activate 2>/dev/null; pytest -q
+	cd $(BACKEND) && if [ -x .venv/bin/python ]; then .venv/bin/python -m pytest -q; elif [ -x .venv-test/bin/python ]; then .venv-test/bin/python -m pytest -q; else python3 -m pytest -q; fi
 
 doctor:
 	flutter doctor -v

@@ -1,0 +1,76 @@
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: geovision
+      POSTGRES_USER: geovision
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [geovision-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geovision -d geovision"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    command: redis-server --appendonly yes
+    volumes: [geovision-redis:/data]
+
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    ports: ["8883:8883"]
+    volumes:
+      - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./.iot/certs:/mosquitto/certs:ro
+      - geovision-mqtt:/mosquitto/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ["8025:8025"]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    env_file:
+      - path: .env.iot
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      MQTT_ENABLED: "true"
+      MQTT_HOST: mqtt
+      MQTT_PORT: "1883"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+    ports: ["8010:8010"]
+    volumes: [geovision-runtime:/runtime]
+    depends_on:
+      db: {condition: service_healthy}
+      mqtt: {condition: service_started}
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    ports: ["8001:80"]
+    depends_on: [backend]
+
+  simulator:
+    profiles: ["simulator"]
+    build:
+      context: ./simulator
+    environment:
+      GV_SIM_CONFIG: /runtime/simulator.json
+      GV_MQTT_HOST: mqtt
+      GV_MQTT_PORT: "1883"
+      GV_MQTT_TLS: "false"
+      GV_REST_URL: http://backend:8010/iot/ingest
+    volumes: [geovision-runtime:/runtime]
+    depends_on: [backend, mqtt]
+
+volumes:
+  geovision-db:
+  geovision-redis:
+  geovision-mqtt:
+  geovision-runtime:

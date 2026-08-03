@@ -209,6 +209,93 @@ function renderHardware(portfolio) {
   document.getElementById("kpi-hardware").textContent = portfolio.hardware.length;
 }
 
+let iotSelectedDevice = null;
+let iotSocket = null;
+
+function iotValueLabel(reading) {
+  const value = typeof reading.value === "boolean" ? (reading.value ? "Sim" : "Não") : reading.value;
+  return `${value ?? "—"}${reading.unit ? ` ${reading.unit}` : ""}`;
+}
+
+async function loadIoTHardware(accountId) {
+  const tbody = document.querySelector("#hardware-table tbody");
+  const empty = document.getElementById("hardware-empty");
+  if (!tbody) return;
+  try {
+    const devices = await apiGet("/iot/devices", accountId) || [];
+    tbody.innerHTML = "";
+    empty.style.display = devices.length ? "none" : "block";
+    const kpi = document.getElementById("kpi-hardware"); if (kpi) kpi.textContent = String(devices.length);
+    devices.forEach((device) => {
+      const stale = !device.last_seen_at || Date.now() - new Date(device.last_seen_at).getTime() > 120000;
+      const tr = document.createElement("tr"); tr.className = "iot-device-row";
+      tr.innerHTML = `<td>${escapeHTML(device.name)}</td><td>${escapeHTML(device.site_name || "—")}</td><td><span class="status-pill"><span class="status-pill-dot"></span>${escapeHTML(stale ? "stale" : device.status)}</span></td><td>${device.last_seen_at ? escapeHTML(new Date(device.last_seen_at).toLocaleString()) : "Nunca"}</td>`;
+      tr.onclick = () => showIotDevice(device, accountId); tbody.appendChild(tr);
+    });
+    if (iotSelectedDevice) {
+      const fresh = devices.find((d) => d.id === iotSelectedDevice.id);
+      if (fresh) await showIotDevice(fresh, accountId, false);
+    }
+  } catch (error) {
+    console.warn("IoT hardware unavailable", error); tbody.innerHTML = ""; empty.style.display = "block";
+  }
+}
+
+async function showIotDevice(device, accountId, reconnect = true) {
+  iotSelectedDevice = device;
+  const panel = document.getElementById("iot-device-detail"); panel.style.display = "block";
+  document.getElementById("iot-device-title").textContent = device.name;
+  document.getElementById("iot-device-meta").textContent = `${device.device_uid} · ${device.site_name} · ${device.transport}`;
+  renderIotReadings(device.readings || []);
+  const select = document.getElementById("iot-chart-channel");
+  const previous = select.value; select.innerHTML = "";
+  (device.readings || []).filter((r) => typeof r.value === "number").forEach((r) => { const option = document.createElement("option"); option.value = r.channel; option.textContent = r.channel; select.appendChild(option); });
+  if ([...select.options].some((o) => o.value === previous)) select.value = previous;
+  select.onchange = () => loadIotChart(device.id, select.value, accountId);
+  if (select.value) await loadIotChart(device.id, select.value, accountId);
+  document.getElementById("iot-refresh-device").onclick = () => loadIoTHardware(accountId);
+  document.getElementById("iot-download-csv").onclick = () => downloadIotCsv(device.id, accountId);
+  document.getElementById("iot-diagnostics").onclick = () => sendIotCommand(device.id, "request_diagnostics", accountId);
+  document.getElementById("iot-beacon").onclick = () => sendIotCommand(device.id, "beacon_on", accountId);
+  if (reconnect) connectIotSocket(device.id, accountId);
+}
+
+function renderIotReadings(readings) {
+  const grid = document.getElementById("iot-reading-cards"); grid.innerHTML = "";
+  readings.forEach((reading) => { const card = document.createElement("div"); card.className = "iot-reading"; card.innerHTML = `<div class="iot-reading-key">${escapeHTML(reading.channel)}</div><div class="iot-reading-value">${escapeHTML(iotValueLabel(reading))}</div><div class="iot-reading-time">${reading.at ? escapeHTML(new Date(reading.at).toLocaleString()) : "Sem dados"} · ${escapeHTML(reading.quality || "unknown")}</div>`; grid.appendChild(card); });
+}
+
+async function loadIotChart(deviceId, channel, accountId) {
+  const rows = await apiGet(`/iot/devices/${deviceId}/telemetry?channel=${encodeURIComponent(channel)}&limit=200`, accountId) || [];
+  const svg = document.getElementById("iot-history-chart"); svg.innerHTML = "";
+  const numeric = rows.filter((r) => typeof r.value === "number");
+  if (!numeric.length) { svg.innerHTML = '<text x="450" y="120" text-anchor="middle" fill="#64748b">Sem dados históricos</text>'; return; }
+  const values = numeric.map((r) => r.value), min = Math.min(...values), max = Math.max(...values), span = Math.max(max - min, 1);
+  const points = numeric.map((r, index) => `${30 + index * 840 / Math.max(numeric.length - 1, 1)},${210 - (r.value - min) * 170 / span}`).join(" ");
+  svg.innerHTML = `<line x1="30" y1="210" x2="870" y2="210" stroke="#334155"/><line x1="30" y1="40" x2="30" y2="210" stroke="#334155"/><polyline points="${points}" fill="none" stroke="#22c55e" stroke-width="3"/><text x="35" y="32" fill="#94a3b8">${escapeHTML(String(max.toFixed(2)))}</text><text x="35" y="230" fill="#94a3b8">${escapeHTML(String(min.toFixed(2)))}</text>`;
+  document.getElementById("iot-chart-title").textContent = `Histórico · ${channel}`;
+}
+
+function connectIotSocket(deviceId, accountId) {
+  if (iotSocket) iotSocket.close();
+  const wsBase = API_BASE.replace(/^http/, "ws"); iotSocket = new WebSocket(`${wsBase}/iot/ws`);
+  const status = document.getElementById("iot-live-status"); status.textContent = "A ligar…";
+  iotSocket.onopen = () => iotSocket.send(JSON.stringify({ token: localStorage.getItem("gv_token"), device_id: deviceId }));
+  iotSocket.onmessage = async (message) => { const event = JSON.parse(message.data); if (event.type === "ready") { status.textContent = "Ao vivo"; return; } if (event.type === "telemetry") { renderIotReadings(event.readings || []); const selected = document.getElementById("iot-chart-channel").value; if (selected) await loadIotChart(deviceId, selected, accountId); } if (event.type?.startsWith("alert.")) status.textContent = event.type === "alert.triggered" ? "Alerta" : "Ao vivo"; };
+  iotSocket.onclose = () => { status.textContent = "Desligado"; };
+}
+
+async function sendIotCommand(deviceId, name, accountId) {
+  if (!window.confirm(`Confirmar comando supervisionado: ${name}?`)) return;
+  const result = await apiPost(`/iot/devices/${deviceId}/commands`, { name, arguments: {}, confirmed: true, reason: "Supervised dashboard demonstration", fail_safe_state: "off" }, accountId);
+  document.getElementById("iot-command-result").textContent = result?.message || "Comando enviado";
+}
+
+async function downloadIotCsv(deviceId, accountId) {
+  const response = await fetch(`${API_BASE}/iot/devices/${deviceId}/telemetry.csv`, { headers: authHeaders(accountId) });
+  if (!response.ok) throw new Error(await response.text()); const blob = await response.blob(); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `${deviceId}-telemetry.csv`; link.click(); URL.revokeObjectURL(url);
+}
+
 function renderReports(portfolio) {
   const tbody = document.querySelector("#reports-table tbody");
   const empty = document.getElementById("reports-empty");
@@ -549,7 +636,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   await loadAlerts(currentAccountId, activeSector);
 
   renderServices(portfolio);
-  renderHardware(portfolio);
+  await loadIoTHardware(currentAccountId);
   // Reports are loaded by loadReports() in dashboard.html from /me/documents API
   // renderReports(portfolio);   // REMOVED — was overwriting real API docs
   // renderAlerts from portfolio is now replaced by loadAlerts from backend

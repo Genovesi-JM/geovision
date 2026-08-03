@@ -1,0 +1,24 @@
+# First hardware day — literal checklist
+
+- [ ] Start GeoVision with `make setup`; verify backend `/health`, dashboard and simulator.
+- [ ] In GeoVision create the customer site, optional asset and ESP32 device with the exact channels.
+- [ ] Copy the one-time UID/token without photographing or committing it.
+- [ ] With USB disconnected, wire the SHT31: VIN→3.3 V, GND→GND, SDA/SCL to provisioned pins.
+- [ ] For DS18B20, wire red→3.3 V, black→GND, data→configured GPIO and 4.7 kΩ from data to 3.3 V.
+- [ ] Check every rail and continuity with a multimeter; do not connect mains.
+- [ ] Connect the ESP32 with a data USB cable and run `pio device list`.
+- [ ] Run `pio run --target upload --upload-port /dev/cu…`.
+- [ ] Copy the correct broker CA to `firmware/esp32/data/ca.crt`; run the `uploadfs` command.
+- [ ] Open `pio device monitor --baud 115200`.
+- [ ] Send one-line provisioning JSON with Wi-Fi, server, UID/token and pin map.
+- [ ] Observe `CONFIG_SAVED_RESTARTING`, `PROVISIONED`, `GEOVISION_READY`.
+- [ ] Confirm signed online state and a new telemetry row in GeoVision.
+- [ ] Warm the temperature sensor gently; confirm the live card/chart changes without refresh.
+- [ ] Trigger the configured test threshold; confirm one alert and test notification.
+- [ ] Acknowledge the alert; return the sensor to normal; confirm automatic resolution.
+- [ ] Confirm `safety_ok=true`, then send only beacon/LED or isolated low-voltage relay command.
+- [ ] Confirm device acknowledgement and actual state; use the physical override/off state.
+- [ ] Disconnect Wi-Fi; confirm offline buffer and dashboard stale/offline state.
+- [ ] Restore Wi-Fi; confirm buffered readings upload once without duplicates.
+- [ ] Record firmware, serial/UID, wiring, calibration, photographs and commissioning checklist.
+- [ ] Move from breadboard to a fused, strain-relieved enclosure before unattended operation.

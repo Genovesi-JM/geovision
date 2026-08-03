@@ -1,0 +1,1 @@
+{"wifi":{"ssid":"YOUR_WIFI","password":"ENTER_AT_FLASH_TIME"},"device_uid":"gv-from-geovision","provisioning_token":"ONE_TIME_TOKEN","server":{"api_base":"https://api.example.com","mqtt_host":"mqtt.example.com","mqtt_port":8883,"mqtt_tls":true},"sample_ms":10000,"pins":{"sht_sda":21,"sht_scl":22,"ds18b20":4,"leak":27,"door":26,"analog_level":34,"relay":25,"led":2,"buzzer":33}}

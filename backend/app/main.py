@@ -14,7 +14,7 @@ from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRed
 from .routers import auth, projects, ai, accounts, me, kpi
 from .routers import products, orders, customer_accounts, employees
 from .routers import datasets, risk, payments, admin, mobile
-from .routers import shop, contacts, integrations
+from .routers import shop, contacts, integrations, iot
 from .seed_data import (
     seed_admin_users,
 )
@@ -128,6 +128,24 @@ def create_application() -> FastAPI:
     application.include_router(contacts.router)  # /contacts
     application.include_router(mobile.router)    # /mobile (Flutter contracts)
     application.include_router(integrations.router)
+    application.include_router(iot.router)
+    application.include_router(iot.mobile_router)
+
+    @application.on_event("startup")
+    async def start_iot_bridge() -> None:
+        import asyncio
+        from .iot.mqtt import mqtt_bridge
+        mqtt_bridge.start(asyncio.get_running_loop())
+        from .iot.watchdog import device_watchdog
+        application.state.iot_watchdog_stop = asyncio.Event()
+        application.state.iot_watchdog_task = asyncio.create_task(device_watchdog(application.state.iot_watchdog_stop))
+
+    @application.on_event("shutdown")
+    def stop_iot_bridge() -> None:
+        from .iot.mqtt import mqtt_bridge
+        mqtt_bridge.stop()
+        if hasattr(application.state, "iot_watchdog_stop"):
+            application.state.iot_watchdog_stop.set()
 
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:

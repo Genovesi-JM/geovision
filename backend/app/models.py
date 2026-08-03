@@ -14,6 +14,9 @@ from sqlalchemy import (
     Numeric,
     Integer,
     CheckConstraint,
+    Float,
+    UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -388,6 +391,9 @@ class Company(Base):
     email: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Present in the production Alembic schema and required by migrated
+    # databases.  Keep it mapped so ORM inserts do not fail outside tests.
+    country: Mapped[str] = mapped_column(String(100), nullable=False, default="Angola")
     sectors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")  # JSON list
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
     subscription_plan: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
@@ -444,6 +450,265 @@ class Site(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     company = relationship("Company", back_populates="sites")
+
+
+# ── IoT / operational telemetry ─────────────────────────────────────────────
+
+class IotDevice(Base):
+    """Provisioned field device or gateway.
+
+    Device credentials are never stored in plaintext. ``secret_encrypted`` is
+    required only to validate signed MQTT envelopes; ``token_hash`` validates
+    the REST fallback bearer token.
+    """
+
+    __tablename__ = "iot_devices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    public_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    gateway_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    device_type: Mapped[str] = mapped_column(String(60), nullable=False, default="multi_sensor")
+    transport: Mapped[str] = mapped_column(String(30), nullable=False, default="mqtt")
+    firmware_version: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    hardware_model: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="provisioned", index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    secret_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    capabilities_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    configuration_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    allow_remote_control: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    last_ip: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+class IotAsset(Base):
+    __tablename__ = "iot_assets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    asset_type: Mapped[str] = mapped_column(String(80), nullable=False, default="equipment")
+    external_reference: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class IotGateway(Base):
+    __tablename__ = "iot_gateways"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="SET NULL"), nullable=True, unique=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    gateway_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="provisioned")
+    configuration_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class SensorChannel(Base):
+    __tablename__ = "sensor_channels"
+    __table_args__ = (UniqueConstraint("device_id", "key", name="uq_sensor_channel_device_key"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    asset_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("iot_assets.id", ondelete="SET NULL"), nullable=True, index=True)
+    key: Mapped[str] = mapped_column(String(100), nullable=False)
+    label: Mapped[str] = mapped_column(String(160), nullable=False)
+    measurement_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    unit: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    data_type: Mapped[str] = mapped_column(String(20), nullable=False, default="number")
+    minimum: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    maximum: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    precision: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class DeviceCredential(Base):
+    __tablename__ = "device_credentials"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), nullable=False)
+    secret_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", index=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class DeviceProvisioningToken(Base):
+    __tablename__ = "device_provisioning_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    used_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_by: Mapped[str] = mapped_column(String(36), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CalibrationRecord(Base):
+    __tablename__ = "calibration_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    channel_id: Mapped[str] = mapped_column(String(36), ForeignKey("sensor_channels.id", ondelete="CASCADE"), nullable=False, index=True)
+    offset: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    scale: Mapped[float] = mapped_column(Float, nullable=False, default=1)
+    reference_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    measured_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    calibrated_by: Mapped[str] = mapped_column(String(36), nullable=False)
+    calibrated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class CommissioningRecord(Base):
+    __tablename__ = "commissioning_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    technician_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    checklist_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    result: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    commissioned_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TelemetryReading(Base):
+    """Normalized time-series reading, one row per channel and timestamp."""
+
+    __tablename__ = "telemetry_readings"
+    __table_args__ = (
+        UniqueConstraint("device_id", "message_id", "channel", name="uq_telemetry_message_channel"),
+        Index("ix_telemetry_device_channel_time", "device_id", "channel", "recorded_at"),
+        Index("ix_telemetry_company_time", "company_id", "recorded_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    message_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    channel: Mapped[str] = mapped_column(String(100), nullable=False)
+    numeric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    text_value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    boolean_value: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
+    unit: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    quality: Mapped[str] = mapped_column(String(20), nullable=False, default="good")
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+
+
+class TelemetryAggregate(Base):
+    """Portable five-minute rollup; usable with SQLite and PostgreSQL."""
+
+    __tablename__ = "telemetry_aggregates"
+    __table_args__ = (
+        UniqueConstraint("device_id", "channel", "bucket_start", "bucket_seconds", name="uq_telemetry_aggregate_bucket"),
+        Index("ix_telemetry_aggregate_device_time", "device_id", "channel", "bucket_start"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    channel: Mapped[str] = mapped_column(String(100), nullable=False)
+    unit: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    bucket_start: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    bucket_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=300)
+    sample_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    minimum: Mapped[float] = mapped_column(Float, nullable=False)
+    maximum: Mapped[float] = mapped_column(Float, nullable=False)
+    average: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class IotAlertRule(Base):
+    __tablename__ = "iot_alert_rules"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=True, index=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    channel: Mapped[str] = mapped_column(String(100), nullable=False)
+    operator: Mapped[str] = mapped_column(String(10), nullable=False)
+    threshold: Mapped[float] = mapped_column(Float, nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False, default="warning")
+    cooldown_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=300)
+    sustained_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    notification_channels_json: Mapped[str] = mapped_column(Text, nullable=False, default='["log"]')
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class IotAlert(Base):
+    __tablename__ = "iot_alerts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    rule_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_alert_rules.id", ondelete="CASCADE"), nullable=False, index=True)
+    channel: Mapped[str] = mapped_column(String(100), nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), nullable=False)
+    message: Mapped[str] = mapped_column(String(500), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open", index=True)
+    opened_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    acknowledged_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    assigned_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    assigned_to: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    closed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class IotCommand(Base):
+    __tablename__ = "iot_commands"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    requested_by: Mapped[str] = mapped_column(String(36), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    arguments_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    reason: Mapped[str] = mapped_column(String(500), nullable=False)
+    fail_safe_state: Mapped[str] = mapped_column(String(100), nullable=False, default="off")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="queued", index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    result_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class IotMessageNonce(Base):
+    """Replay protection for signed MQTT messages."""
+
+    __tablename__ = "iot_message_nonces"
+    __table_args__ = (UniqueConstraint("device_id", "nonce", name="uq_iot_device_nonce"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
+    nonce: Mapped[str] = mapped_column(String(100), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class MobileServiceRequest(Base):

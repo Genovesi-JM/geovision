@@ -1,0 +1,46 @@
+"""Extensible, unit-safe sensor catalogue used at commissioning time."""
+
+SENSOR_UNITS: dict[str, set[str | None]] = {
+    "temperature": {"Cel", "degC", "K"},
+    "humidity": {"%RH", "%"},
+    "water_leak": {None},
+    "tank_level": {"%", "m", "mm"},
+    "door_contact": {None},
+    "motion": {None},
+    "voltage": {"V", "mV"},
+    "current": {"A", "mA"},
+    "power": {"W", "kW"},
+    "energy": {"Wh", "kWh"},
+    "run_status": {None},
+    "battery": {"%"},
+    "signal": {"%", "dBm"},
+    "soil_moisture": {"%", "m3/m3"},
+    "soil_temperature": {"Cel", "degC", "K"},
+    "ph": {"pH"},
+    "electrical_conductivity": {"uS/cm", "mS/cm"},
+    "flow": {"L/min", "m3/h"},
+    "pressure": {"Pa", "kPa", "bar"},
+    "air_quality": {"AQI"},
+    "co2": {"ppm"},
+    "pm2_5": {"ug/m3"},
+    "voc": {"ppb", "ppm"},
+    "vibration": {"mm/s", "m/s2", "g"},
+    "noise": {"dBA"},
+    "rainfall": {"mm"},
+    "wind_speed": {"m/s", "km/h"},
+    "wind_direction": {"deg"},
+    "solar_irradiance": {"W/m2"},
+    "latitude": {"deg"},
+    "longitude": {"deg"},
+    "fuel_level": {"%", "L"},
+    "turbidity": {"NTU"},
+    "dissolved_oxygen": {"mg/L", "%"},
+    "crack_displacement": {"mm"},
+    "tilt": {"deg"},
+    "load": {"N", "kg", "t"},
+    "generic": {None},
+}
+
+
+def valid_unit(measurement_type: str, unit: str | None) -> bool:
+    return unit in SENSOR_UNITS.get(measurement_type, set())

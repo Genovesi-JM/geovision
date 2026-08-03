@@ -84,3 +84,11 @@ def client():
     app = create_application()
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _reset_in_memory_rate_limiter():
+    """Each test represents an independent client window."""
+    from app.middleware import _limiter
+    _limiter._requests.clear()
+    yield

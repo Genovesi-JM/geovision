@@ -1525,6 +1525,32 @@
             </div>
           </div>
         </div>
+        <div class="card" id="iot-device-detail" style="display:none;margin-top:1rem;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title" id="iot-device-title">Dispositivo</h3>
+              <div id="iot-device-meta" style="color:#94a3b8;font-size:.8rem;margin-top:.25rem;"></div>
+            </div>
+            <span class="badge" id="iot-live-status">A ligar…</span>
+          </div>
+          <div class="card-body">
+            <div id="iot-reading-cards" class="iot-reading-grid"></div>
+            <div class="iot-chart-wrap">
+              <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:.75rem;">
+                <strong id="iot-chart-title">Histórico</strong>
+                <select id="iot-chart-channel" class="sidebar-account-select" style="width:auto;"></select>
+              </div>
+              <svg id="iot-history-chart" viewBox="0 0 900 240" role="img" aria-label="Histórico do sensor"></svg>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem;">
+              <button class="btn btn-primary" id="iot-refresh-device">Atualizar</button>
+              <button class="btn btn-secondary" id="iot-download-csv">Exportar CSV</button>
+              <button class="btn btn-secondary" id="iot-diagnostics">Pedir diagnóstico</button>
+              <button class="btn btn-secondary" id="iot-beacon">Ligar sinalizador de demonstração</button>
+            </div>
+            <div id="iot-command-result" style="margin-top:.75rem;color:#94a3b8;font-size:.8rem;"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ============ REPORTS VIEW ============ -->
@@ -1727,6 +1753,16 @@
   <script type="module" src="assets/js/dashboard-client.js"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>
+  <style>
+    .iot-reading-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.75rem;margin-bottom:1rem}
+    .iot-reading{padding:1rem;border:1px solid rgba(95,212,255,.15);border-radius:12px;background:rgba(15,26,46,.55)}
+    .iot-reading-key{font-size:.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+    .iot-reading-value{font-size:1.45rem;font-weight:750;color:#f8fafc;margin-top:.3rem}
+    .iot-reading-time{font-size:.65rem;color:#64748b;margin-top:.25rem}
+    .iot-chart-wrap{padding:1rem;border:1px solid rgba(95,212,255,.15);border-radius:12px;background:rgba(2,8,23,.35)}
+    #iot-history-chart{width:100%;min-height:180px;background:rgba(2,8,23,.3);border-radius:8px}
+    .iot-device-row{cursor:pointer}.iot-device-row:hover{background:rgba(95,212,255,.06)}
+  </style>
   <script>
     // ============ API CONFIG ============
     const API_URL = window.API_BASE;
