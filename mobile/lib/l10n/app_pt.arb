@@ -50,5 +50,12 @@
   "deviceDemo": "Demonstração",
   "diagnose": "Executar diagnóstico",
   "configure": "Configurar",
-  "retry": "Tentar novamente"
+  "retry": "Tentar novamente",
+  "siteMap": "Mapa",
+  "viewAll": "Ver tudo",
+  "noCriticalAlerts": "Sem alertas críticos. Todos os locais monitorizados estão nominais.",
+  "siteDetail": "Detalhe do local",
+  "noActiveOperations": "Sem operações ativas.",
+  "pendingSync": "Sincronização pendente",
+  "loadingSummary": "A carregar resumo operacional…"
 }

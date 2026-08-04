@@ -50,5 +50,12 @@
   "deviceDemo": "Demo",
   "diagnose": "Run diagnostics",
   "configure": "Configure",
-  "retry": "Retry"
+  "retry": "Retry",
+  "siteMap": "Site map",
+  "viewAll": "View all",
+  "noCriticalAlerts": "No critical alerts. All monitored sites nominal.",
+  "siteDetail": "Site detail",
+  "noActiveOperations": "No active operations.",
+  "pendingSync": "Pending sync",
+  "loadingSummary": "Loading operational summary…"
 }

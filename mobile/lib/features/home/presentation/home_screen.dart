@@ -11,6 +11,7 @@ import '../../../core/widgets/gv_states.dart';
 import '../../../core/widgets/kpi_card.dart';
 import '../../../core/widgets/quick_action.dart';
 import '../../../core/widgets/severity_chip.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/home_repository.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -19,12 +20,13 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(homeSummaryProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async => ref.refresh(homeSummaryProvider.future),
         child: summary.when(
-          loading: () => const GvLoading(label: 'Loading operational summary…'),
+          loading: () => GvLoading(label: l10n.loadingSummary),
           error: (e, _) => GvErrorState(
               message: '$e', onRetry: () => ref.refresh(homeSummaryProvider)),
           data: (s) => ListView(
@@ -55,7 +57,7 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: GvSpacing.lg),
-              const GvSectionHeader(title: 'Quick actions'),
+              GvSectionHeader(title: l10n.quickActions),
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -66,37 +68,37 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   QuickAction(
                       icon: Icons.map_outlined,
-                      label: 'Site map',
+                      label: l10n.siteMap,
                       onTap: () {
                         final id = s.selectedSite?.id;
                         if (id != null) context.go('/sites/$id/map');
                       }),
                   QuickAction(
                       icon: Icons.add_task,
-                      label: 'Request',
+                      label: l10n.navRequest,
                       onTap: () => context.go('/work/new')),
                   QuickAction(
                       icon: Icons.storefront_outlined,
-                      label: 'Store',
+                      label: l10n.navStore,
                       onTap: () => context.go('/orders')),
                   QuickAction(
                       icon: Icons.warning_amber,
-                      label: 'Alerts',
+                      label: l10n.navAlerts,
                       onTap: () => context.go('/alerts')),
                 ],
               ),
               const SizedBox(height: GvSpacing.md),
               GvSectionHeader(
-                title: 'Critical alerts',
+                title: l10n.criticalAlerts,
                 action: TextButton(
                     onPressed: () => context.go('/alerts'),
-                    child: const Text('View all')),
+                    child: Text(l10n.viewAll)),
               ),
               if (s.criticalAlerts.isEmpty)
-                const GvCard(
+                GvCard(
                     child: Text(
-                        'No critical alerts. All monitored sites nominal.',
-                        style: TextStyle(color: GvColors.textSecondary)))
+                        l10n.noCriticalAlerts,
+                        style: const TextStyle(color: GvColors.textSecondary)))
               else
                 ...s.criticalAlerts.take(3).map((a) => Padding(
                       padding: const EdgeInsets.only(bottom: GvSpacing.sm),
@@ -132,11 +134,11 @@ class HomeScreen extends ConsumerWidget {
               if (s.selectedSite != null &&
                   s.selectedSite!.kpis.isNotEmpty) ...[
                 GvSectionHeader(
-                  title: 'KPI summary',
+                  title: l10n.kpiSummary,
                   action: TextButton(
                       onPressed: () =>
                           context.go('/sites/${s.selectedSite!.id}'),
-                      child: const Text('Site detail')),
+                      child: Text(l10n.siteDetail)),
                 ),
                 GridView.count(
                   shrinkWrap: true,
@@ -163,11 +165,11 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: GvSpacing.md),
               ],
-              const GvSectionHeader(title: 'Active operations'),
+              GvSectionHeader(title: l10n.activeOperations),
               if (s.activeRequests.isEmpty)
-                const GvCard(
-                    child: Text('No active operations.',
-                        style: TextStyle(color: GvColors.textSecondary)))
+                GvCard(
+                    child: Text(l10n.noActiveOperations,
+                        style: const TextStyle(color: GvColors.textSecondary)))
               else
                 ...s.activeRequests.take(3).map((r) => Padding(
                       padding: const EdgeInsets.only(bottom: GvSpacing.sm),
@@ -185,8 +187,8 @@ class HomeScreen extends ConsumerWidget {
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w600)),
                                   if (r.pendingSync)
-                                    const Text('Pending sync',
-                                        style: TextStyle(
+                                    Text(l10n.pendingSync,
+                                        style: const TextStyle(
                                             color: GvColors.medium,
                                             fontSize: 11)),
                                 ],
@@ -201,8 +203,8 @@ class HomeScreen extends ConsumerWidget {
                     )),
               const SizedBox(height: GvSpacing.md),
               GvSectionHeader(
-                title: 'Device health',
-                action: Text('${s.onlineDevices}/${s.totalDevices} online',
+                title: l10n.deviceHealth,
+                action: Text('${s.onlineDevices}/${s.totalDevices} ${l10n.deviceOnline.toLowerCase()}',
                     style: const TextStyle(
                         color: GvColors.accentGreen, fontSize: 12)),
               ),
@@ -218,8 +220,8 @@ class HomeScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Latest report',
-                                style: TextStyle(
+                            Text(l10n.latestReport,
+                                style: const TextStyle(
                                     color: GvColors.textMuted, fontSize: 11)),
                             Text(s.latestReport!.title,
                                 maxLines: 1,
