@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -59,6 +60,7 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
   @override
   Widget build(BuildContext context) {
     final sitesAsync = ref.watch(sitesProvider);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('New request')),
       body: sitesAsync.when(
@@ -136,7 +138,7 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
                 controller: _desc,
                 maxLines: 4,
                 decoration:
-                    const InputDecoration(hintText: 'Describe what you need…'),
+                    InputDecoration(hintText: l10n.describeNeed),
               ),
               const SizedBox(height: GvSpacing.md),
               OutlinedButton.icon(

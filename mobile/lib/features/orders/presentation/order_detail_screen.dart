@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -163,17 +164,25 @@ class DeliveryTrackingScreen extends ConsumerWidget {
                                         fontWeight: FontWeight.w800))
                               ]),
                               const SizedBox(height: 14),
-                              const _TimelineStep(
-                                  label: 'Pedido confirmado', complete: true),
-                              const _TimelineStep(
-                                  label: 'Separado e preparado',
+                              _TimelineStep(
+                                  label: AppLocalizations.of(context)
+                                      .orderConfirmed,
                                   complete: true),
-                              const _TimelineStep(
-                                  label: 'Em trânsito', complete: true),
-                              const _TimelineStep(
-                                  label: 'Saiu para entrega', complete: false),
-                              const _TimelineStep(
-                                  label: 'Entregue',
+                              _TimelineStep(
+                                  label: AppLocalizations.of(context)
+                                      .orderPicked,
+                                  complete: true),
+                              _TimelineStep(
+                                  label: AppLocalizations.of(context)
+                                      .orderInTransit,
+                                  complete: true),
+                              _TimelineStep(
+                                  label: AppLocalizations.of(context)
+                                      .orderOutForDelivery,
+                                  complete: false),
+                              _TimelineStep(
+                                  label:
+                                      AppLocalizations.of(context).orderDelivered,
                                   complete: false,
                                   last: true),
                               const SizedBox(height: 8),

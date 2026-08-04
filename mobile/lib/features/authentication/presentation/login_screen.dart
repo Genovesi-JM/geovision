@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
+import '../../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -47,6 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: GvColors.bgDarker,
       body: SafeArea(
@@ -92,11 +94,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _email,
                             keyboardType: TextInputType.emailAddress,
                             autofillHints: const [AutofillHints.email],
-                            decoration: const InputDecoration(
-                                hintText: 'Email',
-                                prefixIcon: Icon(Icons.mail_outline)),
+                            decoration: InputDecoration(
+                                hintText: l10n.email,
+                                prefixIcon: const Icon(Icons.mail_outline)),
                             validator: (v) => (v == null || !v.contains('@'))
-                                ? 'Enter a valid email'
+                                ? l10n.enterValidEmail
                                 : null,
                           ),
                           const SizedBox(height: GvSpacing.md),
@@ -104,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _password,
                             obscureText: _obscure,
                             decoration: InputDecoration(
-                              hintText: 'Password',
+                              hintText: l10n.password,
                               prefixIcon: const Icon(Icons.lock_outline),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscure
@@ -115,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                             validator: (v) => (v == null || v.length < 4)
-                                ? 'Enter your password'
+                                ? l10n.enterPassword
                                 : null,
                           ),
                           if (_error != null) ...[
@@ -133,11 +135,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     width: 18,
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2))
-                                : const Text('Sign in'),
+                                : Text(l10n.signIn),
                           ),
                           TextButton(
                             onPressed: () => _showForgot(context),
-                            child: const Text('Forgot password?'),
+                            child: Text(l10n.forgotPassword),
                           ),
                         ],
                       ),
@@ -150,7 +152,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       context.go('/home');
                     },
                     icon: const Icon(Icons.play_circle_outline),
-                    label: const Text('Explore demo'),
+                    label: Text(l10n.continueDemo),
                   ),
                 ],
               ),
@@ -162,18 +164,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showForgot(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final emailCtl = TextEditingController(text: _email.text);
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Reset password'),
+        title: Text(l10n.resetPassword),
         content: TextField(
           controller: emailCtl,
-          decoration: const InputDecoration(hintText: 'Email'),
+          decoration: InputDecoration(hintText: l10n.email),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           FilledButton(
             onPressed: () async {
               await ref
@@ -182,13 +185,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content:
-                          Text('If the email exists, a reset link was sent.')),
+                  SnackBar(content: Text(l10n.resetLinkSent)),
                 );
               }
             },
-            child: const Text('Send'),
+            child: Text(l10n.send),
           ),
         ],
       ),

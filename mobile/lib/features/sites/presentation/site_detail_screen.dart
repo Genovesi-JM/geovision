@@ -8,6 +8,7 @@ import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_section_header.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../core/widgets/kpi_card.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/sites_repository.dart';
 import '../domain/sector.dart';
 
@@ -21,12 +22,13 @@ class SiteDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final siteAsync = ref.watch(siteDetailProvider(siteId));
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Site detail'),
+        title: Text(l10n.siteDetail),
         actions: [
           IconButton(
-            tooltip: 'Perguntar à GAIA sobre este local',
+            tooltip: l10n.askGaiaAboutSite,
             icon: const Icon(Icons.auto_awesome),
             onPressed: () => context.go('/assistant?from=site&site=$siteId'),
           ),
@@ -40,7 +42,7 @@ class SiteDetailScreen extends ConsumerWidget {
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(message: '$e'),
         data: (site) {
-          if (site == null) return const GvEmpty(message: 'Site not found.');
+          if (site == null) return GvEmpty(message: l10n.siteNotFound);
           return ListView(
             padding: const EdgeInsets.all(GvSpacing.lg),
             children: [
@@ -58,19 +60,19 @@ class SiteDetailScreen extends ConsumerWidget {
                     Row(
                       children: [
                         _Stat(
-                            label: 'Area',
+                            label: l10n.area,
                             value:
                                 '${site.totalHectares.toStringAsFixed(0)} ha'),
-                        _Stat(label: 'Fields', value: '${site.areas.length}'),
+                        _Stat(label: l10n.fields, value: '${site.areas.length}'),
                         _Stat(
-                            label: 'Open alerts', value: '${site.openAlerts}'),
+                            label: l10n.openAlerts, value: '${site.openAlerts}'),
                       ],
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: GvSpacing.md),
-              const GvSectionHeader(title: 'KPI summary'),
+              GvSectionHeader(title: l10n.kpiSummary),
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -90,7 +92,7 @@ class SiteDetailScreen extends ConsumerWidget {
                     .toList(),
               ),
               const SizedBox(height: GvSpacing.md),
-              const GvSectionHeader(title: 'Fields'),
+              GvSectionHeader(title: l10n.fields),
               ...site.areas.map((a) => Padding(
                     padding: const EdgeInsets.only(bottom: GvSpacing.sm),
                     child: GvCard(

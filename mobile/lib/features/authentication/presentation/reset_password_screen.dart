@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,8 +52,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Create new password')),
+      appBar: AppBar(title: Text(l10n.createNewPassword)),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -73,9 +75,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     obscureText: true,
                     autofillHints: const [AutofillHints.newPassword],
                     decoration:
-                        const InputDecoration(labelText: 'New password'),
+                        InputDecoration(labelText: l10n.newPassword),
                     validator: (value) => (value?.length ?? 0) < 8
-                        ? 'Use at least 8 characters.'
+                        ? l10n.minChars
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -84,9 +86,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     obscureText: true,
                     autofillHints: const [AutofillHints.newPassword],
                     decoration:
-                        const InputDecoration(labelText: 'Confirm password'),
+                        InputDecoration(labelText: l10n.confirmPassword),
                     validator: (value) => value != _password.text
-                        ? 'The passwords do not match.'
+                        ? l10n.passwordsMismatch
                         : null,
                   ),
                   const SizedBox(height: 24),

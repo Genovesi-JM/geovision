@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -31,6 +32,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   Widget build(BuildContext context) {
     final lines = ref.watch(cartProvider);
     final currency = ref.watch(storeCurrencyProvider);
+    final l10n = AppLocalizations.of(context);
     final sync = ref.watch(cartSyncProvider);
     final paymentOptions = currency == StoreCurrency.akz
         ? const {
@@ -123,10 +125,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               minLines: 2,
               maxLines: 3,
               textInputAction: TextInputAction.done,
-              decoration: const InputDecoration(
-                labelText: 'Morada de entrega',
-                helperText: 'Entrega estimada: 3–5 dias úteis',
-                prefixIcon: Icon(Icons.location_on_outlined,
+              decoration: InputDecoration(
+                labelText: l10n.deliveryAddress,
+                helperText: l10n.deliveryEstimate,
+                prefixIcon: const Icon(Icons.location_on_outlined,
                     color: GvColors.accentCyan),
               ),
             )),

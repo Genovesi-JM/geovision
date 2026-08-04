@@ -22,7 +22,7 @@ class AccountScreen extends ConsumerWidget {
     final text = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Account')),
+      appBar: AppBar(title: Text(text.navAccount)),
       body: ListView(
         padding: const EdgeInsets.all(GvSpacing.lg),
         children: [
@@ -90,15 +90,15 @@ class AccountScreen extends ConsumerWidget {
           _Group(children: [
             _Tile(
                 icon: Icons.notifications_outlined,
-                label: 'Notification settings',
+                label: text.notificationSettings,
                 onTap: () {}),
             _Tile(
                 icon: Icons.description_outlined,
-                label: 'Reports',
+                label: text.reports,
                 onTap: () => context.go('/reports')),
             _Tile(
                 icon: Icons.shopping_bag_outlined,
-                label: 'Loja, pedidos & pagamentos',
+                label: text.storeOrdersPayments,
                 onTap: () => context.go('/orders')),
             _Tile(
                 icon: Icons.payments_outlined,
@@ -107,7 +107,7 @@ class AccountScreen extends ConsumerWidget {
                 onTap: () => context.go('/payment-methods')),
             _Tile(
                 icon: Icons.sensors,
-                label: 'Devices',
+                label: text.devices,
                 onTap: () => context.go('/devices')),
             _Tile(
                 icon: Icons.menu_book_outlined,
@@ -126,12 +126,12 @@ class AccountScreen extends ConsumerWidget {
                 label: _label(language, 'Assistente GAIA', 'GAIA assistant',
                     'Asistente GAIA', 'Assistant GAIA'),
                 onTap: () => context.go('/assistant')),
-            _Tile(icon: Icons.security, label: 'Security', onTap: () {}),
+            _Tile(icon: Icons.security, label: text.security, onTap: () {}),
             _Tile(
                 icon: Icons.privacy_tip_outlined,
-                label: 'Privacy',
+                label: text.privacy,
                 onTap: () {}),
-            _Tile(icon: Icons.gavel_outlined, label: 'Terms', onTap: () {}),
+            _Tile(icon: Icons.gavel_outlined, label: text.terms, onTap: () {}),
             _Tile(
                 icon: Icons.support_agent,
                 label: _label(
@@ -147,7 +147,7 @@ class AccountScreen extends ConsumerWidget {
             FilledButton.icon(
               onPressed: () => context.go('/login'),
               icon: const Icon(Icons.login),
-              label: const Text('Sign in to your account'),
+              label: Text(text.signInToAccount),
             )
           else
             OutlinedButton.icon(
@@ -156,7 +156,7 @@ class AccountScreen extends ConsumerWidget {
                 if (context.mounted) context.go('/login');
               },
               icon: const Icon(Icons.logout),
-              label: const Text('Sign out'),
+              label: Text(text.signOut),
             ),
           const SizedBox(height: GvSpacing.lg),
           Center(

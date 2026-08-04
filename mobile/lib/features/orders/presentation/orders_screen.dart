@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +30,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   Widget build(BuildContext context) {
     final catalogue = ref.watch(catalogueProvider);
     final orders = ref.watch(ordersProvider);
+    final l10n = AppLocalizations.of(context);
     final cartCount =
         ref.watch(cartProvider).fold<int>(0, (s, l) => s + l.quantity);
     final currency = ref.watch(storeCurrencyProvider);
@@ -90,9 +92,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           if (!showOrders) ...[
             TextField(
               onChanged: (value) => setState(() => query = value.trim()),
-              decoration: const InputDecoration(
-                hintText: 'Pesquisar produtos e serviços…',
-                prefixIcon: Icon(Icons.search),
+              decoration: InputDecoration(
+                hintText: l10n.searchProducts,
+                prefixIcon: const Icon(Icons.search),
               ),
             ),
             const SizedBox(height: GvSpacing.md),
