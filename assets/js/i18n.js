@@ -104,6 +104,7 @@ const translations = {
   "adm.noInvoices": { pt: "Nenhuma fatura gerada — conclua encomendas para gerar faturas.", en: "No invoices generated — complete orders to generate invoices.", es: "Sin facturas generadas — complete pedidos para generar facturas." },
   "adm.issued": { pt: "Emitida", en: "Issued", es: "Emitida" },
   "adm.pricesPerCurrency": { pt: "💰 Preços por Moeda", en: "💰 Prices per currency", es: "💰 Precios por moneda" },
+  "admin.logs.dateTime": { pt: "Data/Hora", en: "Date/Time", es: "Fecha/Hora" },
   "iot.device.refresh": { pt: "Atualizar", en: "Refresh", es: "Actualizar" },
   "iot.device.exportCsv": { pt: "Exportar CSV", en: "Export CSV", es: "Exportar CSV" },
   "iot.device.diagnostics": { pt: "Pedir diagnóstico", en: "Request diagnostics", es: "Solicitar diagnóstico" },
