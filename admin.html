@@ -1074,7 +1074,7 @@
             </div>
             <div class="card-body">
               <div class="chart-container" id="chart-growth">
-                <p style="text-align:center;color:var(--text-muted);padding:2rem 0;"><i class="fa-solid fa-chart-line"></i> Sem dados de crescimento disponíveis.</p>
+                <p style="text-align:center;color:var(--text-muted);padding:2rem 0;"><i class="fa-solid fa-chart-line"></i> <span data-i18n="adm.noGrowthData">Sem dados de crescimento disponíveis.</span></p>
               </div>
             </div>
           </div>
@@ -1084,7 +1084,7 @@
             </div>
             <div class="card-body">
               <div class="chart-container" id="chart-revenue-sector">
-                <p style="text-align:center;color:var(--text-muted);padding:2rem 0;"><i class="fa-solid fa-chart-pie"></i> Sem dados de receita disponíveis.</p>
+                <p style="text-align:center;color:var(--text-muted);padding:2rem 0;"><i class="fa-solid fa-chart-pie"></i> <span data-i18n="adm.noRevenueData">Sem dados de receita disponíveis.</span></p>
               </div>
             </div>
           </div>
@@ -1225,7 +1225,7 @@
       <!-- ============ SEND REPORTS VIEW ============ -->
       <div class="view-panel" id="view-send-reports">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão de Clientes</div>
+          <div class="page-eyebrow" data-i18n="adm.clientMgmt">Gestão de Clientes</div>
           <h1 class="page-title" data-i18n="admin.sendReports.title">Enviar Relatórios</h1>
           <p class="page-subtitle" data-i18n="admin.sendReports.desc">Faça upload de ficheiros que ficam imediatamente disponíveis na conta do cliente.</p>
         </div>
@@ -1237,20 +1237,20 @@
           <div class="card-body">
             <form id="form-send-report">
               <div class="form-group">
-                <label class="form-label">Cliente *</label>
+                <label class="form-label" data-i18n="adm.client">Cliente *</label>
                 <select class="form-select" name="company_id" id="sr-company" required>
                   <option value="">Selecionar cliente...</option>
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Site / Projeto</label>
+                <label class="form-label" data-i18n="adm.siteProject">Site / Projeto</label>
                 <select class="form-select" name="site_id" id="sr-site">
                   <option value="">Nenhum (geral)</option>
                 </select>
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label class="form-label">Tipo de Documento *</label>
+                  <label class="form-label" data-i18n="adm.docType">Tipo de Documento *</label>
                   <select class="form-select" name="document_type" required>
                     <option value="report">Relatório</option>
                     <option value="orthomosaic">Ortomosaico</option>
@@ -1264,7 +1264,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Estado</label>
+                  <label class="form-label" data-i18n="adm.status">Estado</label>
                   <select class="form-select" name="status">
                     <option value="approved" selected>Aprovado (visível ao cliente)</option>
                     <option value="draft">Rascunho</option>
@@ -1273,14 +1273,14 @@
                 </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Nome do Documento *</label>
+                <label class="form-label" data-i18n="adm.docName">Nome do Documento *</label>
                 <input type="text" class="form-input" name="name" required placeholder="Ex: Relatório de Levantamento Aéreo - Fazenda Norte" />
               </div>
               <div class="form-group">
-                <label class="form-label">Ficheiro *</label>
+                <label class="form-label" data-i18n="adm.file">Ficheiro *</label>
                 <div style="border: 2px dashed #374151; border-radius: 0.75rem; padding: 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s;" id="sr-dropzone">
                   <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: #6b7280; margin-bottom: 0.5rem;"></i>
-                  <p style="color: #9ca3af; margin: 0;">Arraste o ficheiro aqui ou <span style="color: #22d3ee; text-decoration: underline;">clique para selecionar</span></p>
+                  <p style="color: #9ca3af; margin: 0;" data-i18n="adm.dragFile">Arraste o ficheiro aqui ou <span style="color: #22d3ee; text-decoration: underline;" data-i18n="adm.clickSelect">clique para selecionar</span></p>
                   <p id="sr-file-name" style="color: #22d3ee; font-weight: 600; margin-top: 0.5rem; display: none;"></p>
                   <input type="file" name="file" style="display:none;" id="sr-file-input"
                          accept=".pdf,.docx,.doc,.tif,.tiff,.las,.laz,.shp,.csv,.dxf,.png,.jpg,.jpeg,.zip" />
@@ -1288,15 +1288,15 @@
                 <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.3rem;">PDF, DOCX, GeoTIFF, LAS/LAZ, SHP, CSV, DXF, Imagens, ZIP</p>
               </div>
               <div class="form-group">
-                <label class="form-label">Descrição</label>
+                <label class="form-label" data-i18n="adm.description">Descrição</label>
                 <textarea class="form-textarea" name="description" rows="2" placeholder="Breve descrição do documento..."></textarea>
               </div>
               <div class="form-row">
                 <div class="form-group">
-                  <label style="font-size: 0.85rem;"><input type="checkbox" name="is_official" checked /> Marcar como Oficial</label>
+                  <label style="font-size: 0.85rem;"><input type="checkbox" name="is_official" checked / data-i18n="adm.markOfficial"> Marcar como Oficial</label>
                 </div>
                 <div class="form-group">
-                  <label style="font-size: 0.85rem;"><input type="checkbox" name="is_confidential" /> Confidencial (oculto ao cliente)</label>
+                  <label style="font-size: 0.85rem;"><input type="checkbox" name="is_confidential" / data-i18n="adm.confidential"> Confidencial (oculto ao cliente)</label>
                 </div>
               </div>
             </form>
@@ -1306,7 +1306,7 @@
               </button>
             </div>
             <div id="sr-success" style="display:none; margin-top:1rem; padding:1rem; border-radius:0.5rem; background:#065f4620; border:1px solid #065f46; color:#34d399;">
-              <i class="fa-solid fa-circle-check"></i> <span id="sr-success-msg">Relatório enviado com sucesso!</span>
+              <i class="fa-solid fa-circle-check"></i> <span id="sr-success-msg" data-i18n="adm.reportUploaded">Relatório enviado com sucesso!</span>
             </div>
           </div>
         </div>
@@ -1314,26 +1314,26 @@
         <!-- Recent uploads log -->
         <div class="card" style="margin-top: 1.5rem;">
           <div class="card-header">
-            <h3 class="card-title">Últimos Envios</h3>
+            <h3 class="card-title" data-i18n="adm.recentUploads">Últimos Envios</h3>
           </div>
           <div class="card-body">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Documento</th>
-                  <th>Cliente</th>
-                  <th>Tipo</th>
-                  <th>Tamanho</th>
-                  <th>Estado</th>
-                  <th>Data</th>
-                  <th>Ações</th>
+                  <th data-i18n="adm.document">Documento</th>
+                  <th data-i18n="adm.clientCol">Cliente</th>
+                  <th data-i18n="adm.type">Tipo</th>
+                  <th data-i18n="adm.size">Tamanho</th>
+                  <th data-i18n="adm.status">Estado</th>
+                  <th data-i18n="adm.date">Data</th>
+                  <th data-i18n="adm.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="sr-recent-body"></tbody>
             </table>
             <div id="sr-recent-empty" style="text-align:center; padding:2rem; color:#6b7280; display:none;">
               <i class="fa-solid fa-inbox" style="font-size:1.5rem; margin-bottom:0.5rem;"></i>
-              <p>Nenhum envio recente.</p>
+              <p data-i18n="adm.noRecentUploads">Nenhum envio recente.</p>
             </div>
           </div>
         </div>
@@ -1477,19 +1477,19 @@
                   <td data-i18n="admin.roles.level.internal">Interno GeoVision</td>
                 </tr>
                 <tr>
-                  <td><span class="badge badge-pending">Manager</span></td>
+                  <td><span class="badge badge-pending" data-i18n="adm.roleManager">Manager</span></td>
                   <td data-i18n="admin.roles.desc.manager">Operações diárias</td>
                   <td>5</td>
                   <td data-i18n="admin.roles.level.internal">Interno GeoVision</td>
                 </tr>
                 <tr>
-                  <td><span class="badge badge-active">Client Admin</span></td>
+                  <td><span class="badge badge-active" data-i18n="adm.roleClientAdmin">Client Admin</span></td>
                   <td data-i18n="admin.roles.desc.clientAdmin">Admin da organização cliente</td>
                   <td>15</td>
                   <td data-i18n="admin.roles.level.client">Cliente</td>
                 </tr>
                 <tr>
-                  <td><span class="badge badge-trial">Client Viewer</span></td>
+                  <td><span class="badge badge-trial" data-i18n="adm.roleClientViewer">Client Viewer</span></td>
                   <td data-i18n="admin.roles.desc.clientViewer">Apenas leitura</td>
                   <td>45</td>
                   <td data-i18n="admin.roles.level.client">Cliente</td>
@@ -1516,7 +1516,7 @@
                 <option value="" data-i18n="admin.users.allRoles">Todas as roles</option>
                 <option value="admin">Admin</option>
                 <option value="client">Client</option>
-                <option value="manager">Manager</option>
+                <option value="manager" data-i18n="adm.roleManager">Manager</option>
               </select>
             </div>
           </div>
@@ -1688,9 +1688,9 @@
       <!-- ============ PRODUCTS VIEW ============ -->
       <div class="view-panel" id="view-products">
         <div class="page-header">
-          <div class="page-eyebrow">Gestão</div>
-          <h1 class="page-title">Produtos & Stock</h1>
-          <p class="page-subtitle">Gerir catálogo de serviços e hardware, preços e stock.</p>
+          <div class="page-eyebrow" data-i18n="adm.management">Gestão</div>
+          <h1 class="page-title" data-i18n="adm.productsStock">Produtos & Stock</h1>
+          <p class="page-subtitle" data-i18n="adm.productsSubtitle">Gerir catálogo de serviços e hardware, preços e stock.</p>
         </div>
 
         <!-- Toolbar -->
@@ -1719,14 +1719,14 @@
             <table class="data-table" id="products-table">
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Tipo</th>
-                  <th>Categoria</th>
-                  <th>Setores</th>
+                  <th data-i18n="adm.name">Nome</th>
+                  <th data-i18n="adm.type">Tipo</th>
+                  <th data-i18n="adm.category">Categoria</th>
+                  <th data-i18n="adm.sectors">Setores</th>
                   <th style="text-align:right">Preços (AOA / USD / EUR)</th>
                   <th style="text-align:center">Stock</th>
-                  <th style="text-align:center">Estado</th>
-                  <th style="text-align:center">Ações</th>
+                  <th style="text-align:center" data-i18n="adm.status">Estado</th>
+                  <th style="text-align:center" data-i18n="adm.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="products-tbody"></tbody>
@@ -1739,19 +1739,19 @@
           <div style="max-width:680px;margin:3rem auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;position:relative;">
             <!-- Close X button -->
             <button type="button" onclick="closeProductModal()" style="position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--text-secondary);font-size:1.5rem;cursor:pointer;line-height:1;padding:4px 8px;border-radius:6px;transition:all .2s;" onmouseover="this.style.color='#f97373';this.style.background='rgba(249,115,115,.12)'" onmouseout="this.style.color='var(--text-secondary)';this.style.background='none'">✕</button>
-            <h2 id="product-modal-title" style="margin-bottom:1.5rem;">Novo Produto</h2>
+            <h2 id="product-modal-title" style="margin-bottom:1.5rem;" data-i18n="adm.newProduct">Novo Produto</h2>
             <form id="product-form" onsubmit="saveProduct(event)">
               <input type="hidden" id="pf-id" />
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-                <div style="grid-column:1/-1;"><label>Nome *</label><input class="form-input" id="pf-name" required /></div>
-                <div><label>Tipo</label><select class="form-select" id="pf-product-type"><option value="service">Serviço</option><option value="hardware">Hardware</option></select></div>
+                <div style="grid-column:1/-1;"><label data-i18n="adm.nameReq">Nome *</label><input class="form-input" id="pf-name" required /></div>
+                <div><label data-i18n="adm.type">Tipo</label><select class="form-select" id="pf-product-type"><option value="service">Serviço</option><option value="hardware">Hardware</option></select></div>
                 <div><label>Categoria</label><select class="form-select" id="pf-category"><option value="flight">Voo / Flight</option><option value="drone">Drone</option><option value="sensor">Sensor</option><option value="iot">IoT</option><option value="subscription">Subscrição</option></select></div>
 
                 <!-- Pricing Section - 3 Currencies -->
                 <div style="grid-column:1/-1;margin-top:.5rem;">
                   <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem;">
-                    <span style="font-weight:600;font-size:.95rem;color:var(--text-primary);">💰 Preços por Moeda</span>
-                    <span style="font-size:.7rem;color:var(--text-secondary);background:var(--bg-surface);padding:2px 8px;border-radius:999px;">Valores em centavos</span>
+                    <span style="font-weight:600;font-size:.95rem;color:var(--text-primary);" data-i18n="adm.pricesPerCurrency">💰 Preços por Moeda</span>
+                    <span style="font-size:.7rem;color:var(--text-secondary);background:var(--bg-surface);padding:2px 8px;border-radius:999px;" data-i18n="adm.valuesInCents">Valores em centavos</span>
                   </div>
                   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:1rem;">
                     <div>
@@ -1776,20 +1776,20 @@
                 </div>
 
                 <div><label>Tipo execução</label><select class="form-select" id="pf-execution-type"><option value="">—</option><option value="pontual">Pontual</option><option value="recorrente">Recorrente</option></select></div>
-                <div style="grid-column:1/-1;"><label>Descrição</label><textarea class="form-input" id="pf-description" rows="2"></textarea></div>
-                <div style="grid-column:1/-1;"><label>Setores (separados por vírgula)</label><input class="form-input" id="pf-sectors" placeholder="mining, agro, infrastructure" /></div>
-                <div><label>Duração (horas)</label><input class="form-input" id="pf-duration" type="number" min="0" /></div>
-                <div><label>Área mínima (ha)</label><input class="form-input" id="pf-min-area" type="number" min="0" /></div>
+                <div style="grid-column:1/-1;"><label data-i18n="adm.description">Descrição</label><textarea class="form-input" id="pf-description" rows="2"></textarea></div>
+                <div style="grid-column:1/-1;"><label data-i18n="adm.sectorsComma">Setores (separados por vírgula)</label><input class="form-input" id="pf-sectors" placeholder="mining, agro, infrastructure" /></div>
+                <div><label data-i18n="adm.durationHours">Duração (horas)</label><input class="form-input" id="pf-duration" type="number" min="0" /></div>
+                <div><label data-i18n="adm.minArea">Área mínima (ha)</label><input class="form-input" id="pf-min-area" type="number" min="0" /></div>
                 <div style="display:flex;gap:1.5rem;align-items:center;grid-column:1/-1;">
-                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-active" checked /> Ativo</label>
-                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-featured" /> Destaque</label>
-                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-track-inv" onchange="document.getElementById('pf-stock-row').style.display=this.checked?'block':'none'" /> Controlar stock</label>
+                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-active" checked / data-i18n="adm.active"> Ativo</label>
+                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-featured" / data-i18n="adm.featured"> Destaque</label>
+                  <label style="display:flex;align-items:center;gap:.4rem;"><input type="checkbox" id="pf-track-inv" onchange="document.getElementById('pf-stock-row').style.display=this.checked?'block':'none'" / data-i18n="adm.trackStock"> Controlar stock</label>
                 </div>
-                <div id="pf-stock-row" style="display:none;"><label>Quantidade em stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="0" /></div>
+                <div id="pf-stock-row" style="display:none;"><label data-i18n="adm.stockQty">Quantidade em stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="0" /></div>
               </div>
               <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
-                <button type="button" class="btn" onclick="closeProductModal()" style="background:var(--bg-card);border:1px solid var(--border);">Cancelar</button>
-                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn" onclick="closeProductModal()" style="background:var(--bg-card);border:1px solid var(--border);" data-i18n="adm.cancel">Cancelar</button>
+                <button type="submit" class="btn btn-primary" data-i18n="adm.save">Guardar</button>
               </div>
             </form>
           </div>
@@ -1798,16 +1798,16 @@
         <!-- Stock Adjust Modal -->
         <div id="stock-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,.7);">
           <div style="max-width:400px;margin:6rem auto;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:2rem;">
-            <h3 style="margin-bottom:1rem;">Ajustar Stock</h3>
+            <h3 style="margin-bottom:1rem;" data-i18n="adm.adjustStock">Ajustar Stock</h3>
             <p id="stock-product-name" style="color:var(--text-secondary);margin-bottom:1rem;"></p>
             <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
-              <label for="stock-adjust-val">Ajuste (+/-):</label>
+              <label for="stock-adjust-val" data-i18n="adm.adjustment">Ajuste (+/-):</label>
               <input class="form-input" id="stock-adjust-val" type="number" style="width:100px;" />
             </div>
-            <div style="margin-bottom:1rem;"><label for="stock-adjust-reason">Razão:</label><input class="form-input" id="stock-adjust-reason" placeholder="Opcional" /></div>
+            <div style="margin-bottom:1rem;"><label for="stock-adjust-reason" data-i18n="adm.reason">Razão:</label><input class="form-input" id="stock-adjust-reason" placeholder="Opcional" /></div>
             <div style="display:flex;gap:1rem;justify-content:flex-end;">
-              <button class="btn" onclick="document.getElementById('stock-modal').style.display='none'" style="background:var(--bg-card);border:1px solid var(--border);">Cancelar</button>
-              <button class="btn btn-primary" onclick="submitStockAdjust()">Confirmar</button>
+              <button class="btn" onclick="document.getElementById('stock-modal').style.display='none'" style="background:var(--bg-card);border:1px solid var(--border);" data-i18n="adm.cancel">Cancelar</button>
+              <button class="btn btn-primary" onclick="submitStockAdjust()" data-i18n="adm.confirm">Confirmar</button>
             </div>
           </div>
         </div>
@@ -1992,9 +1992,9 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Status</label>
+              <label class="form-label" data-i18n="adm.statusField">Status</label>
               <select class="form-select" name="status">
-                <option value="active">Ativo</option>
+                <option value="active" data-i18n="adm.active">Ativo</option>
                 <option value="suspended">Suspenso</option>
                 <option value="cancelled">Cancelado</option>
               </select>
@@ -2108,7 +2108,7 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=7"></script>
+  <script src="assets/js/i18n.js?v=8"></script>
   <script>
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
@@ -2261,8 +2261,8 @@
                 </div>
               </td>
               <td>
-                <button class="btn btn-sm btn-secondary" onclick="editClient('${c.id}')">Editar</button>
-                <button class="btn btn-sm btn-danger" onclick="suspendClient('${c.id}')">Suspender</button>
+                <button class="btn btn-sm btn-secondary" onclick="editClient('${c.id}')">${window.t("adm.edit")}</button>
+                <button class="btn btn-sm btn-danger" onclick="suspendClient('${c.id}')">${window.t("adm.suspend")}</button>
               </td>
             </tr>
           `).join('');
@@ -2592,10 +2592,10 @@
                 <td>${s.province || '-'}</td>
                 <td>${s.sector || '-'}</td>
                 <td>${s.area_hectares ? s.area_hectares.toFixed(1) + ' ha' : '-'}</td>
-                <td><span class="badge ${s.is_active ? 'badge-active' : 'badge-suspended'}">${s.is_active ? 'Ativo' : 'Inativo'}</span></td>
+                <td><span class="badge ${s.is_active ? 'badge-active' : 'badge-suspended'}">${s.is_active ? window.t("adm.active") : window.t("adm.inactive")}</span></td>
                 <td>
-                  <button class="btn btn-sm btn-secondary" onclick="viewSite('${s.id}')">Ver</button>
-                  <button class="btn btn-sm btn-danger" onclick="deleteSite('${s.id}')">Excluir</button>
+                  <button class="btn btn-sm btn-secondary" onclick="viewSite('${s.id}')">${window.t("adm.view")}</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteSite('${s.id}')">${window.t("adm.delete")}</button>
                 </td>
               </tr>
             `).join('');
@@ -2708,7 +2708,7 @@
                 <td>${i.company_id.substring(0, 8)}...</td>
                 <td><span class="badge badge-trial">${i.connector_type}</span></td>
                 <td><strong>${i.name}</strong></td>
-                <td><span class="badge ${i.is_active ? 'badge-active' : 'badge-suspended'}">${i.is_active ? 'Ativo' : 'Inativo'}</span></td>
+                <td><span class="badge ${i.is_active ? 'badge-active' : 'badge-suspended'}">${i.is_active ? window.t("adm.active") : window.t("adm.inactive")}</span></td>
                 <td>${i.last_sync_at ? new Date(i.last_sync_at).toLocaleString('pt-PT') : 'Nunca'}</td>
                 <td>${i.auto_sync_enabled ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-xmark"></i>'}</td>
                 <td>
@@ -2846,7 +2846,7 @@
       countEl.textContent = `${allAdminProducts.length} produto(s)`;
 
       if (!allAdminProducts.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhum produto encontrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">' + window.t("adm.noProducts") + '</td></tr>';
         return;
       }
 
@@ -2861,8 +2861,8 @@
              <button class="btn btn-sm" onclick="showStockModal('${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.stock_quantity})" style="margin-left:4px;padding:2px 6px;font-size:.7rem;"><i class="fa-solid fa-sliders"></i></button>`
           : '<span style="color:var(--text-muted);">—</span>';
         const statusBadge = p.is_active
-          ? '<span class="badge badge-active">Ativo</span>'
-          : '<span class="badge badge-suspended">Inativo</span>';
+          ? '<span class="badge badge-active" data-i18n="adm.active">Ativo</span>'
+          : '<span class="badge badge-suspended">' + window.t("adm.inactive") + '</span>';
 
         return `<tr>
           <td><strong>${p.name}</strong>${p.is_featured ? ' <i class="fa-solid fa-star" style="color:#fbbf24;font-size:.7rem;"></i>' : ''}</td>
@@ -3045,7 +3045,7 @@
           const tbody = document.getElementById('users-table-body');
           if (tbody) {
             if (!users.length) {
-              tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhum utilizador encontrado.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">' + window.t("adm.noUsers") + '</td></tr>';
               return;
             }
             tbody.innerHTML = users.map(u => {
@@ -3053,11 +3053,11 @@
               const roleBadge = u.role === 'admin'
                 ? '<span class="badge badge-active">Admin</span>'
                 : u.role === 'manager'
-                  ? '<span class="badge badge-pending">Manager</span>'
+                  ? '<span class="badge badge-pending" data-i18n="adm.roleManager">Manager</span>'
                   : '<span class="badge badge-trial">Client</span>';
               const statusBadge = u.is_active
-                ? '<span class="badge badge-active">Ativo</span>'
-                : '<span class="badge badge-suspended">Inativo</span>';
+                ? '<span class="badge badge-active" data-i18n="adm.active">Ativo</span>'
+                : '<span class="badge badge-suspended">' + window.t("adm.inactive") + '</span>';
               const date = u.created_at ? new Date(u.created_at).toLocaleString('pt-PT', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
               return `<tr>
                 <td><strong>${name}</strong>${u.company ? '<br><span style="font-size:.75rem;color:var(--text-muted);">' + u.company + '</span>' : ''}</td>
@@ -3097,7 +3097,7 @@
           const tbody = document.getElementById('orders-table-body');
           if (tbody) {
             if (!orders.length) {
-              tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma encomenda encontrada.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">' + window.t("adm.noOrders") + '</td></tr>';
               return;
             }
             tbody.innerHTML = orders.map(o => {
@@ -3156,7 +3156,7 @@
       const tbody = document.getElementById('invoices-table-body');
       if (!tbody) return;
       if (!completedOrders.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">Nenhuma fatura gerada — conclua encomendas para gerar faturas.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">' + window.t("adm.noInvoices") + '</td></tr>';
         return;
       }
       tbody.innerHTML = completedOrders.map((o, i) => {
@@ -3170,7 +3170,7 @@
           <td>${client}</td>
           <td style="text-align:right;font-family:monospace;">${currencySymbol} ${total}</td>
           <td>${o.payment_method || '—'}</td>
-          <td><span class="badge badge-active">Emitida</span></td>
+          <td><span class="badge badge-active">${window.t("adm.issued")}</span></td>
           <td>${date}</td>
         </tr>`;
       }).join('');
