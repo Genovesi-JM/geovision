@@ -9,6 +9,7 @@ import '../../../core/widgets/gv_section_header.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../core/widgets/kpi_card.dart';
 import '../../../l10n/app_localizations.dart';
+import 'kpi_labels.dart';
 import '../data/sites_repository.dart';
 import '../domain/sector.dart';
 
@@ -82,7 +83,7 @@ class SiteDetailScreen extends ConsumerWidget {
                 childAspectRatio: 1.45,
                 children: site.kpis
                     .map((k) => KpiCard(
-                          label: k.label,
+                          label: localizedKpiLabel(l10n, k.definitionId, k.label),
                           value: k.value.toString(),
                           unit: k.unit,
                           status: kpiStatusFromString(k.status),
@@ -122,7 +123,7 @@ class SiteDetailScreen extends ConsumerWidget {
                               runSpacing: 4,
                               children: a.kpis
                                   .map((k) => _MiniKpi(
-                                      label: k.label,
+                                      label: localizedKpiLabel(l10n, k.definitionId, k.label),
                                       value: '${k.value}${k.unit ?? ''}',
                                       status: k.status))
                                   .toList(),

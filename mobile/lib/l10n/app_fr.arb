@@ -87,5 +87,18 @@
   "deliveryEstimate": "Livraison estimée : 3 à 5 jours ouvrés",
   "createNewPassword": "Créer un nouveau mot de passe",
   "minChars": "Utilisez au moins 8 caractères.",
-  "passwordsMismatch": "Les mots de passe ne correspondent pas."
+  "passwordsMismatch": "Les mots de passe ne correspondent pas.",
+  "kpiNdviAvg": "NDVI moyen",
+  "kpiNdre": "NDRE",
+  "kpiVegetationCoverage": "Couverture végétale",
+  "kpiWaterStress": "Stress hydrique",
+  "kpiInfestationRisk": "Risque d'infestation",
+  "kpiAnomalies": "Anomalies",
+  "kpiCultivatedArea": "Surface cultivée",
+  "kpiChemCostHa": "Coût chimique / ha",
+  "kpiHerdCount": "Effectif du troupeau",
+  "kpiGrazingIndex": "Indice de pâturage",
+  "kpiWaterPointsOk": "Points d'eau OK",
+  "kpiDefectsDetected": "Défauts détectés",
+  "kpiThermalAnomalies": "Anomalies thermiques"
 }

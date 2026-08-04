@@ -87,5 +87,18 @@
   "deliveryEstimate": "Entrega estimada: 3–5 días hábiles",
   "createNewPassword": "Crear nueva contraseña",
   "minChars": "Use al menos 8 caracteres.",
-  "passwordsMismatch": "Las contraseñas no coinciden."
+  "passwordsMismatch": "Las contraseñas no coinciden.",
+  "kpiNdviAvg": "NDVI promedio",
+  "kpiNdre": "NDRE",
+  "kpiVegetationCoverage": "Cobertura vegetal",
+  "kpiWaterStress": "Estrés hídrico",
+  "kpiInfestationRisk": "Riesgo de infestación",
+  "kpiAnomalies": "Anomalías",
+  "kpiCultivatedArea": "Área cultivada",
+  "kpiChemCostHa": "Costo químico / ha",
+  "kpiHerdCount": "Cabezas de ganado",
+  "kpiGrazingIndex": "Índice de pastoreo",
+  "kpiWaterPointsOk": "Puntos de agua OK",
+  "kpiDefectsDetected": "Defectos detectados",
+  "kpiThermalAnomalies": "Anomalías térmicas"
 }

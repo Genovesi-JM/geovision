@@ -12,6 +12,7 @@ import '../../../core/widgets/kpi_card.dart';
 import '../../../core/widgets/quick_action.dart';
 import '../../../core/widgets/severity_chip.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../sites/presentation/kpi_labels.dart';
 import '../data/home_repository.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -150,7 +151,7 @@ class HomeScreen extends ConsumerWidget {
                   children: s.selectedSite!.kpis
                       .take(4)
                       .map((k) => KpiCard(
-                            label: k.label,
+                            label: localizedKpiLabel(l10n, k.definitionId, k.label),
                             value: k.value.toString(),
                             unit: k.unit,
                             status: kpiStatusFromString(k.status),
