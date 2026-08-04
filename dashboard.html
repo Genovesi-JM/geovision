@@ -1770,7 +1770,7 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=6"></script>
+  <script src="assets/js/i18n.js?v=7"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script type="module" src="assets/js/dashboard-client.js?v=2"></script>
@@ -1961,19 +1961,19 @@
             }
             actionBtns += `<button class="btn btn-sm btn-primary" onclick="downloadMyDoc('${d.id}', '${safeName}')" title="Download"><i class="fa-solid fa-download"></i></button>`;
           } else if (d.has_file && d.file_exists === false) {
-            actionBtns = '<span style="color:#ef4444;font-size:0.75rem;" title="Ficheiro perdido após atualização do servidor"><i class="fa-solid fa-triangle-exclamation"></i> Indisponível</span>';
+            actionBtns = '<span style="color:#ef4444;font-size:0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> ' + window.t("dash.doc.unavailable") + '</span>';
           } else {
-            actionBtns = '<span style="color:#6b7280;font-size:0.8rem;">Sem ficheiro</span>';
+            actionBtns = '<span style="color:#6b7280;font-size:0.8rem;">' + window.t("dash.doc.noFile") + '</span>';
           }
           return `
           <tr>
             <td>
               <strong>${d.name}</strong>
-              ${d.is_official ? '<span class="badge badge-active" style="margin-left:0.5rem;font-size:0.65rem;">Oficial</span>' : ''}
+              ${d.is_official ? '<span class="badge badge-active" style="margin-left:0.5rem;font-size:0.65rem;">' + window.t("dash.doc.official") + '</span>' : ''}
             </td>
             <td><span class="badge badge-trial">${_docTypeLabels[d.document_type] || d.document_type}</span></td>
             <td>${_formatDate(d.created_at)}</td>
-            <td><span class="badge badge-${d.status === 'approved' ? 'active' : 'pending'}">${d.status === 'approved' ? 'Aprovado' : d.status === 'draft' ? 'Rascunho' : d.status}</span></td>
+            <td><span class="badge badge-${d.status === 'approved' ? 'active' : 'pending'}">${d.status === 'approved' ? window.t("dash.doc.approved") : d.status === 'draft' ? window.t("dash.doc.draft") : d.status}</span></td>
             <td style="white-space:nowrap;">${actionBtns}</td>
           </tr>`;
         }).join('');
@@ -1991,7 +1991,7 @@
       .then(async r => {
         if (!r.ok) {
           const err = await r.json().catch(() => ({}));
-          throw new Error(err.detail || 'Download falhou');
+          throw new Error(err.detail || window.t("dash.doc.downloadFailed"));
         }
         const cd = r.headers.get('Content-Disposition') || '';
         const match = cd.match(/filename="?([^"]+)"?/);
@@ -2037,8 +2037,8 @@
           container.innerHTML = `
             <div class="empty-state">
               <div class="empty-icon"><i class="fa-solid fa-lock"></i></div>
-              <h3>Inicia sessão para ver os teus pedidos</h3>
-              <a href="login.html?redirect=dashboard.html?view=orders" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">Iniciar Sessão</a>
+              <h3>${window.t("dash.ord.loginTitle")}</h3>
+              <a href="login.html?redirect=dashboard.html?view=orders" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">${window.t("dash.ord.signIn")}</a>
             </div>
           `;
           return;
@@ -2050,10 +2050,10 @@
 
         if (!res.ok) {
           if (res.status === 401) {
-            container.innerHTML = '<div class="empty-state"><p>Sessão expirada. <a href="login.html">Iniciar sessão</a></p></div>';
+            container.innerHTML = `<div class="empty-state"><p>${window.t("dash.ord.sessionExpired")} <a href="login.html">${window.t("dash.ord.signIn")}</a></p></div>`;
             return;
           }
-          throw new Error("Erro ao carregar pedidos");
+          throw new Error(window.t("dash.ord.loadError"));
         }
 
         const orders = await res.json();
@@ -2063,9 +2063,9 @@
           container.innerHTML = `
             <div class="empty-state">
               <div class="empty-icon"><i class="fa-solid fa-box"></i></div>
-              <h3>Ainda não tens pedidos</h3>
-              <p>Explora a nossa loja e faz o teu primeiro pedido.</p>
-              <a href="loja.html" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">Ir para a Loja</a>
+              <h3>${window.t("dash.ord.emptyTitle")}</h3>
+              <p>${window.t("dash.ord.emptyDesc")}</p>
+              <a href="loja.html" class="btn btn-primary" style="text-decoration:none;margin-top:1rem;">${window.t("dash.ord.goToStore")}</a>
             </div>
           `;
           return;
@@ -2085,7 +2085,7 @@
               <div class="order-items-text">${order.item_count || '?'} ${order.item_count === 1 ? 'item' : 'itens'}</div>
               <div class="order-total">${formatAOA(order.total)}</div>
               <div class="order-actions">
-                <button class="btn btn-sm btn-secondary" onclick="viewOrder('${order.id}')">Ver Detalhes</button>
+                <button class="btn btn-sm btn-secondary" onclick="viewOrder('${order.id}')">${window.t("dash.ord.viewDetails")}</button>
               </div>
             </article>
           `;
@@ -2098,9 +2098,9 @@
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <h3>Erro ao carregar pedidos</h3>
+            <h3>${window.t("dash.ord.loadError")}</h3>
             <p>${err.message}</p>
-            <button class="btn btn-primary" onclick="loadOrders()">Tentar Novamente</button>
+            <button class="btn btn-primary" onclick="loadOrders()">${window.t("dash.ord.retry")}</button>
           </div>
         `;
       }
@@ -2114,7 +2114,7 @@
       content.innerHTML = `
         <div style="text-align:center;padding:2rem;">
           <div class="spinner"></div>
-          <p style="margin-top:1rem;color:#9ca3af;">Carregando detalhes...</p>
+          <p style="margin-top:1rem;color:#9ca3af;">${window.t("dash.ord.loadingDetails")}</p>
         </div>
       `;
 
@@ -2123,7 +2123,7 @@
         const res = await fetch(`${API_URL}/shop/orders/${orderId}`, {
           headers: token ? { "Authorization": "Bearer " + token } : {}
         });
-        if (!res.ok) throw new Error("Falha ao carregar pedido");
+        if (!res.ok) throw new Error(window.t("dash.ord.loadError"));
 
         const order = await res.json();
         document.getElementById('order-modal-title').textContent = order.order_number;
@@ -2147,7 +2147,7 @@
         if (order.deliverables && order.deliverables.length) {
           deliverablesHtml = `
             <div class="deliverables-section">
-              <h4>Entregáveis</h4>
+              <h4>${window.t("dash.ord.deliverables")}</h4>
               ${order.deliverables.map(d => `
                 <div class="deliverable-item">
                   <div>
@@ -2169,19 +2169,19 @@
           <div style="margin-bottom:1rem;">
             ${itemsHtml}
             <div style="display:flex;justify-content:space-between;padding:0.6rem 0;font-weight:600;">
-              <span>Total</span>
+              <span>${window.t("dash.ord.total")}</span>
               <span>${formatAOA(order.total)}</span>
             </div>
           </div>
 
-          ${timelineHtml ? `<h4>Timeline</h4><div class="timeline">${timelineHtml}</div>` : ""}
+          ${timelineHtml ? `<h4>${window.t("dash.ord.timeline")}</h4><div class="timeline">${timelineHtml}</div>` : ""}
 
           ${deliverablesHtml}
 
           ${order.assigned_team ? `
             <div style="margin-top:1rem;padding:0.8rem;background:rgba(168,85,247,0.1);border-radius:0.5rem;">
-              <strong>Equipa Atribuída:</strong> ${order.assigned_team}
-              ${order.scheduled_start ? `<br><strong>Agendado:</strong> ${formatDateTime(order.scheduled_start)}` : ""}
+              <strong>${window.t("dash.ord.assignedTeam")}</strong> ${order.assigned_team}
+              ${order.scheduled_start ? `<br><strong>${window.t("dash.ord.scheduled")}</strong> ${formatDateTime(order.scheduled_start)}` : ""}
             </div>
           ` : ""}
         `;
