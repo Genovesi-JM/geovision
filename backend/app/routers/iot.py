@@ -21,6 +21,7 @@ from app.iot.schemas import (
     AlertRuleCreate,
     AlertAssignment,
     CalibrationCreate,
+    ChannelDefinition,
     CommandCreate,
     CommandResult,
     CommissioningCreate,
@@ -28,6 +29,7 @@ from app.iot.schemas import (
     ProvisionExchange,
     TelemetryEnvelope,
 )
+from app.iot import kits as kit_catalog
 from app.iot.security import hash_secret, new_secret, protect_secret, secret_matches, sign_mqtt_payload
 from app.iot.service import authenticate_device, device_for_company, ingest_telemetry, json_value, latest_readings
 from app.models import (
@@ -113,6 +115,11 @@ def _device_payload(db: Session, device: IotDevice) -> dict:
     readings = latest_readings(db, device)
     battery = next((r["value"] for r in readings if r["channel"] == "battery"), 0)
     signal = next((r["value"] for r in readings if r["channel"] == "signal"), 0)
+    # Location: prefer live GPS readings, fall back to the site's coordinates.
+    lat = next((r["value"] for r in readings if r["channel"] == "latitude" and isinstance(r["value"], (int, float))), None)
+    lon = next((r["value"] for r in readings if r["channel"] == "longitude" and isinstance(r["value"], (int, float))), None)
+    if (lat is None or lon is None) and site and site.latitude is not None and site.longitude is not None:
+        lat, lon = site.latitude, site.longitude
     last = max((datetime.fromisoformat(r["at"].replace("Z", "+00:00")) for r in readings), default=None)
     label = ", ".join(f"{r['channel']} {r['value']}{r['unit'] or ''}" for r in readings[:3]) or None
     return {
@@ -126,6 +133,7 @@ def _device_payload(db: Session, device: IotDevice) -> dict:
         "transport": device.transport, "capabilities": json_value(device.capabilities_json, []),
         "allow_remote_control": device.allow_remote_control,
         "last_seen_at": device.last_seen_at.isoformat() + "Z" if device.last_seen_at else None,
+        "latitude": lat, "longitude": lon,
         "topics": _topics(device), "readings": readings,
     }
 
@@ -163,6 +171,57 @@ def list_gateways(user: User = Depends(get_current_user), db: Session = Depends(
     return [{"id": row.id, "name": row.name, "site_id": row.site_id, "device_id": row.device_id, "gateway_type": row.gateway_type, "status": row.status, "configuration": json_value(row.configuration_json, {})} for row in rows]
 
 
+def _build_device(
+    db: Session, user: User, company_id: str, site: Site, *,
+    name: str, device_type: str, transport: str, hardware_model: str | None,
+    capabilities: list[str], channels: list[ChannelDefinition],
+    allow_remote_control: bool, asset_id: str | None, gateway_id: str | None,
+) -> tuple[IotDevice, str, DeviceProvisioningToken]:
+    """Create a device, its sensor channels and a one-time provisioning token.
+
+    Shared by manual device creation and DIY kit provisioning so both paths stay
+    identical. Caller is responsible for site/asset/gateway ownership checks and
+    for committing the transaction.
+    """
+    for channel in channels:
+        if not valid_unit(channel.measurement_type, channel.unit):
+            raise HTTPException(status_code=422, detail=f"Unsupported unit for {channel.key}: {channel.unit}")
+    placeholder = new_secret()
+    public_id = f"gv-{secrets.token_hex(6)}"
+    device = IotDevice(
+        public_id=public_id, company_id=company_id, site_id=site.id,
+        asset_id=asset_id, gateway_id=gateway_id,
+        name=name.strip(), device_type=device_type,
+        transport=transport, hardware_model=hardware_model,
+        capabilities_json=json.dumps(sorted(set(capabilities))),
+        token_hash=hash_secret(placeholder), secret_encrypted=protect_secret(placeholder),
+        allow_remote_control=allow_remote_control, created_by=user.id,
+    )
+    db.add(device)
+    db.flush()
+    for channel in channels:
+        db.add(SensorChannel(device_id=device.id, asset_id=asset_id, **channel.model_dump()))
+    one_time = new_secret()
+    token_row = DeviceProvisioningToken(
+        device_id=device.id, token_hash=hash_secret(one_time),
+        expires_at=datetime.utcnow() + timedelta(minutes=30), created_by=user.id,
+    )
+    db.add(token_row)
+    return device, one_time, token_row
+
+
+def _provisioning_payload(db: Session, device: IotDevice, one_time: str, token_row: DeviceProvisioningToken) -> dict:
+    return {
+        **_device_payload(db, device),
+        "provisioning": {
+            "token": one_time, "expires_at": token_row.expires_at.isoformat() + "Z",
+            "exchange_url": "/iot/provision/exchange",
+            "qr_payload": json.dumps({"device_uid": device.public_id, "token": one_time}),
+        },
+        "important": "The provisioning token is shown once and expires in 30 minutes.",
+    }
+
+
 @router.post("/devices", status_code=status.HTTP_201_CREATED)
 def create_device(payload: DeviceCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     company_id = _company_id(user, db)
@@ -175,41 +234,75 @@ def create_device(payload: DeviceCreate, user: User = Depends(get_current_user),
     if payload.gateway_id:
         gateway = db.get(IotGateway, payload.gateway_id)
         if not gateway or gateway.company_id != company_id or gateway.site_id != site.id: raise HTTPException(status_code=404, detail="Gateway not found at this site")
-    for channel in payload.channels:
-        if not valid_unit(channel.measurement_type, channel.unit):
-            raise HTTPException(status_code=422, detail=f"Unsupported unit for {channel.key}: {channel.unit}")
-    placeholder = new_secret()
-    public_id = f"gv-{secrets.token_hex(6)}"
-    device = IotDevice(
-        public_id=public_id, company_id=company_id, site_id=site.id,
+    device, one_time, token_row = _build_device(
+        db, user, company_id, site,
+        name=payload.name, device_type=payload.device_type, transport=payload.transport,
+        hardware_model=payload.hardware_model, capabilities=payload.capabilities,
+        channels=payload.channels, allow_remote_control=payload.allow_remote_control,
         asset_id=payload.asset_id, gateway_id=payload.gateway_id,
-        name=payload.name.strip(), device_type=payload.device_type,
-        transport=payload.transport, hardware_model=payload.hardware_model,
-        capabilities_json=json.dumps(sorted(set(payload.capabilities))),
-        token_hash=hash_secret(placeholder), secret_encrypted=protect_secret(placeholder),
-        allow_remote_control=payload.allow_remote_control, created_by=user.id,
     )
-    db.add(device)
-    db.flush()
-    for channel in payload.channels:
-        db.add(SensorChannel(device_id=device.id, asset_id=payload.asset_id, **channel.model_dump()))
-    one_time = new_secret()
-    token_row = DeviceProvisioningToken(
-        device_id=device.id, token_hash=hash_secret(one_time),
-        expires_at=datetime.utcnow() + timedelta(minutes=30), created_by=user.id,
-    )
-    db.add(token_row)
     _audit(db, user, "iot.device_created", "iot_device", device.id, {"site_id": site.id, "transport": device.transport})
     db.commit()
-    return {
-        **_device_payload(db, device),
-        "provisioning": {
-            "token": one_time, "expires_at": token_row.expires_at.isoformat() + "Z",
-            "exchange_url": "/iot/provision/exchange",
-            "qr_payload": json.dumps({"device_uid": public_id, "token": one_time}),
-        },
-        "important": "The provisioning token is shown once and expires in 30 minutes.",
-    }
+    return _provisioning_payload(db, device, one_time, token_row)
+
+
+class KitProvision(BaseModel):
+    site_id: str
+    name: str | None = Field(default=None, max_length=160)
+    asset_id: str | None = None
+
+
+def _kit_public(kit: dict) -> dict:
+    return {**kit, "bom_total_usd": kit_catalog.kit_bom_total(kit)}
+
+
+@router.get("/kits")
+def list_solution_kits(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return [_kit_public(kit) for kit in kit_catalog.list_kits()]
+
+
+@router.get("/kits/{kit_id}")
+def get_solution_kit(kit_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    kit = kit_catalog.get_kit(kit_id)
+    if not kit:
+        raise HTTPException(status_code=404, detail="Kit not found")
+    return _kit_public(kit)
+
+
+@router.post("/kits/{kit_id}/provision", status_code=status.HTTP_201_CREATED)
+def provision_from_kit(kit_id: str, payload: KitProvision, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    kit = kit_catalog.get_kit(kit_id)
+    if not kit:
+        raise HTTPException(status_code=404, detail="Kit not found")
+    company_id = _company_id(user, db)
+    site = db.get(Site, payload.site_id)
+    if not site or site.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Site not found")
+    if payload.asset_id:
+        asset = db.get(IotAsset, payload.asset_id)
+        if not asset or asset.company_id != company_id or asset.site_id != site.id:
+            raise HTTPException(status_code=404, detail="Asset not found at this site")
+    channels = [ChannelDefinition(**c) for c in kit["channels"]]
+    device, one_time, token_row = _build_device(
+        db, user, company_id, site,
+        name=payload.name or kit["name"], device_type=kit["device_type"], transport=kit["transport"],
+        hardware_model=f"geovision-{kit['id']}", capabilities=kit.get("capabilities", []),
+        channels=channels, allow_remote_control=kit.get("allow_remote_control", False),
+        asset_id=payload.asset_id, gateway_id=None,
+    )
+    created_rules = []
+    for rule in kit.get("alert_rules", []):
+        row = IotAlertRule(
+            company_id=company_id, name=rule["name"], device_id=device.id, site_id=None,
+            channel=rule["channel"], operator=rule["operator"], threshold=rule["threshold"],
+            severity=rule.get("severity", "warning"),
+            notification_channels_json=json.dumps(rule.get("notification_channels", ["log"])),
+        )
+        db.add(row)
+        created_rules.append(rule["name"])
+    _audit(db, user, "iot.device_provisioned_from_kit", "iot_device", device.id, {"kit_id": kit_id, "site_id": site.id})
+    db.commit()
+    return {**_provisioning_payload(db, device, one_time, token_row), "kit_id": kit_id, "alert_rules_created": created_rules}
 
 
 @router.post("/provision/exchange")
@@ -340,14 +433,30 @@ def telemetry_aggregates(device_id: str, channel: str | None = None, limit: int 
     return [{"channel": row.channel, "bucket_start": row.bucket_start.isoformat() + "Z", "bucket_seconds": row.bucket_seconds, "sample_count": row.sample_count, "min": row.minimum, "max": row.maximum, "avg": row.average, "unit": row.unit} for row in reversed(rows)]
 
 
+def _device_window(db: Session, device: IotDevice, days: int = 30):
+    end = datetime.utcnow(); start = end - timedelta(days=days)
+    readings = db.query(TelemetryReading).filter(TelemetryReading.device_id == device.id, TelemetryReading.recorded_at >= start, TelemetryReading.recorded_at <= end).order_by(TelemetryReading.recorded_at).all()
+    alerts = db.query(IotAlert).filter(IotAlert.device_id == device.id, IotAlert.opened_at >= start, IotAlert.opened_at <= end).order_by(IotAlert.opened_at).all()
+    channels = db.query(SensorChannel).filter(SensorChannel.device_id == device.id).all()
+    return start, end, readings, alerts, channels
+
+
+@router.get("/devices/{device_id}/analytics")
+def device_analytics(device_id: str, days: int = 30, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    device = device_for_company(db, device_id, _company_id(user, db))
+    start, end, readings, alerts, channels = _device_window(db, device, min(max(days, 1), 365))
+    from app.iot.analytics import compute_device_analytics
+    return compute_device_analytics(device, channels, readings, alerts, start, end)
+
+
 @router.get("/devices/{device_id}/report.pdf")
 def device_report_pdf(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     company_id = _company_id(user, db); device = device_for_company(db, device_id, company_id)
-    end = datetime.utcnow(); start = end - timedelta(days=30)
-    readings = db.query(TelemetryReading).filter(TelemetryReading.device_id == device.id, TelemetryReading.recorded_at >= start, TelemetryReading.recorded_at <= end).order_by(TelemetryReading.recorded_at).all()
-    alerts = db.query(IotAlert).filter(IotAlert.device_id == device.id, IotAlert.opened_at >= start, IotAlert.opened_at <= end).order_by(IotAlert.opened_at).all()
+    start, end, readings, alerts, channels = _device_window(db, device, 30)
+    from app.iot.analytics import compute_device_analytics
     from app.iot.reports import build_device_pdf
-    content = build_device_pdf(device, db.get(Site, device.site_id), db.get(Company, company_id), readings, alerts, start, end)
+    analytics = compute_device_analytics(device, channels, readings, alerts, start, end)
+    content = build_device_pdf(device, db.get(Site, device.site_id), db.get(Company, company_id), readings, alerts, start, end, analytics=analytics)
     return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{device.public_id}-report.pdf"'})
 
 

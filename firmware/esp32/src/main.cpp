@@ -13,6 +13,7 @@
 #include <DallasTemperature.h>
 #include <esp_task_wdt.h>
 #include <mbedtls/md.h>
+#include <TinyGPSPlus.h>
 #include "device_config.h"
 
 Preferences prefs;
@@ -23,6 +24,9 @@ PubSubClient mqtt;
 Adafruit_SHT31 sht31;
 OneWire *oneWire = nullptr;
 DallasTemperature *ds18b20 = nullptr;
+TinyGPSPlus gps;
+HardwareSerial gpsSerial(1);
+bool gpsEnabled = false;
 uint32_t lastSample = 0, lastCommandPoll = 0;
 bool safeMode = false;
 
@@ -52,6 +56,7 @@ void loadConfig() {
   cfg.shtSda=prefs.getChar("shtSda", -1); cfg.shtScl=prefs.getChar("shtScl", -1); cfg.ds18b20Pin=prefs.getChar("dsPin", -1);
   cfg.leakPin=prefs.getChar("leakPin", -1); cfg.doorPin=prefs.getChar("doorPin", -1); cfg.analogLevelPin=prefs.getChar("levelPin", -1);
   cfg.relayPin=prefs.getChar("relayPin", -1); cfg.ledPin=prefs.getChar("ledPin", -1); cfg.buzzerPin=prefs.getChar("buzzPin", -1);
+  cfg.gpsRx=prefs.getChar("gpsRx", -1); cfg.gpsTx=prefs.getChar("gpsTx", -1);
 }
 
 void saveSerialConfiguration(JsonDocument &doc) {
@@ -61,7 +66,7 @@ void saveSerialConfiguration(JsonDocument &doc) {
   prefs.putString("apiBase", server["api_base"] | "http://127.0.0.1:8010"); prefs.putString("mqttHost", server["mqtt_host"] | "127.0.0.1");
   prefs.putUShort("mqttPort", server["mqtt_port"] | 8883); prefs.putBool("mqttTls", server["mqtt_tls"] | true);
   prefs.putULong("sampleMs", doc["sample_ms"] | 10000);
-  for (auto pair : {std::pair<const char*,const char*>("sht_sda","shtSda"), {"sht_scl","shtScl"}, {"ds18b20","dsPin"}, {"leak","leakPin"}, {"door","doorPin"}, {"analog_level","levelPin"}, {"relay","relayPin"}, {"led","ledPin"}, {"buzzer","buzzPin"}}) if (pins[pair.first].is<int>()) prefs.putChar(pair.second, pins[pair.first].as<int>());
+  for (auto pair : {std::pair<const char*,const char*>("sht_sda","shtSda"), {"sht_scl","shtScl"}, {"ds18b20","dsPin"}, {"leak","leakPin"}, {"door","doorPin"}, {"analog_level","levelPin"}, {"relay","relayPin"}, {"led","ledPin"}, {"buzzer","buzzPin"}, {"gps_rx","gpsRx"}, {"gps_tx","gpsTx"}}) if (pins[pair.first].is<int>()) prefs.putChar(pair.second, pins[pair.first].as<int>());
   Serial.println("CONFIG_SAVED_RESTARTING"); delay(500); ESP.restart();
 }
 
@@ -97,7 +102,10 @@ void initializePinsAndSensors() {
   if(cfg.ledPin>=0){pinMode(cfg.ledPin,OUTPUT);digitalWrite(cfg.ledPin,LOW);} if(cfg.relayPin>=0){pinMode(cfg.relayPin,OUTPUT);digitalWrite(cfg.relayPin,LOW);}
   if(cfg.buzzerPin>=0){pinMode(cfg.buzzerPin,OUTPUT);digitalWrite(cfg.buzzerPin,LOW);} if(cfg.leakPin>=0)pinMode(cfg.leakPin,INPUT_PULLUP); if(cfg.doorPin>=0)pinMode(cfg.doorPin,INPUT_PULLUP);
   if(cfg.shtSda>=0 && cfg.shtScl>=0){Wire.begin(cfg.shtSda,cfg.shtScl);sht31.begin(0x44);} if(cfg.ds18b20Pin>=0){oneWire=new OneWire(cfg.ds18b20Pin);ds18b20=new DallasTemperature(oneWire);ds18b20->begin();}
+  if(cfg.gpsRx>=0){gpsSerial.begin(9600,SERIAL_8N1,cfg.gpsRx,cfg.gpsTx);gpsEnabled=true;}
 }
+
+void feedGps() { if(gpsEnabled) while(gpsSerial.available()>0) gps.encode(gpsSerial.read()); }
 
 String makeTelemetry() {
   float humidity=NAN, temperature=NAN;
@@ -107,7 +115,10 @@ String makeTelemetry() {
   // Keys are inserted lexicographically to match backend canonical JSON.
   unsignedDoc["device_uid"]=cfg.deviceUid; JsonObject values=unsignedDoc["measurements"].to<JsonObject>();
   values["battery"]=100.0; if(cfg.doorPin>=0)values["door_open"]=digitalRead(cfg.doorPin)==HIGH;
-  if(!isnan(humidity))values["humidity"]=humidity; values["safety_ok"]=!safeMode; values["signal"]=constrain(2*(WiFi.RSSI()+100),0,100);
+  if(!isnan(humidity))values["humidity"]=humidity;
+  // Keys stay lexicographic: latitude/longitude sit between humidity and safety_ok.
+  if(gpsEnabled&&gps.location.isValid()){values["latitude"]=gps.location.lat();values["longitude"]=gps.location.lng();}
+  values["safety_ok"]=!safeMode; values["signal"]=constrain(2*(WiFi.RSSI()+100),0,100);
   if(cfg.analogLevelPin>=0)values["tank_level"]=100.0*analogRead(cfg.analogLevelPin)/4095.0; if(!isnan(temperature))values["temperature"]=temperature;
   if(cfg.leakPin>=0)values["water_leak"]=digitalRead(cfg.leakPin)==LOW;
   unsignedDoc["message_id"]="esp32-"+String((uint32_t)esp_random(),HEX); JsonObject metadata=unsignedDoc["metadata"].to<JsonObject>(); metadata["firmware"]=GV_FIRMWARE_VERSION; metadata["reset_reason"]=(int)esp_reset_reason();
@@ -164,7 +175,7 @@ void setup() {
 }
 
 void loop() {
-  esp_task_wdt_reset();handleSerialProvisioning();if(WiFi.status()!=WL_CONNECTED)connectWifi();connectMqtt();mqtt.loop();ArduinoOTA.handle();
+  esp_task_wdt_reset();feedGps();handleSerialProvisioning();if(WiFi.status()!=WL_CONNECTED)connectWifi();connectMqtt();mqtt.loop();ArduinoOTA.handle();
   if(millis()-lastSample>=cfg.sampleMs){lastSample=millis();String payload=makeTelemetry();if(!publishPayload(payload))bufferPayload(payload);else flushBuffer();}
   delay(10);
 }

@@ -7,6 +7,20 @@ def _customer_headers(client):
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
+def test_diy_kits_appear_in_marketplace(client):
+    products = client.get("/shop/products").json()
+    kit_products = [p for p in products if p["id"].startswith("prod_kit_")]
+    assert kit_products, "DIY kits should be seeded into the marketplace"
+    water = next((p for p in kit_products if p["id"] == "prod_kit_water_tank_starter"), None)
+    assert water is not None
+    assert water["product_type"] == "hardware" and water["category"] == "sensor_kit"
+    # Prices are stored in minor units (×100): Water kit is $130 -> 13000.
+    assert water["price_usd"] == 13000
+    assert water["price"] > water["price_usd"]  # AOA figure is larger than USD
+    assert water["price_eur"] > 0
+    assert water["deliverables"] and water["sectors"]
+
+
 def test_catalogue_exposes_explicit_multi_currency_contract(client):
     response = client.get("/shop/products")
     assert response.status_code == 200, response.text

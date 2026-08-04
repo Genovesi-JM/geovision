@@ -8,6 +8,8 @@
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/chatbot.css">
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css" />
+  <script src="assets/vendor/leaflet/leaflet.js" defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
@@ -1506,6 +1508,27 @@
           <h1 class="page-title" data-i18n="dash.hw.title">Hardware Instalado</h1>
           <p class="page-subtitle" data-i18n="dash.hw.desc">Equipamentos instalados nos seus projetos.</p>
         </div>
+        <div class="card" id="iot-kit-card" style="margin-bottom:1rem;">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title" data-i18n="iot.kit.cardTitle">Adicionar dispositivo a partir de um kit GeoVision</h3>
+              <div style="color:#94a3b8;font-size:.8rem;margin-top:.25rem;" data-i18n="iot.kit.cardSubtitle">Escolha um kit pronto; criamos o dispositivo com os canais e alertas certos e devolvemos o token de provisionamento.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-wrap:wrap;gap:.65rem;align-items:end;">
+              <label style="display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;color:#94a3b8;"><span data-i18n="iot.kit.kitLabel">Kit</span>
+                <select id="iot-kit-select" class="sidebar-account-select" style="width:auto;min-width:240px;"></select>
+              </label>
+              <label style="display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;color:#94a3b8;"><span data-i18n="iot.kit.siteLabel">Local (site)</span>
+                <select id="iot-kit-site" class="sidebar-account-select" style="width:auto;min-width:200px;"></select>
+              </label>
+              <button class="btn btn-primary" id="iot-kit-provision" data-i18n="iot.kit.create">Criar dispositivo</button>
+            </div>
+            <div id="iot-kit-detail" style="margin-top:.75rem;color:#94a3b8;font-size:.82rem;line-height:1.5;"></div>
+            <div id="iot-kit-result" style="margin-top:.5rem;font-size:.82rem;"></div>
+          </div>
+        </div>
         <div class="card">
           <div class="card-body">
             <table class="data-table" id="hardware-table">
@@ -1531,22 +1554,23 @@
               <h3 class="card-title" id="iot-device-title">Dispositivo</h3>
               <div id="iot-device-meta" style="color:#94a3b8;font-size:.8rem;margin-top:.25rem;"></div>
             </div>
-            <span class="badge" id="iot-live-status">A ligar…</span>
+            <span class="badge" id="iot-live-status" data-i18n="iot.live.connecting">A ligar…</span>
           </div>
           <div class="card-body">
             <div id="iot-reading-cards" class="iot-reading-grid"></div>
             <div class="iot-chart-wrap">
               <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:.75rem;">
-                <strong id="iot-chart-title">Histórico</strong>
+                <strong id="iot-chart-title" data-i18n="iot.chart.history">Histórico</strong>
                 <select id="iot-chart-channel" class="sidebar-account-select" style="width:auto;"></select>
               </div>
               <svg id="iot-history-chart" viewBox="0 0 900 240" role="img" aria-label="Histórico do sensor"></svg>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:.65rem;margin-top:1rem;">
-              <button class="btn btn-primary" id="iot-refresh-device">Atualizar</button>
-              <button class="btn btn-secondary" id="iot-download-csv">Exportar CSV</button>
-              <button class="btn btn-secondary" id="iot-diagnostics">Pedir diagnóstico</button>
-              <button class="btn btn-secondary" id="iot-beacon">Ligar sinalizador de demonstração</button>
+              <button class="btn btn-primary" id="iot-refresh-device" data-i18n="iot.device.refresh">Atualizar</button>
+              <button class="btn btn-secondary" id="iot-download-csv" data-i18n="iot.device.exportCsv">Exportar CSV</button>
+              <button class="btn btn-secondary" id="iot-download-report" data-i18n="iot.report.pdf">Relatório PDF</button>
+              <button class="btn btn-secondary" id="iot-diagnostics" data-i18n="iot.device.diagnostics">Pedir diagnóstico</button>
+              <button class="btn btn-secondary" id="iot-beacon" data-i18n="iot.device.beacon">Ligar sinalizador de demonstração</button>
             </div>
             <div id="iot-command-result" style="margin-top:.75rem;color:#94a3b8;font-size:.8rem;"></div>
           </div>
@@ -1591,9 +1615,8 @@
         </div>
         <div class="card">
           <div class="card-body">
-            <div class="map-container">
-              <i class="fa-solid fa-map-location-dot"></i> <span data-i18n="dash.map.placeholder">Mapa interativo</span>
-            </div>
+            <div id="iot-map" style="height:540px;width:100%;border-radius:12px;overflow:hidden;background:#0f172a;"></div>
+            <div id="iot-map-empty" style="display:none;color:#94a3b8;font-size:.85rem;margin-top:.6rem;" data-i18n="iot.map.empty">Sem dispositivos com localização. Instale um kit com GPS ou defina as coordenadas do site.</div>
           </div>
         </div>
       </div>
@@ -1747,10 +1770,10 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=3"></script>
+  <script src="assets/js/i18n.js?v=6"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=2"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>
   <style>
@@ -1798,6 +1821,10 @@
       // Load reports / documents if switching to reports view
       if (viewId === 'reports') {
         loadReports();
+      }
+      // Render the device map when switching to the map view
+      if (viewId === 'map' && window.gvRenderDeviceMap) {
+        window.gvRenderDeviceMap();
       }
     }
 

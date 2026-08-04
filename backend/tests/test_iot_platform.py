@@ -159,3 +159,103 @@ def test_signed_mqtt_ingestion_path(client, db_session):
     latest = client.get(f"/iot/devices/{device['id']}/latest", headers=headers)
     assert latest.status_code == 200
     assert any(row["channel"] == "temperature" and row["value"] == 22.2 for row in latest.json()["readings"])
+
+
+def test_solution_kit_catalogue_and_one_step_provisioning(client, db_session):
+    owner_email = f"kit-owner-{uuid.uuid4().hex[:8]}@example.com"
+    db_session.add(User(email=owner_email, password_hash=hash_password("long-password-123"), role="cliente", is_active=True)); db_session.commit()
+    _, site = _tenant(db_session, owner_email)
+    headers = _auth(client, owner_email, "long-password-123")
+
+    # Catalogue lists DIY kits with BOM totals and channel templates.
+    catalogue = client.get("/iot/kits", headers=headers)
+    assert catalogue.status_code == 200, catalogue.text
+    kits = catalogue.json()
+    assert len(kits) >= 4
+    water = next(k for k in kits if k["id"] == "water_tank_starter")
+    assert water["bom_total_usd"] > 0 and water["diy_bom"] and water["channels"]
+    assert client.get("/iot/kits/does-not-exist", headers=headers).status_code == 404
+
+    # Provisioning a kit creates a device with the kit's channels and alert rules.
+    provisioned = client.post("/iot/kits/water_tank_starter/provision", headers=headers, json={"site_id": site.id})
+    assert provisioned.status_code == 201, provisioned.text
+    body = provisioned.json()
+    assert body["kit_id"] == "water_tank_starter"
+    assert "Low tank level" in body["alert_rules_created"]
+    device_id, uid = body["id"], body["device_uid"]
+    channels = {r["channel"] for r in client.get(f"/iot/devices/{device_id}", headers=headers).json()["readings"]}
+    assert "tank_level" not in channels  # no readings yet, but channels exist for ingestion below
+
+    exchanged = client.post("/iot/provision/exchange", json={
+        "device_uid": uid, "provisioning_token": body["provisioning"]["token"], "firmware_version": "kit-1.0.0",
+    })
+    assert exchanged.status_code == 200, exchanged.text
+    secret = exchanged.json()["device_secret"]
+
+    # A critically low reading through a kit channel fires the kit's own alert rule.
+    ingest = client.post("/iot/ingest", headers={"Authorization": f"Device {secret}", "X-Device-ID": uid}, json={
+        "message_id": "kit-critical", "timestamp": datetime.now(timezone.utc).isoformat(),
+        "measurements": {"tank_level": 3, "battery": 80, "signal": 70},
+    })
+    assert ingest.status_code == 200, ingest.text
+    assert ingest.json()["stored"] == 3
+    alerts = client.get("/iot/alerts", headers=headers).json()
+    assert any(a["channel"] == "tank_level" and a["severity"] == "critical" for a in alerts)
+
+    # Kit-provisioned device is a normal device: PDF report works.
+    pdf = client.get(f"/iot/devices/{device_id}/report.pdf", headers=headers)
+    assert pdf.status_code == 200 and pdf.content.startswith(b"%PDF")
+
+
+def test_gps_kit_reports_location_for_maps(client, db_session):
+    owner_email = f"gps-{uuid.uuid4().hex[:8]}@example.com"
+    db_session.add(User(email=owner_email, password_hash=hash_password("long-password-123"), role="cliente", is_active=True)); db_session.commit()
+    _, site = _tenant(db_session, owner_email)
+    headers = _auth(client, owner_email, "long-password-123")
+
+    kits = {k["id"] for k in client.get("/iot/kits", headers=headers).json()}
+    assert "gps_asset_tracker" in kits
+
+    provisioned = client.post("/iot/kits/gps_asset_tracker/provision", headers=headers, json={"site_id": site.id})
+    assert provisioned.status_code == 201, provisioned.text
+    body = provisioned.json()
+    device_id, uid = body["id"], body["device_uid"]
+    secret = client.post("/iot/provision/exchange", json={
+        "device_uid": uid, "provisioning_token": body["provisioning"]["token"], "firmware_version": "gps-1.0.0",
+    }).json()["device_secret"]
+
+    ingest = client.post("/iot/ingest", headers={"Authorization": f"Device {secret}", "X-Device-ID": uid}, json={
+        "message_id": "gps-fix", "timestamp": datetime.now(timezone.utc).isoformat(),
+        "measurements": {"latitude": -8.8383, "longitude": 13.2344, "battery": 88, "signal": 60},
+    })
+    assert ingest.status_code == 200, ingest.text
+
+    device = client.get(f"/iot/devices/{device_id}", headers=headers).json()
+    assert device["latitude"] == -8.8383 and device["longitude"] == 13.2344
+
+
+def test_device_analytics_kpis(client, db_session):
+    owner_email = f"analytics-{uuid.uuid4().hex[:8]}@example.com"
+    db_session.add(User(email=owner_email, password_hash=hash_password("long-password-123"), role="cliente", is_active=True)); db_session.commit()
+    _, site = _tenant(db_session, owner_email)
+    headers = _auth(client, owner_email, "long-password-123")
+    device, secret = _provision(client, headers, site.id)
+    uid, device_id = device["device_uid"], device["id"]
+
+    client.post("/iot/alert-rules", headers=headers, json={
+        "name": "High temperature", "device_id": device_id, "channel": "temperature",
+        "operator": "gt", "threshold": 30, "severity": "critical",
+    })
+    assert _ingest(client, uid, secret, "a-normal", 22.0).status_code == 200
+    assert _ingest(client, uid, secret, "a-critical", 41.0).status_code == 200
+
+    analytics = client.get(f"/iot/devices/{device_id}/analytics", headers=headers)
+    assert analytics.status_code == 200, analytics.text
+    body = analytics.json()
+    assert body["overview"]["total_readings"] == 10  # 5 channels x 2 messages
+    temp = next(c for c in body["channels"] if c["channel"] == "temperature")
+    assert temp["samples"] == 2 and temp["min"] == 22.0 and temp["max"] == 41.0
+    leak = next(c for c in body["channels"] if c["channel"] == "water_leak")
+    assert leak["data_type"] == "boolean" and "on_ratio" in leak
+    assert body["incidents"]["total"] >= 1
+    assert body["recommendations"] and isinstance(body["recommendations"], list)

@@ -503,6 +503,26 @@ class IotAsset(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
+class AssetInspection(Base):
+    """A QR-driven construction / field inspection recorded against an asset."""
+    __tablename__ = "asset_inspections"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    asset_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_assets.id", ondelete="CASCADE"), nullable=False, index=True)
+    site_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    inspected_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    inspector_name: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    category: Mapped[str] = mapped_column(String(80), nullable=False, default="general")
+    result: Mapped[str] = mapped_column(String(20), nullable=False, default="pass")  # pass | attention | fail
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    checklist_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    photos_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
 class IotGateway(Base):
     __tablename__ = "iot_gateways"
 

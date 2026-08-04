@@ -197,6 +197,56 @@ def seed_shop_products(db: Session) -> int:
     return count
 
 
+# Map DIY kit industries onto the store's sector vocabulary.
+_KIT_SECTOR = {
+    "agriculture": "agro", "environment": "ambiental", "water": "infrastructure",
+    "energy": "infrastructure", "facilities": "infrastructure", "cold_chain": "infrastructure",
+}
+
+
+def seed_kit_products(db: Session) -> int:
+    """Surface DIY solution kits in the existing marketplace as hardware products.
+
+    Idempotent upsert (by id) that runs on every startup so kits appear even on a
+    pre-existing product catalogue. Reuses the ShopProduct catalogue — no new
+    storefront. Prices are DIY-kit estimates; AOA/EUR are derived from the USD figure.
+    """
+    from app.models import ShopProduct
+    from app.iot.kits import list_kits
+
+    upserted = 0
+    for kit in list_kits():
+        pid = f"prod_kit_{kit['id']}"[:50]
+        # Store prices are held in minor units (×100), matching existing products.
+        usd = int(kit.get("price_usd", 0))
+        price_usd = usd * 100
+        price_aoa = usd * 850 * 100
+        price_eur = round(usd * 0.92) * 100
+        sectors = [_KIT_SECTOR.get(kit.get("industry"), "infrastructure")]
+        deliverables = list(kit.get("kpis", [])) + ["Live dashboard", "Threshold alerts", "PDF/CSV analytical reports"]
+        desc = kit.get("summary", "") + " Dispositivo GeoVision de monitorização, pronto a instalar. Inclui: " + ", ".join(item["part"] for item in kit.get("diy_bom", []))
+        sp = db.get(ShopProduct, pid)
+        if sp is None:
+            sp = ShopProduct(id=pid, slug=f"diy-kit-{kit['id']}".replace("_", "-"), name=kit["name"])
+            db.add(sp)
+            upserted += 1
+        sp.name = kit["name"]
+        sp.description = desc[:2000]
+        sp.short_description = kit.get("summary", "")[:500]
+        sp.product_type = "hardware"
+        sp.category = "sensor_kit"
+        sp.price = price_aoa
+        sp.price_usd = price_usd
+        sp.price_eur = price_eur
+        sp.currency = "AOA"
+        sp.sectors_json = json.dumps(sectors)
+        sp.deliverables_json = json.dumps(deliverables)
+        sp.is_active = True
+        sp.track_inventory = False
+    db.commit()
+    return upserted
+
+
 # ============ CART SERVICE ============
 
 class CartService:

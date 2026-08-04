@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
+  <title>Inspeção de Ativo — GeoVision</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="assets/js/config.js?v=4"></script>
+  <script src="assets/js/i18n.js?v=6"></script>
+  <style>
+    body { background:#0b1220; color:#e2e8f0; font-family:system-ui,sans-serif; margin:0; }
+    .wrap { max-width:520px; margin:0 auto; padding:1.5rem 1.1rem 3rem; }
+    h1 { font-size:1.35rem; margin:.2rem 0; }
+    .muted { color:#94a3b8; font-size:.85rem; }
+    label { display:block; margin:1rem 0 .3rem; font-size:.82rem; color:#cbd5e1; }
+    select, textarea, input { width:100%; box-sizing:border-box; padding:.6rem .7rem; border-radius:9px;
+      border:1px solid #334155; background:#0f172a; color:#e2e8f0; font-size:.95rem; }
+    textarea { min-height:90px; resize:vertical; }
+    .checks { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.4rem; }
+    .checks label { display:inline-flex; align-items:center; gap:.35rem; margin:0; background:#111a2e;
+      padding:.4rem .6rem; border-radius:8px; border:1px solid #24314a; }
+    .checks input { width:auto; }
+    button { margin-top:1.3rem; width:100%; padding:.8rem; border:none; border-radius:10px; cursor:pointer;
+      font-weight:600; font-size:1rem; background:linear-gradient(90deg,#16a34a,#22c55e); color:#04120a; }
+    button.secondary { background:#1e293b; color:#e2e8f0; margin-top:.6rem; }
+    #msg { margin-top:1rem; font-size:.9rem; }
+    .ok { color:#22c55e; } .err { color:#f87171; }
+    .pill { display:inline-block; background:#111a2e; border:1px solid #24314a; border-radius:999px;
+      padding:.15rem .6rem; font-size:.75rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="pill" data-i18n="insp.badge">GeoVision · Inspeção de campo</div>
+    <h1 id="asset-name" data-i18n="insp.asset">Ativo</h1>
+    <div class="muted" id="asset-meta"></div>
+
+    <label for="category" data-i18n="insp.category">Categoria</label>
+    <select id="category">
+      <option value="general" data-i18n="insp.cat.general">Geral</option>
+      <option value="structural" data-i18n="insp.cat.structural">Estrutural</option>
+      <option value="electrical" data-i18n="insp.cat.electrical">Elétrica</option>
+      <option value="mechanical" data-i18n="insp.cat.mechanical">Mecânica</option>
+      <option value="safety" data-i18n="insp.cat.safety">Segurança</option>
+      <option value="housekeeping" data-i18n="insp.cat.housekeeping">Limpeza / Organização</option>
+    </select>
+
+    <label for="result" data-i18n="insp.result">Resultado</label>
+    <select id="result">
+      <option value="pass" data-i18n="insp.result.pass">Conforme (pass)</option>
+      <option value="attention" data-i18n="insp.result.attention">Requer atenção</option>
+      <option value="fail" data-i18n="insp.result.fail">Não conforme (fail)</option>
+    </select>
+
+    <label data-i18n="insp.checks">Verificações</label>
+    <div class="checks" id="checks">
+      <label><input type="checkbox" value="integridade" /> <span data-i18n="insp.check.integrity">Integridade</span></label>
+      <label><input type="checkbox" value="corrosao" /> <span data-i18n="insp.check.corrosion">Corrosão</span></label>
+      <label><input type="checkbox" value="fissuras" /> <span data-i18n="insp.check.cracks">Fissuras</span></label>
+      <label><input type="checkbox" value="fixacoes" /> <span data-i18n="insp.check.fixings">Fixações</span></label>
+      <label><input type="checkbox" value="sinalizacao" /> <span data-i18n="insp.check.signage">Sinalização</span></label>
+    </div>
+
+    <label for="notes" data-i18n="insp.notes">Notas</label>
+    <textarea id="notes" placeholder="Observações da inspeção…" data-i18n-placeholder="insp.notesPlaceholder"></textarea>
+
+    <label><input type="checkbox" id="use-location" style="width:auto" /> <span data-i18n="insp.useLocation">Anexar a minha localização (GPS)</span></label>
+
+    <button id="submit" data-i18n="insp.submit">Registar inspeção</button>
+    <button class="secondary" id="report" data-i18n="insp.report">Ver relatório PDF do ativo</button>
+    <div id="msg"></div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const assetId = params.get("asset");
+    const token = localStorage.getItem("gv_token");
+    const msg = document.getElementById("msg");
+    const authHeaders = () => ({ "Authorization": "Bearer " + token, "Content-Type": "application/json" });
+
+    if (!token) {
+      location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search);
+    }
+    if (!assetId) {
+      msg.innerHTML = '<span class="err">' + (window.t ? window.t("insp.invalidQr") : "QR inválido: falta o identificador do ativo.") + '</span>';
+    }
+
+    async function loadAsset() {
+      try {
+        const res = await fetch(window.API_BASE + "/iot/assets", { headers: authHeaders() });
+        const assets = await res.json();
+        const a = (assets || []).find(x => x.id === assetId);
+        if (a) {
+          document.getElementById("asset-name").textContent = a.name;
+          document.getElementById("asset-meta").textContent = a.asset_type + " · " + (a.external_reference || a.id);
+        } else {
+          document.getElementById("asset-meta").textContent = "Ativo " + assetId;
+        }
+      } catch (e) { document.getElementById("asset-meta").textContent = "Ativo " + assetId; }
+    }
+    if (token && assetId) loadAsset();
+
+    function collectChecklist() {
+      const out = {};
+      document.querySelectorAll("#checks input").forEach(c => { out[c.value] = c.checked; });
+      return out;
+    }
+
+    async function submitInspection(latitude, longitude) {
+      const payload = {
+        asset_id: assetId,
+        category: document.getElementById("category").value,
+        result: document.getElementById("result").value,
+        notes: document.getElementById("notes").value || null,
+        checklist: collectChecklist(),
+      };
+      if (typeof latitude === "number") { payload.latitude = latitude; payload.longitude = longitude; }
+      const res = await fetch(window.API_BASE + "/construction/inspections", {
+        method: "POST", headers: authHeaders(), body: JSON.stringify(payload)
+      });
+      if (!res.ok) { msg.innerHTML = '<span class="err">' + (window.t ? window.t("insp.error") : "Erro") + ': ' + (await res.text()) + '</span>'; return; }
+      msg.innerHTML = '<span class="ok">' + (window.t ? window.t("insp.success") : "✔ Inspeção registada com sucesso.") + '</span>';
+    }
+
+    document.getElementById("submit").onclick = () => {
+      if (!assetId) return;
+      msg.textContent = window.t ? window.t("insp.creating") : "A registar…";
+      if (document.getElementById("use-location").checked && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          p => submitInspection(p.coords.latitude, p.coords.longitude),
+          () => submitInspection()
+        );
+      } else { submitInspection(); }
+    };
+
+    document.getElementById("report").onclick = async () => {
+      const res = await fetch(window.API_BASE + "/construction/assets/" + assetId + "/report.pdf", { headers: { "Authorization": "Bearer " + token } });
+      if (!res.ok) { msg.innerHTML = '<span class="err">' + (window.t ? window.t("insp.noReport") : "Sem relatório.") + '</span>'; return; }
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a"); link.href = url; link.download = "inspecoes-" + assetId + ".pdf"; link.click();
+      URL.revokeObjectURL(url);
+    };
+  </script>
+</body>
+</html>

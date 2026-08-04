@@ -14,11 +14,11 @@ from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRed
 from .routers import auth, projects, ai, accounts, me, kpi
 from .routers import products, orders, customer_accounts, employees
 from .routers import datasets, risk, payments, admin, mobile
-from .routers import shop, contacts, integrations, iot
+from .routers import shop, contacts, integrations, iot, construction
 from .seed_data import (
     seed_admin_users,
 )
-from .services.cart import seed_shop_products
+from .services.cart import seed_shop_products, seed_kit_products
 
 
 def create_application() -> FastAPI:
@@ -90,6 +90,7 @@ def create_application() -> FastAPI:
         db = SessionLocal()
         try:
             seed_shop_products(db)
+            seed_kit_products(db)
             inserted_users = seed_admin_users()
             if inserted_users:
                 print(f"[GeoVision] Utilizadores admin criados: {inserted_users}")
@@ -130,6 +131,7 @@ def create_application() -> FastAPI:
     application.include_router(integrations.router)
     application.include_router(iot.router)
     application.include_router(iot.mobile_router)
+    application.include_router(construction.router)
 
     @application.on_event("startup")
     async def start_iot_bridge() -> None:
