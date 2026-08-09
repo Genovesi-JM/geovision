@@ -348,7 +348,7 @@ async function initKitPanel(accountId) {
       result.innerHTML = `<span style="color:#22c55e;">${T("iot.kit.created")}: <strong>${escapeHTML(res.name)}</strong> (${escapeHTML(res.device_uid)}).</span> ${T("iot.kit.token")}: <code>${escapeHTML(res.provisioning.token)}</code>`;
       await loadIoTHardware(accountId);
     } catch (error) {
-      result.innerHTML = `<span style="color:#f87171;">${T("iot.common.error")}: ${escapeHTML(String(error.message || error))}</span>`;
+      result.innerHTML = `<span style="color:#f87171;">${T("insp.error")}: ${escapeHTML(String(error.message || error))}</span>`;
     }
   };
 }

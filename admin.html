@@ -849,16 +849,16 @@
         <div class="sidebar-section-title" data-i18n="admin.section.main">Principal</div>
         <a href="#" class="sidebar-link active" data-view="dashboard">
           <span class="sidebar-link-icon"><i class="fa-solid fa-chart-column"></i></span>
-          <span data-i18n="admin.nav.dashboard">Dashboard Global</span>
+          <span data-i18n="admin.dash.title">Dashboard Global</span>
         </a>
       </div>
 
       <!-- Gestão -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title" data-i18n="admin.section.management">Gestão</div>
+        <div class="sidebar-section-title" data-i18n="adm.management">Gestão</div>
         <a href="#" class="sidebar-link" data-view="clients">
           <span class="sidebar-link-icon"><i class="fa-solid fa-building"></i></span>
-          <span data-i18n="admin.nav.clients">Clientes</span>
+          <span data-i18n="admin.clients.title">Clientes</span>
           <span class="sidebar-link-badge" id="badge-clients">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="users">
@@ -871,11 +871,11 @@
         </a>
         <a href="#" class="sidebar-link" data-view="datasets">
           <span class="sidebar-link-icon"><i class="fa-solid fa-database"></i></span>
-          <span data-i18n="admin.nav.datasets">Datasets</span>
+          <span data-i18n="admin.datasets.title">Datasets</span>
         </a>
         <a href="#" class="sidebar-link" data-view="documents">
           <span class="sidebar-link-icon"><i class="fa-solid fa-file-lines"></i></span>
-          <span data-i18n="admin.nav.documents">Documentos</span>
+          <span data-i18n="admin.docs.title">Documentos</span>
         </a>
         <a href="#" class="sidebar-link" data-view="send-reports">
           <span class="sidebar-link-icon"><i class="fa-solid fa-paper-plane"></i></span>
@@ -889,10 +889,10 @@
 
       <!-- Integrações -->
       <div class="sidebar-section">
-        <div class="sidebar-section-title" data-i18n="admin.section.integrations">Integrações</div>
+        <div class="sidebar-section-title" data-i18n="admin.integrations.eyebrow">Integrações</div>
         <a href="#" class="sidebar-link" data-view="integrations">
           <span class="sidebar-link-icon"><i class="fa-solid fa-link"></i></span>
-          <span data-i18n="admin.nav.software">Softwares Externos</span>
+          <span data-i18n="admin.integrations.title">Softwares Externos</span>
         </a>
       </div>
 
@@ -906,7 +906,7 @@
         </a>
         <a href="#" class="sidebar-link" data-view="invoices">
           <span class="sidebar-link-icon"><i class="fa-solid fa-file-invoice"></i></span>
-          <span data-i18n="admin.nav.invoices">Faturas</span>
+          <span data-i18n="admin.invoices.title">Faturas</span>
         </a>
       </div>
 
@@ -915,7 +915,7 @@
         <div class="sidebar-section-title" data-i18n="admin.section.system">Sistema</div>
         <a href="#" class="sidebar-link" data-view="alerts">
           <span class="sidebar-link-icon"><i class="fa-solid fa-bell"></i></span>
-          <span data-i18n="admin.nav.alerts">Alertas</span>
+          <span data-i18n="dash.nav.alerts">Alertas</span>
           <span class="sidebar-link-badge" id="badge-alerts">0</span>
         </a>
         <a href="#" class="sidebar-link" data-view="logs">
@@ -973,7 +973,7 @@
       <!-- ============ DASHBOARD VIEW ============ -->
       <div class="view-panel active" id="view-dashboard">
         <div class="page-header">
-          <div class="page-eyebrow" data-i18n="admin.dash.eyebrow">Visão Geral</div>
+          <div class="page-eyebrow" data-i18n="dash.nav.overview">Visão Geral</div>
           <h1 class="page-title" data-i18n="admin.dash.title">Dashboard Global</h1>
           <p class="page-subtitle" data-i18n="admin.dash.desc">Monitorize todas as operações, clientes e métricas da plataforma GeoVision em tempo real.</p>
         </div>
@@ -1014,7 +1014,7 @@
           </div>
           <div class="kpi-card">
             <div class="kpi-header">
-              <span class="kpi-label" data-i18n="admin.kpi.datasets">Datasets</span>
+              <span class="kpi-label" data-i18n="admin.datasets.title">Datasets</span>
               <span class="kpi-icon"><i class="fa-solid fa-database"></i></span>
             </div>
             <div class="kpi-value" id="kpi-total-datasets">0</div>
@@ -1103,9 +1103,9 @@
               <thead>
                 <tr>
                   <th data-i18n="admin.activity.time">Hora</th>
-                  <th data-i18n="admin.activity.user">Utilizador</th>
-                  <th data-i18n="admin.activity.action">Ação</th>
-                  <th data-i18n="admin.activity.resource">Recurso</th>
+                  <th data-i18n="common.user">Utilizador</th>
+                  <th data-i18n="common.action">Ação</th>
+                  <th data-i18n="common.resource">Recurso</th>
                   <th data-i18n="admin.activity.details">Detalhes</th>
                 </tr>
               </thead>
@@ -1120,7 +1120,7 @@
       <!-- ============ CLIENTS VIEW ============ -->
       <div class="view-panel" id="view-clients">
         <div class="page-header">
-          <div class="page-eyebrow" data-i18n="admin.clients.eyebrow">Gestão de Clientes</div>
+          <div class="page-eyebrow" data-i18n="adm.clientMgmt">Gestão de Clientes</div>
           <h1 class="page-title" data-i18n="admin.clients.title">Clientes</h1>
           <p class="page-subtitle" data-i18n="admin.clients.desc">Gerir contas de clientes, planos e acessos.</p>
         </div>
@@ -1155,10 +1155,10 @@
                 <tr>
                   <th data-i18n="admin.clients.company">Empresa</th>
                   <th data-i18n="common.email">Email</th>
-                  <th data-i18n="admin.clients.plan">Plano</th>
+                  <th data-i18n="admin.modal.plan">Plano</th>
                   <th data-i18n="common.status">Status</th>
                   <th data-i18n="admin.nav.sites">Sites</th>
-                  <th data-i18n="admin.clients.contact">Contacto</th>
+                  <th data-i18n="common.contact">Contacto</th>
                   <th data-i18n="common.actions">Ações</th>
                 </tr>
               </thead>
@@ -1192,7 +1192,7 @@
             <h3 class="card-title" data-i18n="admin.docs.recent">Documentos Recentes</h3>
             <div class="card-actions">
               <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
-                <option value="" data-i18n="admin.docs.allTypes">Todos os tipos</option>
+                <option value="" data-i18n="admin.datasets.allTypes">Todos os tipos</option>
                 <option value="report" data-i18n="admin.docs.reports">Relatórios</option>
                 <option value="orthomosaic" data-i18n="admin.docs.ortho">Ortomosaicos</option>
                 <option value="contract" data-i18n="admin.docs.contracts">Contratos</option>
@@ -1205,10 +1205,10 @@
               <thead>
                 <tr>
                   <th data-i18n="common.name">Nome</th>
-                  <th data-i18n="admin.docs.client">Cliente</th>
-                  <th data-i18n="admin.docs.site">Site</th>
+                  <th data-i18n="common.client">Cliente</th>
+                  <th data-i18n="common.site">Site</th>
                   <th data-i18n="common.type">Tipo</th>
-                  <th data-i18n="admin.docs.size">Tamanho</th>
+                  <th data-i18n="common.size">Tamanho</th>
                   <th data-i18n="common.status">Status</th>
                   <th data-i18n="common.date">Data</th>
                   <th data-i18n="common.actions">Ações</th>
@@ -1226,7 +1226,7 @@
       <div class="view-panel" id="view-send-reports">
         <div class="page-header">
           <div class="page-eyebrow" data-i18n="adm.clientMgmt">Gestão de Clientes</div>
-          <h1 class="page-title" data-i18n="admin.sendReports.title">Enviar Relatórios</h1>
+          <h1 class="page-title" data-i18n="admin.nav.sendReports">Enviar Relatórios</h1>
           <p class="page-subtitle" data-i18n="admin.sendReports.desc">Faça upload de ficheiros que ficam imediatamente disponíveis na conta do cliente.</p>
         </div>
 
@@ -1264,7 +1264,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label class="form-label" data-i18n="adm.status">Estado</label>
+                  <label class="form-label" data-i18n="common.status">Estado</label>
                   <select class="form-select" name="status">
                     <option value="approved" selected>Aprovado (visível ao cliente)</option>
                     <option value="draft">Rascunho</option>
@@ -1321,12 +1321,12 @@
               <thead>
                 <tr>
                   <th data-i18n="adm.document">Documento</th>
-                  <th data-i18n="adm.clientCol">Cliente</th>
-                  <th data-i18n="adm.type">Tipo</th>
-                  <th data-i18n="adm.size">Tamanho</th>
-                  <th data-i18n="adm.status">Estado</th>
-                  <th data-i18n="adm.date">Data</th>
-                  <th data-i18n="adm.actions">Ações</th>
+                  <th data-i18n="common.client">Cliente</th>
+                  <th data-i18n="common.type">Tipo</th>
+                  <th data-i18n="common.size">Tamanho</th>
+                  <th data-i18n="common.status">Estado</th>
+                  <th data-i18n="common.date">Data</th>
+                  <th data-i18n="common.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="sr-recent-body"></tbody>
@@ -1396,7 +1396,7 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th data-i18n="admin.docs.client">Cliente</th>
+                  <th data-i18n="common.client">Cliente</th>
                   <th data-i18n="admin.integrations.software">Software</th>
                   <th data-i18n="common.name">Nome</th>
                   <th data-i18n="common.status">Status</th>
@@ -1416,8 +1416,8 @@
       <!-- ============ SETTINGS VIEW ============ -->
       <div class="view-panel" id="view-settings">
         <div class="page-header">
-          <div class="page-eyebrow" data-i18n="admin.settings.eyebrow">Sistema</div>
-          <h1 class="page-title" data-i18n="admin.settings.title">Configurações</h1>
+          <div class="page-eyebrow" data-i18n="admin.section.system">Sistema</div>
+          <h1 class="page-title" data-i18n="admin.nav.settings">Configurações</h1>
           <p class="page-subtitle" data-i18n="admin.settings.desc">Configurações gerais da plataforma, segurança e integrações.</p>
         </div>
 
@@ -1428,10 +1428,10 @@
           <div class="card-body">
             <div class="contact-buttons" style="margin-bottom: 1rem;">
               <a href="https://wa.me/244928917269" target="_blank" class="contact-btn whatsapp">
-                <i class="fa-solid fa-mobile-screen-button"></i> <span data-i18n="admin.settings.whatsapp">WhatsApp</span>
+                <i class="fa-solid fa-mobile-screen-button"></i> <span data-i18n="admin.modal.whatsapp">WhatsApp</span>
               </a>
               <a href="mailto:suporte@geovisionops.com" class="contact-btn email">
-                <i class="fa-solid fa-envelope"></i> <span data-i18n="admin.settings.email">Email</span>
+                <i class="fa-solid fa-envelope"></i> <span data-i18n="common.email">Email</span>
               </a>
               <a href="tel:+244928917269" class="contact-btn phone">
                 <i class="fa-solid fa-phone"></i> <span data-i18n="admin.settings.call">Ligar</span>
@@ -1458,41 +1458,41 @@
               <thead>
                 <tr>
                   <th data-i18n="admin.roles.role">Role</th>
-                  <th data-i18n="admin.roles.description">Descrição</th>
-                  <th data-i18n="admin.roles.users">Utilizadores</th>
+                  <th data-i18n="adm.description">Descrição</th>
+                  <th data-i18n="admin.nav.users">Utilizadores</th>
                   <th data-i18n="admin.roles.level">Nível</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td><span class="badge badge-active">Super Admin</span></td>
-                  <td data-i18n="admin.roles.desc.superadmin">Acesso total à plataforma</td>
+                  <td data-i18n="admin.roles.superAdminDesc">Acesso total à plataforma</td>
                   <td>2</td>
-                  <td data-i18n="admin.roles.level.internal">Interno GeoVision</td>
+                  <td data-i18n="admin.roles.internal">Interno GeoVision</td>
                 </tr>
                 <tr>
                   <td><span class="badge badge-trial">Admin</span></td>
-                  <td data-i18n="admin.roles.desc.admin">Funções administrativas</td>
+                  <td data-i18n="admin.roles.adminDesc">Funções administrativas</td>
                   <td>3</td>
-                  <td data-i18n="admin.roles.level.internal">Interno GeoVision</td>
+                  <td data-i18n="admin.roles.internal">Interno GeoVision</td>
                 </tr>
                 <tr>
                   <td><span class="badge badge-pending" data-i18n="adm.roleManager">Manager</span></td>
-                  <td data-i18n="admin.roles.desc.manager">Operações diárias</td>
+                  <td data-i18n="admin.roles.managerDesc">Operações diárias</td>
                   <td>5</td>
-                  <td data-i18n="admin.roles.level.internal">Interno GeoVision</td>
+                  <td data-i18n="admin.roles.internal">Interno GeoVision</td>
                 </tr>
                 <tr>
                   <td><span class="badge badge-active" data-i18n="adm.roleClientAdmin">Client Admin</span></td>
-                  <td data-i18n="admin.roles.desc.clientAdmin">Admin da organização cliente</td>
+                  <td data-i18n="admin.roles.clientAdminDesc">Admin da organização cliente</td>
                   <td>15</td>
-                  <td data-i18n="admin.roles.level.client">Cliente</td>
+                  <td data-i18n="common.client">Cliente</td>
                 </tr>
                 <tr>
                   <td><span class="badge badge-trial" data-i18n="adm.roleClientViewer">Client Viewer</span></td>
-                  <td data-i18n="admin.roles.desc.clientViewer">Apenas leitura</td>
+                  <td data-i18n="admin.roles.viewerDesc">Apenas leitura</td>
                   <td>45</td>
-                  <td data-i18n="admin.roles.level.client">Cliente</td>
+                  <td data-i18n="common.client">Cliente</td>
                 </tr>
               </tbody>
             </table>
@@ -1503,8 +1503,8 @@
       <!-- ============ USERS VIEW ============ -->
       <div class="view-panel" id="view-users">
         <div class="page-header">
-          <div class="page-eyebrow" data-i18n="admin.section.management">Gestão</div>
-          <h1 class="page-title" data-i18n="admin.users.title">Utilizadores</h1>
+          <div class="page-eyebrow" data-i18n="adm.management">Gestão</div>
+          <h1 class="page-title" data-i18n="admin.nav.users">Utilizadores</h1>
           <p class="page-subtitle" data-i18n="admin.users.desc">Gerir utilizadores da plataforma, roles e permissões.</p>
         </div>
 
@@ -1524,9 +1524,9 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th data-i18n="admin.users.name">Nome</th>
+                  <th data-i18n="common.name">Nome</th>
                   <th data-i18n="common.email">Email</th>
-                  <th data-i18n="admin.users.role">Role</th>
+                  <th data-i18n="admin.roles.role">Role</th>
                   <th data-i18n="common.status">Status</th>
                   <th data-i18n="admin.users.registered">Registado em</th>
                   <th data-i18n="common.actions">Ações</th>
@@ -1540,8 +1540,8 @@
 
       <div class="view-panel" id="view-sites">
         <div class="page-header">
-          <div class="page-eyebrow" data-i18n="admin.section.management">Gestão</div>
-          <h1 class="page-title" data-i18n="admin.sites.title">Sites / Projetos</h1>
+          <div class="page-eyebrow" data-i18n="adm.management">Gestão</div>
+          <h1 class="page-title" data-i18n="admin.nav.sites">Sites / Projetos</h1>
           <p class="page-subtitle" data-i18n="admin.sites.desc">Gerir localizações e projetos de clientes.</p>
         </div>
 
@@ -1560,9 +1560,9 @@
               <thead>
                 <tr>
                   <th data-i18n="common.name">Nome</th>
-                  <th data-i18n="admin.docs.client">Cliente</th>
+                  <th data-i18n="common.client">Cliente</th>
                   <th data-i18n="admin.sites.province">Província</th>
-                  <th data-i18n="admin.sites.sector">Setor</th>
+                  <th data-i18n="common.sector">Setor</th>
                   <th data-i18n="admin.sites.area">Área</th>
                   <th data-i18n="common.status">Status</th>
                   <th data-i18n="common.actions">Ações</th>
@@ -1576,7 +1576,7 @@
 
       <div class="view-panel" id="view-datasets">
         <div class="page-header">
-          <div class="page-eyebrow" data-i18n="admin.section.management">Gestão</div>
+          <div class="page-eyebrow" data-i18n="adm.management">Gestão</div>
           <h1 class="page-title" data-i18n="admin.datasets.title">Datasets</h1>
           <p class="page-subtitle" data-i18n="admin.datasets.desc">Dados de drones, satélite e sensores dos projetos.</p>
         </div>
@@ -1598,10 +1598,10 @@
               <thead>
                 <tr>
                   <th data-i18n="common.name">Nome</th>
-                  <th data-i18n="admin.docs.client">Cliente</th>
-                  <th data-i18n="admin.docs.site">Site</th>
+                  <th data-i18n="common.client">Cliente</th>
+                  <th data-i18n="common.site">Site</th>
                   <th data-i18n="common.type">Tipo</th>
-                  <th data-i18n="admin.docs.size">Tamanho</th>
+                  <th data-i18n="common.size">Tamanho</th>
                   <th data-i18n="common.status">Status</th>
                   <th data-i18n="common.date">Data</th>
                   <th data-i18n="common.actions">Ações</th>
@@ -1617,7 +1617,7 @@
       <div class="view-panel" id="view-payments">
         <div class="page-header">
           <div class="page-eyebrow" data-i18n="admin.section.financial">Financeiro</div>
-          <h1 class="page-title" data-i18n="admin.payments.title">Pagamentos</h1>
+          <h1 class="page-title" data-i18n="admin.nav.payments">Pagamentos</h1>
           <p class="page-subtitle" data-i18n="admin.payments.desc">Histórico de pagamentos e encomendas da loja.</p>
         </div>
 
@@ -1640,7 +1640,7 @@
               <thead>
                 <tr>
                   <th data-i18n="admin.payments.order">Encomenda</th>
-                  <th data-i18n="admin.payments.client">Cliente</th>
+                  <th data-i18n="common.client">Cliente</th>
                   <th data-i18n="admin.payments.items">Itens</th>
                   <th data-i18n="admin.payments.method">Método</th>
                   <th data-i18n="admin.payments.amount">Valor</th>
@@ -1672,7 +1672,7 @@
               <thead>
                 <tr>
                   <th data-i18n="admin.invoices.number">Nº Fatura</th>
-                  <th data-i18n="admin.payments.client">Cliente</th>
+                  <th data-i18n="common.client">Cliente</th>
                   <th data-i18n="admin.payments.amount">Valor</th>
                   <th data-i18n="admin.payments.method">Método</th>
                   <th data-i18n="common.status">Status</th>
@@ -1719,14 +1719,14 @@
             <table class="data-table" id="products-table">
               <thead>
                 <tr>
-                  <th data-i18n="adm.name">Nome</th>
-                  <th data-i18n="adm.type">Tipo</th>
+                  <th data-i18n="common.name">Nome</th>
+                  <th data-i18n="common.type">Tipo</th>
                   <th data-i18n="adm.category">Categoria</th>
-                  <th data-i18n="adm.sectors">Setores</th>
+                  <th data-i18n="nav.sectors">Setores</th>
                   <th style="text-align:right">Preços (AOA / USD / EUR)</th>
                   <th style="text-align:center">Stock</th>
-                  <th style="text-align:center" data-i18n="adm.status">Estado</th>
-                  <th style="text-align:center" data-i18n="adm.actions">Ações</th>
+                  <th style="text-align:center" data-i18n="common.status">Estado</th>
+                  <th style="text-align:center" data-i18n="common.actions">Ações</th>
                 </tr>
               </thead>
               <tbody id="products-tbody"></tbody>
@@ -1744,7 +1744,7 @@
               <input type="hidden" id="pf-id" />
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
                 <div style="grid-column:1/-1;"><label data-i18n="adm.nameReq">Nome *</label><input class="form-input" id="pf-name" required /></div>
-                <div><label data-i18n="adm.type">Tipo</label><select class="form-select" id="pf-product-type"><option value="service">Serviço</option><option value="hardware">Hardware</option></select></div>
+                <div><label data-i18n="common.type">Tipo</label><select class="form-select" id="pf-product-type"><option value="service">Serviço</option><option value="hardware">Hardware</option></select></div>
                 <div><label>Categoria</label><select class="form-select" id="pf-category"><option value="flight">Voo / Flight</option><option value="drone">Drone</option><option value="sensor">Sensor</option><option value="iot">IoT</option><option value="subscription">Subscrição</option></select></div>
 
                 <!-- Pricing Section - 3 Currencies -->
@@ -1788,8 +1788,8 @@
                 <div id="pf-stock-row" style="display:none;"><label data-i18n="adm.stockQty">Quantidade em stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="0" /></div>
               </div>
               <div style="display:flex;gap:1rem;justify-content:flex-end;margin-top:1.5rem;">
-                <button type="button" class="btn" onclick="closeProductModal()" style="background:var(--bg-card);border:1px solid var(--border);" data-i18n="adm.cancel">Cancelar</button>
-                <button type="submit" class="btn btn-primary" data-i18n="adm.save">Guardar</button>
+                <button type="button" class="btn" onclick="closeProductModal()" style="background:var(--bg-card);border:1px solid var(--border);" data-i18n="common.cancel">Cancelar</button>
+                <button type="submit" class="btn btn-primary" data-i18n="common.save">Guardar</button>
               </div>
             </form>
           </div>
@@ -1806,7 +1806,7 @@
             </div>
             <div style="margin-bottom:1rem;"><label for="stock-adjust-reason" data-i18n="adm.reason">Razão:</label><input class="form-input" id="stock-adjust-reason" placeholder="Opcional" /></div>
             <div style="display:flex;gap:1rem;justify-content:flex-end;">
-              <button class="btn" onclick="document.getElementById('stock-modal').style.display='none'" style="background:var(--bg-card);border:1px solid var(--border);" data-i18n="adm.cancel">Cancelar</button>
+              <button class="btn" onclick="document.getElementById('stock-modal').style.display='none'" style="background:var(--bg-card);border:1px solid var(--border);" data-i18n="common.cancel">Cancelar</button>
               <button class="btn btn-primary" onclick="submitStockAdjust()" data-i18n="adm.confirm">Confirmar</button>
             </div>
           </div>
@@ -1844,7 +1844,7 @@
 
         <div class="card">
           <div class="card-header">
-            <h3 class="card-title" data-i18n="admin.logs.title">Logs de Auditoria</h3>
+            <h3 class="card-title" data-i18n="admin.logs.pageTitle">Logs de Auditoria</h3>
             <div class="card-actions">
               <select class="form-select" style="width: auto; padding: 0.4rem 0.7rem; font-size: 0.8rem;">
                 <option value="" data-i18n="admin.logs.allActions">Todas as ações</option>
@@ -1860,11 +1860,11 @@
               <thead>
                 <tr>
                   <th data-i18n="admin.logs.dateTime">Data/Hora</th>
-                  <th data-i18n="admin.logs.user">Utilizador</th>
-                  <th data-i18n="admin.logs.action">Ação</th>
-                  <th data-i18n="admin.logs.resource">Recurso</th>
-                  <th data-i18n="admin.logs.id">ID</th>
-                  <th data-i18n="admin.logs.ip">IP</th>
+                  <th data-i18n="common.user">Utilizador</th>
+                  <th data-i18n="common.action">Ação</th>
+                  <th data-i18n="common.resource">Recurso</th>
+                  <th data-i18n="common.id">ID</th>
+                  <th data-i18n="common.ip">IP</th>
                 </tr>
               </thead>
               <tbody id="audit-logs-table-body"></tbody>
@@ -1923,12 +1923,12 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" data-i18n="admin.modal.sectors">Setores</label>
+            <label class="form-label" data-i18n="nav.sectors">Setores</label>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
               <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agro" /> <span data-i18n="admin.modal.sectorAgro">Agropecuária</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="admin.modal.sectorMining">Mineração</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="admin.modal.sectorConstruction">Construção</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="infrastructure" /> <span data-i18n="admin.modal.sectorInfrastructure">Infraestruturas</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="sectors.mineracao">Mineração</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="login.construction">Construção</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="infrastructure" /> <span data-i18n="sectors.infraestruturas">Infraestruturas</span></label>
               <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="ambiental" /> <span data-i18n="admin.modal.sectorAmbiental">Ambiental & Reflorestação</span></label>
             </div>
           </div>
@@ -2000,12 +2000,12 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" data-i18n="admin.modal.sectors">Setores</label>
+              <label class="form-label" data-i18n="nav.sectors">Setores</label>
               <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agro" /> <span data-i18n="admin.modal.sectorAgro">Agropecuária</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="admin.modal.sectorMining">Mineração</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="admin.modal.sectorConstruction">Construção</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="infrastructure" /> <span data-i18n="admin.modal.sectorInfrastructure">Infraestruturas</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="sectors.mineracao">Mineração</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="login.construction">Construção</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="infrastructure" /> <span data-i18n="sectors.infraestruturas">Infraestruturas</span></label>
                 <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="ambiental" /> <span data-i18n="admin.modal.sectorAmbiental">Ambiental & Reflorestação</span></label>
               </div>
             </div>
@@ -2018,7 +2018,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-edit-client')" data-i18n="common.cancel">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveEditClient()" data-i18n="admin.action.saveClient">Guardar</button>
+        <button class="btn btn-primary" onclick="saveEditClient()" data-i18n="common.save">Guardar</button>
       </div>
     </div>
   </div>
@@ -2034,13 +2034,13 @@
         <form id="form-upload-doc">
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" data-i18n="admin.upload.client">Cliente *</label>
+              <label class="form-label" data-i18n="adm.client">Cliente *</label>
               <select class="form-select" name="company_id" required>
                 <option value="" data-i18n="admin.upload.selectClient">Selecionar cliente...</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" data-i18n="admin.upload.site">Site</label>
+              <label class="form-label" data-i18n="common.site">Site</label>
               <select class="form-select" name="site_id">
                 <option value="" data-i18n="admin.upload.selectSite">Selecionar site...</option>
               </select>
@@ -2048,7 +2048,7 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label" data-i18n="admin.upload.docType">Tipo de Documento *</label>
+              <label class="form-label" data-i18n="adm.docType">Tipo de Documento *</label>
               <select class="form-select" name="document_type" required>
                 <option value="report" data-i18n="admin.upload.report">Relatório</option>
                 <option value="orthomosaic" data-i18n="admin.upload.ortho">Ortomosaico</option>
@@ -2062,7 +2062,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" data-i18n="admin.upload.status">Status</label>
+              <label class="form-label" data-i18n="adm.statusField">Status</label>
               <select class="form-select" name="status">
                 <option value="draft" data-i18n="admin.upload.draft">Rascunho</option>
                 <option value="pending_review" data-i18n="admin.upload.pendingReview">Pendente Revisão</option>
@@ -2072,11 +2072,11 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" data-i18n="admin.upload.docName">Nome do Documento *</label>
+            <label class="form-label" data-i18n="adm.docName">Nome do Documento *</label>
             <input type="text" class="form-input" name="name" required />
           </div>
           <div class="form-group">
-            <label class="form-label" data-i18n="admin.upload.file">Ficheiro *</label>
+            <label class="form-label" data-i18n="adm.file">Ficheiro *</label>
             <input type="file" class="form-input" name="file" required 
                    accept=".pdf,.docx,.doc,.tif,.tiff,.las,.laz,.shp,.csv,.dxf,.png,.jpg,.jpeg" />
             <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.3rem;" data-i18n="admin.upload.formats">
@@ -2096,7 +2096,7 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" data-i18n="admin.upload.description">Descrição</label>
+            <label class="form-label" data-i18n="adm.description">Descrição</label>
             <textarea class="form-textarea" name="description" rows="2"></textarea>
           </div>
         </form>
@@ -2108,7 +2108,7 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=9"></script>
+  <script src="assets/js/i18n.js?v=10"></script>
   <script>
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
@@ -2261,7 +2261,7 @@
                 </div>
               </td>
               <td>
-                <button class="btn btn-sm btn-secondary" onclick="editClient('${c.id}')">${window.t("adm.edit")}</button>
+                <button class="btn btn-sm btn-secondary" onclick="editClient('${c.id}')">${window.t("common.edit")}</button>
                 <button class="btn btn-sm btn-danger" onclick="suspendClient('${c.id}')">${window.t("adm.suspend")}</button>
               </td>
             </tr>
