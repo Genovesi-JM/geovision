@@ -100,5 +100,9 @@
   "kpiGrazingIndex": "Índice de pastoreio",
   "kpiWaterPointsOk": "Pontos de água OK",
   "kpiDefectsDetected": "Defeitos detetados",
-  "kpiThermalAnomalies": "Anomalias térmicas"
+  "kpiThermalAnomalies": "Anomalias térmicas",
+  "liveAccount": "Ver conta em tempo real",
+  "paymentMethods": "Formas de pagamento",
+  "visualGuides": "Guias visuais",
+  "gaiaAssistant": "Assistente GAIA"
 }

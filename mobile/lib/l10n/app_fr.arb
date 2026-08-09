@@ -100,5 +100,9 @@
   "kpiGrazingIndex": "Indice de pâturage",
   "kpiWaterPointsOk": "Points d'eau OK",
   "kpiDefectsDetected": "Défauts détectés",
-  "kpiThermalAnomalies": "Anomalies thermiques"
+  "kpiThermalAnomalies": "Anomalies thermiques",
+  "liveAccount": "Voir le compte en temps réel",
+  "paymentMethods": "Moyens de paiement",
+  "visualGuides": "Guides visuels",
+  "gaiaAssistant": "Assistant GAIA"
 }

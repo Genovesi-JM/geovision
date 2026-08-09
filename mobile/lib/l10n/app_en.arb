@@ -100,5 +100,9 @@
   "kpiGrazingIndex": "Grazing index",
   "kpiWaterPointsOk": "Water points OK",
   "kpiDefectsDetected": "Defects detected",
-  "kpiThermalAnomalies": "Thermal anomalies"
+  "kpiThermalAnomalies": "Thermal anomalies",
+  "liveAccount": "View live account",
+  "paymentMethods": "Payment methods",
+  "visualGuides": "Visual guides",
+  "gaiaAssistant": "GAIA assistant"
 }

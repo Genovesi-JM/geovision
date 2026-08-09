@@ -79,12 +79,7 @@ class AccountScreen extends ConsumerWidget {
           FilledButton.icon(
             onPressed: () => context.go('/account-live'),
             icon: const Icon(Icons.podcasts),
-            label: Text(_label(
-                language,
-                'Ver conta em tempo real',
-                'View live account',
-                'Ver cuenta en tiempo real',
-                'Voir le compte en temps réel')),
+            label: Text(text.liveAccount),
           ),
           const SizedBox(height: GvSpacing.md),
           _Group(children: [
@@ -102,8 +97,7 @@ class AccountScreen extends ConsumerWidget {
                 onTap: () => context.go('/orders')),
             _Tile(
                 icon: Icons.payments_outlined,
-                label: _label(language, 'Formas de pagamento',
-                    'Payment methods', 'Métodos de pago', 'Moyens de paiement'),
+                label: text.paymentMethods,
                 onTap: () => context.go('/payment-methods')),
             _Tile(
                 icon: Icons.sensors,
@@ -111,8 +105,7 @@ class AccountScreen extends ConsumerWidget {
                 onTap: () => context.go('/devices')),
             _Tile(
                 icon: Icons.menu_book_outlined,
-                label: _label(language, 'Guias visuais', 'Visual guides',
-                    'Guías visuales', 'Guides visuels'),
+                label: text.visualGuides,
                 onTap: () => context.go('/guides')),
             _Tile(
                 icon: Icons.language,
@@ -123,8 +116,7 @@ class AccountScreen extends ConsumerWidget {
           _Group(children: [
             _Tile(
                 icon: Icons.auto_awesome,
-                label: _label(language, 'Assistente GAIA', 'GAIA assistant',
-                    'Asistente GAIA', 'Assistant GAIA'),
+                label: text.gaiaAssistant,
                 onTap: () => context.go('/assistant')),
             _Tile(icon: Icons.security, label: text.security, onTap: () {}),
             _Tile(
@@ -134,12 +126,7 @@ class AccountScreen extends ConsumerWidget {
             _Tile(icon: Icons.gavel_outlined, label: text.terms, onTap: () {}),
             _Tile(
                 icon: Icons.support_agent,
-                label: _label(
-                    language,
-                    'Contacto e suporte',
-                    'Contact & support',
-                    'Contacto y soporte',
-                    'Contact et assistance'),
+                label: text.contactSupport,
                 onTap: () => context.go('/support')),
           ]),
           const SizedBox(height: GvSpacing.md),
@@ -206,14 +193,6 @@ class AccountScreen extends ConsumerWidget {
     }
   }
 }
-
-String _label(String language, String pt, String en, String es, String fr) =>
-    switch (language.toLowerCase()) {
-      'pt' => pt,
-      'es' => es,
-      'fr' => fr,
-      _ => en,
-    };
 
 class _Group extends StatelessWidget {
   const _Group({required this.children});
