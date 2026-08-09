@@ -130,40 +130,30 @@ def inspection_report(asset_id: str, user: User = Depends(get_current_user), db:
 
 
 def _build_inspection_pdf(asset, site, company, inspections) -> bytes:
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib.units import mm
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
+    from reportlab.platypus import Paragraph, Spacer
+    from app.iot.reports import report_doc, meta_table, data_table
 
-    output = BytesIO(); styles = getSampleStyleSheet()
-    doc = SimpleDocTemplate(output, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm,
-                            topMargin=16 * mm, bottomMargin=16 * mm, title=f"GeoVision inspection report — {asset.name}")
+    output, doc, styles = report_doc(f"GeoVision inspection report — {asset.name}")
     counts = {"pass": 0, "attention": 0, "fail": 0}
     for i in inspections:
         counts[i.result] = counts.get(i.result, 0) + 1
     story = [
         Paragraph("GeoVision Field Inspection Report", styles["Title"]),
         Paragraph(f"Asset · {asset.name}", styles["Heading2"]), Spacer(1, 6),
-        Table([
+        meta_table([
             ["Customer", company.name if company else asset.company_id],
             ["Site", site.name if site else asset.site_id],
             ["Asset type", asset.asset_type],
             ["Inspections", str(len(inspections))],
             ["Pass / Attention / Fail", f"{counts.get('pass',0)} / {counts.get('attention',0)} / {counts.get('fail',0)}"],
             ["Generated", datetime.utcnow().isoformat() + "Z"],
-        ], colWidths=[46 * mm, 116 * mm],
-           style=[("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#cbd5e1")),
-                  ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#e2e8f0"))]),
+        ]),
         Spacer(1, 12), Paragraph("Inspection timeline", styles["Heading2"]),
     ]
     table = [["Date", "Category", "Result", "Inspector", "Notes"]]
     for i in inspections:
         table.append([i.created_at.strftime("%Y-%m-%d %H:%M"), i.category, i.result,
                       i.inspector_name or "—", (i.notes or "")[:70]])
-    story.append(Table(table, repeatRows=1, colWidths=[30 * mm, 26 * mm, 20 * mm, 28 * mm, 58 * mm],
-                       style=[("GRID", (0, 0), (-1, -1), .25, colors.HexColor("#cbd5e1")),
-                              ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
-                              ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("FONTSIZE", (0, 0), (-1, -1), 7),
-                              ("VALIGN", (0, 0), (-1, -1), "TOP")]))
-    doc.build(story); return output.getvalue()
+    story.append(data_table(table, col_mm=(30, 26, 20, 28, 58), font_size=7))
+    doc.build(story)
+    return output.getvalue()
