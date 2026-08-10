@@ -6,8 +6,8 @@ import '../core/widgets/sync_banner.dart';
 import '../l10n/app_localizations.dart';
 import 'providers.dart';
 
-/// Customer shell with direct access to the most frequent field and commercial
-/// actions. Compact labels keep all destinations usable on phone screens.
+/// Customer shell focused on the five actions that fit reliably on a phone.
+/// Secondary destinations remain one tap away from the More area.
 class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.child});
   final Widget child;
@@ -15,15 +15,19 @@ class AppShell extends ConsumerWidget {
   static const _tabs = [
     '/home',
     '/sites',
+    '/devices',
     '/alerts',
-    '/work',
-    '/orders',
     '/account',
   ];
 
   int _indexFor(String location) {
-    if (location.startsWith('/orders')) return 4;
-    if (location.startsWith('/account')) return 5;
+    if (location.startsWith('/account') ||
+        location.startsWith('/orders') ||
+        location.startsWith('/work') ||
+        location.startsWith('/reports') ||
+        location.startsWith('/guides')) {
+      return 4;
+    }
     for (var i = 0; i < _tabs.length; i++) {
       if (location.startsWith(_tabs[i])) return i;
     }
@@ -69,23 +73,19 @@ class AppShell extends ConsumerWidget {
           BottomNavigationBarItem(
               icon: const Icon(Icons.terrain_outlined),
               activeIcon: const Icon(Icons.terrain),
-              label: text.navSites),
+              label: text.navAssets),
+          BottomNavigationBarItem(
+              icon: const Icon(Icons.sensors_outlined),
+              activeIcon: const Icon(Icons.sensors),
+              label: text.devices),
           BottomNavigationBarItem(
               icon: const Icon(Icons.notifications_outlined),
               activeIcon: const Icon(Icons.notifications),
               label: text.navAlerts),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.work_outline),
-              activeIcon: const Icon(Icons.work),
-              label: text.navWork),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.storefront_outlined),
-              activeIcon: const Icon(Icons.storefront),
-              label: text.navStore),
-          BottomNavigationBarItem(
-              icon: const Icon(Icons.person_outline),
-              activeIcon: const Icon(Icons.person),
-              label: text.navAccount),
+              icon: const Icon(Icons.grid_view_outlined),
+              activeIcon: const Icon(Icons.grid_view),
+              label: text.navMore),
         ],
       ),
     );

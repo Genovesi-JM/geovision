@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/reports_repository.dart';
 
 class ReportsScreen extends ConsumerWidget {
@@ -30,12 +31,12 @@ class ReportsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(reportsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).reports)),
       body: async.when(
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(message: '$e'),
         data: (reports) => reports.isEmpty
-            ? const GvEmpty(message: 'No reports available.')
+            ? GvEmpty(message: AppLocalizations.of(context).noReportsAvailable)
             : ListView.separated(
                 padding: const EdgeInsets.all(GvSpacing.lg),
                 itemCount: reports.length,

@@ -9,6 +9,7 @@ import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../core/widgets/severity_chip.dart';
 import '../data/alerts_repository.dart';
+import '../../../l10n/app_localizations.dart';
 
 final _showResolvedProvider = StateProvider<bool>((ref) => false);
 final _severityFilterProvider = StateProvider<String?>((ref) => null);
@@ -18,17 +19,18 @@ class AlertsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final text = AppLocalizations.of(context);
     final alertsAsync = ref.watch(alertsProvider);
     final showResolved = ref.watch(_showResolvedProvider);
     final sevFilter = ref.watch(_severityFilterProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alerts'),
+        title: Text(text.navAlerts),
         actions: [
           IconButton(
             icon: Icon(showResolved ? Icons.visibility : Icons.visibility_off),
-            tooltip: 'Toggle resolved',
+            tooltip: showResolved ? text.hideResolved : text.showResolved,
             onPressed: () =>
                 ref.read(_showResolvedProvider.notifier).state = !showResolved,
           ),
@@ -82,8 +84,8 @@ class AlertsScreen extends ConsumerWidget {
               ),
               Expanded(
                 child: alerts.isEmpty
-                    ? const GvEmpty(
-                        message: 'No alerts match your filters.',
+                    ? GvEmpty(
+                        message: text.noAlertsMatch,
                         icon: Icons.notifications_none)
                     : ListView.separated(
                         padding: const EdgeInsets.all(GvSpacing.lg),

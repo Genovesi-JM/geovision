@@ -80,10 +80,46 @@ class DevicesScreen extends ConsumerWidget {
         error: (e, _) => GvErrorState(message: '$e'),
         data: (devices) => ListView.separated(
           padding: const EdgeInsets.all(GvSpacing.lg),
-          itemCount: devices.length,
+          itemCount: devices.length + 1,
           separatorBuilder: (_, __) => const SizedBox(height: GvSpacing.sm),
           itemBuilder: (c, i) {
-            final d = devices[i];
+            if (i == 0) {
+              final text = AppLocalizations.of(context);
+              return GvCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(GvSpacing.md),
+                      decoration: BoxDecoration(
+                        color: GvColors.accentGreen.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(GvSpacing.radiusMd),
+                      ),
+                      child: const Icon(Icons.add_link,
+                          color: GvColors.accentGreen),
+                    ),
+                    const SizedBox(width: GvSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(text.deviceStartTitle,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 15)),
+                          const SizedBox(height: 4),
+                          Text(text.deviceStartBody,
+                              style: const TextStyle(
+                                  color: GvColors.textSecondary,
+                                  fontSize: 12,
+                                  height: 1.4)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            final d = devices[i - 1];
             return GvCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +261,8 @@ class DevicesScreen extends ConsumerWidget {
           color: color,
         ),
         title: Text(result.outcome.name),
-        content: Text(result.message ?? 'No additional information.'),
+        content: Text(result.message ??
+            AppLocalizations.of(context).noAdditionalInformation),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogContext),

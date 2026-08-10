@@ -7,6 +7,7 @@ import '../../../core/config/app_flavor.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
+import '../../../core/widgets/gv_section_header.dart';
 import '../../authentication/presentation/auth_controller.dart';
 import '../../../l10n/app_localizations.dart';
 
@@ -22,7 +23,7 @@ class AccountScreen extends ConsumerWidget {
     final text = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(text.navAccount)),
+      appBar: AppBar(title: Text(text.navMore)),
       body: ListView(
         padding: const EdgeInsets.all(GvSpacing.lg),
         children: [
@@ -82,7 +83,12 @@ class AccountScreen extends ConsumerWidget {
             label: Text(text.liveAccount),
           ),
           const SizedBox(height: GvSpacing.md),
+          GvSectionHeader(title: text.operationsTools),
           _Group(children: [
+            _Tile(
+                icon: Icons.add_task_outlined,
+                label: text.requestService,
+                onTap: () => context.go('/work')),
             _Tile(
                 icon: Icons.notifications_outlined,
                 label: text.notificationSettings,
@@ -113,6 +119,7 @@ class AccountScreen extends ConsumerWidget {
                 onTap: () => _selectLanguage(context, ref)),
           ]),
           const SizedBox(height: GvSpacing.md),
+          GvSectionHeader(title: text.helpAndSettings),
           _Group(children: [
             _Tile(
                 icon: Icons.auto_awesome,

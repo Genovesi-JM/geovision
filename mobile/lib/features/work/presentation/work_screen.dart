@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/work_repository.dart';
 import '../domain/service_request.dart';
 
@@ -32,7 +33,7 @@ class WorkScreen extends ConsumerWidget {
     final async = ref.watch(serviceRequestsProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Work'),
+        title: Text(AppLocalizations.of(context).navWork),
         actions: [
           IconButton(
             tooltip: 'Drones e missões',
@@ -46,7 +47,7 @@ class WorkScreen extends ConsumerWidget {
         backgroundColor: GvColors.accentCyan,
         foregroundColor: GvColors.bgDarker,
         icon: const Icon(Icons.add),
-        label: const Text('New request'),
+        label: Text(AppLocalizations.of(context).newRequest),
       ),
       body: async.when(
         loading: () => const GvLoading(),
@@ -54,9 +55,8 @@ class WorkScreen extends ConsumerWidget {
             message: '$e', onRetry: () => ref.refresh(serviceRequestsProvider)),
         data: (requests) {
           if (requests.isEmpty) {
-            return const GvEmpty(
-                message:
-                    'No service requests yet.\nTap “New request” to get started.',
+            return GvEmpty(
+                message: AppLocalizations.of(context).noServiceRequestsYet,
                 icon: Icons.work_outline);
           }
           return RefreshIndicator(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Honest connectivity + freshness indicator. When offline we NEVER imply the
 /// data is live — we show the last synchronised time instead.
@@ -13,7 +14,8 @@ class SyncBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = online ? GvColors.accentGreen : GvColors.medium;
-    final label = online ? 'Online' : 'Offline — showing last synced data';
+    final text = AppLocalizations.of(context);
+    final label = online ? text.online : text.offlineShowingLastData;
     final ts = lastSyncedAt == null
         ? ''
         : ' · ${DateFormat.MMMd().add_Hm().format(lastSyncedAt!.toLocal())}';

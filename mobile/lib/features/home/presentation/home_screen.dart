@@ -75,13 +75,13 @@ class HomeScreen extends ConsumerWidget {
                         if (id != null) context.go('/sites/$id/map');
                       }),
                   QuickAction(
-                      icon: Icons.add_task,
-                      label: l10n.navRequest,
-                      onTap: () => context.go('/work/new')),
+                      icon: Icons.terrain_outlined,
+                      label: l10n.navAssets,
+                      onTap: () => context.go('/sites')),
                   QuickAction(
-                      icon: Icons.storefront_outlined,
-                      label: l10n.navStore,
-                      onTap: () => context.go('/orders')),
+                      icon: Icons.sensors_outlined,
+                      label: l10n.devices,
+                      onTap: () => context.go('/devices')),
                   QuickAction(
                       icon: Icons.warning_amber,
                       label: l10n.navAlerts,
@@ -97,8 +97,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               if (s.criticalAlerts.isEmpty)
                 GvCard(
-                    child: Text(
-                        l10n.noCriticalAlerts,
+                    child: Text(l10n.noCriticalAlerts,
                         style: const TextStyle(color: GvColors.textSecondary)))
               else
                 ...s.criticalAlerts.take(3).map((a) => Padding(
@@ -151,7 +150,8 @@ class HomeScreen extends ConsumerWidget {
                   children: s.selectedSite!.kpis
                       .take(4)
                       .map((k) => KpiCard(
-                            label: localizedKpiLabel(l10n, k.definitionId, k.label),
+                            label: localizedKpiLabel(
+                                l10n, k.definitionId, k.label),
                             value: k.value.toString(),
                             unit: k.unit,
                             status: kpiStatusFromString(k.status),
@@ -205,7 +205,8 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: GvSpacing.md),
               GvSectionHeader(
                 title: l10n.deviceHealth,
-                action: Text('${s.onlineDevices}/${s.totalDevices} ${l10n.deviceOnline.toLowerCase()}',
+                action: Text(
+                    '${s.onlineDevices}/${s.totalDevices} ${l10n.deviceOnline.toLowerCase()}',
                     style: const TextStyle(
                         color: GvColors.accentGreen, fontSize: 12)),
               ),
