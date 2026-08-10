@@ -730,6 +730,64 @@
       margin-top: 0.35rem;
     }
 
+    /* ============ ALERT CONSOLE (P2) ============ */
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      color: #cbd5e1;
+    }
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(148, 163, 184, 0.5); }
+    .alert-filter {
+      cursor: pointer;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      background: rgba(255, 255, 255, 0.03);
+      color: #cbd5e1;
+      transition: all 0.15s;
+    }
+    .alert-filter:hover { border-color: rgba(148, 163, 184, 0.5); }
+    .alert-filter.active {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: #22c55e;
+      color: #22c55e;
+    }
+    .alert-status-pill {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: auto;
+      background: rgba(148, 163, 184, 0.18);
+      color: #cbd5e1;
+    }
+    .alert-status-pill.open { background: rgba(239, 68, 68, 0.18); color: #fca5a5; }
+    .alert-status-pill.acknowledged, .alert-status-pill.assigned { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; }
+    .alert-status-pill.resolved { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+    .alert-status-pill.closed { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
+    .alert-timeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.72rem;
+      color: #6b7280;
+    }
+    .alert-timeline span i { margin-right: 0.25rem; color: #94a3b8; }
+    .alert-actions {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .alert-actions .btn { font-size: 0.75rem; padding: 0.3rem 0.7rem; }
+    .alert-console-empty {
+      text-align: center;
+      color: #6b7280;
+      padding: 2rem 1rem;
+      font-size: 0.9rem;
+    }
+
     /* ============ VIEW PANELS ============ */
     .view-panel {
       display: none;
@@ -1508,10 +1566,27 @@
           <h1 class="page-title" data-i18n="dash.nav.alerts">Alertas</h1>
           <p class="page-subtitle" data-i18n="dash.alerts.desc">Alertas e notificações dos seus serviços e hardware.</p>
         </div>
+        <div class="kpi-grid" style="margin-bottom:1rem;">
+          <div class="kpi-card"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.alerts.open">Em aberto</span><span class="kpi-icon"><i class="fa-solid fa-bell"></i></span></div><div class="kpi-value" id="ac-open">—</div></div>
+          <div class="kpi-card warning"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.iot.critical">Alertas críticos</span><span class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span></div><div class="kpi-value" id="ac-critical">—</div></div>
+          <div class="kpi-card"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.alerts.acknowledged">Reconhecidos</span><span class="kpi-icon"><i class="fa-solid fa-user-check"></i></span></div><div class="kpi-value" id="ac-ack">—</div></div>
+          <div class="kpi-card"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.alerts.resolved">Resolvidos</span><span class="kpi-icon"><i class="fa-solid fa-circle-check"></i></span></div><div class="kpi-value" id="ac-resolved">—</div></div>
+        </div>
         <div class="card">
+          <div class="card-header" style="gap:.5rem;flex-wrap:wrap;">
+            <div class="alert-filters" id="alert-filters" style="display:flex;gap:.4rem;flex-wrap:wrap;">
+              <button class="badge alert-filter active" data-filter="open" data-i18n="dash.alerts.filter.open">Em aberto</button>
+              <button class="badge alert-filter" data-filter="acknowledged" data-i18n="dash.alerts.filter.acknowledged">Reconhecidos</button>
+              <button class="badge alert-filter" data-filter="assigned" data-i18n="dash.alerts.filter.assigned">Atribuídos</button>
+              <button class="badge alert-filter" data-filter="resolved" data-i18n="dash.alerts.filter.resolved">Resolvidos</button>
+              <button class="badge alert-filter" data-filter="closed" data-i18n="dash.alerts.filter.closed">Fechados</button>
+              <button class="badge alert-filter" data-filter="all" data-i18n="dash.alerts.filter.all">Todos</button>
+            </div>
+            <button class="btn btn-ghost" id="alert-refresh" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+          </div>
           <div class="card-body">
-            <div id="alerts-full-list" class="alerts-list">
-              <!-- Filled by JS -->
+            <div id="alert-console" class="alerts-list">
+              <!-- Filled by JS: loadAlertConsole -->
             </div>
           </div>
         </div>
@@ -1786,10 +1861,10 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=11"></script>
+  <script src="assets/js/i18n.js?v=12"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=4"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=5"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>
   <style>
@@ -1841,6 +1916,10 @@
       // Render the device map when switching to the map view
       if (viewId === 'map' && window.gvRenderDeviceMap) {
         window.gvRenderDeviceMap();
+      }
+      // Load the IoT alert console when switching to the alerts view
+      if (viewId === 'alerts' && window.gvLoadAlertConsole) {
+        window.gvLoadAlertConsole();
       }
     }
 

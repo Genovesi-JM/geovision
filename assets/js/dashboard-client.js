@@ -621,6 +621,132 @@ async function loadOperationalHome(accountId) {
   }
 }
 
+// ── P2: IoT alert console + intervention workflow ──
+const ALERT_OPEN_STATES = ["pending", "triggered", "notified"];
+let alertConsoleFilter = "open";
+let alertConsoleWired = false;
+let alertConsoleData = { alerts: [], deviceNames: {} };
+
+function alertAccountId() { return localStorage.getItem(SESSION_ACCOUNT_KEY) || null; }
+
+function wireAlertConsole() {
+  if (alertConsoleWired) return;
+  alertConsoleWired = true;
+  document.querySelectorAll("#alert-filters .alert-filter").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      alertConsoleFilter = btn.dataset.filter;
+      document.querySelectorAll("#alert-filters .alert-filter").forEach((b) => b.classList.toggle("active", b === btn));
+      renderAlertConsole();
+    });
+  });
+  const refresh = document.getElementById("alert-refresh");
+  if (refresh) refresh.addEventListener("click", () => loadAlertConsole());
+}
+
+async function loadAlertConsole() {
+  wireAlertConsole();
+  const accountId = alertAccountId();
+  try {
+    const [devices, alerts] = await Promise.all([
+      apiGet("/iot/devices", accountId).catch(() => []),
+      apiGet("/iot/alerts", accountId).catch(() => []),
+    ]);
+    const deviceNames = {};
+    (devices || []).forEach((d) => { deviceNames[d.id] = d.name || d.device_uid; });
+    alertConsoleData = { alerts: alerts || [], deviceNames };
+    updateAlertConsoleSummary();
+    renderAlertConsole();
+  } catch (err) {
+    console.warn("alert console load failed", err);
+  }
+}
+
+function updateAlertConsoleSummary() {
+  const a = alertConsoleData.alerts;
+  const open = a.filter((x) => ALERT_OPEN_STATES.includes(x.status));
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+  set("ac-open", open.length);
+  set("ac-critical", open.filter((x) => x.severity === "critical").length);
+  set("ac-ack", a.filter((x) => x.status === "acknowledged" || x.status === "assigned").length);
+  set("ac-resolved", a.filter((x) => x.status === "resolved").length);
+}
+
+function alertMatchesFilter(a) {
+  switch (alertConsoleFilter) {
+    case "open": return ALERT_OPEN_STATES.includes(a.status);
+    case "acknowledged": return a.status === "acknowledged";
+    case "assigned": return a.status === "assigned";
+    case "resolved": return a.status === "resolved";
+    case "closed": return a.status === "closed";
+    default: return true;
+  }
+}
+
+function alertFmtTime(iso) { return iso ? new Date(iso).toLocaleString() : "—"; }
+
+function renderAlertConsole() {
+  const container = document.getElementById("alert-console");
+  if (!container) return;
+  const list = alertConsoleData.alerts
+    .filter(alertMatchesFilter)
+    .sort((a, b) => (b.opened_at || "").localeCompare(a.opened_at || ""));
+  if (!list.length) {
+    container.innerHTML = `<div class="alert-console-empty">${T("dash.alerts.none")}</div>`;
+    return;
+  }
+  container.innerHTML = "";
+  list.forEach((a) => {
+    const sev = ["critical", "warning", "info"].includes(a.severity) ? a.severity : "info";
+    const stClass = ALERT_OPEN_STATES.includes(a.status) ? "open" : a.status;
+    const device = alertConsoleData.deviceNames[a.device_id] || a.device_id || "—";
+    const div = document.createElement("div");
+    div.className = `alert-item ${sev}`;
+    const tl = [`<span><i class="fa-solid fa-bell"></i>${T("dash.alerts.tl.opened")}: ${escapeHTML(alertFmtTime(a.opened_at))}</span>`];
+    if (a.acknowledged_at) tl.push(`<span><i class="fa-solid fa-user-check"></i>${T("dash.alerts.tl.acknowledged")}: ${escapeHTML(alertFmtTime(a.acknowledged_at))}</span>`);
+    if (a.assigned_to) tl.push(`<span><i class="fa-solid fa-user-gear"></i>${T("dash.alerts.tl.assigned")}: ${escapeHTML(a.assigned_to)}</span>`);
+    if (a.resolved_at) tl.push(`<span><i class="fa-solid fa-circle-check"></i>${T("dash.alerts.tl.resolved")}: ${escapeHTML(alertFmtTime(a.resolved_at))}</span>`);
+    if (a.closed_at) tl.push(`<span><i class="fa-solid fa-lock"></i>${T("dash.alerts.tl.closed")}: ${escapeHTML(alertFmtTime(a.closed_at))}</span>`);
+    const actions = [];
+    if (a.status === "triggered" || a.status === "notified") actions.push(`<button class="btn btn-primary" data-act="ack" data-id="${escapeHTML(a.id)}">${T("dash.alerts.act.acknowledge")}</button>`);
+    if (a.status === "acknowledged" || a.status === "assigned") actions.push(`<button class="btn btn-ghost" data-act="assign" data-id="${escapeHTML(a.id)}">${T(a.status === "assigned" ? "dash.alerts.act.reassign" : "dash.alerts.act.assign")}</button>`);
+    if (["resolved", "acknowledged", "assigned"].includes(a.status)) actions.push(`<button class="btn btn-ghost" data-act="close" data-id="${escapeHTML(a.id)}">${T("dash.alerts.act.close")}</button>`);
+    div.innerHTML =
+      `<div class="alert-header">` +
+        `<span class="alert-severity ${sev}">${escapeHTML(a.severity).toUpperCase()}</span>` +
+        `<span class="alert-title">${escapeHTML(a.message || a.channel || "")}</span>` +
+        `<span class="alert-status-pill ${stClass}">${escapeHTML(T("dash.alerts.state." + a.status))}</span>` +
+      `</div>` +
+      `<div class="alert-description"><i class="fa-solid fa-microchip"></i> ${escapeHTML(device)}${a.value != null ? ` · ${escapeHTML(a.channel || "")}=${escapeHTML(String(a.value))}` : ""}</div>` +
+      `<div class="alert-timeline">${tl.join("")}</div>` +
+      (actions.length ? `<div class="alert-actions">${actions.join("")}</div>` : "");
+    container.appendChild(div);
+  });
+  container.querySelectorAll("button[data-act]").forEach((btn) => {
+    btn.addEventListener("click", () => handleAlertAction(btn.dataset.act, btn.dataset.id));
+  });
+}
+
+async function handleAlertAction(act, id) {
+  const accountId = alertAccountId();
+  try {
+    if (act === "ack") {
+      await apiPost(`/iot/alerts/${id}/acknowledge`, {}, accountId);
+    } else if (act === "assign") {
+      const assignee = window.prompt(T("dash.alerts.assignPrompt"));
+      if (!assignee) return;
+      await apiPost(`/iot/alerts/${id}/assign`, { assignee_id: assignee.trim() }, accountId);
+    } else if (act === "close") {
+      if (!window.confirm(T("dash.alerts.closeConfirm"))) return;
+      await apiPost(`/iot/alerts/${id}/close`, {}, accountId);
+    }
+    await loadAlertConsole();
+  } catch (err) {
+    window.alert(`${T("dash.alerts.actionFailed")}: ${err.message || err}`);
+  }
+}
+
+window.gvLoadAlertConsole = loadAlertConsole;
+
 async function loadOrdersOverrideReports(accountId) {
   try {
     const orders = await apiGet("/orders", accountId);
