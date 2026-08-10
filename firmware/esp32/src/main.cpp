@@ -30,6 +30,16 @@ bool gpsEnabled = false;
 uint32_t lastSample = 0, lastCommandPoll = 0;
 bool safeMode = false;
 
+// ── Irrigation valve state + local safety interlocks ──
+// The valve MUST be able to close itself without the cloud: the main rule runs
+// on-device (irrigation thread — "the system cannot depend entirely on the cloud
+// to close a valve").
+bool valveOpen = false;
+uint32_t valveOpenedAt = 0, lastServerContact = 0;
+const uint32_t VALVE_MAX_RUN_MS = 600000UL;    // hard cap: close after 10 min
+const uint32_t LINK_LOSS_TIMEOUT_MS = 60000UL; // close if no server contact for 60 s
+const float TANK_EMPTY_PCT = 3.0f;             // refuse/close below this tank level
+
 String topic(const String &suffix) {
   return prefs.getString("topicBase", "") + "/" + suffix;
 }
@@ -120,6 +130,7 @@ String makeTelemetry() {
   if(gpsEnabled&&gps.location.isValid()){values["latitude"]=gps.location.lat();values["longitude"]=gps.location.lng();}
   values["safety_ok"]=!safeMode; values["signal"]=constrain(2*(WiFi.RSSI()+100),0,100);
   if(cfg.analogLevelPin>=0)values["tank_level"]=100.0*analogRead(cfg.analogLevelPin)/4095.0; if(!isnan(temperature))values["temperature"]=temperature;
+  if(cfg.relayPin>=0)values["valve_open"]=valveOpen;
   if(cfg.leakPin>=0)values["water_leak"]=digitalRead(cfg.leakPin)==LOW;
   unsignedDoc["message_id"]="esp32-"+String((uint32_t)esp_random(),HEX); JsonObject metadata=unsignedDoc["metadata"].to<JsonObject>(); metadata["firmware"]=GV_FIRMWARE_VERSION; metadata["reset_reason"]=(int)esp_reset_reason();
   unsignedDoc["nonce"]=String((uint32_t)esp_random(),HEX)+String((uint32_t)esp_random(),HEX); unsignedDoc["timestamp"]=isoTimestamp();
@@ -143,18 +154,40 @@ bool publishPayload(const String &payload) {
 
 void flushBuffer() { if(!LittleFS.exists("/telemetry.queue"))return;File input=LittleFS.open("/telemetry.queue","r"), output=LittleFS.open("/telemetry.tmp","w");while(input.available()){String line=input.readStringUntil('\n');if(line.length()&&!publishPayload(line))output.println(line);esp_task_wdt_reset();}input.close();output.close();LittleFS.remove("/telemetry.queue");LittleFS.rename("/telemetry.tmp","/telemetry.queue"); }
 
+float readTankPct() { return cfg.analogLevelPin>=0 ? 100.0f*analogRead(cfg.analogLevelPin)/4095.0f : NAN; }
+
+void setValve(bool open) {
+  if(cfg.relayPin<0) return;
+  digitalWrite(cfg.relayPin, open?HIGH:LOW);
+  if(open && !valveOpen) valveOpenedAt=millis();
+  valveOpen=open;
+}
+
+// Runs every loop: closes the valve locally on lost link, run-time cap, empty
+// tank or a detected leak — independent of the backend.
+void enforceIrrigationSafety() {
+  if(cfg.relayPin<0 || !valveOpen) return;
+  if(lastServerContact && millis()-lastServerContact > LINK_LOSS_TIMEOUT_MS){ setValve(false); return; }
+  if(millis()-valveOpenedAt > VALVE_MAX_RUN_MS){ setValve(false); return; }
+  float tank=readTankPct(); if(!isnan(tank) && tank < TANK_EMPTY_PCT){ setValve(false); return; }
+  if(cfg.leakPin>=0 && digitalRead(cfg.leakPin)==LOW){ setValve(false); safeMode=true; }
+}
+
 void commandCallback(char *topicName, byte *payload, unsigned int length) {
+  lastServerContact=millis();
   String raw;for(unsigned i=0;i<length;i++)raw+=(char)payload[i];JsonDocument envelope;if(deserializeJson(envelope,raw))return;
   JsonObject command=envelope["payload"].as<JsonObject>();String canonical;serializeJson(command,canonical);
   if(hmacSha256(canonical,cfg.deviceSecret)!=envelope["signature"].as<String>()){Serial.println("COMMAND_SIGNATURE_REJECTED");return;}
   String name=command["name"]|"", status="completed"; bool allowed=!safeMode;
   if(name=="beacon_on"&&cfg.ledPin>=0)digitalWrite(cfg.ledPin,HIGH);else if(name=="beacon_off"&&cfg.ledPin>=0)digitalWrite(cfg.ledPin,LOW);
   else if(name=="buzzer_on"&&cfg.buzzerPin>=0)digitalWrite(cfg.buzzerPin,HIGH);else if(name=="buzzer_off"&&cfg.buzzerPin>=0)digitalWrite(cfg.buzzerPin,LOW);
-  else if((name=="relay_on"||name=="demo_fan_on"||name=="low_voltage_valve_open")&&cfg.relayPin>=0&&allowed)digitalWrite(cfg.relayPin,HIGH);
-  else if((name=="relay_off"||name=="demo_fan_off"||name=="low_voltage_valve_close")&&cfg.relayPin>=0)digitalWrite(cfg.relayPin,LOW);
+  else if((name=="relay_on"||name=="demo_fan_on")&&cfg.relayPin>=0&&allowed)digitalWrite(cfg.relayPin,HIGH);
+  else if((name=="relay_off"||name=="demo_fan_off")&&cfg.relayPin>=0)digitalWrite(cfg.relayPin,LOW);
+  else if(name=="low_voltage_valve_open"&&cfg.relayPin>=0&&allowed){float tank=readTankPct(); if(!isnan(tank)&&tank<TANK_EMPTY_PCT)status="rejected"; else setValve(true);}
+  else if(name=="low_voltage_valve_close")setValve(false);
   else if(name=="set_reporting_interval")cfg.sampleMs=constrain(command["arguments"]["milliseconds"]|10000,1000,3600000);
   else if(name=="restart"){status="acknowledged";}else if(name!="request_diagnostics")status="rejected";
-  JsonDocument result;result["actual_state"]["relay"]=cfg.relayPin>=0?digitalRead(cfg.relayPin):false;result["command_id"]=command["id"];result["device_uid"]=cfg.deviceUid;result["message"]="ESP32 command handler";result["nonce"]=String((uint32_t)esp_random(),HEX)+String((uint32_t)esp_random(),HEX);result["status"]=status;result["timestamp"]=isoTimestamp();String canonicalResult;serializeJson(result,canonicalResult);result["signature"]=hmacSha256(canonicalResult,cfg.deviceSecret);String out;serializeJson(result,out);mqtt.publish(::topic("command-results").c_str(),out.c_str());
+  JsonDocument result;result["actual_state"]["relay"]=cfg.relayPin>=0?digitalRead(cfg.relayPin):false;result["actual_state"]["valve_open"]=valveOpen;result["command_id"]=command["id"];result["device_uid"]=cfg.deviceUid;result["message"]="ESP32 command handler";result["nonce"]=String((uint32_t)esp_random(),HEX)+String((uint32_t)esp_random(),HEX);result["status"]=status;result["timestamp"]=isoTimestamp();String canonicalResult;serializeJson(result,canonicalResult);result["signature"]=hmacSha256(canonicalResult,cfg.deviceSecret);String out;serializeJson(result,out);mqtt.publish(::topic("command-results").c_str(),out.c_str());
   if(name=="restart"&&status=="acknowledged"){delay(500);ESP.restart();}
 }
 
@@ -176,6 +209,7 @@ void setup() {
 
 void loop() {
   esp_task_wdt_reset();feedGps();handleSerialProvisioning();if(WiFi.status()!=WL_CONNECTED)connectWifi();connectMqtt();mqtt.loop();ArduinoOTA.handle();
-  if(millis()-lastSample>=cfg.sampleMs){lastSample=millis();String payload=makeTelemetry();if(!publishPayload(payload))bufferPayload(payload);else flushBuffer();}
+  if(millis()-lastSample>=cfg.sampleMs){lastSample=millis();String payload=makeTelemetry();if(!publishPayload(payload))bufferPayload(payload);else {flushBuffer();lastServerContact=millis();}}
+  enforceIrrigationSafety();
   delay(10);
 }
