@@ -903,6 +903,29 @@ async function loadOperationalHome(accountId) {
   }
 }
 
+// ── Persona-adaptive experience (simple shell vs advanced console) ──
+function gvDefaultExperience(account) {
+  const et = ((account && account.entity_type) || "").toLowerCase();
+  return /empresa|enterprise|company|organi|corp|gov|multi/.test(et) ? "advanced" : "simple";
+}
+function gvApplyExperience(mode) {
+  document.body.setAttribute("data-exp", mode);
+  document.querySelectorAll("#exp-toggle .exp-btn").forEach((b) => b.classList.toggle("active", b.dataset.exp === mode));
+  // If a now-hidden advanced view is active, fall back to the home overview.
+  if (mode === "simple") {
+    const activeAdv = document.querySelector(".sidebar-link.active[data-adv]");
+    if (activeAdv && typeof window.switchView === "function") window.switchView("dashboard");
+  }
+}
+function initExperience(account) {
+  const key = "gv_experience_" + (localStorage.getItem(SESSION_ACCOUNT_KEY) || "default");
+  const mode = localStorage.getItem(key) || gvDefaultExperience(account);
+  gvApplyExperience(mode);
+  document.querySelectorAll("#exp-toggle .exp-btn").forEach((b) => {
+    b.onclick = () => { localStorage.setItem(key, b.dataset.exp); gvApplyExperience(b.dataset.exp); };
+  });
+}
+
 // ── P5: commercial / entitlement panel ──
 function formatKitLabel(raw) {
   if (!raw) return "";
@@ -1256,7 +1279,11 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   const activeAccount =
     (meData && meData.accounts && meData.accounts.find((a) => a.id === currentAccountId)) || null;
-  
+
+  // Persona-adaptive experience: individuals default to the simple shell,
+  // organisations to the full advanced console (user can switch).
+  initExperience(activeAccount);
+
   // Render sector tabs for multi-sector accounts
   renderSectorTabs(activeAccount, activeSector, (newSector) => {
     if (newSector) {
