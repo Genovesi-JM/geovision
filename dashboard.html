@@ -1413,6 +1413,22 @@
           </div>
         </div>
 
+        <!-- IoT operational health strip -->
+        <div class="card" id="iot-health-card" style="margin-bottom:1rem;display:none;">
+          <div class="card-header">
+            <h3 class="card-title" data-i18n="dash.iot.health">Estado da Rede IoT</h3>
+            <span class="badge" id="iot-health-lastsync" style="color:#94a3b8;"></span>
+          </div>
+          <div class="card-body">
+            <div class="kpi-grid" style="margin:0;">
+              <div class="kpi-card"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.iot.online">Dispositivos online</span><span class="kpi-icon"><i class="fa-solid fa-wifi"></i></span></div><div class="kpi-value" id="ioth-online">—</div></div>
+              <div class="kpi-card warning"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.iot.critical">Alertas críticos</span><span class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></span></div><div class="kpi-value" id="ioth-critical">—</div></div>
+              <div class="kpi-card"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.iot.lowBattery">Bateria fraca</span><span class="kpi-icon"><i class="fa-solid fa-battery-quarter"></i></span></div><div class="kpi-value" id="ioth-battery">—</div></div>
+              <div class="kpi-card"><div class="kpi-header"><span class="kpi-label" data-i18n="dash.iot.attention">Precisa de atenção</span><span class="kpi-icon"><i class="fa-solid fa-clock-rotate-left"></i></span></div><div class="kpi-value" id="ioth-stale">—</div></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Content Grid -->
         <div class="content-grid">
           <!-- Operations -->
@@ -1770,10 +1786,10 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=10"></script>
+  <script src="assets/js/i18n.js?v=11"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=2"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=3"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>
   <style>

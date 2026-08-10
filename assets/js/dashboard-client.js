@@ -568,6 +568,57 @@ async function loadAlerts(accountId, activeSector) {
   }
 }
 
+// ── P1: operational home — IoT device-health summary + real device alerts ──
+async function loadOperationalHome(accountId) {
+  try {
+    const devices = await apiGet("/iot/devices", accountId) || [];
+    let alerts = [];
+    try { alerts = await apiGet("/iot/alerts", accountId) || []; } catch (e) { /* no alerts scope */ }
+    if (!devices.length) return; // no IoT deployment: leave generic KPIs/alerts as-is
+
+    const now = Date.now();
+    const stale = (d) => !d.last_seen_at || now - new Date(d.last_seen_at).getTime() > 120000;
+    const online = devices.filter((d) => d.status === "online" && !stale(d)).length;
+    const lowBatt = devices.filter((d) => typeof d.battery_percent === "number" && d.battery_percent > 0 && d.battery_percent < 20).length;
+    const needsAttention = devices.filter((d) => stale(d) || d.status === "offline").length;
+    const openStates = ["pending", "triggered", "notified", "acknowledged", "assigned"];
+    const openAlerts = (alerts || []).filter((a) => openStates.includes(a.status));
+    const critical = openAlerts.filter((a) => a.severity === "critical").length;
+    const seenTimes = devices.map((d) => d.last_seen_at).filter(Boolean).map((s) => new Date(s).getTime());
+    const lastSync = seenTimes.length ? new Date(Math.max(...seenTimes)) : null;
+
+    const card = document.getElementById("iot-health-card");
+    if (card) card.style.display = "block";
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("ioth-online", `${online}/${devices.length}`);
+    set("ioth-critical", String(critical));
+    set("ioth-battery", String(lowBatt));
+    set("ioth-stale", String(needsAttention));
+    const ls = document.getElementById("iot-health-lastsync");
+    if (ls) ls.textContent = lastSync ? `${T("dash.iot.lastSync")}: ${lastSync.toLocaleString()}` : "";
+
+    // Home "Alertas & Atenção" now shows the real device-alert lifecycle
+    const container = document.getElementById("alerts-list");
+    if (container) {
+      if (!openAlerts.length) {
+        container.innerHTML = `<div class="dash-empty">${T("dash.iot.noDeviceAlerts")}</div>`;
+      } else {
+        container.innerHTML = "";
+        openAlerts.slice(0, 6).forEach((a) => {
+          const div = document.createElement("div");
+          div.className = `alert-item alert-${escapeHTML(a.severity)}`;
+          div.innerHTML = `<div class="alert-header"><span class="alert-severity ${escapeHTML(a.severity)}">${escapeHTML(a.severity).toUpperCase()}</span><span class="alert-title">${escapeHTML(a.message || a.channel || "")}</span></div><div class="alert-description">${escapeHTML(a.status)}${a.value != null ? ` · ${escapeHTML(String(a.value))}` : ""}</div>`;
+          container.appendChild(div);
+        });
+      }
+    }
+    const kpiA = document.getElementById("kpi-alerts");
+    if (kpiA) kpiA.textContent = String(openAlerts.length);
+  } catch (err) {
+    console.warn("operational home unavailable", err);
+  }
+}
+
 async function loadOrdersOverrideReports(accountId) {
   try {
     const orders = await apiGet("/orders", accountId);
@@ -729,6 +780,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   renderServices(portfolio);
   await loadIoTHardware(currentAccountId);
+  await loadOperationalHome(currentAccountId);
   // Reports are loaded by loadReports() in dashboard.html from /me/documents API
   // renderReports(portfolio);   // REMOVED — was overwriting real API docs
   // renderAlerts from portfolio is now replaced by loadAlerts from backend
