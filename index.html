@@ -13,6 +13,9 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://geovisionops.com" />
   <link rel="canonical" href="https://geovisionops.com" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"Organization","name":"GeoVision","url":"https://geovisionops.com","description":"Operational intelligence for field, asset and territorial monitoring.","email":"operations@geovisionops.com","areaServed":["Angola","Spain"]}
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -809,15 +812,19 @@
   <header class="hero">
     <div class="hero-container">
       <div class="hero-content">
-        <span class="hero-eyebrow" data-i18n="index.eyebrow">Monitorização inteligente</span>
-        <h1 class="hero-title" data-i18n="index.title">Monitorize a sua exploração, obra ou equipamento</h1>
+        <span class="hero-eyebrow" data-i18n="index.eyebrow">Visibilidade operacional para decisões no terreno</span>
+        <h1 class="hero-title" data-i18n="index.title">Veja o que está a acontecer. Decida antes que o problema cresça.</h1>
         <p class="hero-subtitle" data-i18n="index.subtitle">
-          Sensores GeoVision, dados aéreos e alertas em tempo real — do pequeno produtor à grande operação. Detete problemas cedo, receba alertas e aja.
+          Reunimos sensores, dados aéreos e equipas de campo num único fluxo operacional — para monitorizar ativos, priorizar riscos e documentar cada decisão.
         </p>
         <div class="hero-buttons">
-          <a href="loja.html" class="btn btn-primary" data-i18n="index.viewServices">Ver Serviços</a>
-          <a href="about.html" class="btn btn-secondary" data-i18n="common.learnmore">Saber Mais</a>
+          <a href="about.html#contact" class="btn btn-primary" data-i18n="index.primaryCta">Falar sobre a minha operação</a>
+          <a href="sectors.html" class="btn btn-secondary" data-i18n="index.secondaryCta">Explorar soluções</a>
         </div>
+
+        <p style="margin-top:1rem;color:var(--text-muted);font-size:.82rem;max-width:540px;" data-i18n="index.trustLine">
+          Começamos com um diagnóstico do local e uma solução proporcional — sem promessas de automação ou resultados que ainda não tenham sido validados.
+        </p>
 
         <div class="hero-stats">
           <div class="stat-item">
@@ -995,13 +1002,13 @@
   <!-- ============ CTA ============ -->
   <section class="cta-section">
     <div class="cta-content">
-      <h2 class="cta-title" data-i18n="index.cta2.title">Pronto para Estruturar a Sua Inteligência Territorial?</h2>
+      <h2 class="cta-title" data-i18n="index.cta2.title">Comece pelo risco que precisa de tornar visível.</h2>
       <p class="cta-text" data-i18n="index.cta2.subtitle">
-        Descubra como uma plataforma de monitorização geoespacial estruturada pode aumentar a visibilidade operacional e suportar decisões estratégicas sobre os seus ativos.
+        Diga-nos o ativo, o local e a decisão que precisa de tomar. Definimos o primeiro caso de uso, os dados necessários e uma forma clara de medir valor.
       </p>
       <div class="cta-buttons">
-        <a href="loja.html" class="btn btn-primary" data-i18n="index.cta.services">GeoVision Supply Hub</a>
-        <a href="about.html" class="btn btn-secondary" data-i18n="index.cta.about">Sobre a GeoVision</a>
+        <a href="about.html#contact" class="btn btn-primary" data-i18n="index.cta.contact">Agendar diagnóstico</a>
+        <a href="loja.html" class="btn btn-secondary" data-i18n="index.cta.services">Ver serviços e equipamento</a>
       </div>
     </div>
   </section>
@@ -1020,6 +1027,7 @@
       <a href="about.html" class="footer-link" data-i18n="nav.about">Sobre</a>
       <a href="sectors.html" class="footer-link" data-i18n="nav.sectors">Setores</a>
       <a href="technology.html" class="footer-link" data-i18n="nav.technology">Tecnologia</a>
+      <a href="assurance.html" class="footer-link" data-i18n="nav.assurance">Método & Garantias</a>
       <a href="loja.html" class="footer-link" data-i18n="nav.services">Supply Hub</a>
       <a href="login.html" class="footer-link" data-i18n="nav.portal">Portal</a>
     </div>
@@ -1118,11 +1126,11 @@
 
   <script src="assets/js/site.js"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=16"></script>
+  <script src="assets/js/i18n.js?v=18"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>
-  <script src="assets/js/contacts.js?v=1"></script>
+  <script src="assets/js/contacts.js?v=3"></script>
   <script src="assets/js/theme.js?v=1"></script>
 
 </body>

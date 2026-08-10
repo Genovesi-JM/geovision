@@ -5,8 +5,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  <title>Tecnologia — GeoVision | Stack Tecnológico em 4 Camadas</title>
-  <meta name="description" content="Frota de drones, sensores, dispositivos GPS 4G e stack de software profissional que a GeoVision utiliza para entregar inteligência territorial em agropecuária, mineração, construção, infraestruturas e setor ambiental." />
+  <title>Tecnologia GeoVision — Eartags, Sensores, App e Drones</title>
+  <meta name="description" content="Eartags RFID/NFC, sensores simples e uma app que transforma dados de animais, água, solo e equipamentos em alertas úteis. Drones entram quando é preciso ganhar escala." />
+  <meta property="og:title" content="Tecnologia GeoVision — comece com um tag ou sensor" />
+  <meta property="og:description" content="Identifique animais, acompanhe sensores e receba alertas numa app simples. Adicione inteligência aérea quando a operação crescer." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://geovisionops.com/technology" />
+  <link rel="canonical" href="https://geovisionops.com/technology" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -93,6 +98,31 @@
     .section-eyebrow { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 0.75rem; }
     .section-title { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 800; margin-bottom: 1rem; }
     .section-desc { font-size: 1rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto; }
+
+    /* ============ SIMPLE PRODUCTS / B2C ENTRY ============ */
+    .starter-section { background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(14, 165, 233, 0.035) 100%); }
+    .starter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+    .starter-card { overflow: hidden; border-radius: 16px; border: 1px solid var(--border); background: var(--bg-card); transition: transform .25s, border-color .25s; }
+    .starter-card:hover { transform: translateY(-4px); border-color: rgba(34, 197, 94, .35); }
+    .starter-media { height: 280px; position: relative; overflow: hidden; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgba(14, 165, 233, .14), transparent 38%), linear-gradient(145deg, #071121, #040914); }
+    .starter-media::before { content: ''; position: absolute; inset: 0; opacity: .22; background-image: linear-gradient(rgba(148,163,184,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.12) 1px, transparent 1px); background-size: 28px 28px; mask-image: linear-gradient(to bottom, black, transparent 85%); }
+    .starter-media::after { content: ''; position: absolute; inset: auto 0 0; height: 38%; background: linear-gradient(to top, rgba(5, 9, 20, .92), transparent); }
+    .product-visual { position: relative; z-index: 1; width: 164px; height: 164px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(34,197,94,.3); background: rgba(2,8,18,.72); box-shadow: 0 0 0 18px rgba(34,197,94,.035), 0 24px 60px rgba(0,0,0,.4); }
+    .product-visual > i { font-size: 4rem; color: #4ade80; filter: drop-shadow(0 0 18px rgba(34,197,94,.35)); }
+    .product-visual.sensor > i { color: #38bdf8; filter: drop-shadow(0 0 18px rgba(14,165,233,.4)); }
+    .visual-orbit { position: absolute; inset: -28px; border: 1px dashed rgba(56,189,248,.26); border-radius: 50%; }
+    .visual-node { position: absolute; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: #0b1728; border: 1px solid rgba(56,189,248,.3); color: #38bdf8; font-size: .8rem; box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+    .visual-node.one { top: 2px; right: 2px; }
+    .visual-node.two { bottom: 2px; left: 2px; }
+    .visual-node.three { bottom: -12px; right: 22px; }
+    .visual-caption { position: absolute; z-index: 2; left: 1.25rem; bottom: 1rem; color: var(--text-muted); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .starter-body { padding: 1.5rem; }
+    .starter-status { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .65rem; border-radius: 999px; background: rgba(14,165,233,.12); color: #38bdf8; font-size: .68rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin-bottom: .8rem; }
+    .starter-title { font-size: 1.25rem; font-weight: 800; margin-bottom: .5rem; }
+    .starter-text { color: var(--text-secondary); font-size: .9rem; margin-bottom: 1rem; }
+    .starter-tags { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .starter-tag { padding: .3rem .55rem; border-radius: 6px; background: rgba(34,197,94,.08); color: #4ade80; font-size: .68rem; font-weight: 700; }
+    .starter-note { max-width: 850px; margin: 1.5rem auto 0; padding: 1rem 1.2rem; border-left: 3px solid var(--accent-cyan); background: rgba(14,165,233,.06); color: var(--text-secondary); font-size: .86rem; }
 
     /* ============ DRONE FLEET ============ */
     .fleet-section { background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(34, 197, 94, 0.03) 100%); }
@@ -203,6 +233,7 @@
       .fleet-grid { grid-template-columns: 1fr; }
       .why-grid { grid-template-columns: 1fr; }
       .sw-grid { grid-template-columns: 1fr; }
+      .starter-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
       .navbar-nav { display: none; }
@@ -390,18 +421,69 @@
 
   <!-- ============ HERO ============ -->
   <header class="hero">
-    <span class="hero-eyebrow" data-i18n="tech.hero.eyebrow">O Que Usamos</span>
-    <h1 class="hero-title" data-i18n="tech.hero.title">Tecnologia & Frota de Drones</h1>
+    <span class="hero-eyebrow" data-i18n="tech.hero.eyebrow">Começar simples</span>
+    <h1 class="hero-title" data-i18n="tech.hero.title">Tecnologia útil para cuidar do que é seu</h1>
     <p class="hero-subtitle" data-i18n="tech.hero.subtitle">
-      Frota de drones de grau industrial, dispositivos GPS 4G, sensores avançados e stack de software profissional que transforma dados de campo em inteligência territorial estruturada.
+      Identifique animais, acompanhe água, solo, clima e equipamentos na app GeoVision. Quando precisar de mais escala, adicionamos inteligência aérea e serviços especializados.
     </p>
   </header>
+
+  <!-- ============ SIMPLE PRODUCTS / FIRST COMPANY STEPS ============ -->
+  <section class="section starter-section" id="produtos-simples">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="tech.starter.eyebrow">Primeiros produtos</div>
+      <h2 class="section-title" data-i18n="tech.starter.title">Comece com uma necessidade. Adicione tecnologia aos poucos.</h2>
+      <p class="section-desc" data-i18n="tech.starter.desc">Produtos pensados para produtores, famílias e pequenos negócios: instalação simples, informação clara e alertas úteis no telemóvel.</p>
+    </div>
+
+    <div class="starter-grid">
+      <article class="starter-card">
+        <div class="starter-media" aria-hidden="true">
+          <div class="product-visual">
+            <span class="visual-orbit"></span>
+            <i class="fa-solid fa-tag"></i>
+            <span class="visual-node one"><i class="fa-solid fa-mobile-screen"></i></span>
+            <span class="visual-node two"><i class="fa-solid fa-cow"></i></span>
+            <span class="visual-node three"><i class="fa-solid fa-wifi"></i></span>
+          </div>
+          <span class="visual-caption">Animal ID · RFID / NFC</span>
+        </div>
+        <div class="starter-body">
+          <div class="starter-status" data-i18n="tech.starter.pilot">Próximo piloto</div>
+          <h3 class="starter-title" data-i18n="tech.starter.tag.title">GeoVision Animal ID</h3>
+          <p class="starter-text" data-i18n="tech.starter.tag.desc">Um eartag RFID ou NFC comprado e aprovado liga cada animal ao seu perfil na app: identificação, vacinas, peso, tratamentos e histórico. O colar GPS entra depois para localização e alertas de fuga.</p>
+          <div class="starter-tags"><span class="starter-tag">RFID / NFC</span><span class="starter-tag" data-i18n="tech.starter.tag.scan">Leitura pelo telemóvel</span><span class="starter-tag" data-i18n="tech.starter.tag.records">Registos do animal</span><span class="starter-tag" data-i18n="tech.starter.tag.future">GPS depois</span></div>
+        </div>
+      </article>
+
+      <article class="starter-card">
+        <div class="starter-media" aria-hidden="true">
+          <div class="product-visual sensor">
+            <span class="visual-orbit"></span>
+            <i class="fa-solid fa-tower-broadcast"></i>
+            <span class="visual-node one"><i class="fa-solid fa-droplet"></i></span>
+            <span class="visual-node two"><i class="fa-solid fa-seedling"></i></span>
+            <span class="visual-node three"><i class="fa-solid fa-temperature-half"></i></span>
+          </div>
+          <span class="visual-caption">GeoVision Sense · IoT</span>
+        </div>
+        <div class="starter-body">
+          <div class="starter-status" data-i18n="tech.starter.development">Em desenvolvimento</div>
+          <h3 class="starter-title" data-i18n="tech.starter.sense.title">GeoVision Sense</h3>
+          <p class="starter-text" data-i18n="tech.starter.sense.desc">Pequenos sensores para saber se o tanque tem água, o solo está seco, existe uma fuga, a temperatura mudou ou um equipamento parou — com histórico e alertas simples na app.</p>
+          <div class="starter-tags"><span class="starter-tag" data-i18n="tech.starter.sense.water">Água</span><span class="starter-tag" data-i18n="tech.starter.sense.soil">Solo</span><span class="starter-tag" data-i18n="tech.starter.sense.climate">Clima</span><span class="starter-tag" data-i18n="tech.starter.sense.energy">Energia</span><span class="starter-tag" data-i18n="tech.starter.sense.leaks">Fugas</span></div>
+        </div>
+      </article>
+    </div>
+
+    <p class="starter-note" data-i18n="tech.starter.note">A primeira versão não precisa de um dispositivo complexo: eartag RFID/NFC + telemóvel, ou ESP32 + um sensor. O objetivo inicial é provar que o dado chega à app e ajuda alguém a tomar uma decisão.</p>
+  </section>
 
   <!-- ============ DRONE FLEET ============ -->
   <section class="section fleet-section">
     <div class="section-header">
-      <div class="section-eyebrow" data-i18n="tech.fleet.eyebrow">Frota Aérea</div>
-      <h2 class="section-title" data-i18n="tech.fleet.title">A Nossa Frota de Drones</h2>
+      <div class="section-eyebrow" data-i18n="tech.fleet.eyebrow">Camada avançada</div>
+      <h2 class="section-title" data-i18n="tech.fleet.title">Drones quando a operação precisa de escala</h2>
       <p class="section-desc" data-i18n="tech.fleet.desc">
         Plataformas UAV de grau industrial selecionadas para cada tipo de missão — desde levantamentos volumétricos de alta precisão até inspeções térmicas e pulverização agrícola.
       </p>
@@ -530,14 +612,14 @@
     </div>
 
     <p class="section-desc" style="margin-top: 2.5rem; font-style: italic; font-size: 0.9rem;" data-i18n="tech.fleet.institutional">
-      GeoVision opera uma frota estratégica otimizada, capaz de cobrir múltiplos setores com máxima eficiência e mínima redundância tecnológica.
+      A tecnologia aérea é selecionada por missão. O cliente começa apenas com o que resolve o problema atual e acrescenta capacidade quando existir valor comprovado.
     </p>
   </section>
 
   <!-- ============ SOFTWARE & INTELLIGENCE STACK ============ -->
   <section class="section software-section">
     <div class="section-header">
-      <div class="section-eyebrow" data-i18n="tech.hero.eyebrow">O Que Usamos</div>
+      <div class="section-eyebrow" data-i18n="tech.sw.eyebrow">O que usamos</div>
       <h2 class="section-title" data-i18n="tech.sw.title">Stack de Software & Inteligência</h2>
       <p class="section-desc" data-i18n="tech.sw.desc">
         Ecossistema integrado de plataformas profissionais que transforma dados aéreos em inteligência operacional acionável.
@@ -723,9 +805,9 @@
   <section class="section" style="padding: 3.5rem 2rem; background: linear-gradient(180deg, var(--bg-dark) 0%, rgba(34, 197, 94, 0.02) 100%);">
     <div class="section-header">
       <div class="section-eyebrow" data-i18n="tech2.hw.eyebrow">Hardware de Campo</div>
-      <h2 class="section-title" data-i18n="tech2.hw.title">Dispositivos GPS 4G — Rastreio Pecuário</h2>
+      <h2 class="section-title" data-i18n="tech2.hw.title">Do eartag simples ao rastreio inteligente</h2>
       <p class="section-desc" data-i18n="tech2.hw.desc">
-        Colares GPS com conectividade celular 4G para monitorização contínua de efetivos pecuários, integrados com o Portal Cliente GeoVision.
+        Começamos com identificação RFID/NFC já aprovada e um registo simples na app. Colares GPS e eartags eletrónicos entram depois, quando o caso de uso justificar mais autonomia e engenharia.
       </p>
     </div>
 
@@ -734,11 +816,11 @@
         <div class="sw-card-header">
           <div class="sw-card-icon" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(34, 197, 94, 0.15)); border-color: rgba(251, 191, 36, 0.3);"><i class="fa-solid fa-location-dot" style="color: #fbbf24;"></i></div>
           <div>
-            <div class="sw-card-name" data-i18n="tech2.hw.collar.name">Colares GPS 4G</div>
-            <div class="sw-card-cat" style="color: #fbbf24;" data-i18n="tech2.hw.collar.cat">Rastreio Pecuário — Capacidade Ativa</div>
+            <div class="sw-card-name" data-i18n="tech2.hw.collar.name">Evolução do rastreio animal</div>
+            <div class="sw-card-cat" style="color: #fbbf24;" data-i18n="tech2.hw.collar.cat">RFID/NFC → Colar GPS → Smart Eartag</div>
           </div>
         </div>
-        <p class="sw-card-desc" data-i18n="tech2.hw.collar.desc">Dispositivos GPS com SIM 4G integrado para transmissão periódica de localização. Buffer offline para zonas sem cobertura celular — os dados são sincronizados automaticamente quando o sinal é restabelecido. Alertas de geofence, indicadores comportamentais baseados em movimento e integração direta com o Dashboard GeoVision.</p>
+        <p class="sw-card-desc" data-i18n="tech2.hw.collar.desc">A primeira versão liga um eartag RFID/NFC adquirido a uma ficha digital do animal. O passo seguinte acrescenta localização e movimento através de um colar GPS. Um smart eartag miniaturizado fica como evolução, depois de validar autonomia, resistência e valor real no terreno.</p>
         <div class="sw-card-uses">
           <span class="sw-use-tag" data-i18n="tech2.tag.tx4g">Transmissão 4G</span>
           <span class="sw-use-tag">Buffer Offline</span>
@@ -757,7 +839,7 @@
     </div>
 
     <p class="section-desc" style="margin-top: 1.5rem; font-style: italic; font-size: 0.85rem; color: var(--text-muted);" data-i18n="tech2.hw.footnote">
-      Hardware adicional expandível — estações meteorológicas, sensores IoT de solo e infraestrutura LoRa — pode ser integrado sob consulta de projeto.
+      A GeoVision complementa a identificação oficial do animal; não a substitui. Cada fase é validada no terreno antes de aumentar a complexidade do hardware.
     </p>
   </section>
 
@@ -880,6 +962,7 @@
       <a href="about.html" class="footer-link" data-i18n="nav.about">Sobre</a>
       <a href="sectors.html" class="footer-link" data-i18n="nav.sectors">Setores</a>
       <a href="technology.html" class="footer-link" data-i18n="nav.technology">Tecnologia</a>
+      <a href="assurance.html" class="footer-link" data-i18n="nav.assurance">Método & Garantias</a>
       <a href="loja.html" class="footer-link" data-i18n="nav.services">Supply Hub</a>
       <a href="login.html" class="footer-link" data-i18n="nav.portal">Portal</a>
     </div>
@@ -895,11 +978,11 @@
   <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
   <script src="assets/js/site.js"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=10"></script>
+  <script src="assets/js/i18n.js?v=18"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>
-  <script src="assets/js/contacts.js?v=1"></script>
+  <script src="assets/js/contacts.js?v=3"></script>
   <script src="assets/js/theme.js?v=1"></script>
 
 </body>

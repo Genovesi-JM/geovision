@@ -87,16 +87,20 @@
     const fab = document.createElement('button');
     fab.className = 'gv-contact-fab';
     fab.setAttribute('aria-label', 'Contactos');
+    fab.setAttribute('aria-expanded', 'false');
     fab.title = 'Contactos';
     fab.innerHTML = ICONS.contact;
     fab.addEventListener('click', () => {
       isOpen = !isOpen;
       if (contactsPanel) contactsPanel.classList.toggle('open', isOpen);
+      fab.setAttribute('aria-expanded', String(isOpen));
     });
 
     // Panel
     contactsPanel = document.createElement('div');
     contactsPanel.className = 'gv-contact-panel';
+    contactsPanel.setAttribute('role', 'dialog');
+    contactsPanel.setAttribute('aria-label', 'Contactos GeoVision');
 
     const header = document.createElement('div');
     header.className = 'gv-contact-panel-header';
@@ -143,11 +147,10 @@
   }
 
   async function loadContacts() {
-    // Get user context for dynamic links
-    const name = localStorage.getItem('gv_user') || '';
-    const email = localStorage.getItem('gv_email') || '';
-
-    let url = `${API_BASE}/contacts/?name=${encodeURIComponent(name)}&company=&context=`;
+    // Contact links must stay neutral until a visitor deliberately shares
+    // information. In particular, do not serialise a signed-in profile into
+    // third-party WhatsApp or mail links.
+    const url = `${API_BASE}/contacts/`;
 
     try {
       const res = await fetch(url);
