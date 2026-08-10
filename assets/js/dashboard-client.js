@@ -597,23 +597,25 @@ async function loadOperationalHome(accountId) {
     const ls = document.getElementById("iot-health-lastsync");
     if (ls) ls.textContent = lastSync ? `${T("dash.iot.lastSync")}: ${lastSync.toLocaleString()}` : "";
 
-    // Home "Alertas & Atenção" now shows the real device-alert lifecycle
+    // Home "Alertas & Atenção" merges sector/KPI alerts (rendered earlier by
+    // loadAlerts) with the real device-alert lifecycle, device issues on top.
     const container = document.getElementById("alerts-list");
     if (container) {
-      if (!openAlerts.length) {
+      // Drop any "no alerts" placeholder left by loadAlerts, keep real items.
+      container.querySelectorAll(".dash-empty").forEach((el) => el.remove());
+      const kpiAlertCount = container.querySelectorAll(".alert-item").length;
+      openAlerts.slice(0, 6).reverse().forEach((a) => {
+        const div = document.createElement("div");
+        div.className = `alert-item alert-${escapeHTML(a.severity)}`;
+        div.innerHTML = `<div class="alert-header"><span class="alert-severity ${escapeHTML(a.severity)}">${escapeHTML(a.severity).toUpperCase()}</span><span class="alert-title">${escapeHTML(a.message || a.channel || "")}</span></div><div class="alert-description">${escapeHTML(a.status)}${a.value != null ? ` · ${escapeHTML(String(a.value))}` : ""}</div>`;
+        container.insertBefore(div, container.firstChild);
+      });
+      if (!container.querySelector(".alert-item")) {
         container.innerHTML = `<div class="dash-empty">${T("dash.iot.noDeviceAlerts")}</div>`;
-      } else {
-        container.innerHTML = "";
-        openAlerts.slice(0, 6).forEach((a) => {
-          const div = document.createElement("div");
-          div.className = `alert-item alert-${escapeHTML(a.severity)}`;
-          div.innerHTML = `<div class="alert-header"><span class="alert-severity ${escapeHTML(a.severity)}">${escapeHTML(a.severity).toUpperCase()}</span><span class="alert-title">${escapeHTML(a.message || a.channel || "")}</span></div><div class="alert-description">${escapeHTML(a.status)}${a.value != null ? ` · ${escapeHTML(String(a.value))}` : ""}</div>`;
-          container.appendChild(div);
-        });
       }
+      const kpiA = document.getElementById("kpi-alerts");
+      if (kpiA) kpiA.textContent = String(kpiAlertCount + openAlerts.length);
     }
-    const kpiA = document.getElementById("kpi-alerts");
-    if (kpiA) kpiA.textContent = String(openAlerts.length);
   } catch (err) {
     console.warn("operational home unavailable", err);
   }
