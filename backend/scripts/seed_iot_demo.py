@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.database import SessionLocal, init_db_engine
 from app.iot.security import hash_secret, new_secret, protect_secret, reveal_secret
-from app.models import Company, CompanyUser, DeviceCredential, IotAlertRule, IotDevice, SensorChannel, Site, User
+from app.models import Company, CompanyEntitlement, CompanyUser, DeviceCredential, IotAlertRule, IotDevice, SensorChannel, Site, User
 from app.utils import hash_password
 
 
@@ -49,6 +49,10 @@ def main():
         else:
             credential = db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").order_by(DeviceCredential.issued_at.desc()).first()
             secret = reveal_secret(credential.secret_encrypted if credential else device.secret_encrypted)
+        entitlement = db.query(CompanyEntitlement).filter(CompanyEntitlement.company_id == company.id).first()
+        if not entitlement:
+            from datetime import datetime, timedelta
+            db.add(CompanyEntitlement(company_id=company.id, tier="growth", kit="Multi-Sensor Monitor", sensor_allowance=25, valid_until=datetime.utcnow() + timedelta(days=180), notes="Prepaid demonstration window."))
         db.commit()
         base = f"geovision/v1/{company.id}/{site.id}/{device.public_id}"
         runtime = Path(os.getenv("GV_RUNTIME_DIR", "/runtime")); runtime.mkdir(parents=True, exist_ok=True)

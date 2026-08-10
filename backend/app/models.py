@@ -1147,5 +1147,26 @@ class Deliverable(Base):
     order = relationship("Order", backref="deliverables_rel")
 
 
+class CompanyEntitlement(Base):
+    """Prepaid commercial entitlement for a company.
+
+    Angola's card/subscription rails are unreliable, so GeoVision sells prepaid
+    windows (a validity period + a sensor allowance for a tier/kit) rather than
+    auto-recurring subscriptions. One row per company; days-remaining is derived
+    from ``valid_until`` at read time.
+    """
+    __tablename__ = "company_entitlements"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    tier: Mapped[str] = mapped_column(String(40), nullable=False, default="starter")
+    kit: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    sensor_allowance: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
+    valid_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
 # Compatibility alias so routers can import Profile per spec
 Profile = UserProfile

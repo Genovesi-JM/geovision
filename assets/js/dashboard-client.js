@@ -903,6 +903,47 @@ async function loadOperationalHome(accountId) {
   }
 }
 
+// ── P5: commercial / entitlement panel ──
+function formatKitLabel(raw) {
+  if (!raw) return "";
+  const s = String(raw).replace(/^geovision-/i, "").replace(/^DIY[:_-]/i, "").replace(/_/g, " ");
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+async function loadEntitlement(accountId) {
+  const card = document.getElementById("entitlement-card");
+  if (!card) return;
+  try {
+    const e = await apiGet("/me/entitlement", accountId);
+    if (!e || !e.has_company) return;
+    card.style.display = "block";
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set("ent-tier", (e.tier || "—").toString().replace(/\b\w/g, (c) => c.toUpperCase()));
+    set("ent-kit", formatKitLabel(e.kit) || "—");
+    set("ent-days", e.days_remaining == null ? "—" : String(e.days_remaining));
+    set("ent-devices", e.devices_deployed ?? "—");
+    const used = e.sensors_used || 0, allow = e.sensor_allowance || 0;
+    const pct = allow > 0 ? Math.min(100, Math.round((100 * used) / allow)) : 0;
+    set("ent-sensors-label", `${used} / ${allow}`);
+    const bar = document.getElementById("ent-sensors-bar");
+    if (bar) { bar.style.width = `${pct}%`; bar.className = "ent-bar-fill" + (pct >= 90 ? " bad" : pct >= 75 ? " warn" : ""); }
+    const status = document.getElementById("ent-status");
+    if (status) {
+      status.textContent = T("ent.status." + e.status) || e.status;
+      status.className = "badge ent-" + e.status;
+    }
+    const kitsEl = document.getElementById("ent-kits");
+    if (kitsEl) {
+      const labels = (e.kits_deployed || []).map(formatKitLabel).filter(Boolean);
+      kitsEl.textContent = labels.length ? `${T("ent.kitsDeployed")}: ${labels.join(", ")}` : "";
+    }
+    const derived = document.getElementById("ent-derived");
+    if (derived) derived.style.display = e.derived ? "block" : "none";
+  } catch (err) {
+    console.warn("entitlement load failed", err);
+  }
+}
+
 // ── P2: IoT alert console + intervention workflow ──
 const ALERT_OPEN_STATES = ["pending", "triggered", "notified"];
 let alertConsoleFilter = "open";
@@ -1191,6 +1232,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   renderServices(portfolio);
   await loadIoTHardware(currentAccountId);
   await loadOperationalHome(currentAccountId);
+  await loadEntitlement(currentAccountId);
   // Reports are loaded by loadReports() in dashboard.html from /me/documents API
   // renderReports(portfolio);   // REMOVED — was overwriting real API docs
   // renderAlerts from portfolio is now replaced by loadAlerts from backend

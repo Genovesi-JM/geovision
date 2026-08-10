@@ -79,6 +79,79 @@ def _get_user_company_id(user: User, db: Session) -> Optional[str]:
     return None
 
 
+_PLAN_ALLOWANCE = {"trial": 5, "demo": 10, "starter": 10, "growth": 25, "scale": 60, "enterprise": 200}
+
+
+@router.get("/entitlement")
+def my_entitlement(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Commercial entitlement summary for the current user's company.
+
+    Returns the prepaid tier/kit, sensor allowance vs. sensors in use, deployed
+    devices/kits, and days remaining. When no explicit entitlement row exists it
+    derives a sensible window from the company plan and flags ``derived: true``
+    so the UI can label it as an estimate rather than a booked commitment.
+    """
+    from datetime import datetime, timedelta
+    from app.models import CompanyEntitlement, IotDevice, SensorChannel
+
+    company_id = _get_user_company_id(user, db)
+    if not company_id:
+        return {"has_company": False}
+    company = db.get(Company, company_id)
+    devices = db.query(IotDevice).filter(IotDevice.company_id == company_id).all()
+    device_ids = [d.id for d in devices]
+    sensors_used = 0
+    if device_ids:
+        sensors_used = (
+            db.query(SensorChannel)
+            .filter(SensorChannel.device_id.in_(device_ids), SensorChannel.enabled.is_(True))
+            .count()
+        )
+    kits = sorted({(d.hardware_model or d.device_type or "device") for d in devices})
+
+    ent = db.query(CompanyEntitlement).filter(CompanyEntitlement.company_id == company_id).first()
+    now = datetime.utcnow()
+    if ent:
+        tier = ent.tier
+        allowance = ent.sensor_allowance
+        valid_until = ent.valid_until
+        kit = ent.kit
+        derived = False
+    else:
+        tier = (company.subscription_plan if company else None) or "trial"
+        allowance = _PLAN_ALLOWANCE.get(tier, 5)
+        window_days = 90 if tier in ("trial", "demo") else 365
+        base = (company.created_at if company else None) or now
+        valid_until = base + timedelta(days=window_days)
+        kit = kits[0] if kits else None
+        derived = True
+
+    days_remaining = (valid_until.date() - now.date()).days if valid_until else None
+    if days_remaining is None:
+        status = "active"
+    elif days_remaining < 0:
+        status = "expired"
+    elif days_remaining <= 30:
+        status = "expiring"
+    else:
+        status = "active"
+
+    return {
+        "has_company": True,
+        "tier": tier,
+        "kit": kit,
+        "sensor_allowance": allowance,
+        "sensors_used": sensors_used,
+        "devices_deployed": len(devices),
+        "kits_deployed": kits,
+        "valid_until": valid_until.isoformat() + "Z" if valid_until else None,
+        "days_remaining": days_remaining,
+        "status": status,
+        "derived": derived,
+        "notes": ent.notes if ent else None,
+    }
+
+
 @router.get("/documents")
 def my_documents(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """List documents for the current user's company."""
