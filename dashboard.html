@@ -1792,6 +1792,27 @@
             </div>
           </div>
         </div>
+
+        <!-- Device analytics reports (P5) -->
+        <div class="card" id="device-reports-card" style="margin-top:1rem;display:none;">
+          <div class="card-header">
+            <h3 class="card-title" data-i18n="rep.devices.title">Relatórios de dispositivos</h3>
+            <span class="badge" style="color:#94a3b8;" data-i18n="rep.devices.sub">PDF de analítica por dispositivo</span>
+          </div>
+          <div class="card-body">
+            <div id="device-reports-list" class="alerts-list"></div>
+          </div>
+        </div>
+
+        <!-- Field inspections (P5) -->
+        <div class="card" id="inspections-card" style="margin-top:1rem;display:none;">
+          <div class="card-header">
+            <h3 class="card-title" data-i18n="rep.insp.title">Inspeções de ativos</h3>
+          </div>
+          <div class="card-body">
+            <div id="inspections-list"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ============ MAP VIEW ============ -->
@@ -1969,10 +1990,10 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=15"></script>
+  <script src="assets/js/i18n.js?v=16"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=9"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=10"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>
   <style>
@@ -2020,6 +2041,7 @@
       // Load reports / documents if switching to reports view
       if (viewId === 'reports') {
         loadReports();
+        if (window.gvLoadDeviceReports) window.gvLoadDeviceReports();
       }
       // Render the device map when switching to the map view
       if (viewId === 'map' && window.gvRenderDeviceMap) {

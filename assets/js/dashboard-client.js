@@ -944,6 +944,52 @@ async function loadEntitlement(accountId) {
   }
 }
 
+// ── P5: connect device analytics reports + asset inspections into Reports view ──
+async function loadDeviceReports(accountId) {
+  const card = document.getElementById("device-reports-card");
+  const list = document.getElementById("device-reports-list");
+  if (!card || !list) return;
+  try {
+    const devices = await apiGet("/iot/devices", accountId) || [];
+    if (!devices.length) { card.style.display = "none"; return; }
+    card.style.display = "block";
+    list.innerHTML = "";
+    devices.forEach((d) => {
+      const row = document.createElement("div");
+      row.className = "alert-item";
+      row.innerHTML = `<div class="alert-header"><span class="alert-title"><i class="fa-solid fa-microchip"></i> ${escapeHTML(d.name)}</span><span style="margin-left:auto;display:flex;gap:.4rem;">` +
+        `<button class="btn btn-primary" data-report="${escapeHTML(d.id)}"><i class="fa-solid fa-file-pdf"></i> ${T("iot.report.pdf")}</button>` +
+        `<button class="btn btn-ghost" data-csv="${escapeHTML(d.id)}"><i class="fa-solid fa-file-csv"></i> CSV</button></span></div>` +
+        `<div class="alert-description">${escapeHTML(d.site_name || "—")} · ${escapeHTML(deviceIsStale(d) ? T("iot.status.stale") : d.status)}</div>`;
+      list.appendChild(row);
+    });
+    list.querySelectorAll("button[data-report]").forEach((b) => { b.onclick = () => downloadIotReport(b.dataset.report, accountId); });
+    list.querySelectorAll("button[data-csv]").forEach((b) => { b.onclick = () => downloadIotCsv(b.dataset.csv, accountId); });
+  } catch (err) {
+    console.warn("device reports load failed", err);
+    card.style.display = "none";
+  }
+}
+
+async function loadInspections(accountId) {
+  const card = document.getElementById("inspections-card");
+  const host = document.getElementById("inspections-list");
+  if (!card || !host) return;
+  try {
+    const rows = await apiGet("/construction/inspections", accountId) || [];
+    if (!rows.length) { card.style.display = "none"; return; }
+    card.style.display = "block";
+    const resultClass = (r) => r === "pass" ? "resolved" : (r === "fail" ? "open" : "acknowledged");
+    host.innerHTML = `<table class="data-table"><thead><tr><th>${T("rep.insp.asset")}</th><th>${T("rep.insp.category")}</th><th>${T("rep.insp.result")}</th><th>${T("rep.insp.inspector")}</th><th>${T("common.date")}</th></tr></thead><tbody>` +
+      rows.map((r) => `<tr><td>${escapeHTML((r.asset_id || "—").slice(0, 8))}</td><td>${escapeHTML(r.category || "—")}</td><td><span class="alert-status-pill ${resultClass(r.result)}">${escapeHTML(r.result || "—")}</span></td><td>${escapeHTML(r.inspector_name || "—")}</td><td>${escapeHTML(r.created_at ? new Date(r.created_at).toLocaleString() : "—")}</td></tr>`).join("") +
+      `</tbody></table>`;
+  } catch (err) {
+    card.style.display = "none"; // inspections unavailable for this account type
+  }
+}
+
+window.gvLoadDeviceReports = (id) => { const a = id || alertAccountId(); loadDeviceReports(a); loadInspections(a); };
+
 // ── P2: IoT alert console + intervention workflow ──
 const ALERT_OPEN_STATES = ["pending", "triggered", "notified"];
 let alertConsoleFilter = "open";
