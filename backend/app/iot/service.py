@@ -18,11 +18,17 @@ from app.models import (
     DeviceCredential,
     IotAlert,
     IotAlertRule,
+    IotCommand,
     IotDevice,
     SensorChannel,
     Site,
     TelemetryReading,
 )
+
+# On-device firmware also enforces these locally; the backend rule is the
+# "decide" layer of detect → decide → act → confirm.
+IRRIGATION_TRIGGER_PCT = 25.0
+IRRIGATION_TARGET_PCT = 40.0
 
 
 def json_value(value: str | None, fallback):
@@ -145,6 +151,45 @@ def _evaluate_alerts(db: Session, device: IotDevice, reading: TelemetryReading, 
     return events
 
 
+def _evaluate_irrigation(db: Session, device: IotDevice) -> list[dict]:
+    """Closed-loop irrigation automation (the platform decides and acts).
+
+    When a valve-capable device reports dry soil, enqueue a valve-open command;
+    when soil recovers, enqueue valve-close. Same safety gates as a manual
+    command (safety interlock confirmed, tank not empty); the device firmware
+    also enforces its own local interlocks so this never has sole control.
+    """
+    caps = set(json_value(device.capabilities_json, []))
+    if not device.allow_remote_control or "command:low_voltage_valve_open" not in caps:
+        return []
+    latest = {r["channel"]: r["value"] for r in latest_readings(db, device)}
+    soil = latest.get("soil_moisture")
+    if not isinstance(soil, (int, float)) or isinstance(soil, bool):
+        return []
+    valve_open = latest.get("valve_open") is True
+    safety_ok = latest.get("safety_ok", True) is True
+    tank = latest.get("tank_level")
+    tank_ok = not isinstance(tank, (int, float)) or tank > 5
+    # Don't stack commands: wait for the current one to be delivered/acted.
+    if db.query(IotCommand.id).filter(IotCommand.device_id == device.id, IotCommand.status.in_(["queued", "delivered"])).first():
+        return []
+
+    def enqueue(name: str, reason: str) -> dict:
+        db.add(IotCommand(
+            company_id=device.company_id, device_id=device.id, requested_by="system-auto-irrig",
+            correlation_id=str(uuid.uuid4()), name=name, arguments_json="{}", reason=reason,
+            fail_safe_state="off", expires_at=datetime.utcnow() + timedelta(seconds=300),
+        ))
+        db.flush()
+        return {"type": "automation.irrigation", "action": name, "device_id": device.id, "reason": reason, "soil_moisture": soil}
+
+    if soil < IRRIGATION_TRIGGER_PCT and not valve_open and safety_ok and tank_ok:
+        return [enqueue("low_voltage_valve_open", f"Auto-irrigation: soil {soil:g}% below {IRRIGATION_TRIGGER_PCT:g}%")]
+    if valve_open and soil >= IRRIGATION_TARGET_PCT:
+        return [enqueue("low_voltage_valve_close", f"Auto-irrigation: soil {soil:g}% recovered to target")]
+    return []
+
+
 def ingest_telemetry(
     db: Session,
     device: IotDevice,
@@ -220,6 +265,8 @@ def ingest_telemetry(
         alert_events.extend(_evaluate_alerts(db, device, row, previous_row.numeric_value if previous_row else None))
         reading_payloads.append({"channel": key, "value": value, "unit": unit, "quality": quality})
 
+    automation_events = _evaluate_irrigation(db, device)
+
     device.last_seen_at = datetime.utcnow()
     device.last_ip = remote_ip
     device.status = "online"
@@ -232,13 +279,15 @@ def ingest_telemetry(
     event = {
         "type": "telemetry", "device_id": device.id, "device_uid": device.public_id,
         "message_id": envelope.message_id, "at": recorded_at.isoformat() + "Z",
-        "readings": reading_payloads, "alerts": alert_events,
+        "readings": reading_payloads, "alerts": alert_events, "automation": automation_events,
     }
     if publish:
         publish(device.id, event)
         for alert in alert_events:
             publish(device.id, alert)
-    return {"accepted": True, "duplicate": False, "stored": len(reading_payloads), "message_id": envelope.message_id}
+        for act in automation_events:
+            publish(device.id, act)
+    return {"accepted": True, "duplicate": False, "stored": len(reading_payloads), "message_id": envelope.message_id, "automation": automation_events}
 
 
 def latest_readings(db: Session, device: IotDevice) -> list[dict]:
