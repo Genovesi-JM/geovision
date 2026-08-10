@@ -524,38 +524,149 @@ async function initKitPanel(accountId) {
   };
 }
 
+// ── P4: geospatial workspace — sites, devices, alerts, layer control ──
 let iotMap = null;
-let iotMapLayer = null;
+let geoLayers = null; // { sites, devices, alerts } layer groups
+let geoWired = false;
+const geoLayerOn = { sites: true, devices: true, alerts: true };
+const geoSiteMarkers = {};
+const geoDeviceMarkers = {};
+
+function deviceIsStale(d) { return !d.last_seen_at || Date.now() - new Date(d.last_seen_at).getTime() > 120000; }
+function deviceColor(d) { return deviceIsStale(d) ? "#94a3b8" : (d.status === "online" ? "#22c55e" : "#f59e0b"); }
+
+function wireGeoWorkspace() {
+  if (geoWired) return;
+  geoWired = true;
+  document.querySelectorAll("#geo-layers .alert-filter").forEach((btn) => {
+    btn.onclick = () => {
+      const layer = btn.dataset.layer;
+      geoLayerOn[layer] = !geoLayerOn[layer];
+      btn.classList.toggle("active", geoLayerOn[layer]);
+      applyGeoLayerVisibility();
+    };
+  });
+  const refresh = document.getElementById("geo-refresh");
+  if (refresh) refresh.onclick = () => renderDeviceMap();
+}
+
+function applyGeoLayerVisibility() {
+  if (!iotMap || !geoLayers) return;
+  ["sites", "devices", "alerts"].forEach((k) => {
+    if (geoLayerOn[k]) { if (!iotMap.hasLayer(geoLayers[k])) geoLayers[k].addTo(iotMap); }
+    else if (iotMap.hasLayer(geoLayers[k])) iotMap.removeLayer(geoLayers[k]);
+  });
+}
+
 async function renderDeviceMap() {
   if (typeof L === "undefined") { console.warn("Leaflet not loaded"); return; }
   const el = document.getElementById("iot-map");
   if (!el) return;
+  wireGeoWorkspace();
+  const accountId = alertAccountId();
   if (!iotMap) {
     iotMap = L.map(el, { scrollWheelZoom: true }).setView([-8.83, 13.23], 6); // Angola default
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(iotMap);
-    iotMapLayer = L.layerGroup().addTo(iotMap);
+    geoLayers = { sites: L.layerGroup().addTo(iotMap), devices: L.layerGroup().addTo(iotMap), alerts: L.layerGroup().addTo(iotMap) };
   }
   setTimeout(() => iotMap.invalidateSize(), 120);
   try {
-    const devices = await apiGet("/iot/devices", currentAccountId) || [];
-    iotMapLayer.clearLayers();
-    const located = devices.filter((d) => typeof d.latitude === "number" && typeof d.longitude === "number");
-    const emptyMsg = document.getElementById("iot-map-empty");
-    if (emptyMsg) emptyMsg.style.display = located.length ? "none" : "block";
+    const [devices, sites, alerts] = await Promise.all([
+      apiGet("/iot/devices", accountId).catch(() => []),
+      apiGet("/mobile/sites", accountId).catch(() => []),
+      apiGet("/iot/alerts", accountId).catch(() => []),
+    ]);
+    Object.values(geoLayers).forEach((l) => l.clearLayers());
+    Object.keys(geoSiteMarkers).forEach((k) => delete geoSiteMarkers[k]);
+    Object.keys(geoDeviceMarkers).forEach((k) => delete geoDeviceMarkers[k]);
+
+    // Open alerts per device.
+    const openStates = ["pending", "triggered", "notified", "acknowledged", "assigned"];
+    const openByDevice = {};
+    (alerts || []).filter((a) => openStates.includes(a.status)).forEach((a) => {
+      openByDevice[a.device_id] = (openByDevice[a.device_id] || 0) + 1;
+    });
+
     const bounds = [];
+    // Sites: marker + area circle sized by hectares.
+    (sites || []).forEach((s) => {
+      const lat = s.center && s.center.lat, lng = s.center && s.center.lng;
+      if (!lat || !lng) return; // 0/0 = no coordinates
+      const deviceCount = (devices || []).filter((d) => d.site_name === s.name).length;
+      const siteAlerts = (devices || []).filter((d) => d.site_name === s.name).reduce((n, d) => n + (openByDevice[d.id] || 0), 0);
+      if (s.total_hectares > 0) {
+        const radiusM = Math.sqrt((s.total_hectares * 10000) / Math.PI);
+        L.circle([lat, lng], { radius: radiusM, color: "#38bdf8", weight: 1, fillColor: "#38bdf8", fillOpacity: 0.08 }).addTo(geoLayers.sites);
+      }
+      const marker = L.marker([lat, lng]);
+      marker.bindPopup(`<strong>${escapeHTML(s.name)}</strong><br>${escapeHTML(s.sector || "")}${s.total_hectares ? ` · ${s.total_hectares} ha` : ""}<br>${deviceCount} ${escapeHTML(T("geo.devices"))}${siteAlerts ? ` · ${siteAlerts} ${escapeHTML(T("geo.alerts"))}` : ""}`);
+      marker.addTo(geoLayers.sites);
+      geoSiteMarkers[s.id] = { marker, lat, lng };
+      bounds.push([lat, lng]);
+    });
+
+    // Devices: status-coloured markers; alert ring for devices with open alerts.
+    const located = (devices || []).filter((d) => typeof d.latitude === "number" && typeof d.longitude === "number");
     located.forEach((d) => {
-      const stale = !d.last_seen_at || Date.now() - new Date(d.last_seen_at).getTime() > 120000;
-      const color = stale ? "#94a3b8" : (d.status === "online" ? "#22c55e" : "#f59e0b");
+      const color = deviceColor(d);
       const maps = `https://www.google.com/maps?q=${d.latitude},${d.longitude}`;
       const marker = L.circleMarker([d.latitude, d.longitude], { radius: 9, color, fillColor: color, fillOpacity: 0.85, weight: 2 });
-      marker.bindPopup(`<strong>${escapeHTML(d.name)}</strong><br>${escapeHTML(d.site_name || "")} · ${escapeHTML(stale ? T("iot.status.stale") : d.status)}<br><a href="${maps}" target="_blank" rel="noopener">📍 ${T("iot.openMaps")}</a>`);
-      marker.addTo(iotMapLayer);
+      marker.bindPopup(`<strong>${escapeHTML(d.name)}</strong><br>${escapeHTML(d.site_name || "")} · ${escapeHTML(deviceIsStale(d) ? T("iot.status.stale") : d.status)}${openByDevice[d.id] ? `<br>⚠ ${openByDevice[d.id]} ${escapeHTML(T("geo.alerts"))}` : ""}<br><a href="${maps}" target="_blank" rel="noopener">📍 ${T("iot.openMaps")}</a>`);
+      marker.addTo(geoLayers.devices);
+      geoDeviceMarkers[d.id] = { marker, lat: d.latitude, lng: d.longitude };
       bounds.push([d.latitude, d.longitude]);
+      if (openByDevice[d.id]) {
+        L.circleMarker([d.latitude, d.longitude], { radius: 16, color: "#ef4444", weight: 2, fill: false, opacity: 0.8 }).addTo(geoLayers.alerts);
+      }
     });
+
+    const emptyMsg = document.getElementById("iot-map-empty");
+    if (emptyMsg) emptyMsg.style.display = bounds.length ? "none" : "block";
     if (bounds.length) iotMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+    applyGeoLayerVisibility();
+    renderGeoSide(sites || [], devices || [], openByDevice);
   } catch (error) {
-    console.warn("device map load failed", error);
+    console.warn("geospatial workspace load failed", error);
   }
+}
+
+function renderGeoSide(sites, devices, openByDevice) {
+  const host = document.getElementById("geo-side");
+  if (!host) return;
+  let html = "";
+  const locatedSites = sites.filter((s) => s.center && s.center.lat && s.center.lng);
+  html += `<div class="geo-side-title">${T("geo.sitesTitle")} (${locatedSites.length})</div>`;
+  if (!locatedSites.length) {
+    html += `<div class="geo-empty">${T("geo.noSites")}</div>`;
+  } else {
+    locatedSites.forEach((s) => {
+      const siteDevices = devices.filter((d) => d.site_name === s.name);
+      const siteAlerts = siteDevices.reduce((n, d) => n + (openByDevice[d.id] || 0), 0);
+      html += `<div class="geo-item" data-focus-site="${escapeHTML(s.id)}">
+        <div class="geo-item-name"><i class="fa-solid fa-location-dot" style="color:#38bdf8"></i> ${escapeHTML(s.name)}${siteAlerts ? ` <span class="geo-badge-alert">${siteAlerts} ⚠</span>` : ""}</div>
+        <div class="geo-item-meta"><span>${escapeHTML(s.sector || "—")}</span>${s.total_hectares ? `<span>${s.total_hectares} ha</span>` : ""}<span>${siteDevices.length} ${escapeHTML(T("geo.devices"))}</span></div>
+      </div>`;
+    });
+  }
+  const locatedDevices = devices.filter((d) => typeof d.latitude === "number" && typeof d.longitude === "number");
+  html += `<div class="geo-side-title" style="margin-top:.75rem;">${T("geo.devicesTitle")} (${locatedDevices.length})</div>`;
+  if (!locatedDevices.length) {
+    html += `<div class="geo-empty">${T("geo.noDevices")}</div>`;
+  } else {
+    locatedDevices.forEach((d) => {
+      html += `<div class="geo-item" data-focus-device="${escapeHTML(d.id)}">
+        <div class="geo-item-name"><span class="geo-dot" style="background:${deviceColor(d)}"></span> ${escapeHTML(d.name)}${openByDevice[d.id] ? ` <span class="geo-badge-alert">${openByDevice[d.id]} ⚠</span>` : ""}</div>
+        <div class="geo-item-meta"><span>${escapeHTML(d.site_name || "—")}</span><span>${escapeHTML(deviceIsStale(d) ? T("iot.status.stale") : d.status)}</span></div>
+      </div>`;
+    });
+  }
+  host.innerHTML = html;
+  host.querySelectorAll("[data-focus-site]").forEach((el) => {
+    el.onclick = () => { const m = geoSiteMarkers[el.dataset.focusSite]; if (m) { iotMap.setView([m.lat, m.lng], 14); m.marker.openPopup(); } };
+  });
+  host.querySelectorAll("[data-focus-device]").forEach((el) => {
+    el.onclick = () => { const m = geoDeviceMarkers[el.dataset.focusDevice]; if (m) { iotMap.setView([m.lat, m.lng], 15); m.marker.openPopup(); } };
+  });
 }
 window.gvRenderDeviceMap = renderDeviceMap;
 
