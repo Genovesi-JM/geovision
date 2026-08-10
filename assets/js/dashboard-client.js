@@ -856,7 +856,7 @@ async function loadOperationalHome(accountId) {
     const devices = await apiGet("/iot/devices", accountId) || [];
     let alerts = [];
     try { alerts = await apiGet("/iot/alerts", accountId) || []; } catch (e) { /* no alerts scope */ }
-    if (!devices.length) return; // no IoT deployment: leave generic KPIs/alerts as-is
+    if (!devices.length) { renderPersonaHome(accountId, [], [], 0); return; } // no IoT deployment
 
     const now = Date.now();
     const stale = (d) => !d.last_seen_at || now - new Date(d.last_seen_at).getTime() > 120000;
@@ -898,6 +898,7 @@ async function loadOperationalHome(accountId) {
       const kpiA = document.getElementById("kpi-alerts");
       if (kpiA) kpiA.textContent = String(kpiAlertCount + openAlerts.length);
     }
+    renderPersonaHome(accountId, devices, openAlerts, needsAttention);
   } catch (err) {
     console.warn("operational home unavailable", err);
   }
@@ -924,6 +925,44 @@ function initExperience(account) {
   document.querySelectorAll("#exp-toggle .exp-btn").forEach((b) => {
     b.onclick = () => { localStorage.setItem(key, b.dataset.exp); gvApplyExperience(b.dataset.exp); };
   });
+}
+
+// ── Persona "today" home (simple experience: farm / site / device) ──
+function personaFor(accountId) {
+  return localStorage.getItem("gv_persona_" + accountId) || localStorage.getItem("gv_persona") || null;
+}
+function renderPersonaHome(accountId, devices, openAlerts, needsAttention) {
+  const card = document.getElementById("persona-home");
+  if (!card) return;
+  const simple = document.body.getAttribute("data-exp") === "simple";
+  const persona = personaFor(accountId);
+  const simplePersonas = ["farm", "site", "device"];
+  if (!simple && !(persona && simplePersonas.includes(persona))) { card.style.display = "none"; return; }
+  card.style.display = "block";
+
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? T("persona.morning") : hour < 19 ? T("persona.afternoon") : T("persona.evening");
+  const g = document.getElementById("persona-greeting"); if (g) g.textContent = greet;
+
+  const critical = openAlerts.filter((a) => a.severity === "critical");
+  const warnings = openAlerts.filter((a) => a.severity !== "critical");
+  let headline = "", action = "";
+  if (critical.length) {
+    headline = `<span class="pill critical">${T("dash.iot.critical")}</span>${escapeHTML(critical[0].message || critical[0].channel || "")}`;
+    action = `<button class="btn btn-primary" onclick="switchView('alerts')">${T("persona.viewAlert")}</button>`;
+  } else if (warnings.length) {
+    headline = `<span class="pill warning">${escapeHTML(warnings[0].severity).toUpperCase()}</span>${escapeHTML(warnings[0].message || warnings[0].channel || "")}`;
+    action = `<button class="btn btn-primary" onclick="switchView('alerts')">${T("persona.viewAlert")}</button>`;
+  } else if (needsAttention > 0) {
+    headline = `<span class="pill warning">!</span>${needsAttention} ${T("dash.iot.attention")}`;
+    action = `<button class="btn btn-primary" onclick="switchView('hardware')">${T("dash.nav.hardware")}</button>`;
+  } else {
+    headline = `<span class="pill ok">✓</span>${T("persona.allGood")}`;
+    action = `<button class="btn btn-ghost" onclick="switchView('hardware')">${T("dash.nav.hardware")}</button>`;
+  }
+  action += ` <a class="btn btn-ghost" href="loja.html">${T("dash.nav.store")}</a>`;
+  const h = document.getElementById("persona-headline"); if (h) h.innerHTML = headline;
+  const a = document.getElementById("persona-actions"); if (a) a.innerHTML = action;
 }
 
 // ── P5: commercial / entitlement panel ──

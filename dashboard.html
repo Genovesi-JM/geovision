@@ -825,6 +825,19 @@
     .audit-row .audit-action { color: #7dd3fc; font-weight: 600; }
     .audit-row .audit-user { color: #94a3b8; margin-left: auto; font-size: 0.75rem; }
 
+    /* ============ PERSONA "TODAY" HOME ============ */
+    .persona-home {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(56, 189, 248, 0.06));
+      border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .persona-greeting { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; }
+    .persona-headline { font-size: 1.35rem; font-weight: 800; margin: 0.35rem 0 0.75rem; line-height: 1.3; }
+    .persona-headline .pill { font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 999px; vertical-align: middle; margin-right: 0.5rem; }
+    .persona-headline .pill.critical { background: #ef4444; color: #fff; }
+    .persona-headline .pill.warning { background: #fbbf24; color: #1a1a1a; }
+    .persona-headline .pill.ok { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+    .persona-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
     /* ============ EXPERIENCE TOGGLE (persona-adaptive) ============ */
     .exp-toggle {
       display: flex;
@@ -1526,6 +1539,15 @@
         <!-- Sector Tabs -->
         <div id="sector-tabs" class="sector-tabs" style="display:none;"></div>
 
+        <!-- Persona "today" home (simple experience) -->
+        <div class="card persona-home" id="persona-home" style="display:none;margin-bottom:1rem;">
+          <div class="card-body">
+            <div class="persona-greeting" id="persona-greeting">Bom dia</div>
+            <div class="persona-headline" id="persona-headline">—</div>
+            <div class="persona-actions" id="persona-actions"></div>
+          </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="quick-actions">
           <a href="loja.html" class="quick-action">
@@ -2027,10 +2049,10 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=18"></script>
+  <script src="assets/js/i18n.js?v=19"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=11"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=12"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <style>

@@ -89,7 +89,8 @@
       color: #d7deea;
       cursor: pointer;
     }
-    .checkbox-item input[type="checkbox"] {
+    .checkbox-item input[type="checkbox"],
+    .checkbox-item input[type="radio"] {
       width: 1.1rem;
       height: 1.1rem;
       accent-color: #38bdf8;
@@ -103,6 +104,17 @@
     <p class="subtitle" id="welcome-text" data-i18n="onboarding.welcome">Bem-vindo ao GeoVision.</p>
 
     <form id="onboarding-form" class="grid">
+      <div>
+        <label data-i18n="onboarding.personaLabel">Que tipo de cliente é?</label>
+        <div class="checkbox-grid" id="persona-group">
+          <label class="checkbox-item"><input type="radio" name="persona" value="farm" checked /> <span data-i18n="onboarding.persona.farm">A minha exploração agrícola</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="site" /> <span data-i18n="onboarding.persona.site">A minha propriedade / local</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="construction" /> <span data-i18n="onboarding.persona.construction">Obra / construção</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="business" /> <span data-i18n="onboarding.persona.business">Empresa / site industrial</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="device" /> <span data-i18n="onboarding.persona.device">Só comprei um dispositivo</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="enterprise" /> <span data-i18n="onboarding.persona.enterprise">Várias localizações / empresa</span></label>
+        </div>
+      </div>
       <div>
         <label data-i18n="onboarding.sectorsLabel">Setores de atuação (seleciona todos os que se aplicam)</label>
         <div class="checkbox-grid" id="sectors-group">
@@ -168,6 +180,11 @@
       const selectedSectors = [...document.querySelectorAll('input[name="sector"]:checked')].map(cb => cb.value);
       const orgName = document.getElementById("org-name").value.trim();
       const accountName = document.getElementById("account-name").value.trim();
+      // Customer type drives the dashboard experience (simple shell vs advanced console).
+      const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
+      const orgPersonas = ["construction", "business", "enterprise"];
+      const entityType = orgPersonas.includes(persona) ? "company" : "individual";
+      localStorage.setItem("gv_persona", persona);
 
       if (selectedSectors.length === 0) {
         show(errorBox, "Seleciona pelo menos um setor.");
@@ -187,7 +204,7 @@
           body: JSON.stringify({
             sectors: selectedSectors,
             sector_focus: selectedSectors[0],
-            entity_type: "individual",
+            entity_type: entityType,
             org_name: orgName || null,
             account_name: accountName || null,
           }),
@@ -206,7 +223,10 @@
           localStorage.setItem("gv_user", JSON.stringify(data.user));
         }
         try {
-          if (data.account && data.account.id) localStorage.setItem('gv_account_id', data.account.id);
+          if (data.account && data.account.id) {
+            localStorage.setItem('gv_account_id', data.account.id);
+            localStorage.setItem('gv_persona_' + data.account.id, persona);
+          }
         } catch (_) {}
         localStorage.setItem("gv_toast", JSON.stringify({
           msg: "Conta configurada com sucesso.",
@@ -224,7 +244,7 @@
       }
     });
   </script>
-  <script src="assets/js/i18n.js?v=18"></script>
+  <script src="assets/js/i18n.js?v=19"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>
