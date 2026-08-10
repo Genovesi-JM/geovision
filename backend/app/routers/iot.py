@@ -590,6 +590,55 @@ def calibrate(channel_id: str, payload: CalibrationCreate, user: User = Depends(
     return {"id": row.id, "calibrated_at": row.calibrated_at.isoformat() + "Z"}
 
 
+@router.get("/devices/{device_id}/calibrations")
+def device_calibrations(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Channels of a device plus their calibration history (for the calibration workspace)."""
+    device = device_for_company(db, device_id, _company_id(user, db))
+    channels = db.query(SensorChannel).filter(SensorChannel.device_id == device.id).order_by(SensorChannel.label).all()
+    channel_ids = [c.id for c in channels]
+    labels = {c.id: c.label for c in channels}
+    records = []
+    if channel_ids:
+        records = (
+            db.query(CalibrationRecord)
+            .filter(CalibrationRecord.channel_id.in_(channel_ids))
+            .order_by(CalibrationRecord.calibrated_at.desc())
+            .limit(200)
+            .all()
+        )
+    return {
+        "channels": [{"id": c.id, "key": c.key, "label": c.label, "unit": c.unit, "data_type": c.data_type} for c in channels],
+        "records": [{
+            "id": r.id, "channel_id": r.channel_id, "channel_label": labels.get(r.channel_id, r.channel_id),
+            "offset": r.offset, "scale": r.scale, "reference_value": r.reference_value,
+            "measured_value": r.measured_value, "notes": r.notes,
+            "calibrated_at": r.calibrated_at.isoformat() + "Z",
+        } for r in records],
+    }
+
+
+@router.get("/devices/{device_id}/audit")
+def device_audit(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Audit trail for a device: its own events plus those of its channels, alerts and commands."""
+    device = device_for_company(db, device_id, _company_id(user, db))
+    channel_ids = [c.id for c in db.query(SensorChannel.id).filter(SensorChannel.device_id == device.id).all()]
+    alert_ids = [a.id for a in db.query(IotAlert.id).filter(IotAlert.device_id == device.id).all()]
+    command_ids = [c.id for c in db.query(IotCommand.id).filter(IotCommand.device_id == device.id).all()]
+    resource_ids = {device.id, *channel_ids, *alert_ids, *command_ids}
+    rows = (
+        db.query(AuditLog)
+        .filter(AuditLog.resource_id.in_(resource_ids))
+        .order_by(AuditLog.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    return [{
+        "id": r.id, "action": r.action, "resource_type": r.resource_type, "resource_id": r.resource_id,
+        "user_email": r.user_email, "details": json_value(r.details, {}),
+        "created_at": r.created_at.isoformat() + "Z",
+    } for r in rows]
+
+
 @router.get("/devices/{device_id}/events")
 async def device_events(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device_for_company(db, device_id, _company_id(user, db)); queue = event_hub.subscribe(device_id)

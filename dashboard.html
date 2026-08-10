@@ -788,6 +788,43 @@
       font-size: 0.9rem;
     }
 
+    /* ============ DEVICE WORKSPACE (P3) ============ */
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .metric {
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 10px;
+      padding: 0.6rem 0.75rem;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .metric-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; }
+    .metric-value { font-size: 1.15rem; font-weight: 700; margin-top: 0.2rem; }
+    .metric-value.warn { color: #fbbf24; }
+    .metric-value.bad { color: #ef4444; }
+    .metric-value.good { color: #22c55e; }
+    .rec-list { list-style: none; padding: 0; margin: 0.5rem 0 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .rec-list li {
+      font-size: 0.82rem; color: #cbd5e1; line-height: 1.4;
+      padding: 0.5rem 0.7rem; border-radius: 8px;
+      background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8;
+    }
+    .iot-subtitle { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: #94a3b8; margin: 1rem 0 0.5rem; font-weight: 700; }
+    .cal-form { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: end; margin-bottom: 1rem; }
+    .cal-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; color: #94a3b8; }
+    .cal-form input, .cal-form select {
+      background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 8px; color: #e2e8f0; padding: 0.4rem 0.55rem; font-size: 0.85rem;
+    }
+    .cal-form input[type="number"] { width: 110px; }
+    .audit-row { display: flex; gap: 0.6rem; align-items: baseline; font-size: 0.82rem; padding: 0.45rem 0; border-bottom: 1px solid rgba(148, 163, 184, 0.1); }
+    .audit-row .audit-time { color: #6b7280; font-size: 0.72rem; white-space: nowrap; }
+    .audit-row .audit-action { color: #7dd3fc; font-weight: 600; }
+    .audit-row .audit-user { color: #94a3b8; margin-left: auto; font-size: 0.75rem; }
+
     /* ============ VIEW PANELS ============ */
     .view-panel {
       display: none;
@@ -1664,6 +1701,17 @@
               <button class="btn btn-secondary" id="iot-beacon" data-i18n="iot.device.beacon">Ligar sinalizador de demonstração</button>
             </div>
             <div id="iot-command-result" style="margin-top:.75rem;color:#94a3b8;font-size:.8rem;"></div>
+
+            <div id="iot-detail-tabs" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1.25rem;border-top:1px solid rgba(148,163,184,.15);padding-top:1rem;">
+              <button class="badge alert-filter active" data-dtab="analytics" data-i18n="iot.tab.analytics">Saúde &amp; Analítica</button>
+              <button class="badge alert-filter" data-dtab="calibration" data-i18n="iot.tab.calibration">Calibração</button>
+              <button class="badge alert-filter" data-dtab="commands" data-i18n="iot.tab.commands">Comandos</button>
+              <button class="badge alert-filter" data-dtab="audit" data-i18n="iot.tab.audit">Auditoria</button>
+            </div>
+            <div id="iot-dtab-analytics" class="iot-dtab" style="margin-top:1rem;"></div>
+            <div id="iot-dtab-calibration" class="iot-dtab" style="margin-top:1rem;display:none;"></div>
+            <div id="iot-dtab-commands" class="iot-dtab" style="margin-top:1rem;display:none;"></div>
+            <div id="iot-dtab-audit" class="iot-dtab" style="margin-top:1rem;display:none;"></div>
           </div>
         </div>
       </div>
@@ -1861,10 +1909,10 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=12"></script>
+  <script src="assets/js/i18n.js?v=13"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=5"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=7"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=1"></script>
   <style>

@@ -265,6 +265,7 @@ async function showIotDevice(device, accountId, reconnect = true) {
   document.getElementById("iot-download-report").onclick = () => downloadIotReport(device.id, accountId);
   document.getElementById("iot-diagnostics").onclick = () => sendIotCommand(device.id, "request_diagnostics", accountId);
   document.getElementById("iot-beacon").onclick = () => sendIotCommand(device.id, "beacon_on", accountId);
+  wireDeviceTabs(device.id, accountId);
   if (reconnect) connectIotSocket(device.id, accountId);
 }
 
@@ -297,6 +298,10 @@ async function sendIotCommand(deviceId, name, accountId) {
   if (!window.confirm(`${T("iot.command.confirm")} ${name}?`)) return;
   const result = await apiPost(`/iot/devices/${deviceId}/commands`, { name, arguments: {}, confirmed: true, reason: "Supervised dashboard demonstration", fail_safe_state: "off" }, accountId);
   document.getElementById("iot-command-result").textContent = result?.message || T("iot.command.sent");
+  // Refresh the command-history tab so the queued command shows immediately.
+  if (typeof iotTabLoaded !== "undefined") iotTabLoaded.commands = false;
+  const cmdPanel = document.getElementById("iot-dtab-commands");
+  if (cmdPanel && cmdPanel.style.display !== "none") { iotTabLoaded.commands = true; loadDeviceCommands(deviceId, accountId); }
 }
 
 async function downloadIotCsv(deviceId, accountId) {
@@ -313,6 +318,172 @@ async function downloadIotReport(deviceId, accountId) {
     if (result) result.textContent = T("iot.report.generated");
   } catch (error) {
     if (result) result.textContent = `${T("iot.report.failed")}: ${error.message || error}`;
+  }
+}
+
+// ── P3: device workspace tabs — analytics/health, calibration, commands, audit ──
+let iotDetailDeviceId = null;
+let iotDetailAccountId = null;
+const iotTabLoaded = {};
+
+function wireDeviceTabs(deviceId, accountId) {
+  iotDetailDeviceId = deviceId;
+  iotDetailAccountId = accountId;
+  Object.keys(iotTabLoaded).forEach((k) => delete iotTabLoaded[k]); // new device -> reload tabs on demand
+  document.querySelectorAll("#iot-detail-tabs .alert-filter").forEach((btn) => {
+    btn.onclick = () => activateDeviceTab(btn.dataset.dtab);
+  });
+  activateDeviceTab("analytics");
+}
+
+function activateDeviceTab(tab) {
+  document.querySelectorAll("#iot-detail-tabs .alert-filter").forEach((b) => b.classList.toggle("active", b.dataset.dtab === tab));
+  ["analytics", "calibration", "commands", "audit"].forEach((t) => {
+    const el = document.getElementById(`iot-dtab-${t}`);
+    if (el) el.style.display = t === tab ? "block" : "none";
+  });
+  if (iotTabLoaded[tab]) return;
+  iotTabLoaded[tab] = true;
+  if (tab === "analytics") loadDeviceAnalytics(iotDetailDeviceId, iotDetailAccountId);
+  else if (tab === "calibration") loadDeviceCalibration(iotDetailDeviceId, iotDetailAccountId);
+  else if (tab === "commands") loadDeviceCommands(iotDetailDeviceId, iotDetailAccountId);
+  else if (tab === "audit") loadDeviceAudit(iotDetailDeviceId, iotDetailAccountId);
+}
+
+function fmtDuration(sec) {
+  if (sec == null) return "—";
+  if (sec < 60) return `${Math.round(sec)}s`;
+  if (sec < 3600) return `${Math.round(sec / 60)}m`;
+  return `${(sec / 3600).toFixed(1)}h`;
+}
+
+async function loadDeviceAnalytics(deviceId, accountId) {
+  const host = document.getElementById("iot-dtab-analytics");
+  if (!host) return;
+  host.innerHTML = `<div class="alert-console-empty">${T("common.loading")}</div>`;
+  try {
+    const a = await apiGet(`/iot/devices/${deviceId}/analytics?days=30`, accountId);
+    const o = a.overview || {}; const inc = a.incidents || {};
+    const comp = o.completeness_pct;
+    const compClass = comp == null ? "" : (comp >= 90 ? "good" : comp >= 60 ? "warn" : "bad");
+    const metrics = [
+      { l: T("iot.an.status"), v: o.stale ? T("iot.status.stale") : (o.device_status || "—"), c: o.stale ? "bad" : "good" },
+      { l: T("iot.an.readings"), v: o.total_readings ?? "—" },
+      { l: T("iot.an.channels"), v: o.channels_reporting ?? "—" },
+      { l: T("iot.an.completeness"), v: comp == null ? "—" : `${comp}%`, c: compClass },
+      { l: T("iot.an.dataSpan"), v: o.data_span_ratio == null ? "—" : `${Math.round(o.data_span_ratio * 100)}%` },
+      { l: T("iot.an.openIncidents"), v: inc.open ?? 0, c: (inc.open || 0) > 0 ? "warn" : "good" },
+      { l: T("iot.an.mtta"), v: fmtDuration(inc.mtta_seconds) },
+      { l: T("iot.an.mttr"), v: fmtDuration(inc.mttr_seconds) },
+    ];
+    let html = `<div class="metric-strip">` + metrics.map((m) => `<div class="metric"><div class="metric-label">${escapeHTML(m.l)}</div><div class="metric-value ${m.c || ""}">${escapeHTML(String(m.v))}</div></div>`).join("") + `</div>`;
+    if ((a.channels || []).length) {
+      html += `<div class="iot-subtitle">${T("iot.an.channelStats")}</div>`;
+      html += `<table class="data-table"><thead><tr><th>${T("iot.an.channel")}</th><th>${T("iot.an.samples")}</th><th>${T("iot.an.min")}</th><th>${T("iot.an.avg")}</th><th>${T("iot.an.max")}</th><th>${T("iot.an.last")}</th><th>${T("iot.an.inRange")}</th><th>${T("iot.an.runHours")}</th></tr></thead><tbody>`;
+      const fmt = (x) => x == null ? "—" : String(x);
+      a.channels.forEach((s) => {
+        const tir = s.time_in_range_pct == null ? "—" : `${s.time_in_range_pct}%`;
+        const run = s.estimated_on_hours == null ? "—" : `${s.estimated_on_hours}h`;
+        html += `<tr><td>${escapeHTML(s.channel)}${s.unit ? ` <span style="color:#64748b">(${escapeHTML(s.unit)})</span>` : ""}</td><td>${s.samples}</td><td>${escapeHTML(fmt(s.min))}</td><td>${escapeHTML(fmt(s.avg))}</td><td>${escapeHTML(fmt(s.max))}</td><td>${escapeHTML(fmt(s.last))}</td><td>${tir}</td><td>${run}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+    }
+    if ((a.recommendations || []).length) {
+      html += `<div class="iot-subtitle">${T("iot.an.recommendations")}</div>`;
+      html += `<ul class="rec-list">` + a.recommendations.map((r) => `<li>${escapeHTML(r)}</li>`).join("") + `</ul>`;
+    }
+    host.innerHTML = html;
+  } catch (err) {
+    host.innerHTML = `<div class="alert-console-empty">${T("iot.an.failed")}: ${escapeHTML(err.message || String(err))}</div>`;
+  }
+}
+
+async function loadDeviceCalibration(deviceId, accountId) {
+  const host = document.getElementById("iot-dtab-calibration");
+  if (!host) return;
+  host.innerHTML = `<div class="alert-console-empty">${T("common.loading")}</div>`;
+  try {
+    const data = await apiGet(`/iot/devices/${deviceId}/calibrations`, accountId);
+    const channels = data.channels || []; const records = data.records || [];
+    const opts = channels.map((c) => `<option value="${escapeHTML(c.id)}">${escapeHTML(c.label)}${c.unit ? ` (${escapeHTML(c.unit)})` : ""}</option>`).join("");
+    let html = channels.length ? `<form class="cal-form" id="cal-form">
+      <label>${T("iot.cal.channel")}<select id="cal-channel">${opts}</select></label>
+      <label>${T("iot.cal.offset")}<input type="number" step="any" id="cal-offset" value="0"></label>
+      <label>${T("iot.cal.scale")}<input type="number" step="any" id="cal-scale" value="1"></label>
+      <label>${T("iot.cal.reference")}<input type="number" step="any" id="cal-reference"></label>
+      <label>${T("iot.cal.measured")}<input type="number" step="any" id="cal-measured"></label>
+      <label style="flex:1;min-width:180px;">${T("iot.cal.notes")}<input type="text" id="cal-notes"></label>
+      <button type="submit" class="btn btn-primary">${T("iot.cal.save")}</button>
+    </form>` : `<div class="alert-console-empty">${T("iot.cal.noChannels")}</div>`;
+    html += `<div class="iot-subtitle">${T("iot.cal.history")}</div>`;
+    if (records.length) {
+      html += `<table class="data-table"><thead><tr><th>${T("iot.an.channel")}</th><th>${T("iot.cal.offset")}</th><th>${T("iot.cal.scale")}</th><th>${T("iot.cal.reference")}</th><th>${T("iot.cal.measured")}</th><th>${T("iot.cal.notes")}</th><th>${T("iot.cal.when")}</th></tr></thead><tbody>`;
+      records.forEach((r) => {
+        html += `<tr><td>${escapeHTML(r.channel_label)}</td><td>${r.offset}</td><td>${r.scale}</td><td>${r.reference_value ?? "—"}</td><td>${r.measured_value ?? "—"}</td><td>${escapeHTML(r.notes || "—")}</td><td>${escapeHTML(new Date(r.calibrated_at).toLocaleString())}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+    } else {
+      html += `<div class="alert-console-empty">${T("iot.cal.noHistory")}</div>`;
+    }
+    host.innerHTML = html;
+    const form = document.getElementById("cal-form");
+    if (form) form.onsubmit = async (e) => {
+      e.preventDefault();
+      const channelId = document.getElementById("cal-channel").value;
+      const numOrNull = (id) => { const v = document.getElementById(id).value; return v === "" ? null : parseFloat(v); };
+      const body = {
+        offset: parseFloat(document.getElementById("cal-offset").value) || 0,
+        scale: parseFloat(document.getElementById("cal-scale").value) || 1,
+        reference_value: numOrNull("cal-reference"),
+        measured_value: numOrNull("cal-measured"),
+        notes: document.getElementById("cal-notes").value || null,
+      };
+      try {
+        await apiPost(`/iot/channels/${channelId}/calibrations`, body, accountId);
+        loadDeviceCalibration(deviceId, accountId);
+      } catch (err) {
+        window.alert(`${T("iot.cal.failed")}: ${err.message || err}`);
+      }
+    };
+  } catch (err) {
+    host.innerHTML = `<div class="alert-console-empty">${T("iot.cal.failed")}: ${escapeHTML(err.message || String(err))}</div>`;
+  }
+}
+
+function cmdStatusClass(s) {
+  if (["acknowledged", "completed", "confirmed"].includes(s)) return "resolved";
+  if (["timed_out", "failed", "rejected"].includes(s)) return "open";
+  return "acknowledged";
+}
+
+async function loadDeviceCommands(deviceId, accountId) {
+  const host = document.getElementById("iot-dtab-commands");
+  if (!host) return;
+  host.innerHTML = `<div class="alert-console-empty">${T("common.loading")}</div>`;
+  try {
+    const rows = await apiGet(`/iot/devices/${deviceId}/commands`, accountId) || [];
+    if (!rows.length) { host.innerHTML = `<div class="alert-console-empty">${T("iot.cmd.none")}</div>`; return; }
+    let html = `<table class="data-table"><thead><tr><th>${T("iot.cmd.name")}</th><th>${T("iot.cmd.status")}</th><th>${T("iot.cmd.reason")}</th><th>${T("iot.cmd.failsafe")}</th><th>${T("iot.cmd.when")}</th></tr></thead><tbody>`;
+    rows.forEach((r) => {
+      html += `<tr><td>${escapeHTML(r.name)}</td><td><span class="alert-status-pill ${cmdStatusClass(r.status)}">${escapeHTML(r.status)}</span></td><td>${escapeHTML(r.reason || "—")}</td><td>${escapeHTML(r.fail_safe_state || "—")}</td><td>${escapeHTML(new Date(r.created_at).toLocaleString())}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+    host.innerHTML = html;
+  } catch (err) {
+    host.innerHTML = `<div class="alert-console-empty">${T("iot.cmd.failed")}: ${escapeHTML(err.message || String(err))}</div>`;
+  }
+}
+
+async function loadDeviceAudit(deviceId, accountId) {
+  const host = document.getElementById("iot-dtab-audit");
+  if (!host) return;
+  host.innerHTML = `<div class="alert-console-empty">${T("common.loading")}</div>`;
+  try {
+    const rows = await apiGet(`/iot/devices/${deviceId}/audit`, accountId) || [];
+    if (!rows.length) { host.innerHTML = `<div class="alert-console-empty">${T("iot.audit.none")}</div>`; return; }
+    host.innerHTML = rows.map((r) => `<div class="audit-row"><span class="audit-time">${escapeHTML(new Date(r.created_at).toLocaleString())}</span><span class="audit-action">${escapeHTML(r.action)}</span><span class="audit-user">${escapeHTML(r.user_email || "—")}</span></div>`).join("");
+  } catch (err) {
+    host.innerHTML = `<div class="alert-console-empty">${T("iot.audit.failed")}: ${escapeHTML(err.message || String(err))}</div>`;
   }
 }
 
