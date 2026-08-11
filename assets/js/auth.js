@@ -136,14 +136,71 @@
       forgotLink.dataset.gvBound = '1';
     }
 
+    // ---- Account-creation wizard (email → password → setup) ----
+    const wizardBack = document.getElementById('wizard-back');
+    const wizardNext = document.getElementById('wizard-next');
+    const WIZ_TOTAL = 3;
+    let wizardStep = 1;
+    const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+    function showWizardStep(n) {
+      if (!createForm) return;
+      wizardStep = Math.min(Math.max(n, 1), WIZ_TOTAL);
+      createForm.querySelectorAll('.wizard-step').forEach((s) => {
+        const active = Number(s.dataset.step) === wizardStep;
+        s.classList.toggle('active', active);
+        s.hidden = !active;
+      });
+      createForm.querySelectorAll('.wizard-dot').forEach((d) => {
+        const step = Number(d.dataset.dot);
+        d.classList.toggle('active', step === wizardStep);
+        d.classList.toggle('done', step < wizardStep);
+      });
+      if (wizardBack) wizardBack.style.display = wizardStep > 1 ? '' : 'none';
+      if (wizardNext) wizardNext.style.display = wizardStep < WIZ_TOTAL ? '' : 'none';
+      if (createSubmit) createSubmit.style.display = wizardStep < WIZ_TOTAL ? 'none' : '';
+      const first = createForm.querySelector(`.wizard-step[data-step="${wizardStep}"] input, .wizard-step[data-step="${wizardStep}"] select`);
+      if (first) setTimeout(() => first.focus(), 30);
+    }
+
+    function validateWizardStep(n) {
+      hide(errorBox);
+      if (n === 1) {
+        const email = (document.getElementById('create-email')?.value || '').trim().toLowerCase();
+        const confirm = (document.getElementById('create-email-confirm')?.value || '').trim().toLowerCase();
+        if (!isValidEmail(email)) { show(errorBox, 'Introduza um email válido.'); return false; }
+        if (email !== confirm) { show(errorBox, 'Os emails não coincidem.'); return false; }
+      } else if (n === 2) {
+        const password = document.getElementById('create-password')?.value || '';
+        const confirm = document.getElementById('create-password-confirm')?.value || '';
+        if (password.length < 6) { show(errorBox, 'A palavra-passe deve ter pelo menos 6 caracteres.'); return false; }
+        if (password !== confirm) { show(errorBox, 'As palavras-passe não coincidem.'); return false; }
+      }
+      return true;
+    }
+
+    function advanceWizard() {
+      if (validateWizardStep(wizardStep) && wizardStep < WIZ_TOTAL) showWizardStep(wizardStep + 1);
+    }
+
     if (toggleCreate && createForm && !toggleCreate.dataset.gvBound) {
       toggleCreate.addEventListener('click', () => {
         const isOpen = createForm.style.display !== 'none';
         createForm.style.display = isOpen ? 'none' : 'grid';
         createForm.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
         toggleCreate.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        if (!isOpen) { hide(errorBox); showWizardStep(1); }
       });
       toggleCreate.dataset.gvBound = '1';
+    }
+
+    if (wizardNext && !wizardNext.dataset.gvBound) {
+      wizardNext.addEventListener('click', advanceWizard);
+      wizardNext.dataset.gvBound = '1';
+    }
+    if (wizardBack && !wizardBack.dataset.gvBound) {
+      wizardBack.addEventListener('click', () => { hide(errorBox); showWizardStep(wizardStep - 1); });
+      wizardBack.dataset.gvBound = '1';
     }
 
     if (createCancel && createForm && !createCancel.dataset.gvBound) {
@@ -158,33 +215,32 @@
     if (createForm && !createForm.dataset.gvHandler) {
       createForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        // Enter / submit before the last step just advances the wizard.
+        if (wizardStep < WIZ_TOTAL) { advanceWizard(); return; }
         hide(errorBox);
         hide(successBox);
 
         const email = (document.getElementById('create-email')?.value || '').trim().toLowerCase();
-        const password = (document.getElementById('create-password')?.value || '').trim();
-        const confirm = (document.getElementById('create-password-confirm')?.value || '').trim();
+        const password = document.getElementById('create-password')?.value || '';
         const sector_focus = (document.getElementById('create-sector')?.value || 'agro').trim();
+        const persona = document.getElementById('create-persona')?.value || 'farm';
+        const entity_type = ['construction', 'business', 'enterprise'].includes(persona) ? 'company' : 'individual';
 
-        if (!email || !password || !sector_focus) {
-          show(errorBox, 'Preencha email, palavra-passe e tipo de conta.');
-          return;
-        }
-        if (password !== confirm) {
-          show(errorBox, 'As palavras-passe não coincidem.');
-          return;
-        }
+        if (!validateWizardStep(1)) { showWizardStep(1); return; }
+        if (!validateWizardStep(2)) { showWizardStep(2); return; }
 
         if (createSubmit) createSubmit.disabled = true;
         try {
+          localStorage.setItem('gv_persona', persona);
           const res = await fetch(`${apiBase()}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, sector_focus }),
+            body: JSON.stringify({ email, password, sector_focus, entity_type }),
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(() => ({}));
           persistSession(data, email);
+          try { if (data.account && data.account.id) localStorage.setItem('gv_persona_' + data.account.id, persona); } catch (_) {}
           setToast('Conta criada com sucesso.', 'success');
           redirectAfterAuth((data.user && data.user.role) || 'cliente');
         } catch (err) {

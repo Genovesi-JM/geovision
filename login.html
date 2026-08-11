@@ -354,6 +354,17 @@
       color: #cbd5e1;
     }
 
+    /* Account-creation wizard */
+    .wizard-step { display: none; gap: 1.1rem; grid-template-columns: 1fr; }
+    .wizard-step.active { display: grid; }
+    .wizard-title { font-size: 1.05rem; font-weight: 700; color: #f2f6ff; margin-bottom: 0.15rem; }
+    .wizard-dots { display: flex; gap: 0.4rem; justify-content: center; margin-bottom: 0.4rem; }
+    .wizard-dot { width: 26px; height: 4px; border-radius: 999px; background: rgba(148,163,184,0.3); transition: background 0.2s; }
+    .wizard-dot.active { background: linear-gradient(90deg, #22c55e, #38bdf8); }
+    .wizard-dot.done { background: rgba(34,197,94,0.6); }
+    .wizard-nav { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .wizard-nav .btn-primary, .wizard-nav .btn-ghost { flex: 1 1 auto; }
+
     /* Forgot email modal */
     .forgot-email-overlay {
       display: none;
@@ -499,38 +510,75 @@
     </form>
 
     <form id="create-form" class="grid" style="display:none; margin-top:1rem;" aria-hidden="true">
-      <div>
-        <label for="create-email" data-i18n="login.email">Email</label>
-        <input type="email" id="create-email" placeholder="user@company.com" required />
+      <div class="wizard-dots" id="wizard-dots" aria-hidden="true">
+        <span class="wizard-dot active" data-dot="1"></span>
+        <span class="wizard-dot" data-dot="2"></span>
+        <span class="wizard-dot" data-dot="3"></span>
       </div>
-      <div>
-        <label for="create-password" data-i18n="login.password">Password</label>
-        <div class="input-wrapper">
-          <input type="password" id="create-password" data-i18n-placeholder="login.choosePassword" placeholder="Choose a password" required />
-          <button type="button" class="toggle-password" data-target="create-password" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+
+      <!-- Step 1: email -->
+      <div class="wizard-step active" data-step="1">
+        <div class="wizard-title" data-i18n="login.wiz.emailTitle">Qual é o seu email?</div>
+        <div>
+          <label for="create-email" data-i18n="login.email">Email</label>
+          <input type="email" id="create-email" placeholder="user@company.com" autocomplete="email" />
+        </div>
+        <div>
+          <label for="create-email-confirm" data-i18n="login.confirmEmail">Confirmar email</label>
+          <input type="email" id="create-email-confirm" data-i18n-placeholder="login.repeatEmail" placeholder="Repita o email" autocomplete="email" />
         </div>
       </div>
-      <div>
-        <label for="create-password-confirm" data-i18n="login.confirmPassword">Confirm password</label>
-        <div class="input-wrapper">
-          <input type="password" id="create-password-confirm" data-i18n-placeholder="login.repeatPassword" placeholder="Repeat password" required />
-          <button type="button" class="toggle-password" data-target="create-password-confirm" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+
+      <!-- Step 2: password -->
+      <div class="wizard-step" data-step="2" hidden>
+        <div class="wizard-title" data-i18n="login.wiz.passwordTitle">Crie uma palavra-passe</div>
+        <div>
+          <label for="create-password" data-i18n="login.password">Password</label>
+          <div class="input-wrapper">
+            <input type="password" id="create-password" data-i18n-placeholder="login.choosePassword" placeholder="Choose a password" autocomplete="new-password" />
+            <button type="button" class="toggle-password" data-target="create-password" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+          </div>
+        </div>
+        <div>
+          <label for="create-password-confirm" data-i18n="login.confirmPassword">Confirm password</label>
+          <div class="input-wrapper">
+            <input type="password" id="create-password-confirm" data-i18n-placeholder="login.repeatPassword" placeholder="Repeat password" autocomplete="new-password" />
+            <button type="button" class="toggle-password" data-target="create-password-confirm" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+          </div>
         </div>
       </div>
-      <div>
-        <label for="create-sector" data-i18n="login.accountType">Account Type</label>
-        <select id="create-sector" required>
-          <option value="" data-i18n="login.selectSector">Select sector</option>
-          <option value="agro" data-i18n="sectors.agriculture">Agriculture</option>
-          <option value="mining" data-i18n="sectors.mineracao">Mining</option>
-          <option value="demining" data-i18n="sectors.demining">Demining</option>
-          <option value="construction" data-i18n="login.construction">Construction</option>
-          <option value="infrastructure" data-i18n="login.infrastructure">Infrastructure</option>
-          <option value="solar" data-i18n="login.solar">Solar</option>
-        </select>
+
+      <!-- Step 3: setup -->
+      <div class="wizard-step" data-step="3" hidden>
+        <div class="wizard-title" data-i18n="login.wiz.setupTitle">Como vai usar o GeoVision?</div>
+        <div>
+          <label for="create-persona" data-i18n="onboarding.personaLabel">Que tipo de cliente é?</label>
+          <select id="create-persona">
+            <option value="farm" data-i18n="onboarding.persona.farm">A minha exploração agrícola</option>
+            <option value="site" data-i18n="onboarding.persona.site">A minha propriedade / local</option>
+            <option value="construction" data-i18n="onboarding.persona.construction">Obra / construção</option>
+            <option value="business" data-i18n="onboarding.persona.business">Empresa / site industrial</option>
+            <option value="device" data-i18n="onboarding.persona.device">Só comprei um dispositivo</option>
+            <option value="enterprise" data-i18n="onboarding.persona.enterprise">Várias localizações / empresa</option>
+          </select>
+        </div>
+        <div>
+          <label for="create-sector" data-i18n="login.accountType">Account Type</label>
+          <select id="create-sector">
+            <option value="agro" data-i18n="sectors.agriculture">Agriculture</option>
+            <option value="mining" data-i18n="sectors.mineracao">Mining</option>
+            <option value="demining" data-i18n="sectors.demining">Demining</option>
+            <option value="construction" data-i18n="login.construction">Construction</option>
+            <option value="infrastructure" data-i18n="login.infrastructure">Infrastructure</option>
+            <option value="solar" data-i18n="login.solar">Solar</option>
+          </select>
+        </div>
       </div>
-      <div class="actions">
-        <button id="create-submit" class="btn-primary" type="submit" data-i18n="login.createAccount">Create account</button>
+
+      <div class="actions wizard-nav">
+        <button id="wizard-back" class="btn-ghost" type="button" data-i18n="common.back" style="display:none;">Voltar</button>
+        <button id="wizard-next" class="btn-primary" type="button" data-i18n="common.next">Seguinte</button>
+        <button id="create-submit" class="btn-primary" type="submit" data-i18n="login.createAccount" style="display:none;">Create account</button>
         <button id="create-cancel" class="btn-ghost" type="button" data-i18n="common.cancel">Cancel</button>
       </div>
     </form>
@@ -600,8 +648,8 @@
   <script src="assets/js/session.js?v=1"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script src="assets/js/auth.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=18"></script>
+  <script src="assets/js/auth.js?v=2"></script>
+  <script src="assets/js/i18n.js?v=19"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <script src="assets/js/theme.js?v=1"></script>
