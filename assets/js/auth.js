@@ -143,6 +143,23 @@
     let wizardStep = 1;
     const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
+    // Individual/home customers only see consumer-relevant sectors — industrial
+    // ones (mining, demining, construction, infrastructure) are org-only.
+    const INDIVIDUAL_PERSONAS = ['farm', 'site', 'device'];
+    const INDIVIDUAL_SECTORS = ['agro', 'solar'];
+    function filterSectorsForPersona() {
+      const sel = document.getElementById('create-sector');
+      const persona = document.getElementById('create-persona')?.value || 'farm';
+      if (!sel) return;
+      const individual = INDIVIDUAL_PERSONAS.includes(persona);
+      [...sel.options].forEach((o) => {
+        const ok = !individual || INDIVIDUAL_SECTORS.includes(o.value);
+        o.hidden = !ok; o.disabled = !ok;
+      });
+      const current = [...sel.options].find((o) => o.value === sel.value);
+      if (!current || current.hidden) sel.value = individual ? 'agro' : sel.value;
+    }
+
     function showWizardStep(n) {
       if (!createForm) return;
       wizardStep = Math.min(Math.max(n, 1), WIZ_TOTAL);
@@ -159,6 +176,7 @@
       if (wizardBack) wizardBack.style.display = wizardStep > 1 ? '' : 'none';
       if (wizardNext) wizardNext.style.display = wizardStep < WIZ_TOTAL ? '' : 'none';
       if (createSubmit) createSubmit.style.display = wizardStep < WIZ_TOTAL ? 'none' : '';
+      if (wizardStep === WIZ_TOTAL) filterSectorsForPersona();
       const first = createForm.querySelector(`.wizard-step[data-step="${wizardStep}"] input, .wizard-step[data-step="${wizardStep}"] select`);
       if (first) setTimeout(() => first.focus(), 30);
     }
@@ -197,6 +215,11 @@
     if (wizardNext && !wizardNext.dataset.gvBound) {
       wizardNext.addEventListener('click', advanceWizard);
       wizardNext.dataset.gvBound = '1';
+    }
+    const createPersona = document.getElementById('create-persona');
+    if (createPersona && !createPersona.dataset.gvBound) {
+      createPersona.addEventListener('change', filterSectorsForPersona);
+      createPersona.dataset.gvBound = '1';
     }
     if (wizardBack && !wizardBack.dataset.gvBound) {
       wizardBack.addEventListener('click', () => { hide(errorBox); showWizardStep(wizardStep - 1); });

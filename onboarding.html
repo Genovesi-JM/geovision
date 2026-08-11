@@ -173,6 +173,23 @@
       window.location.href = "login.html";
     }
 
+    // Individual/home customers only see consumer-relevant sectors; industrial
+    // ones (mining, demining, construction, infrastructure) are org-only.
+    const INDIVIDUAL_PERSONAS = ["farm", "site", "device"];
+    const INDIVIDUAL_SECTORS = ["agro", "solar"];
+    function filterSectorsForPersona() {
+      const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
+      const individual = INDIVIDUAL_PERSONAS.includes(persona);
+      document.querySelectorAll('#sectors-group .checkbox-item').forEach((item) => {
+        const cb = item.querySelector('input[name="sector"]');
+        const ok = !individual || INDIVIDUAL_SECTORS.includes(cb.value);
+        item.style.display = ok ? "" : "none";
+        if (!ok) cb.checked = false;
+      });
+    }
+    document.querySelectorAll('input[name="persona"]').forEach((r) => r.addEventListener("change", filterSectorsForPersona));
+    filterSectorsForPersona();
+
     document.getElementById("onboarding-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       hide(errorBox); hide(successBox);

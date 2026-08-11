@@ -1266,11 +1266,27 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     logoutBtn.dataset.gvBound = "1";
   }
 
+  // Individual workspaces only offer consumer-relevant sectors; industrial
+  // ones (mining, construction, infrastructure) are for organisations.
+  const MODAL_INDIVIDUAL_SECTORS = ["agro", "ambiental"];
+  function filterModalSectors() {
+    const entity = document.getElementById("account-entity-input")?.value || "org";
+    const sel = document.getElementById("account-sector-input");
+    if (!sel) return;
+    const individual = entity === "individual";
+    [...sel.options].forEach((o) => { const ok = !individual || MODAL_INDIVIDUAL_SECTORS.includes(o.value); o.hidden = !ok; o.disabled = !ok; });
+    const current = [...sel.options].find((o) => o.value === sel.value);
+    if (!current || current.hidden) sel.value = "agro";
+  }
+  const entitySel = document.getElementById("account-entity-input");
+  if (entitySel && !entitySel.dataset.gvBound) { entitySel.addEventListener("change", filterModalSectors); entitySel.dataset.gvBound = "1"; }
+
   // ── Bind modal buttons early — BEFORE any await/render that could throw ──
   if (openModal && !openModal.dataset.gvBound) {
     openModal.onclick = () => {
       const name = document.getElementById("account-name-input");
       if (name) name.value = "";
+      filterModalSectors();
       toggleModal(true);
     };
     openModal.dataset.gvBound = "1";
