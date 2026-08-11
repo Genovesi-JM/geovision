@@ -118,6 +118,7 @@
       <div>
         <label data-i18n="onboarding.sectorsLabel">Setores de atuação (seleciona todos os que se aplicam)</label>
         <div class="checkbox-grid" id="sectors-group">
+          <label class="checkbox-item"><input type="checkbox" name="sector" value="home" /> <span data-i18n="sectors.home">Casa</span></label>
           <label class="checkbox-item"><input type="checkbox" name="sector" value="agro" /> <span data-i18n="dash.modal.agro">Agro &amp; Pecuária</span></label>
           <label class="checkbox-item"><input type="checkbox" name="sector" value="mining" /> <span data-i18n="sectors.mineracao">Mineração</span></label>
           <label class="checkbox-item"><input type="checkbox" name="sector" value="demining" /> <span data-i18n="sectors.demining">Desminagem</span></label>
@@ -176,7 +177,7 @@
     // Individual/home customers only see consumer-relevant sectors; industrial
     // ones (mining, demining, construction, infrastructure) are org-only.
     const INDIVIDUAL_PERSONAS = ["farm", "site", "device"];
-    const INDIVIDUAL_SECTORS = ["agro", "solar"];
+    const INDIVIDUAL_SECTORS = ["home", "agro", "solar"];
     function filterSectorsForPersona() {
       const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
       const individual = INDIVIDUAL_PERSONAS.includes(persona);
@@ -261,7 +262,7 @@
       }
     });
   </script>
-  <script src="assets/js/i18n.js?v=19"></script>
+  <script src="assets/js/i18n.js?v=20"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>

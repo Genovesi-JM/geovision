@@ -16,6 +16,7 @@ function escapeHTML(str) {
 
 const SECTOR_LABELS = {
   agro: "Agro & Pecuária",
+  home: "Casa",
   mining: "Mineração",
   demining: "Desminagem",
   construction: "Construção",
@@ -756,6 +757,7 @@ async function loadKpis(accountId, activeSector) {
   // Sector-specific KPI mappings (first 4 KPIs of each sector)
   const sectorKpiMapping = {
     agro: ["ndvi_avg", "water_stress", "hectares_monitored", "yield_estimate"],
+    home: ["comfort_index", "air_quality", "energy_use", "security_events"],
     mining: ["extraction_volume", "slope_stability", "sensors_active", "geotechnical_alerts"],
     construction: ["progress_percent", "conformity_index", "pending_inspections", "volume_earthwork"],
     infrastructure: ["km_monitored", "structural_integrity", "vibration_sensors", "maintenance_alerts"],
@@ -1268,7 +1270,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   // Individual workspaces only offer consumer-relevant sectors; industrial
   // ones (mining, construction, infrastructure) are for organisations.
-  const MODAL_INDIVIDUAL_SECTORS = ["agro", "ambiental"];
+  const MODAL_INDIVIDUAL_SECTORS = ["home", "agro", "ambiental"];
   function filterModalSectors() {
     const entity = document.getElementById("account-entity-input")?.value || "org";
     const sel = document.getElementById("account-sector-input");

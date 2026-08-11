@@ -459,6 +459,7 @@ const translations = {
   "sectors.sidebar.title": { pt: "Navegação", en: "Navigation", es: "Navegación" },
   "sectors.sidebar.subtitle": { pt: "Setores de Atuação", en: "Operating Sectors", es: "Sectores de Actuación" },
   "sectors.agriculture": { pt: "Agricultura", en: "Agriculture", es: "Agricultura" },
+  "sectors.home": { pt: "Casa", en: "Home", es: "Hogar" },
   "sectors.infrastructure": { pt: "Infraestrutura", en: "Infrastructure", es: "Infraestructura" },
   "sectors.demining": { pt: "Desminagem", en: "Demining", es: "Desminado" },
   "sectors.livestock": { pt: "Pecuária", en: "Livestock", es: "Ganadería" },

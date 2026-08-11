@@ -47,7 +47,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 ADMIN_EMAILS: Set[str] = {"genovesi.maria@geovisionops.com"}
 DEFAULT_MODULES = ["kpi", "projects", "store", "alerts"]
-ALLOWED_SECTORS = {"agro", "mining", "demining", "construction", "infrastructure", "solar"}
+ALLOWED_SECTORS = {"agro", "home", "mining", "demining", "construction", "infrastructure", "solar"}
 
 REFRESH_TOKEN_BYTES = 48
 

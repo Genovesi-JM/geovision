@@ -144,8 +144,26 @@ def get_generic_kpis() -> List[KPIItem]:
     ]
 
 
+def get_home_kpis() -> List[KPIItem]:
+    return [
+        KPIItem(id="comfort_index", label="Conforto Interior", value=0, unit="%", status="ok", trend="stable",
+                updated_at=_now_minus(10), sector="home",
+                description="Percentagem do tempo com temperatura e humidade dentro da faixa de conforto."),
+        KPIItem(id="air_quality", label="Qualidade do Ar", value=0, unit="", status="ok", trend="stable",
+                updated_at=_now_minus(15), sector="home",
+                description="Indice de qualidade do ar interior (CO2 e particulas). Valores mais baixos sao melhores."),
+        KPIItem(id="energy_use", label="Consumo de Energia", value=0, unit="kWh", status="ok", trend="stable",
+                updated_at=_now_minus(30), sector="home",
+                description="Energia consumida no periodo, para ajudar a controlar custos."),
+        KPIItem(id="security_events", label="Eventos de Seguranca", value=0, unit="", status="ok", trend="stable",
+                updated_at=_now_minus(5), sector="home",
+                description="Aberturas de porta, movimento e fugas de agua detetados."),
+    ]
+
+
 SECTOR_KPI_FUNCTIONS = {
     "agro": get_agro_kpis,
+    "home": get_home_kpis,
     "mining": get_mining_kpis,
     "construction": get_construction_kpis,
     "infrastructure": get_infrastructure_kpis,
