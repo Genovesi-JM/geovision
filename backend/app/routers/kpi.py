@@ -152,12 +152,12 @@ def get_home_kpis() -> List[KPIItem]:
         KPIItem(id="air_quality", label="Qualidade do Ar", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(15), sector="home",
                 description="Indice de qualidade do ar interior (CO2 e particulas). Valores mais baixos sao melhores."),
-        KPIItem(id="energy_use", label="Consumo de Energia", value=0, unit="kWh", status="ok", trend="stable",
-                updated_at=_now_minus(30), sector="home",
-                description="Energia consumida no periodo, para ajudar a controlar custos."),
-        KPIItem(id="security_events", label="Eventos de Seguranca", value=0, unit="", status="ok", trend="stable",
+        KPIItem(id="tank_level", label="Nivel de Agua", value=0, unit="%", status="ok", trend="stable",
+                updated_at=_now_minus(10), sector="home",
+                description="Nivel atual do deposito de agua monitorizado."),
+        KPIItem(id="leak_events", label="Fugas Detetadas", value=0, unit="", status="ok", trend="stable",
                 updated_at=_now_minus(5), sector="home",
-                description="Aberturas de porta, movimento e fugas de agua detetados."),
+                description="Fugas de agua detetadas que requerem verificacao."),
     ]
 
 

@@ -38,18 +38,17 @@ abstract final class KpiCatalogue {
         description: 'Indoor air-quality index derived from CO2 and PM2.5.',
         higherIsBetter: false),
     KpiDefinition(
-        id: 'energy_use',
-        label: 'Energy consumption',
-        unit: 'kWh',
+        id: 'tank_level',
+        label: 'Water level',
+        unit: '%',
         sector: Sector.home,
-        description: 'Energy consumed during the reporting period.',
-        higherIsBetter: false),
+        description: 'Current level of the monitored water tank.'),
     KpiDefinition(
-        id: 'security_events',
-        label: 'Security events',
+        id: 'leak_events',
+        label: 'Leaks detected',
         unit: '',
         sector: Sector.home,
-        description: 'Door, motion and water-leak events.',
+        description: 'Water-leak events that need attention.',
         higherIsBetter: false),
   ];
 

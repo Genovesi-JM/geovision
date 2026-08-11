@@ -480,6 +480,10 @@ function mapCategoryLabel(category) {
     "spraying": "Pulverização",
     "monitoring": "Monitorização",
     "flight": "Voo",
+    "sensor_kit": "Kit de monitorização",
+    "sensor": "Sensor",
+    "irrigation": "Irrigação",
+    "accessory": "Acessório",
   };
   return mapping[category] || category || "Serviço";
 }

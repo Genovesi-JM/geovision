@@ -766,7 +766,7 @@ async function loadKpis(accountId, activeSector) {
   // Sector-specific KPI mappings (first 4 KPIs of each sector)
   const sectorKpiMapping = {
     agro: ["ndvi_avg", "water_stress", "hectares_monitored", "yield_estimate"],
-    home: ["comfort_index", "air_quality", "energy_use", "security_events"],
+    home: ["comfort_index", "air_quality", "tank_level", "leak_events"],
     mining: ["extraction_volume", "slope_stability", "sensors_active", "geotechnical_alerts"],
     construction: ["progress_percent", "conformity_index", "pending_inspections", "volume_earthwork"],
     infrastructure: ["km_monitored", "structural_integrity", "vibration_sensors", "maintenance_alerts"],

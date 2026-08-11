@@ -174,7 +174,15 @@ def test_solution_kit_catalogue_and_one_step_provisioning(client, db_session):
     assert len(kits) >= 4
     water = next(k for k in kits if k["id"] == "water_tank_starter")
     assert water["bom_total_usd"] > 0 and water["diy_bom"] and water["channels"]
+    assert not any(k["id"] == "energy_meter_starter" for k in kits)
     assert client.get("/iot/kits/does-not-exist", headers=headers).status_code == 404
+
+    standby = client.post(
+        "/iot/kits/energy_meter_starter/provision",
+        headers=headers,
+        json={"site_id": site.id},
+    )
+    assert standby.status_code == 409
 
     # Provisioning a kit creates a device with the kit's channels and alert rules.
     provisioned = client.post("/iot/kits/water_tank_starter/provision", headers=headers, json={"site_id": site.id})

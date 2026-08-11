@@ -88,7 +88,7 @@ void main() {
       expect(Sector.home.id, 'home');
       expect(
         KpiCatalogue.forSector(Sector.home).map((k) => k.id).toList(),
-        ['comfort_index', 'air_quality', 'energy_use', 'security_events'],
+        ['comfort_index', 'air_quality', 'tank_level', 'leak_events'],
       );
       expect(
         KpiCatalogue.forSector(Sector.home).any((k) => k.id == 'ndvi_avg'),

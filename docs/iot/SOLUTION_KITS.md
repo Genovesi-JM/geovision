@@ -20,14 +20,16 @@ data model was created — kits reuse the existing device/provisioning/alert cod
 |---|---|---|---|---|
 | Cold Chain Starter | cold_chain | temperature, humidity, door, compressor run | over-temp (crit), low battery | ~$65 |
 | Water Tank & Pump | water | tank_level, flow, pump run | low level (warn), critically low (crit) | ~$59 |
-| Energy & Power | energy | voltage, current, power, energy, genset run | high load, voltage sag | ~$64 |
 | Agriculture Field Node (solar) | agriculture | soil moisture/temp, air temp/humidity, rainfall | dry soil, frost risk | ~$135 |
-| Facility Guard | facilities | power, energy, door, motion, water leak | leak (crit), after-hours motion | ~$56 |
+| Property & Leak Guard | facilities | door, motion, water leak | leak (crit), after-hours motion | ~$44 |
 | Environment & Air | environment | CO₂, PM2.5, temp, humidity, noise | high CO₂, high PM2.5 | ~$92 |
 
 `battery` and `signal` ride along on every kit. Prices are DIY component estimates (USD);
 the sellable price adds assembly, install and the recurring monitoring subscription — see
 [SENSOR_KPI_MONETISATION.md](SENSOR_KPI_MONETISATION.md).
+
+The earlier Energy & Power prototype remains in the code as a standby concept, but it is
+not listed, provisionable or sold in the current GeoVision offer.
 
 ## API
 - `GET /iot/kits` — list kits (each includes `diy_bom`, `bom_total_usd`, `channels`, `alert_rules`, `kpis`).

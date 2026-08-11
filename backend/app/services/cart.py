@@ -125,6 +125,29 @@ SHOP_PRODUCTS = [
     {"id": "prod_solar_panel_inspection", "name": "Inspeção Térmica de Painéis Solares", "slug": "inspecao-termica-paineis-solares", "description": "Detecção de hotspots e defeitos em painéis solares com câmara térmica.", "short_description": "Hotspot detection", "product_type": "service", "category": "flight", "execution_type": "recorrente", "price": 45000000, "price_usd": 54500, "price_eur": 50000, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["solar"], "deliverables": ["Mapa Térmico", "Relatório de Defeitos", "Lista de Painéis Afectados"], "image_url": "/assets/img/products/solar-inspection.jpg", "is_active": True},
 ]
 
+# Current public offer. Older sector-specific and specialist services remain in
+# SHOP_PRODUCTS as standby definitions, but are not advertised until a validated
+# project justifies rental, partnership or specialist delivery.
+SHOP_PRODUCTS += [
+    {"id": "prod_aerial_basic_mapping", "name": "Mapeamento Aéreo Essencial", "slug": "mapeamento-aereo-essencial", "description": "Mapeamento visual de uma quinta, propriedade ou local com ortomosaico e resumo de observações.", "short_description": "Mapa visual e documentação do local", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 35000000, "price_usd": 42500, "price_eur": 38900, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro", "infrastructure", "ambiental"], "deliverables": ["Ortomosaico visual", "Fotografias georreferenciadas", "Resumo de observações"], "image_url": "/assets/img/products/agro-cadastral.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_agro_visual_inspection", "name": "Inspeção Visual Agrícola", "slug": "inspecao-visual-agricola", "description": "Inspeção aérea visual para documentar culturas, irrigação, acessos e anomalias visíveis sem prometer análise multiespectral.", "short_description": "Observação visual e registo da exploração", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 25000000, "price_usd": 30500, "price_eur": 27800, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro"], "deliverables": ["Fotografias aéreas", "Mapa de observações", "Relatório visual"], "image_url": "/assets/img/products/agro-ndvi.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_supply_soil_probe", "name": "Kit de Sondas de Solo", "slug": "kit-sondas-solo", "description": "Sondas de humidade do solo para substituição, expansão ou primeiro protótipo GeoVision. Fornecimento sujeito a confirmação de compatibilidade.", "short_description": "Sondas para medir humidade do solo", "product_type": "hardware", "category": "sensor", "price": 2550000, "price_usd": 3000, "price_eur": 2800, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro"], "deliverables": ["2 sondas capacitivas", "Guia de ligação", "Verificação de compatibilidade"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_irrigation_parts", "name": "Kit de Componentes de Irrigação", "slug": "kit-componentes-irrigacao", "description": "Conjunto inicial de válvula de baixa tensão, sensor de caudal e conectores para um protótipo de irrigação monitorizada.", "short_description": "Válvula, caudal e ligações para protótipo", "product_type": "hardware", "category": "irrigation", "price": 4250000, "price_usd": 5000, "price_eur": 4600, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "home"], "deliverables": ["Válvula de baixa tensão", "Sensor de caudal", "Conectores e guia"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_monitoring_spares", "name": "Pack de Acessórios para Sensores", "slug": "pack-acessorios-sensores", "description": "Cabos, conectores, prensa-cabos e pequenos consumíveis para manutenção de um nó GeoVision.", "short_description": "Peças pequenas para instalar e manter sensores", "product_type": "hardware", "category": "accessory", "price": 2125000, "price_usd": 2500, "price_eur": 2300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["home", "agro", "infrastructure", "ambiental"], "deliverables": ["Cabos e conectores", "Prensa-cabos", "Consumíveis de instalação"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_weather_pack", "name": "Pack de Sensores Meteorológicos", "slug": "pack-sensores-meteorologicos", "description": "Sensores de temperatura, humidade e chuva para protótipos de campo e pequenas estações meteorológicas.", "short_description": "Temperatura, humidade e chuva", "product_type": "hardware", "category": "sensor", "price": 7650000, "price_usd": 9000, "price_eur": 8300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "ambiental"], "deliverables": ["Sensor de temperatura/humidade", "Pluviómetro", "Guia de protótipo"], "image_url": None, "is_active": True},
+]
+
+_PUBLIC_STATIC_PRODUCT_IDS = {
+    "prod_infra_progress",
+    "prod_infra_inspection",
+    "prod_aerial_basic_mapping",
+    "prod_agro_visual_inspection",
+    "prod_supply_soil_probe",
+    "prod_supply_irrigation_parts",
+    "prod_supply_monitoring_spares",
+    "prod_supply_weather_pack",
+}
+
 SHOP_COUPONS = [
     {"code": "WELCOME10", "discount_type": "percentage", "discount_value": 10, "minimum_order": 5000000, "usage_limit": 100, "first_order_only": True},
     {"code": "DRONE50K", "discount_type": "fixed", "discount_value": 5000000, "minimum_order": 50000000, "usage_limit": 50},
@@ -132,82 +155,70 @@ SHOP_COUPONS = [
 
 
 def seed_shop_products(db: Session) -> int:
-    """Seed shop products and coupons into DB. Also syncs prices for existing products."""
+    """Upsert the controlled catalogue and keep standby products off the storefront."""
     from app.models import ShopProduct, Coupon
-
-    existing = db.query(ShopProduct.id).count()
-
-    if existing > 0:
-        # Sync prices and fields for existing products
-        updated = 0
-        seed_map = {p["id"]: p for p in SHOP_PRODUCTS}
-        for sp in db.query(ShopProduct).all():
-            src = seed_map.get(sp.id)
-            if not src:
-                continue
-            changed = False
-            # Always sync multi-currency prices from seed data
-            if sp.price_usd != src.get("price_usd", 0):
-                sp.price_usd = src.get("price_usd", 0)
-                changed = True
-            if sp.price_eur != src.get("price_eur", 0):
-                sp.price_eur = src.get("price_eur", 0)
-                changed = True
-            if sp.price != src["price"]:
-                sp.price = src["price"]
-                changed = True
-            if changed:
-                updated += 1
-        if updated:
-            db.commit()
-            logger.info(f"Synced prices for {updated} existing products")
-        return 0
 
     count = 0
     for p in SHOP_PRODUCTS:
-        sp = ShopProduct(
-            id=p["id"], name=p["name"], slug=p["slug"],
-            description=p.get("description"), short_description=p.get("short_description"),
-            product_type=p.get("product_type", "service"), category=p.get("category", "flight"),
-            execution_type=p.get("execution_type"), price=p["price"],
-            price_usd=p.get("price_usd", 0), price_eur=p.get("price_eur", 0),
-            currency=p.get("currency", "AOA"), tax_rate=p.get("tax_rate", 0.14),
-            duration_hours=p.get("duration_hours"), requires_site=p.get("requires_site", False),
-            min_area_ha=p.get("min_area_ha"),
-            sectors_json=json.dumps(p.get("sectors", [])),
-            deliverables_json=json.dumps(p.get("deliverables", [])),
-            image_url=p.get("image_url"), is_active=p.get("is_active", True),
-            is_featured=p.get("is_featured", False),
-            track_inventory=p.get("track_inventory", False),
-            stock_quantity=p.get("stock_quantity", 0),
-        )
-        db.add(sp)
-        count += 1
+        sp = db.get(ShopProduct, p["id"])
+        if sp is None:
+            sp = ShopProduct(id=p["id"], slug=p["slug"], name=p["name"])
+            db.add(sp)
+            count += 1
+        sp.name = p["name"]
+        sp.slug = p["slug"]
+        sp.description = p.get("description")
+        sp.short_description = p.get("short_description")
+        sp.product_type = p.get("product_type", "service")
+        sp.category = p.get("category", "flight")
+        sp.execution_type = p.get("execution_type")
+        sp.price = p["price"]
+        sp.price_usd = p.get("price_usd", 0)
+        sp.price_eur = p.get("price_eur", 0)
+        sp.currency = p.get("currency", "AOA")
+        sp.tax_rate = p.get("tax_rate", 0.14)
+        sp.duration_hours = p.get("duration_hours")
+        sp.requires_site = p.get("requires_site", False)
+        sp.min_area_ha = p.get("min_area_ha")
+        sp.sectors_json = json.dumps(p.get("sectors", []))
+        sp.deliverables_json = json.dumps(p.get("deliverables", []))
+        sp.image_url = p.get("image_url")
+        sp.is_active = p["id"] in _PUBLIC_STATIC_PRODUCT_IDS
+        sp.is_featured = p.get("is_featured", False) and sp.is_active
+        sp.track_inventory = p.get("track_inventory", False)
+        sp.stock_quantity = p.get("stock_quantity", 0)
 
     for c in SHOP_COUPONS:
-        coupon = Coupon(
-            code=c["code"], discount_type=c["discount_type"],
-            discount_value=c["discount_value"],
-            minimum_order=c.get("minimum_order", 0),
-            usage_limit=c.get("usage_limit", 100),
-            first_order_only=c.get("first_order_only", False),
-        )
-        db.add(coupon)
+        coupon = db.query(Coupon).filter(Coupon.code == c["code"]).first()
+        if coupon is None:
+            coupon = Coupon(code=c["code"], discount_type=c["discount_type"], discount_value=c["discount_value"])
+            db.add(coupon)
+        coupon.minimum_order = c.get("minimum_order", 0)
+        coupon.usage_limit = c.get("usage_limit", 100)
+        coupon.first_order_only = c.get("first_order_only", False)
 
     db.commit()
     return count
 
 
-# Map DIY kit industries onto every store sector where the kit is useful.
-# Home reuses the existing air-quality, facility and energy kits rather than
-# creating duplicate home-only products.
+# Map active DIY kit industries onto the store sectors where the kit is useful.
+# Home follows the supported property use cases: air/comfort, water and leaks.
 _KIT_SECTORS = {
     "agriculture": ["agro"],
     "environment": ["home", "ambiental"],
-    "water": ["infrastructure"],
-    "energy": ["home", "infrastructure"],
+    "water": ["home", "infrastructure"],
+    "energy": ["infrastructure"],
     "facilities": ["home", "infrastructure"],
     "cold_chain": ["infrastructure"],
+}
+
+# Preserve the kit definition for possible future/on-request work, but do not
+# advertise unsupported monitoring products in the public marketplace.
+_MARKETPLACE_EXCLUDED_KITS = {
+    "energy_meter_starter",
+    "cold_chain_starter",
+    "spray_control",
+    "seed_flow",
 }
 
 
@@ -222,8 +233,13 @@ def seed_kit_products(db: Session) -> int:
     from app.iot.kits import list_kits
 
     upserted = 0
-    for kit in list_kits():
+    for kit in list_kits(include_standby=True):
         pid = f"prod_kit_{kit['id']}"[:50]
+        if kit["id"] in _MARKETPLACE_EXCLUDED_KITS:
+            existing = db.get(ShopProduct, pid)
+            if existing is not None:
+                existing.is_active = False
+            continue
         # Store prices are held in minor units (×100), matching existing products.
         usd = int(kit.get("price_usd", 0))
         price_usd = usd * 100

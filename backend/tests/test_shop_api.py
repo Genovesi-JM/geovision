@@ -9,6 +9,24 @@ def _customer_headers(client):
 
 def test_diy_kits_appear_in_marketplace(client):
     products = client.get("/shop/products").json()
+    product_ids = {p["id"] for p in products}
+    assert {
+        "prod_infra_progress",
+        "prod_infra_inspection",
+        "prod_aerial_basic_mapping",
+        "prod_agro_visual_inspection",
+        "prod_supply_soil_probe",
+        "prod_supply_irrigation_parts",
+        "prod_supply_monitoring_spares",
+        "prod_supply_weather_pack",
+    }.issubset(product_ids)
+    assert not {
+        "prod_mining_volumetric",
+        "prod_infra_digital_twin",
+        "prod_agro_spraying",
+        "prod_demining_thermal",
+        "prod_solar_panel_inspection",
+    }.intersection(product_ids)
     kit_products = [p for p in products if p["id"].startswith("prod_kit_")]
     assert kit_products, "DIY kits should be seeded into the marketplace"
     water = next((p for p in kit_products if p["id"] == "prod_kit_water_tank_starter"), None)
@@ -23,11 +41,12 @@ def test_diy_kits_appear_in_marketplace(client):
     home_products = client.get("/shop/products", params={"sector": "home"}).json()
     home_kit_ids = {p["id"] for p in home_products if p["id"].startswith("prod_kit_")}
     assert home_kit_ids == {
-        "prod_kit_energy_meter_starter",
         "prod_kit_facility_guard",
         "prod_kit_environment_air",
+        "prod_kit_water_tank_starter",
     }
-    assert "home" not in water["sectors"]
+    assert "home" in water["sectors"]
+    assert not any(p["id"] == "prod_kit_energy_meter_starter" for p in products)
 
 
 def test_catalogue_exposes_explicit_multi_currency_contract(client):

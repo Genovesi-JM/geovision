@@ -6,8 +6,8 @@ def test_home_kpis_are_distinct_and_not_duplicated():
     assert [item.id for item in items] == [
         "comfort_index",
         "air_quality",
-        "energy_use",
-        "security_events",
+        "tank_level",
+        "leak_events",
     ]
     assert not {"ndvi_avg", "water_stress", "yield_estimate"}.intersection(
         item.id for item in items

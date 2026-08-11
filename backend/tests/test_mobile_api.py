@@ -84,8 +84,8 @@ def test_mobile_home_site_returns_home_kpis(client):
     assert {item["id"] for item in home["kpis"]} == {
         "comfort_index",
         "air_quality",
-        "energy_use",
-        "security_events",
+        "tank_level",
+        "leak_events",
     }
 
 

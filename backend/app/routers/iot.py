@@ -274,6 +274,8 @@ def provision_from_kit(kit_id: str, payload: KitProvision, user: User = Depends(
     kit = kit_catalog.get_kit(kit_id)
     if not kit:
         raise HTTPException(status_code=404, detail="Kit not found")
+    if kit.get("availability", "active") != "active":
+        raise HTTPException(status_code=409, detail="Kit is not currently offered")
     company_id = _company_id(user, db)
     site = db.get(Site, payload.site_id)
     if not site or site.company_id != company_id:

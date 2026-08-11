@@ -85,6 +85,7 @@ SOLUTION_KITS: list[dict] = [
         "id": "energy_meter_starter",
         "name": "Energy & Power Monitor",
         "industry": "energy",
+        "availability": "standby",
         "summary": "Single-phase voltage, current, power and energy with genset "
                    "run-status and high-load alerts.",
         "price_usd": 90,
@@ -153,26 +154,23 @@ SOLUTION_KITS: list[dict] = [
     },
     {
         "id": "facility_guard",
-        "name": "Facility Guard",
+        "name": "Property & Leak Guard",
         "industry": "facilities",
-        "summary": "Small-site protection: energy, door, motion and water-leak with "
-                   "after-hours and leak alerts.",
-        "price_usd": 100,
+        "summary": "Small-property protection: door, motion and water-leak sensing "
+                   "with after-hours and leak alerts.",
+        "price_usd": 90,
         "device_type": "multi_sensor",
         "transport": "mqtt",
         "allow_remote_control": False,
         "capabilities": ["beacon_on", "beacon_off", "buzzer_on", "buzzer_off"],
         "diy_bom": [
             {"part": "ESP32 dev board", "role": "controller", "est_usd": 15},
-            {"part": "PZEM-004T module", "role": "power/energy", "est_usd": 12},
             {"part": "Reed switch", "role": "door contact", "est_usd": 3},
             {"part": "PIR sensor", "role": "motion", "est_usd": 3},
             {"part": "Leak rope sensor", "role": "water leak", "est_usd": 8},
             {"part": "IP65 enclosure + wiring", "role": "protection", "est_usd": 15},
         ],
         "channels": [
-            {"key": "power", "label": "Power", "measurement_type": "power", "unit": "W", "data_type": "number", "minimum": 0, "maximum": 30000},
-            {"key": "energy", "label": "Energy", "measurement_type": "energy", "unit": "kWh", "data_type": "number", "minimum": 0},
             {"key": "door_open", "label": "Door", "measurement_type": "door_contact", "unit": None, "data_type": "boolean"},
             {"key": "motion", "label": "Motion", "measurement_type": "motion", "unit": None, "data_type": "boolean"},
             {"key": "water_leak", "label": "Water leak", "measurement_type": "water_leak", "unit": None, "data_type": "boolean"},
@@ -183,7 +181,7 @@ SOLUTION_KITS: list[dict] = [
             {"name": "Water leak detected", "channel": "water_leak", "operator": "eq", "threshold": 1, "severity": "critical"},
             {"name": "After-hours motion", "channel": "motion", "operator": "eq", "threshold": 1, "severity": "warning"},
         ],
-        "kpis": ["energy $/site", "after-hours %", "leak/intrusion incidents", "door events"],
+        "kpis": ["after-hours events", "leak incidents", "door events", "device health"],
     },
     {
         "id": "environment_air",
@@ -470,8 +468,10 @@ for _kit in SOLUTION_KITS:
 _KITS_BY_ID = {kit["id"]: kit for kit in SOLUTION_KITS}
 
 
-def list_kits() -> list[dict]:
-    return SOLUTION_KITS
+def list_kits(*, include_standby: bool = False) -> list[dict]:
+    if include_standby:
+        return SOLUTION_KITS
+    return [kit for kit in SOLUTION_KITS if kit.get("availability", "active") == "active"]
 
 
 def get_kit(kit_id: str) -> dict | None:
