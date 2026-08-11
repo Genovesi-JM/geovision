@@ -11,7 +11,7 @@ def _login_headers(client):
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-def _create_customer_site():
+def _create_customer_site(*, sector="agriculture", name="Mobile Test Farm"):
     db = SessionLocal()
     try:
         membership = (
@@ -22,13 +22,13 @@ def _create_customer_site():
         assert membership is not None
         site = Site(
             company_id=membership.company_id,
-            name="Mobile Test Farm",
+            name=name,
             country="Angola",
             province="Malanje",
             latitude=-9.54,
             longitude=16.34,
             area_hectares=142,
-            sector="agriculture",
+            sector=sector,
         )
         db.add(site)
         db.commit()
@@ -47,6 +47,12 @@ def test_mobile_sites_and_service_request_contract(client):
     assert payload[0]["id"] == site_id
     assert payload[0]["center"] == {"lat": -9.54, "lng": 16.34}
     assert payload[0]["total_hectares"] == 142
+    assert {item["id"] for item in payload[0]["kpis"]} == {
+        "ndvi_avg",
+        "water_stress",
+        "hectares_monitored",
+        "yield_estimate",
+    }
 
     created = client.post(
         "/mobile/service-requests",
@@ -67,6 +73,20 @@ def test_mobile_sites_and_service_request_contract(client):
     listed = client.get("/mobile/service-requests", headers=headers)
     assert listed.status_code == 200, listed.text
     assert listed.json()[0]["id"] == created.json()["id"]
+
+
+def test_mobile_home_site_returns_home_kpis(client):
+    headers = _login_headers(client)
+    site_id = _create_customer_site(sector="home", name="Mobile Test Home")
+    response = client.get("/mobile/sites", headers=headers)
+    assert response.status_code == 200, response.text
+    home = next(item for item in response.json() if item["id"] == site_id)
+    assert {item["id"] for item in home["kpis"]} == {
+        "comfort_index",
+        "air_quality",
+        "energy_use",
+        "security_events",
+    }
 
 
 def test_mobile_routes_require_authentication(client):

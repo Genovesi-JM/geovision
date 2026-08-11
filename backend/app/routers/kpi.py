@@ -282,6 +282,7 @@ def dashboard_context(
     # Build human-readable summary for chatbot
     sector_names = {
         "agro": "Agricultura e Pecuaria",
+        "home": "Casa",
         "mining": "Mineracao",
         "construction": "Construcao",
         "infrastructure": "Infraestruturas",

@@ -565,6 +565,8 @@ const translations = {
   "loja.filter.services": { pt: "Serviços de Voo", en: "Flight Services", es: "Servicios de Vuelo" },
   "loja.filter.hardware": { pt: "Hardware e IoT", en: "Hardware & IoT", es: "Hardware e IoT" },
   "loja.filter.subscription": { pt: "Subscrições", en: "Subscriptions", es: "Suscripciones" },
+  "loja.recommended": { pt: "Recomendado", en: "Recommended", es: "Recomendado" },
+  "loja.recommendedFor": { pt: "Soluções recomendadas para a sua conta:", en: "Recommended solutions for your account:", es: "Soluciones recomendadas para su cuenta:" },
   "loja.empty": { pt: "Nenhum produto encontrado para este filtro.", en: "No products found for this filter.", es: "No se encontraron productos para este filtro." },
   "loja.footer": { pt: "Serviços de campo e hardware integrado para operações globais.", en: "Field services and integrated hardware for global operations.", es: "Servicios de campo y hardware integrado para operaciones globales." },
   "loja.payment.methods": { pt: "Métodos de pagamento (fase piloto / demo):", en: "Payment methods (pilot / demo phase):", es: "Métodos de pago (fase piloto / demo):" },

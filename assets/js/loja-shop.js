@@ -17,7 +17,13 @@ const esc = window.escapeHTML || (s => { const d = document.createElement('div')
 let allProducts = [];
 let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
 let currentCart = null;
-let currentSectorFilter = "all";
+const MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
+const STORE_SECTORS = new Set(["home", "agro", "livestock", "mining", "construction", "infrastructure", "ambiental", "demining", "solar"]);
+const recommendedSector = STORE_SECTORS.has(localStorage.getItem(MARKETPLACE_SECTOR_KEY))
+  ? localStorage.getItem(MARKETPLACE_SECTOR_KEY)
+  : null;
+const requestedSector = new URLSearchParams(window.location.search).get("sector");
+let currentSectorFilter = STORE_SECTORS.has(requestedSector) ? requestedSector : (recommendedSector || "all");
 let currentTypeFilter = "all";
 let pendingAddProduct = null;
 let stripeInstance = null;
@@ -25,13 +31,17 @@ let stripeElements = null;
 
 // Sector labels for display
 const SECTOR_LABELS = {
+  "home": "Casa",
   "mining": "Mineração",
+  "construction": "Construção",
   "infrastructure": "Construção e Infraestrutura",
+  "ambiental": "Ambiental",
   "agro": "Agro & Pecuária",
   "demining": "Desminagem Humanitária",
   "solar": "Solar & Energia",
   "livestock": "Pecuária",
 };
+const storeT = (key) => (window.t && window.t(key)) || key;
 
 // Guardar cartId no localStorage
 function generateCartId() {
@@ -288,6 +298,7 @@ async function handleAddToCart(productId) {
       body: JSON.stringify({
         cart_id: cartId,
         product_id: productId,
+        account_sector: recommendedSector,
       }),
     });
 
@@ -477,6 +488,7 @@ function mapFilterKey(product) {
   const type = product.product_type;
   if (type === "service") return "servico";
   if (type === "subscription") return "subscription";
+  if (type === "hardware") return "hardware";
   return "servico";
 }
 
@@ -492,7 +504,7 @@ function renderProducts() {
 
   grid.innerHTML = "";
 
-  let filtered = allProducts;
+  let filtered = [...allProducts];
   
   // Apply sector filter
   if (currentSectorFilter !== "all") {
@@ -512,8 +524,12 @@ function renderProducts() {
   }
   empty.style.display = "none";
 
-  // Sort: featured first, then by price
+  // Put solutions for the active account first, then globally featured items.
   filtered.sort((a, b) => {
+    const aRecommended = recommendedSector && (a.sectors || []).includes(recommendedSector);
+    const bRecommended = recommendedSector && (b.sectors || []).includes(recommendedSector);
+    if (aRecommended && !bRecommended) return -1;
+    if (!aRecommended && bRecommended) return 1;
     if (a.is_featured && !b.is_featured) return -1;
     if (!a.is_featured && b.is_featured) return 1;
     return 0;
@@ -556,9 +572,13 @@ function renderProducts() {
     const featuredBadge = p.is_featured 
       ? '<span class="featured-badge">Destaque</span>' 
       : '';
+    const recommendationBadge = recommendedSector && (p.sectors || []).includes(recommendedSector)
+      ? `<span class="recommended-badge">${esc(storeT("loja.recommended"))}</span>`
+      : '';
 
     card.innerHTML = `
       ${featuredBadge}
+      ${recommendationBadge}
       <div>
         <div class="loja-card-tag">${esc(catLabel)} ${execBadge}</div>
         <h3 class="loja-card-title">${esc(p.name)}</h3>
@@ -596,6 +616,18 @@ function renderProducts() {
 function setupFilters() {
   // Sector filter buttons (inside #sector-filters)
   const sectorButtons = document.querySelectorAll("#sector-filters .loja-filter-btn");
+  const selectedSectorButton = [...sectorButtons].find((btn) => btn.getAttribute("data-sector") === currentSectorFilter);
+  if (selectedSectorButton) {
+    sectorButtons.forEach((button) => button.classList.remove("active"));
+    selectedSectorButton.classList.add("active");
+  } else {
+    currentSectorFilter = "all";
+  }
+  const recommendation = document.getElementById("loja-account-recommendation");
+  if (recommendation && recommendedSector) {
+    recommendation.hidden = false;
+    recommendation.textContent = `${storeT("loja.recommendedFor")} ${SECTOR_LABELS[recommendedSector] || recommendedSector}`;
+  }
   sectorButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       sectorButtons.forEach((b) => b.classList.remove("active"));
@@ -1037,9 +1069,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  setupFilters();
   loadProducts();
   loadCart();
-  setupFilters();
   initStripe();
 
   // Handle Stripe return redirect

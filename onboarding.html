@@ -178,6 +178,7 @@
     // ones (mining, demining, construction, infrastructure) are org-only.
     const INDIVIDUAL_PERSONAS = ["farm", "site", "device"];
     const INDIVIDUAL_SECTORS = ["home", "agro", "solar"];
+    const PERSONA_DEFAULT_SECTOR = { farm: "agro", site: "home", device: "home" };
     function filterSectorsForPersona() {
       const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
       const individual = INDIVIDUAL_PERSONAS.includes(persona);
@@ -187,6 +188,11 @@
         item.style.display = ok ? "" : "none";
         if (!ok) cb.checked = false;
       });
+      const visibleChecked = document.querySelector('#sectors-group .checkbox-item:not([style*="display: none"]) input[name="sector"]:checked');
+      if (!visibleChecked && PERSONA_DEFAULT_SECTOR[persona]) {
+        const preferred = document.querySelector(`input[name="sector"][value="${PERSONA_DEFAULT_SECTOR[persona]}"]`);
+        if (preferred) preferred.checked = true;
+      }
     }
     document.querySelectorAll('input[name="persona"]').forEach((r) => r.addEventListener("change", filterSectorsForPersona));
     filterSectorsForPersona();

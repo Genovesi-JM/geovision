@@ -130,6 +130,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 scrollDirection: Axis.horizontal,
                 children: {
                   'all': 'Todos os setores',
+                  'home': 'Casa',
                   'agro': 'Agro',
                   'livestock': 'Pecuária',
                   'mining': 'Mineração',

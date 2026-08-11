@@ -26,6 +26,9 @@ class ProductImage extends StatelessWidget {
       };
 
   String get _fallbackAsset {
+    if (product.sectors.contains('home')) {
+      return 'assets/images/store/environmental-monitoring.jpg';
+    }
     if (product.sectors.contains('mining')) {
       return 'assets/images/store/mining-drone-survey.jpg';
     }

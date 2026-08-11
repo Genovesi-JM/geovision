@@ -25,6 +25,7 @@ from app.models import (
     User,
 )
 from app.routers.me import _get_user_company_id
+from app.routers.kpi import get_kpis_for_sectors
 from app.services.erp_sync import publish_account_event
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
@@ -43,6 +44,22 @@ DJI_AUTOMATION_SUPPORT = {
 }
 
 
+_MOBILE_KPI_SECTORS = {
+    "agriculture": "agro",
+    "agro": "agro",
+    "home": "home",
+    "infrastructure": "infrastructure",
+    "mining": "mining",
+}
+
+
+def _site_kpis(site: Site) -> list[dict[str, Any]]:
+    kpi_sector = _MOBILE_KPI_SECTORS.get(site.sector or "")
+    if not kpi_sector:
+        return []
+    return [item.model_dump() for item in get_kpis_for_sectors([kpi_sector])]
+
+
 def _site_payload(site: Site) -> dict[str, Any]:
     location = ", ".join(
         part for part in (site.municipality, site.province, site.country) if part
@@ -59,7 +76,7 @@ def _site_payload(site: Site) -> dict[str, Any]:
         },
         "boundary": [],
         "areas": [],
-        "kpis": [],
+        "kpis": _site_kpis(site),
         "total_hectares": float(site.area_hectares or 0),
         "open_alerts": 0,
     }
@@ -86,7 +103,7 @@ class SiteCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     sector: str = Field(
         default="agriculture",
-        pattern="^(agriculture|livestock|infrastructure|mining|environment)$",
+        pattern="^(home|agriculture|livestock|infrastructure|mining|environment)$",
     )
     country: str = Field(min_length=2, max_length=100)
     province: str = Field(min_length=2, max_length=100)

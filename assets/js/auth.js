@@ -146,7 +146,8 @@
     // Individual/home customers only see consumer-relevant sectors — industrial
     // ones (mining, demining, construction, infrastructure) are org-only.
     const INDIVIDUAL_PERSONAS = ['farm', 'site', 'device'];
-    const INDIVIDUAL_SECTORS = ['agro', 'solar'];
+    const INDIVIDUAL_SECTORS = ['home', 'agro', 'solar'];
+    const PERSONA_DEFAULT_SECTOR = { farm: 'agro', site: 'home', device: 'home', construction: 'construction', business: 'agro', enterprise: 'agro' };
     function filterSectorsForPersona() {
       const sel = document.getElementById('create-sector');
       const persona = document.getElementById('create-persona')?.value || 'farm';
@@ -156,8 +157,10 @@
         const ok = !individual || INDIVIDUAL_SECTORS.includes(o.value);
         o.hidden = !ok; o.disabled = !ok;
       });
-      const current = [...sel.options].find((o) => o.value === sel.value);
-      if (!current || current.hidden) sel.value = individual ? 'agro' : sel.value;
+      // Pick a persona-appropriate default (re-runs only on persona change / step entry).
+      const def = PERSONA_DEFAULT_SECTOR[persona] || 'agro';
+      const defOpt = [...sel.options].find((o) => o.value === def && !o.hidden);
+      sel.value = defOpt ? def : ([...sel.options].find((o) => !o.hidden) || {}).value || sel.value;
     }
 
     function showWizardStep(n) {

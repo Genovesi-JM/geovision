@@ -1,9 +1,13 @@
 /// Multi-sector model. Agriculture is the first complete workflow; the others
 /// reuse the same components via sector-aware KPI definitions.
-enum Sector { agriculture, livestock, infrastructure, mining, environment }
+enum Sector { home, agriculture, livestock, infrastructure, mining, environment }
 
 Sector sectorFromString(String v) {
   switch (v.toLowerCase()) {
+    case 'home':
+      return Sector.home;
+    case 'agro':
+      return Sector.agriculture;
     case 'livestock':
       return Sector.livestock;
     case 'infrastructure':
@@ -21,6 +25,8 @@ extension SectorX on Sector {
   String get id => name;
   String get label {
     switch (this) {
+      case Sector.home:
+        return 'Home';
       case Sector.agriculture:
         return 'Agriculture';
       case Sector.livestock:

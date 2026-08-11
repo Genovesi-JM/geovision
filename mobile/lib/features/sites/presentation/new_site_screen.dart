@@ -372,6 +372,7 @@ class _SiteFormCopy {
       };
 
   String sectorName(Sector value) => switch (value) {
+        Sector.home => _pick('Casa', 'Home', 'Hogar', 'Maison'),
         Sector.agriculture =>
           _pick('Agricultura', 'Agriculture', 'Agricultura', 'Agriculture'),
         Sector.livestock =>

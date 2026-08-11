@@ -94,6 +94,7 @@ SECTOR_LABELS = {
     "mining": "Mineração",
     "infrastructure": "Construção e Infraestrutura",
     "agro": "Agro & Pecuária",
+    "home": "Casa",
     "demining": "Desminagem Humanitária",
     "solar": "Solar & Energia",
     "livestock": "Pecuária",
@@ -197,10 +198,16 @@ def seed_shop_products(db: Session) -> int:
     return count
 
 
-# Map DIY kit industries onto the store's sector vocabulary.
-_KIT_SECTOR = {
-    "agriculture": "agro", "environment": "ambiental", "water": "infrastructure",
-    "energy": "infrastructure", "facilities": "infrastructure", "cold_chain": "infrastructure",
+# Map DIY kit industries onto every store sector where the kit is useful.
+# Home reuses the existing air-quality, facility and energy kits rather than
+# creating duplicate home-only products.
+_KIT_SECTORS = {
+    "agriculture": ["agro"],
+    "environment": ["home", "ambiental"],
+    "water": ["infrastructure"],
+    "energy": ["home", "infrastructure"],
+    "facilities": ["home", "infrastructure"],
+    "cold_chain": ["infrastructure"],
 }
 
 
@@ -222,7 +229,7 @@ def seed_kit_products(db: Session) -> int:
         price_usd = usd * 100
         price_aoa = usd * 850 * 100
         price_eur = round(usd * 0.92) * 100
-        sectors = [_KIT_SECTOR.get(kit.get("industry"), "infrastructure")]
+        sectors = _KIT_SECTORS.get(kit.get("industry"), ["infrastructure"])
         deliverables = list(kit.get("kpis", [])) + ["Live dashboard", "Threshold alerts", "PDF/CSV analytical reports"]
         desc = kit.get("summary", "") + " Dispositivo GeoVision de monitorização, pronto a instalar. Inclui: " + ", ".join(item["part"] for item in kit.get("diy_bom", []))
         sp = db.get(ShopProduct, pid)

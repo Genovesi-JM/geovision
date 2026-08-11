@@ -20,6 +20,15 @@ def test_diy_kits_appear_in_marketplace(client):
     assert water["price_eur"] > 0
     assert water["deliverables"] and water["sectors"]
 
+    home_products = client.get("/shop/products", params={"sector": "home"}).json()
+    home_kit_ids = {p["id"] for p in home_products if p["id"].startswith("prod_kit_")}
+    assert home_kit_ids == {
+        "prod_kit_energy_meter_starter",
+        "prod_kit_facility_guard",
+        "prod_kit_environment_air",
+    }
+    assert "home" not in water["sectors"]
+
 
 def test_catalogue_exposes_explicit_multi_currency_contract(client):
     response = client.get("/shop/products")

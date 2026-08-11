@@ -2,6 +2,7 @@ const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
 const SESSION_ACCOUNT_KEY = "gv_account_id";
 const SESSION_ACTIVE_SECTOR_KEY = "gv_active_sector";
+const MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
 const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
 // i18n helper for dynamically-generated strings (falls back to the key if missing).
 const T = (key) => (window.t && window.t(key)) || key;
@@ -734,6 +735,14 @@ function renderAccountMeta(account) {
   const chips = document.getElementById("modules-chips");
   if (titleEl && account) titleEl.textContent = account.name || "Conta GeoVision";
   if (metaEl && account) metaEl.textContent = `${account.sector_focus || 'Setor'} · ${account.entity_type || 'Tipo'}`;
+  if (account) {
+    const sectors = getSectorsFromAccount(account);
+    const selected = localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY);
+    const marketplaceSector = selected && sectors.includes(selected) ? selected : sectors[0];
+    if (marketplaceSector && marketplaceSector !== "generic") {
+      localStorage.setItem(MARKETPLACE_SECTOR_KEY, marketplaceSector);
+    }
+  }
   if (chips) {
     chips.innerHTML = "";
     (account.modules_enabled || []).forEach((m) => {
@@ -1270,7 +1279,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   // Individual workspaces only offer consumer-relevant sectors; industrial
   // ones (mining, construction, infrastructure) are for organisations.
-  const MODAL_INDIVIDUAL_SECTORS = ["home", "agro", "ambiental"];
+  const MODAL_INDIVIDUAL_SECTORS = ["home", "agro", "solar"];
   function filterModalSectors() {
     const entity = document.getElementById("account-entity-input")?.value || "org";
     const sel = document.getElementById("account-sector-input");

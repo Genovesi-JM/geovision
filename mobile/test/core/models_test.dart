@@ -82,5 +82,18 @@ void main() {
           true);
       expect(KpiCatalogue.forSector(Sector.livestock).isNotEmpty, true);
     });
+
+    test('maps Home independently from Agriculture', () {
+      expect(sectorFromString('home'), Sector.home);
+      expect(Sector.home.id, 'home');
+      expect(
+        KpiCatalogue.forSector(Sector.home).map((k) => k.id).toList(),
+        ['comfort_index', 'air_quality', 'energy_use', 'security_events'],
+      );
+      expect(
+        KpiCatalogue.forSector(Sector.home).any((k) => k.id == 'ndvi_avg'),
+        false,
+      );
+    });
   });
 }

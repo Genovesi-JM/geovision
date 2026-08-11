@@ -179,6 +179,7 @@ String _siteText(String language, String pt, String en, String es, String fr) =>
     switch (language) { 'pt' => pt, 'es' => es, 'fr' => fr, _ => en };
 
 String _localizedSector(Sector sector, String language) => switch (sector) {
+      Sector.home => _siteText(language, 'Casa', 'Home', 'Hogar', 'Maison'),
       Sector.agriculture => _siteText(
           language, 'Agricultura', 'Agriculture', 'Agricultura', 'Agriculture'),
       Sector.livestock =>
