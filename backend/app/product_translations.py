@@ -75,6 +75,11 @@ PUBLIC_PRODUCT_TRANSLATIONS = {
         "GV Air — Environment & Comfort", "CO₂, particles, temperature, humidity and noise for indoor or outdoor spaces.",
         "GV Air — Ambiente y Confort", "CO₂, partículas, temperatura, humedad y ruido para espacios interiores o exteriores.",
         "GV Air — Environnement et Confort", "CO₂, particules, température, humidité et bruit pour espaces intérieurs ou extérieurs."),
+    "prod_kit_energy_meter_starter": _copy(
+        "GV Power — Energia e Consumo", "Tensão, corrente, potência e energia com alertas de carga elevada — para controlar o consumo em casa ou na propriedade.",
+        "GV Power — Energy & Consumption", "Voltage, current, power and energy with high-load alerts — to keep household or property consumption under control.",
+        "GV Power — Energía y Consumo", "Tensión, corriente, potencia y energía con alertas de carga elevada — para controlar el consumo en casa o en la propiedad.",
+        "GV Power — Énergie et Consommation", "Tension, courant, puissance et énergie avec alertes de forte charge — pour maîtriser la consommation du foyer ou de la propriété."),
     "prod_kit_gps_asset_tracker": _copy(
         "GV Track — Ativos Móveis", "Localização, movimento, bateria e sinal para ativos compatíveis.",
         "GV Track — Mobile Assets", "Location, movement, battery and signal for compatible mobile assets.",

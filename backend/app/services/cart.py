@@ -207,20 +207,21 @@ def seed_shop_products(db: Session) -> int:
 
 
 # Map active DIY kit industries onto the store sectors where the kit is useful.
-# Home follows the supported property use cases: air/comfort, water and leaks.
+# Home covers the supported property use cases: air/comfort, water & leaks,
+# energy consumption and door/motion/leak security.
 _KIT_SECTORS = {
     "agriculture": ["agro"],
     "environment": ["home", "environment"],
     "water": ["home", "infrastructure"],
-    "energy": ["infrastructure"],
+    "energy": ["home", "infrastructure"],
     "facilities": ["home", "infrastructure"],
     "cold_chain": ["infrastructure"],
 }
 
 # Preserve the kit definition for possible future/on-request work, but do not
-# advertise unsupported monitoring products in the public marketplace.
+# advertise unsupported monitoring products in the public marketplace. Energy &
+# Power Monitor is a supported Home product and stays in the catalogue.
 _MARKETPLACE_EXCLUDED_KITS = {
-    "energy_meter_starter",
     "cold_chain_starter",
     "spray_control",
     "seed_flow",

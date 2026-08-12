@@ -9,10 +9,10 @@ String localizedKpiLabel(
       return l10n.kpiIndoorComfort;
     case 'air_quality':
       return l10n.kpiAirQuality;
-    case 'tank_level':
-      return l10n.kpiTankLevel;
-    case 'leak_events':
-      return l10n.kpiLeakEvents;
+    case 'energy_use':
+      return l10n.kpiEnergyUse;
+    case 'security_events':
+      return l10n.kpiSecurityEvents;
     case 'ndvi_avg':
       return l10n.kpiNdviAvg;
     case 'ndre':
