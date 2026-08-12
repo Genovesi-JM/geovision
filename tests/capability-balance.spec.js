@@ -65,7 +65,10 @@ test.describe('B2C and B2B capability balance', () => {
     }
     await expect(page.getByText('GV Track', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('Em desenvolvimento', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('DJI Matrice series', { exact: true })).toBeVisible();
+    await expect(page.getByText('DJI Matrice series', { exact: true }).first()).toBeVisible();
+    for (const alt of ['DJI Mavic 3 Multispectral', 'DJI Matrice 350 RTK', 'DJI Agras T40']) {
+      await expect(page.getByRole('img', { name: alt, exact: true })).toBeVisible();
+    }
   });
 
   test('strong legacy claims are not visible on the redesigned public journey', async ({ page }) => {
