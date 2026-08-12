@@ -11,7 +11,31 @@ test.describe('B2C and B2B capability balance', () => {
     })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Explorar dispositivos' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Casa & Propriedade' })).toBeVisible();
-    await expect(page.getByText('GV Air', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('GV Air · interior', { exact: true })).toBeVisible();
+  });
+
+  test('hero illustration gives every sector its own operational picture', async ({ page }) => {
+    await page.goto(`${BASE}/index.html`, { waitUntil: 'domcontentloaded' });
+    const map = page.locator('#hero-map');
+
+    const sectors = [
+      ['Casa', 'home', 'Qualidade do ar', 'GV Air · interior'],
+      ['Agropecuária', 'agro', 'Humidade', 'Rebanho · 184'],
+      ['Mineração', 'mining', 'Volume', 'Talude norte · estável'],
+      ['Construção', 'construction', 'Progresso', 'Máquina · EX-04'],
+      ['Ambiental', 'ambiental', 'Vegetação', 'Rio · qualidade boa'],
+    ];
+
+    for (const [tab, sector, metric, node] of sectors) {
+      await page.getByRole('tab', { name: tab, exact: true }).click();
+      await expect(map).toHaveAttribute('data-sector', sector);
+      await expect(map.getByText(metric, { exact: true })).toBeVisible();
+      await expect(map.getByText(node, { exact: true })).toBeVisible();
+    }
+
+    await page.getByRole('button', { name: 'EN', exact: true }).click();
+    await expect(map.getByText('Vegetation', { exact: true })).toBeVisible();
+    await expect(map.getByText('River · good quality', { exact: true })).toBeVisible();
   });
 
   test('farm and construction visitors see sensors, tracking, aerial and platform capability', async ({ page }) => {

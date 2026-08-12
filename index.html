@@ -677,13 +677,26 @@
             <span class="hero-card-title" data-i18n="index.liveDemo">Painel de Inteligência</span>
             <span class="hero-card-badge" data-i18n="adm.active">Ativo</span>
           </div>
-          <div class="system-map" id="hero-map" aria-label="Sistema GeoVision com sensores, tracking, drones e plataforma">
+          <div class="system-map hero-sector-map" id="hero-map" data-sector="home" aria-label="Sistema GeoVision para Casa e Propriedade" aria-live="polite">
+            <svg class="sector-connections" viewBox="0 0 500 300" preserveAspectRatio="none" aria-hidden="true">
+              <path class="sector-boundary" d="M48 176 C62 74 160 45 250 62 C354 34 447 88 452 171 C457 245 353 256 267 238 C176 272 67 246 48 176Z" />
+              <path class="connection-line line-one" d="M120 92 C180 105 195 128 250 150" />
+              <path class="connection-line line-two" d="M128 224 C173 202 204 181 250 150" />
+              <path class="connection-line line-three" d="M382 105 C331 113 304 130 250 150" />
+              <path class="connection-line line-four" d="M370 220 C326 194 301 177 250 150" />
+            </svg>
+            <span class="scene-landmark" aria-hidden="true"><i class="fa-solid fa-house-signal"></i></span>
             <span class="system-pulse one"></span><span class="system-pulse two"></span>
-            <span class="system-node sensor"><i class="fa-solid fa-wind"></i><span data-i18n="commercial.hero.nodeSensor">Sensor · GV Air</span></span>
-            <span class="system-node home"><i class="fa-solid fa-house"></i><span data-i18n="commercial.hero.nodeHome">Casa &amp; propriedade</span></span>
-            <span class="system-node platform"><i class="fa-solid fa-layer-group"></i><span data-i18n="commercial.hero.nodePlatform">GeoVision · mapa + IA</span></span>
-            <span class="system-node track"><i class="fa-solid fa-location-dot"></i><span data-i18n="commercial.hero.nodeTrack">GV Track · ativo móvel</span></span>
-            <span class="system-node aerial"><i class="fa-solid fa-helicopter"></i><span data-i18n="commercial.hero.nodeAerial">Missão aérea</span></span>
+            <span class="system-node sensor"><i class="fa-solid fa-wind"></i><span>GV Air · interior</span></span>
+            <span class="system-node home"><i class="fa-solid fa-droplet"></i><span>Depósito · 68%</span></span>
+            <span class="system-node platform"><i class="fa-solid fa-layer-group"></i><span>GeoVision · mapa + IA</span></span>
+            <span class="system-node track"><i class="fa-solid fa-shield-house"></i><span>Propriedade · segura</span></span>
+            <span class="system-node aerial"><i class="fa-solid fa-faucet-drip"></i><span>Fugas · normal</span></span>
+            <div class="map-kpis" aria-label="Indicadores principais">
+              <span><small>Qualidade do ar</small><strong>92%</strong></span>
+              <span><small>Água</small><strong>68%</strong></span>
+              <span><small>Alertas</small><strong>0</strong></span>
+            </div>
           </div>
           <div class="system-strip" aria-label="Componentes do ecossistema GeoVision">
             <span><i class="fa-solid fa-microchip"></i><span data-i18n="commercial.system.sensors">Sensores</span></span>
@@ -693,11 +706,11 @@
             <span><i class="fa-solid fa-wand-magic-sparkles"></i><span data-i18n="commercial.system.ai">IA &amp; análise</span></span>
           </div>
           <div class="map-tabs">
-            <button class="map-tab active" data-sector="home" data-i18n="commercial.sector.home">Casa</button>
-            <button class="map-tab" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
-            <button class="map-tab" data-sector="mining" data-i18n="sectors.mineracao">Mineração</button>
-            <button class="map-tab" data-sector="construction" data-i18n="login.construction">Construção</button>
-            <button class="map-tab" data-sector="ambiental" data-i18n="sectors.ambiental">Ambiental</button>
+            <button class="map-tab active" type="button" role="tab" aria-selected="true" data-sector="home" data-i18n="commercial.sector.home">Casa</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="mining" data-i18n="sectors.mineracao">Mineração</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="construction" data-i18n="login.construction">Construção</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="ambiental" data-i18n="sectors.ambiental">Ambiental</button>
           </div>
         </div>
       </div>
@@ -943,56 +956,84 @@
     let autoRotateInterval;
     let currentTabIndex = 0;
 
-    // Sector-specific visual configurations
+    // Sector-specific operational illustrations
     const sectorVisuals = {
       home: {
-        gradient: 'radial-gradient(circle at 32% 45%, rgba(56, 189, 248, 0.2) 0%, transparent 40%), radial-gradient(circle at 72% 58%, rgba(34, 197, 94, 0.14) 0%, transparent 35%)',
-        overlay: 'Casa & Propriedade'
+        icon: 'fa-house-signal',
+        labels: {
+          pt: ['GV Air · interior', 'Depósito · 68%', 'GeoVision · mapa + IA', 'Propriedade · segura', 'Fugas · normal'],
+          en: ['GV Air · indoor', 'Water tank · 68%', 'GeoVision · map + AI', 'Property · secure', 'Leaks · normal'],
+          es: ['GV Air · interior', 'Depósito · 68%', 'GeoVision · mapa + IA', 'Propiedad · segura', 'Fugas · normal']
+        },
+        icons: ['fa-wind', 'fa-droplet', 'fa-layer-group', 'fa-shield-house', 'fa-faucet-drip'],
+        metrics: { pt: [['Qualidade do ar','92%'],['Água','68%'],['Alertas','0']], en: [['Air quality','92%'],['Water','68%'],['Alerts','0']], es: [['Calidad del aire','92%'],['Agua','68%'],['Alertas','0']] },
+        aria: { pt: 'Sistema GeoVision para Casa e Propriedade', en: 'GeoVision system for Home and Property', es: 'Sistema GeoVision para Casa y Propiedad' }
       },
       agro: {
-        gradient: 'radial-gradient(circle at 30% 40%, rgba(34, 197, 94, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 60%, rgba(14, 165, 233, 0.15) 0%, transparent 35%)',
-        overlay: 'Solo · animais · culturas'
+        icon: 'fa-wheat-awn',
+        labels: { pt: ['GV Soil · 21%', 'Rebanho · 184', 'GeoVision · mapa + IA', 'GV Track · animal 27', 'Voo NDVI · concluído'], en: ['GV Soil · 21%', 'Herd · 184', 'GeoVision · map + AI', 'GV Track · animal 27', 'NDVI flight · complete'], es: ['GV Soil · 21%', 'Rebaño · 184', 'GeoVision · mapa + IA', 'GV Track · animal 27', 'Vuelo NDVI · completo'] },
+        icons: ['fa-seedling', 'fa-cow', 'fa-layer-group', 'fa-location-dot', 'fa-helicopter'],
+        metrics: { pt: [['Humidade','21%'],['NDVI','0,74'],['Animais','184']], en: [['Moisture','21%'],['NDVI','0.74'],['Animals','184']], es: [['Humedad','21%'],['NDVI','0,74'],['Animales','184']] },
+        aria: { pt: 'Sistema GeoVision para Agricultura e Pecuária', en: 'GeoVision system for Agriculture and Livestock', es: 'Sistema GeoVision para Agricultura y Ganadería' }
       },
       mining: {
-        gradient: 'radial-gradient(circle at 50% 30%, rgba(249, 115, 22, 0.25) 0%, transparent 40%), radial-gradient(circle at 30% 70%, rgba(239, 68, 68, 0.15) 0%, transparent 35%)',
-        overlay: 'Áreas · ativos · operações'
+        icon: 'fa-mountain',
+        labels: { pt: ['Talude norte · estável', 'Stockpile · P03', 'GeoVision · modelo 3D', 'Frota · 8/9 ativa', 'Voo RTK · hoje'], en: ['North slope · stable', 'Stockpile · P03', 'GeoVision · 3D model', 'Fleet · 8/9 active', 'RTK flight · today'], es: ['Talud norte · estable', 'Acopio · P03', 'GeoVision · modelo 3D', 'Flota · 8/9 activa', 'Vuelo RTK · hoy'] },
+        icons: ['fa-mountain-sun', 'fa-cubes-stacked', 'fa-cube', 'fa-truck-moving', 'fa-helicopter'],
+        metrics: { pt: [['Volume','+12,4k m³'],['Taludes','Estáveis'],['Frota','8/9']], en: [['Volume','+12.4k m³'],['Slopes','Stable'],['Fleet','8/9']], es: [['Volumen','+12,4k m³'],['Taludes','Estables'],['Flota','8/9']] },
+        aria: { pt: 'Sistema GeoVision para Mineração', en: 'GeoVision system for Mining', es: 'Sistema GeoVision para Minería' }
       },
       construction: {
-        gradient: 'radial-gradient(circle at 40% 50%, rgba(168, 85, 247, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 30%, rgba(249, 115, 22, 0.15) 0%, transparent 35%)',
-        overlay: 'Terreno + visão aérea'
-      },
-      infra: {
-        gradient: 'radial-gradient(circle at 60% 40%, rgba(14, 165, 233, 0.25) 0%, transparent 40%), radial-gradient(circle at 25% 65%, rgba(6, 182, 212, 0.15) 0%, transparent 35%)',
-        overlay: 'Corredores e ativos'
+        icon: 'fa-building-circle-check',
+        labels: { pt: ['Zona A · 82%', 'Máquina · EX-04', 'GeoVision · progresso 3D', 'Materiais · portão 2', 'Voo comparativo · hoje'], en: ['Zone A · 82%', 'Machine · EX-04', 'GeoVision · 3D progress', 'Materials · gate 2', 'Comparison flight · today'], es: ['Zona A · 82%', 'Máquina · EX-04', 'GeoVision · progreso 3D', 'Materiales · puerta 2', 'Vuelo comparativo · hoy'] },
+        icons: ['fa-building', 'fa-truck-pickup', 'fa-cube', 'fa-boxes-stacked', 'fa-helicopter'],
+        metrics: { pt: [['Progresso','67%'],['Variação','+4,2%'],['Ativos','14']], en: [['Progress','67%'],['Change','+4.2%'],['Assets','14']], es: [['Progreso','67%'],['Variación','+4,2%'],['Activos','14']] },
+        aria: { pt: 'Sistema GeoVision para Construção', en: 'GeoVision system for Construction', es: 'Sistema GeoVision para Construcción' }
       },
       ambiental: {
-        gradient: 'radial-gradient(circle at 35% 50%, rgba(34, 197, 94, 0.2) 0%, transparent 40%), radial-gradient(circle at 70% 35%, rgba(6, 182, 212, 0.2) 0%, transparent 35%)',
-        overlay: 'Monitorização Ambiental'
+        icon: 'fa-tree',
+        labels: { pt: ['Rio · qualidade boa', 'Parcela R4 · 420 ha', 'GeoVision · mudança + IA', 'Estação · online', 'Cobertura vegetal · +8%'], en: ['River · good quality', 'Plot R4 · 420 ha', 'GeoVision · change + AI', 'Station · online', 'Vegetation cover · +8%'], es: ['Río · calidad buena', 'Parcela R4 · 420 ha', 'GeoVision · cambio + IA', 'Estación · en línea', 'Cobertura vegetal · +8%'] },
+        icons: ['fa-water', 'fa-tree', 'fa-layer-group', 'fa-tower-broadcast', 'fa-leaf'],
+        metrics: { pt: [['Área','420 ha'],['Vegetação','+8%'],['Alertas','1']], en: [['Area','420 ha'],['Vegetation','+8%'],['Alerts','1']], es: [['Área','420 ha'],['Vegetación','+8%'],['Alertas','1']] },
+        aria: { pt: 'Sistema GeoVision para Monitorização Ambiental', en: 'GeoVision system for Environmental Monitoring', es: 'Sistema GeoVision para Monitorización Ambiental' }
       }
     };
 
+    function currentHeroLanguage() {
+      const lang = window.i18n && window.i18n.getCurrentLanguage ? window.i18n.getCurrentLanguage() : (document.documentElement.lang || 'pt');
+      return ['pt', 'en', 'es'].includes(lang) ? lang : 'pt';
+    }
+
     function activateTab(index) {
-      mapTabs.forEach(t => t.classList.remove('active'));
+      mapTabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
       const tab = mapTabs[index];
       tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
       const sector = tab.dataset.sector;
       const visual = sectorVisuals[sector];
       if (heroMap && visual) {
-        heroMap.style.background = visual.gradient + ', linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(5, 9, 20, 0.95))';
-        heroMap.style.transition = 'background 1s ease';
-        // Update overlay indicator
-        let overlay = heroMap.querySelector('.map-overlay-label');
-        if (!overlay) {
-          overlay = document.createElement('div');
-          overlay.className = 'map-overlay-label';
-          overlay.style.cssText = 'position:absolute;bottom:16px;left:16px;font-size:0.75rem;color:rgba(241,245,249,0.7);letter-spacing:0.1em;font-weight:600;z-index:2;transition:opacity 0.5s;';
-          heroMap.appendChild(overlay);
-        }
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          overlay.textContent = visual.overlay;
-          overlay.style.opacity = '1';
-        }, 300);
+        const language = currentHeroLanguage();
+        const nodes = heroMap.querySelectorAll('.system-node');
+        const landmark = heroMap.querySelector('.scene-landmark i');
+        heroMap.classList.add('is-changing');
+        window.setTimeout(() => {
+          heroMap.dataset.sector = sector;
+          heroMap.setAttribute('aria-label', visual.aria[language]);
+          landmark.className = `fa-solid ${visual.icon}`;
+          nodes.forEach((node, nodeIndex) => {
+            node.querySelector('i').className = `fa-solid ${visual.icons[nodeIndex]}`;
+            node.querySelector('span').textContent = visual.labels[language][nodeIndex];
+          });
+          heroMap.querySelectorAll('.map-kpis > span').forEach((metric, metricIndex) => {
+            const [label, value] = visual.metrics[language][metricIndex];
+            metric.querySelector('small').textContent = label;
+            metric.querySelector('strong').textContent = value;
+          });
+          heroMap.classList.remove('is-changing');
+        }, 180);
       }
     }
 
@@ -1019,6 +1060,9 @@
     // Initialize
     activateTab(0);
     startAutoRotate();
+    window.addEventListener('gv:languagechange', () => activateTab(currentTabIndex));
+    document.querySelector('.hero-card').addEventListener('mouseenter', () => clearInterval(autoRotateInterval));
+    document.querySelector('.hero-card').addEventListener('mouseleave', resetAutoRotate);
 
     // Mobile menu toggle handled by site.js
   </script>
