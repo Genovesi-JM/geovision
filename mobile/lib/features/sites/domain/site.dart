@@ -143,7 +143,7 @@ class Site {
   factory Site.fromJson(Map<String, dynamic> j) => Site(
         id: j['id'].toString(),
         name: j['name'].toString(),
-        sector: sectorFromString((j['sector'] ?? 'agriculture').toString()),
+        sector: sectorFromString((j['sector'] ?? 'infrastructure').toString()),
         status: siteStatusFromString((j['status'] ?? 'active').toString()),
         location: (j['location'] ?? '').toString(),
         center: GeoPoint.fromJson((j['center'] as Map).cast<String, dynamic>()),

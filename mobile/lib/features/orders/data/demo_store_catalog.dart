@@ -1,437 +1,275 @@
 import '../domain/product.dart';
 
-/// Credential-free catalogue aligned with GeoVision's published Supply Hub and
-/// sector capabilities. Prices are indicative multi-currency price-list values
-/// for UX testing; the production API remains authoritative.
+/// A small offline catalogue made only from products that are active in the
+/// production marketplace. The API remains authoritative outside demo mode.
 abstract final class DemoStoreCatalog {
   static const products = <GvProduct>[
     GvProduct(
-        id: 'agro-ndvi',
-        name: 'Análise NDVI/NDRE de culturas',
-        category: 'service',
-        priceCents: 54500,
-        priceAkzCents: 45000000,
-        priceEurCents: 50000,
-        currency: 'USD',
-        unit: 'operação',
-        featured: true,
-        image: 'assets/images/store/multispectral-drone-service.jpg',
-        sectors: ['agro'],
-        description:
-            'Levantamento com sensor multiespectral para avaliar vigor, stress hídrico, falhas de plantio e variabilidade por parcela. Requer seleção do local e validação da área antes da proposta final.',
-        deliverables: [
-          'Mapa NDVI e NDRE',
-          'Zonas de gestão',
-          'Relatório de saúde da cultura'
-        ]),
+      id: 'prod_infra_progress',
+      name: 'Monitorização de Progresso de Obra',
+      category: 'service',
+      priceCents: 66500,
+      priceAkzCents: 55000000,
+      priceEurCents: 61100,
+      currency: 'USD',
+      featured: true,
+      sectors: ['construction', 'infrastructure'],
+      image: 'assets/images/store/construction-progress.jpg',
+      description:
+          'Acompanhamento visual e volumétrico do progresso da construção, com evidências periódicas.',
+      deliverables: ['Ortomosaico', 'Modelo 3D', 'Relatório de progresso'],
+      translations: {
+        'en': {
+          'name': 'Construction Progress Monitoring',
+          'description':
+              'Visual and volumetric construction progress tracking with periodic evidence.'
+        },
+        'es': {
+          'name': 'Seguimiento del Progreso de Obra',
+          'description':
+              'Seguimiento visual y volumétrico del progreso de la obra con evidencias periódicas.'
+        },
+        'fr': {
+          'name': 'Suivi de l’avancement des travaux',
+          'description':
+              'Suivi visuel et volumétrique du chantier avec des preuves périodiques.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'agro-prescription',
-        name: 'Mapa de prescrição agrícola',
-        category: 'service',
-        priceCents: 36500,
-        priceAkzCents: 30000000,
-        priceEurCents: 33500,
-        currency: 'USD',
-        unit: 'projeto',
-        sectors: ['agro'],
-        image: 'assets/images/store/multispectral-drone-service.jpg',
-        description:
-            'Transforma dados de campo e imagens multiespectrais em zonas operacionais para aplicação diferenciada. As dosagens finais permanecem sob responsabilidade do cliente ou engenheiro agrónomo.',
-        deliverables: [
-          'Mapa zonado',
-          'Cálculos por hectare',
-          'Ficheiro GIS compatível'
-        ]),
+      id: 'prod_infra_inspection',
+      name: 'Inspeção Visual de Estruturas',
+      category: 'service',
+      priceCents: 54500,
+      priceAkzCents: 45000000,
+      priceEurCents: 50000,
+      currency: 'USD',
+      sectors: ['construction', 'infrastructure'],
+      image: 'assets/images/store/infrastructure-inspection.jpg',
+      description:
+          'Inspeção visual de pontes, torres e edifícios, com evidências anotadas para revisão técnica.',
+      deliverables: ['Relatório de inspeção', 'Fotografias anotadas', 'Vídeo'],
+      translations: {
+        'en': {
+          'name': 'Visual Structure Inspection',
+          'description':
+              'Visual inspection of bridges, towers and buildings with annotated evidence for technical review.'
+        },
+        'es': {
+          'name': 'Inspección Visual de Estructuras',
+          'description':
+              'Inspección visual de puentes, torres y edificios con evidencias anotadas para revisión técnica.'
+        },
+        'fr': {
+          'name': 'Inspection visuelle des structures',
+          'description':
+              'Inspection visuelle de ponts, tours et bâtiments avec preuves annotées pour examen technique.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'agro-spraying',
-        name: 'Pulverização de precisão com Agras T40',
-        category: 'service',
-        priceCents: 42500,
-        priceAkzCents: 35000000,
-        priceEurCents: 38900,
-        currency: 'USD',
-        unit: 'operação',
-        featured: true,
-        image: 'assets/images/store/multispectral-drone-service.jpg',
-        sectors: ['agro', 'environment'],
-        description:
-            'Execução aérea seletiva baseada em mapa de prescrição, com registo da cobertura e consumo. Produto aplicado, dose, condições meteorológicas e autorizações são confirmados antes do agendamento.',
-        deliverables: [
-          'Plano de operação',
-          'Mapa de cobertura',
-          'Relatório de aplicação'
-        ]),
+      id: 'prod_aerial_basic_mapping',
+      name: 'Mapeamento Aéreo Essencial',
+      category: 'service',
+      priceCents: 42500,
+      priceAkzCents: 35000000,
+      priceEurCents: 38900,
+      currency: 'USD',
+      featured: true,
+      sectors: ['agro', 'environment', 'infrastructure'],
+      image: 'assets/images/store/multispectral-drone-service.jpg',
+      description:
+          'Mapeamento visual de uma exploração, propriedade ou local com ortomosaico e resumo de observações.',
+      deliverables: [
+        'Ortomosaico visual',
+        'Fotografias georreferenciadas',
+        'Resumo de observações'
+      ],
+      translations: {
+        'en': {
+          'name': 'Essential Aerial Mapping',
+          'description':
+              'Visual mapping of a farm, property or site with an orthomosaic and observation summary.'
+        },
+        'es': {
+          'name': 'Cartografía Aérea Esencial',
+          'description':
+              'Cartografía visual de una explotación, propiedad o sitio con ortomosaico y resumen de observaciones.'
+        },
+        'fr': {
+          'name': 'Cartographie aérienne essentielle',
+          'description':
+              'Cartographie visuelle d’une exploitation, propriété ou site avec orthomosaïque et synthèse.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'agro-irrigation',
-        name: 'Diagnóstico de irrigação e stress hídrico',
-        category: 'service',
-        priceCents: 66500,
-        priceAkzCents: 55000000,
-        priceEurCents: 61100,
-        currency: 'USD',
-        unit: 'projeto',
-        sectors: ['agro'],
-        image: 'assets/images/store/multispectral-drone-service.jpg',
-        description:
-            'Análise térmica e multiespectral para localizar variações de humidade, possíveis falhas e zonas que requerem inspeção no terreno.',
-        deliverables: [
-          'Mapa térmico',
-          'Mapa de stress hídrico',
-          'Lista de zonas prioritárias'
-        ]),
+      id: 'prod_agro_visual_inspection',
+      name: 'Inspeção Visual Agrícola',
+      category: 'service',
+      priceCents: 30500,
+      priceAkzCents: 25000000,
+      priceEurCents: 27800,
+      currency: 'USD',
+      sectors: ['agro'],
+      image: 'assets/images/store/multispectral-drone-service.jpg',
+      description:
+          'Inspeção aérea para documentar culturas, irrigação, acessos e anomalias visíveis.',
+      deliverables: [
+        'Fotografias aéreas',
+        'Mapa de observações',
+        'Relatório visual'
+      ],
+      translations: {
+        'en': {
+          'name': 'Visual Farm Inspection',
+          'description':
+              'Aerial inspection documenting crops, irrigation, access and visible anomalies.'
+        },
+        'es': {
+          'name': 'Inspección Visual Agrícola',
+          'description':
+              'Inspección aérea para documentar cultivos, riego, accesos y anomalías visibles.'
+        },
+        'fr': {
+          'name': 'Inspection visuelle agricole',
+          'description':
+              'Inspection aérienne des cultures, de l’irrigation, des accès et anomalies visibles.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'livestock-count',
-        name: 'Contagem aérea de efetivos pecuários',
-        category: 'service',
-        priceCents: 30500,
-        priceAkzCents: 25000000,
-        priceEurCents: 27800,
-        currency: 'USD',
-        unit: 'operação',
-        sectors: ['agro', 'livestock'],
-        image: 'assets/images/store/livestock-aerial-count.jpg',
-        description:
-            'Captura RGB ou térmica para apoio à contagem visual de animais e análise da distribuição do efetivo. Não substitui diagnóstico veterinário.',
-        deliverables: [
-          'Relatório de contagem',
-          'Mapa de distribuição',
-          'Evidências aéreas'
-        ]),
+      id: 'prod_supply_soil_probe',
+      name: 'Kit de Sondas de Solo',
+      category: 'hardware',
+      priceCents: 3000,
+      priceAkzCents: 2550000,
+      priceEurCents: 2800,
+      currency: 'USD',
+      sectors: ['agro'],
+      image: 'assets/images/store/soil-iot-kit.jpg',
+      description:
+          'Sondas de humidade para substituição, expansão ou primeiro protótipo, sujeitas a verificação de compatibilidade.',
+      deliverables: [
+        'Duas sondas',
+        'Guia de ligação',
+        'Verificação de compatibilidade'
+      ],
+      translations: {
+        'en': {
+          'name': 'Soil Probe Kit',
+          'description':
+              'Moisture probes for replacement, expansion or a first prototype, subject to compatibility checks.'
+        },
+        'es': {
+          'name': 'Kit de Sondas de Suelo',
+          'description':
+              'Sondas de humedad para sustitución, ampliación o primer prototipo, sujetas a compatibilidad.'
+        },
+        'fr': {
+          'name': 'Kit de sondes de sol',
+          'description':
+              'Sondes d’humidité pour remplacement, extension ou premier prototype, sous réserve de compatibilité.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'gps-collar',
-        name: 'Colar GPS 4G para rastreio pecuário',
-        category: 'hardware',
-        priceCents: 28500,
-        priceAkzCents: 23500000,
-        priceEurCents: 26200,
-        currency: 'USD',
-        unit: 'unidade',
-        featured: true,
-        image: 'assets/images/store/gps-livestock-collar.jpg',
-        sectors: ['agro', 'livestock'],
-        description:
-            'Dispositivo GPS com SIM 4G, transmissão periódica, buffer offline e alertas de geofence na plataforma GeoVision. Plano de dados e cobertura são confirmados por local.',
-        deliverables: [
-          'Colar configurado',
-          'Ativação no portal',
-          'Configuração de geofence'
-        ]),
+      id: 'prod_supply_irrigation_parts',
+      name: 'Kit de Componentes de Irrigação',
+      category: 'hardware',
+      priceCents: 5000,
+      priceAkzCents: 4250000,
+      priceEurCents: 4600,
+      currency: 'USD',
+      sectors: ['agro', 'home'],
+      image: 'assets/images/store/soil-iot-kit.jpg',
+      description:
+          'Válvula de baixa tensão, sensor de caudal e ligações para um protótipo de irrigação monitorizada.',
+      deliverables: ['Válvula', 'Sensor de caudal', 'Conectores e guia'],
+      translations: {
+        'en': {
+          'name': 'Irrigation Components Kit',
+          'description':
+              'Low-voltage valve, flow sensor and fittings for a monitored irrigation prototype.'
+        },
+        'es': {
+          'name': 'Kit de Componentes de Riego',
+          'description':
+              'Válvula de baja tensión, sensor de caudal y conexiones para un prototipo monitorizado.'
+        },
+        'fr': {
+          'name': 'Kit de composants d’irrigation',
+          'description':
+              'Vanne basse tension, capteur de débit et raccords pour un prototype d’irrigation surveillée.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'soil-iot-kit',
-        name: 'Kit de sensores IoT de solo',
-        category: 'hardware',
-        priceCents: 32000,
-        priceAkzCents: 26500000,
-        priceEurCents: 29400,
-        currency: 'USD',
-        unit: 'kit',
-        sectors: ['agro'],
-        image: 'assets/images/store/soil-iot-kit.jpg',
-        description:
-            'Kit expandível para humidade, temperatura e parâmetros agronómicos compatíveis, com instalação e integração na plataforma. Disponibilidade depende do fornecedor certificado.',
-        deliverables: [
-          'Sensores e gateway',
-          'Instalação inicial',
-          'Dashboard e alertas'
-        ]),
+      id: 'prod_kit_water_tank_starter',
+      name: 'GV Level — Água e Bomba',
+      category: 'hardware',
+      priceCents: 13000,
+      priceAkzCents: 11050000,
+      priceEurCents: 12000,
+      currency: 'USD',
+      featured: true,
+      sectors: ['home', 'infrastructure'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Acompanhe nível do depósito, caudal e funcionamento da bomba com alertas configuráveis.',
+      deliverables: [
+        'Kit de sensores',
+        'Painel em direto',
+        'Alertas configuráveis'
+      ],
+      translations: {
+        'en': {
+          'name': 'GV Level — Water & Pump',
+          'description':
+              'Track tank level, flow and pump operation with configurable alerts.'
+        },
+        'es': {
+          'name': 'GV Level — Agua y Bomba',
+          'description':
+              'Supervisa el nivel, el caudal y la bomba con alertas configurables.'
+        },
+        'fr': {
+          'name': 'GV Level — Eau et pompe',
+          'description':
+              'Suivez le niveau, le débit et la pompe avec des alertes configurables.'
+        },
+      },
+    ),
     GvProduct(
-        id: 'weather-station',
-        name: 'Estação meteorológica conectada',
-        category: 'hardware',
-        priceCents: 89000,
-        priceAkzCents: 73500000,
-        priceEurCents: 81900,
-        currency: 'USD',
-        unit: 'estação',
-        sectors: ['agro', 'environment'],
-        image: 'assets/images/store/connected-weather-station.jpg',
-        description:
-            'Estação de campo para chuva, temperatura, humidade, vento e outros canais opcionais, integrada com alertas e histórico GeoVision. Solução expandível sujeita a levantamento de conectividade.',
-        deliverables: [
-          'Estação e gateway',
-          'Instalação',
-          'Integração de dados'
-        ]),
-    GvProduct(
-        id: 'seed-certified-maize',
-        name: 'Sementes certificadas — milho',
-        category: 'seeds',
-        priceCents: 17500,
-        priceAkzCents: 14500000,
-        priceEurCents: 16100,
-        currency: 'USD',
-        unit: 'saco',
-        sectors: ['agro'],
-        image: 'assets/images/store/certified-maize-seeds.jpg',
-        description:
-            'Categoria de sementes certificadas para cotação conforme variedade, ciclo, região, lote e disponibilidade. A GeoVision confirma a especificação agronómica e o fornecedor antes da encomenda.',
-        deliverables: [
-          'Ficha do lote',
-          'Certificação aplicável',
-          'Rastreabilidade da entrega'
-        ]),
-    GvProduct(
-        id: 'seed-reforestation',
-        name: 'Mistura de sementes para reflorestação',
-        category: 'seeds',
-        priceCents: 12500,
-        priceAkzCents: 10300000,
-        priceEurCents: 11500,
-        currency: 'USD',
-        unit: 'lote',
-        sectors: ['environment'],
-        image: 'assets/images/store/reforestation-seeds.jpg',
-        description:
-            'Lote definido por projeto de recuperação vegetal, espécies autorizadas e condições locais. Pode ser associado ao serviço de dispersão aérea e monitorização NDVI.',
-        deliverables: [
-          'Especificação do lote',
-          'Plano de dispersão',
-          'Registo de rastreabilidade'
-        ]),
-    GvProduct(
-        id: 'fertilizer',
-        name: 'Fertilizantes e corretivos sob prescrição',
-        category: 'inputs',
-        priceCents: 3800,
-        priceAkzCents: 3150000,
-        priceEurCents: 3500,
-        currency: 'USD',
-        unit: 'saco',
-        sectors: ['agro'],
-        image: 'assets/images/store/fertilizer-inputs.jpg',
-        description:
-            'Categoria para cotação de fertilizantes ou corretivos definidos por análise e prescrição agronómica. Formulação, dose e fornecedor são confirmados antes da venda.',
-        deliverables: [
-          'Ficha técnica',
-          'Lote e validade',
-          'Entrega rastreada'
-        ]),
-    GvProduct(
-        id: 'mining-volume',
-        name: 'Volumetria e stockpiles de mina',
-        category: 'service',
-        priceCents: 114500,
-        priceAkzCents: 95000000,
-        priceEurCents: 105500,
-        currency: 'USD',
-        unit: 'campanha',
-        featured: true,
-        sectors: ['mining'],
-        image: 'assets/images/store/mining-drone-survey.jpg',
-        description:
-            'Levantamento RTK para cálculo comparativo de volumes de minério, estéril, cavas e stockpiles, com rastreabilidade por campanha.',
-        deliverables: [
-          'Modelo 3D',
-          'Relatório volumétrico',
-          'Ortomosaico e nuvem de pontos'
-        ]),
-    GvProduct(
-        id: 'mining-topography',
-        name: 'Topografia 3D de mina',
-        category: 'service',
-        priceCents: 150500,
-        priceAkzCents: 125000000,
-        priceEurCents: 138900,
-        currency: 'USD',
-        unit: 'projeto',
-        sectors: ['mining'],
-        image: 'assets/images/store/mining-drone-survey.jpg',
-        description:
-            'Mapeamento topográfico RTK por fotogrametria ou LiDAR quando contratado, preparado para engenharia, superfícies e cortes.',
-        deliverables: [
-          'DTM/DSM',
-          'Curvas de nível',
-          'Ortomosaico',
-          'Relatório técnico'
-        ]),
-    GvProduct(
-        id: 'mining-slopes',
-        name: 'Monitorização de taludes',
-        category: 'service',
-        priceCents: 78500,
-        priceAkzCents: 65000000,
-        priceEurCents: 72200,
-        currency: 'USD',
-        unit: 'campanha',
-        sectors: ['mining'],
-        image: 'assets/images/store/mining-drone-survey.jpg',
-        description:
-            'Comparação de modelos de elevação e identificação de setores que requerem revisão geotécnica. Não substitui parecer de engenheiro geotécnico.',
-        deliverables: [
-          'Mapa de risco visual',
-          'Análise de deformação',
-          'Relatório de estabilidade'
-        ]),
-    GvProduct(
-        id: 'construction-progress',
-        name: 'Monitorização de progresso de obra',
-        category: 'service',
-        priceCents: 66500,
-        priceAkzCents: 55000000,
-        priceEurCents: 61100,
-        currency: 'USD',
-        unit: 'campanha',
-        featured: true,
-        sectors: ['construction'],
-        image: 'assets/images/store/construction-progress.jpg',
-        description:
-            'Campanhas recorrentes para documentar progresso, comparar planeado e executado e manter uma linha temporal visual para equipas e stakeholders.',
-        deliverables: [
-          'Ortomosaico',
-          'Modelo 3D',
-          'Relatório de progresso',
-          'Timeline visual'
-        ]),
-    GvProduct(
-        id: 'construction-earthworks',
-        name: 'Volumetria de corte e aterro',
-        category: 'service',
-        priceCents: 90500,
-        priceAkzCents: 75000000,
-        priceEurCents: 83300,
-        currency: 'USD',
-        unit: 'projeto',
-        sectors: ['construction', 'infrastructure'],
-        image: 'assets/images/store/construction-progress.jpg',
-        description:
-            'Medição de terraplenagem com comparação entre superfícies e documentação para controlo de obra.',
-        deliverables: [
-          'Relatório cut/fill',
-          'Modelo 3D',
-          'Comparação design vs. as-built'
-        ]),
-    GvProduct(
-        id: 'infrastructure-inspection',
-        name: 'Inspeção visual de infraestruturas',
-        category: 'service',
-        priceCents: 54500,
-        priceAkzCents: 45000000,
-        priceEurCents: 50000,
-        currency: 'USD',
-        unit: 'inspeção',
-        sectors: ['infrastructure'],
-        image: 'assets/images/store/infrastructure-inspection.jpg',
-        description:
-            'Inspeção de pontes, estradas, barragens, linhas e estruturas com evidências georreferenciadas e priorização de pontos para revisão técnica.',
-        deliverables: [
-          'Relatório de inspeção',
-          'Fotografias anotadas',
-          'Mapa de pontos críticos'
-        ]),
-    GvProduct(
-        id: 'infrastructure-corridor',
-        name: 'Mapeamento de corredores e ativos lineares',
-        category: 'service',
-        priceCents: 144500,
-        priceAkzCents: 120000000,
-        priceEurCents: 133300,
-        currency: 'USD',
-        unit: 'projeto',
-        sectors: ['infrastructure'],
-        image: 'assets/images/store/infrastructure-inspection.jpg',
-        description:
-            'Mapeamento linear de estradas, canais, pipelines ou linhas de transmissão, segmentado para comparação de condição e manutenção.',
-        deliverables: [
-          'Ortomosaico linear',
-          'Perfil de elevação',
-          'Análise por secção'
-        ]),
-    GvProduct(
-        id: 'environment-baseline',
-        name: 'Levantamento e baseline ambiental',
-        category: 'service',
-        priceCents: 78500,
-        priceAkzCents: 65000000,
-        priceEurCents: 72200,
-        currency: 'USD',
-        unit: 'projeto',
-        sectors: ['environment'],
-        image: 'assets/images/store/environmental-monitoring.jpg',
-        description:
-            'Mapeamento RGB, multiespectral e GIS de cobertura vegetal, corpos de água, áreas sensíveis e zonas de proteção para criar uma base comparável.',
-        deliverables: [
-          'Ortomosaico',
-          'Mapa de cobertura',
-          'Baseline e ficheiros GIS'
-        ]),
-    GvProduct(
-        id: 'environment-reforestation',
-        name: 'Dispersão aérea para reflorestação',
-        category: 'service',
-        priceCents: 72500,
-        priceAkzCents: 60000000,
-        priceEurCents: 66700,
-        currency: 'USD',
-        unit: 'operação',
-        featured: true,
-        sectors: ['environment'],
-        image: 'assets/images/store/environmental-monitoring.jpg',
-        description:
-            'Planeamento e dispersão aérea de sementes com Agras T40 para recuperação vegetal, seguida de monitorização periódica. Espécies e plano ambiental requerem aprovação do projeto.',
-        deliverables: [
-          'Plano de cobertura',
-          'Registo da dispersão',
-          'Monitorização NDVI inicial'
-        ]),
-    GvProduct(
-        id: 'hma-visual-support',
-        name: 'Documentação aérea para programas HMA',
-        category: 'service',
-        priceCents: 66500,
-        priceAkzCents: 55000000,
-        priceEurCents: 61100,
-        currency: 'USD',
-        unit: 'campanha',
-        sectors: ['environment'],
-        image: 'assets/images/store/hma-safe-corridor.jpg',
-        description:
-            'Suporte visual e GIS para delimitação, rotas de acesso, documentação de progresso e auditoria em programas de desminagem humanitária. Não deteta minas nem substitui equipas acreditadas.',
-        deliverables: [
-          'Ortomosaico HD',
-          'Mapa de progresso',
-          'Exportação GIS e relatório'
-        ]),
-    GvProduct(
-        id: 'rtk-base',
-        name: 'Solução RTK de campo',
-        category: 'equipment',
-        priceCents: 690000,
-        priceAkzCents: 570000000,
-        priceEurCents: 635000,
-        currency: 'USD',
-        unit: 'sistema',
-        sectors: ['agro', 'mining', 'construction', 'infrastructure'],
-        image: 'assets/images/store/rtk-field-system.jpg',
-        description:
-            'Estação base RTK e configuração operacional para missões que requerem precisão centimétrica. O equipamento exato e a alternativa NTRIP são definidos após avaliação de cobertura.',
-        deliverables: [
-          'Hardware RTK',
-          'Configuração',
-          'Formação e verificação'
-        ]),
-    GvProduct(
-        id: 'platform-pro',
-        name: 'GeoVision Intelligence Pro',
-        category: 'subscription',
-        priceCents: 19900,
-        priceAkzCents: 16500000,
-        priceEurCents: 18300,
-        currency: 'USD',
-        unit: 'mês',
-        sectors: [
-          'agro',
-          'mining',
-          'construction',
-          'infrastructure',
-          'environment'
-        ],
-        image: 'assets/images/store/geovision-intelligence-pro.jpg',
-        description:
-            'Acesso mensal a dashboards setoriais, mapas interativos, alertas, histórico, relatórios e suporte remoto. Operações de campo, hardware e processamento extraordinário são orçados separadamente.',
-        deliverables: [
-          'Portal e app móvel',
-          'Alertas e dashboards',
-          'Suporte remoto'
-        ]),
+      id: 'prod_kit_environment_air',
+      name: 'GV Air — Ambiente e Conforto',
+      category: 'hardware',
+      priceCents: 14000,
+      priceAkzCents: 11900000,
+      priceEurCents: 12900,
+      currency: 'USD',
+      sectors: ['home', 'environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'CO₂, partículas, temperatura, humidade e ruído para espaços interiores ou exteriores.',
+      deliverables: ['Kit de sensores', 'Histórico', 'Alertas configuráveis'],
+      translations: {
+        'en': {
+          'name': 'GV Air — Environment & Comfort',
+          'description':
+              'CO₂, particles, temperature, humidity and noise for indoor or outdoor spaces.'
+        },
+        'es': {
+          'name': 'GV Air — Ambiente y Confort',
+          'description':
+              'CO₂, partículas, temperatura, humedad y ruido para espacios interiores o exteriores.'
+        },
+        'fr': {
+          'name': 'GV Air — Environnement et confort',
+          'description':
+              'CO₂, particules, température, humidité et bruit pour espaces intérieurs ou extérieurs.'
+        },
+      },
+    ),
   ];
 }

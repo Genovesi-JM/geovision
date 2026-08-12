@@ -12,6 +12,7 @@ from app.iot.schemas import MqttEnvelope, TelemetryEnvelope
 from app.iot.security import parse_utc, reveal_secret, timestamp_is_fresh, verify_mqtt_signature
 from app.iot.service import active_credential, ingest_telemetry
 from app.models import IotCommand, IotDevice, IotMessageNonce
+from app.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -97,14 +98,14 @@ class MqttBridge:
             elif kind == "state":
                 state = str(payload.get("state") or "")
                 if state not in {"online", "offline", "maintenance"}: raise ValueError("invalid state")
-                device.status = state; device.last_seen_at = datetime.utcnow(); db.commit()
+                device.status = state; device.last_seen_at = utc_now(); db.commit()
                 if self.loop: self.loop.call_soon_threadsafe(event_hub.publish, device.id, {"type": "device.state", "status": state})
             elif kind == "command-results":
                 command = db.get(IotCommand, str(payload.get("command_id") or ""))
                 result_status = str(payload.get("status") or "")
                 if not command or command.device_id != device.id or result_status not in {"acknowledged", "completed", "failed", "rejected", "timed_out"}:
                     raise ValueError("invalid command result")
-                command.status = result_status; command.acknowledged_at = datetime.utcnow()
+                command.status = result_status; command.acknowledged_at = utc_now()
                 command.result_json = json.dumps({"actual_state": payload.get("actual_state") or {}, "message": payload.get("message")})
                 db.commit()
                 if self.loop: self.loop.call_soon_threadsafe(event_hub.publish, device.id, {"type": "command.result", "command_id": command.id, "status": command.status, "actual_state": payload.get("actual_state") or {}})

@@ -5,10 +5,10 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  <title>Setores — GeoVision | Inteligência Territorial por Setor</title>
-  <meta name="description" content="Serviços GeoVision em agropecuária, mineração, construção, infraestruturas e setor ambiental. Monitorização geoespacial, rastreio GPS e dashboards setoriais." />
+  <title>Setores — GeoVision | Soluções de Monitorização por Necessidade</title>
+  <meta name="description" content="Sensores, tracking, inteligência aérea, mapas e IA para casa e propriedade, agricultura, construção, ambiente, mineração, indústria, utilities e logística." />
   <meta property="og:title" content="Soluções por setor — GeoVision" />
-  <meta property="og:description" content="Casos de uso, dados e entregáveis para ativos territoriais e operações de campo." />
+  <meta property="og:description" content="Da casa individual à operação complexa, combinando dados do terreno, ativos móveis e observação aérea com maturidade transparente." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://geovisionops.com/sectors" />
   <link rel="canonical" href="https://geovisionops.com/sectors" />
@@ -17,165 +17,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/chatbot.css" />
   
+  <link rel="stylesheet" href="assets/css/public-shell.css?v=2" />
+  <link rel="stylesheet" href="assets/css/commercial.css?v=4" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
     :root {
-      --bg-dark: #050914;
-      --bg-darker: #020408;
-      --bg-card: rgba(15, 23, 42, 0.85);
       --bg-sidebar: rgba(10, 15, 30, 0.95);
-      --border: rgba(148, 163, 184, 0.12);
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-green: #22c55e;
-      --accent-blue: #0ea5e9;
-      --accent-cyan: #06b6d4;
       --accent-orange: #f97316;
       --accent-red: #ef4444;
       --accent-purple: #a855f7;
-      --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
-      --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
       --sidebar-width: 280px;
     }
-    
-    html { scroll-behavior: smooth; }
-    
-    body {
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-primary);
-      line-height: 1.7;
-      overflow-x: hidden;
-    }
 
-    /* ============ NAVBAR ============ */
-    .navbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(5, 9, 20, 0.95);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .navbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: var(--text-primary);
-    }
-
-    .navbar-logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .navbar-logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .navbar-brand-text {
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-    }
-
-    .navbar-nav {
-      display: flex;
-      align-items: center;
-      gap: 2.5rem;
-    }
-
-    .navbar-link {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .navbar-link:hover,
-    .navbar-link.active {
-      color: var(--accent-cyan);
-    }
-
-    .btn-nav {
-      padding: 0.6rem 1.4rem;
-      border-radius: 8px;
-      background: var(--gradient-primary);
-      color: #020617;
-      font-weight: 600;
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .btn-nav:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
-    }
-
-    .navbar-toggle {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.5rem;
-    }
-
-    .navbar-toggle span {
-      width: 24px;
-      height: 2px;
-      background: var(--text-primary);
-      transition: 0.3s;
-    }
-
-    /* ============ LANGUAGE TOGGLE ============ */
-    .lang-toggle {
-      display: flex;
-      gap: 0.25rem;
-      margin-left: 1rem;
-      padding-left: 1rem;
-      border-left: 1px solid var(--border);
-    }
-
-    .lang-btn {
-      padding: 0.35rem 0.6rem;
-      border-radius: 6px;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .lang-btn:hover {
-      color: var(--text-primary);
-    }
-
-    .lang-btn.active {
-      background: var(--gradient-primary);
-      color: #020617;
-      border-color: transparent;
-    }
+    .navbar { --bg-navbar: rgba(5, 9, 20, 0.95); }
 
     /* ============ LAYOUT ============ */
     .page-layout {
@@ -585,19 +438,6 @@
     }
 
     @media (max-width: 768px) {
-      .navbar-nav, .lang-toggle { display: none; }
-      .navbar-toggle { display: flex; }
-      .navbar-nav.show {
-        display: flex; flex-direction: column; position: absolute;
-        top: 100%; right: 0; background: #0b1428;
-        border-radius: 12px; border: 1px solid rgba(95,212,255,0.3);
-        padding: 0.5rem 0; min-width: 200px; z-index: 9999;
-        box-shadow: 0 14px 36px rgba(0,0,0,0.8);
-      }
-      .navbar-nav.show a { display: block; padding: 0.9rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-      .navbar-nav.show a:last-child { border-bottom: none; }
-      .lang-toggle.show { display: flex; position: static; justify-content: center; padding: 0.7rem 1rem; gap: 0.5rem; border-top: 1px solid rgba(95,212,255,0.2); border-left: none; margin-left: 0; padding-left: 1rem; }
-
       .sector-header {
         flex-direction: column;
         text-align: center;
@@ -683,7 +523,53 @@
     </button>
   </nav>
 
-  <div class="page-layout">
+  <main class="sector-overview">
+    <header class="sector-overview-header">
+      <div class="section-eyebrow" data-i18n="commercial.sectors.eyebrow">Soluções por necessidade</div>
+      <h1 data-i18n="commercial.sectors.title">Monitorização para o que é seu — do espaço individual à operação complexa.</h1>
+      <p data-i18n="commercial.sectors.subtitle">Cada solução parte de um problema concreto. Indicamos claramente o que pode ser comprado, testado em piloto ou desenvolvido como projeto.</p>
+    </header>
+    <nav class="sector-jump" aria-label="Setores">
+      <a href="#casa" data-i18n="commercial.sector.homeFull">Casa &amp; Propriedade</a><a href="#agropecuaria" data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</a><a href="#construcao" data-i18n="commercial.sector.construction">Construção &amp; Infraestruturas</a><a href="#ambiental" data-i18n="commercial.sector.environment">Ambiente</a><a href="#mineracao" data-i18n="sectors.mineracao">Mineração</a><a href="#industria" data-i18n="commercial.sector.utilities">Indústria, Energia &amp; Utilities</a><a href="#logistica" data-i18n="commercial.sector.logistics">Portos &amp; Logística</a>
+    </nav>
+
+    <section class="sector-summary" id="casa">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-house"></i></div><div><h2 data-i18n="commercial.sector.homeFull">Casa &amp; Propriedade</h2><p data-i18n="commercial.sectors.homeDesc">Mais controlo sobre a sua casa e propriedade, com dispositivos simples, histórico e alertas na app.</p></div><span class="maturity-badge" data-i18n="commercial.status.available">Disponível por configuração</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.waterLevel">Nível de água</li><li data-i18n="commercial.use.leaks">Fugas e humidade</li><li data-i18n="commercial.use.air">Temperatura e qualidade do ar</li><li data-i18n="commercial.use.gardenSoil">Solo e rega do jardim</li><li data-i18n="commercial.use.property">Portas, energia de apoio e estado do local</li><li data-i18n="commercial.use.appAlerts">Alertas e histórico na app</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.homeKpi">Veja estado, histórico e alertas — sem métricas industriais desnecessárias.</strong><p data-i18n="commercial.sectors.homeAction">Comece com um dispositivo configurado para a sua necessidade.</p><a href="loja.html?sector=environment" data-i18n="commercial.cta.buy">Comprar dispositivos →</a></div></div>
+    </section>
+
+    <section class="sector-summary" id="agropecuaria">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-seedling"></i></div><div><h2 data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</h2><p data-i18n="commercial.sectors.agroDesc">Solo, água, clima, culturas, animais e equipamentos numa única visão, com sensores, tracking, mapas e dados aéreos.</p></div><span class="maturity-badge" data-i18n="commercial.status.available">Disponível por configuração</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.soil">Humidade do solo</li><li data-i18n="commercial.use.irrigation">Água e rega</li><li data-i18n="commercial.use.weather">Condições meteorológicas</li><li data-i18n="commercial.use.livestockTracking">Animais, GPS e geofences</li><li data-i18n="commercial.use.cropImagery">Imagens RGB e multiespectrais por projeto</li><li data-i18n="commercial.use.equipmentTracking">Tracking e estado de equipamentos compatíveis</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.agroKpi">Veja alertas de solo e rega, posição de ativos e alterações identificadas em campanhas aéreas.</strong><p data-i18n="commercial.sectors.projectNote">Mapeamento avançado, precisão e entregáveis são confirmados no escopo técnico.</p><a href="loja.html?sector=agro" data-i18n="commercial.cta.seeServices">Ver serviços →</a></div></div>
+    </section>
+
+    <section class="sector-summary" id="construcao"><span id="infraestruturas"></span>
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-helmet-safety"></i></div><div><h2 data-i18n="commercial.sector.construction">Construção &amp; Infraestruturas</h2><p data-i18n="commercial.sectors.constructionDesc">Do sensor no terreno à visão aérea, acompanhe evolução, ativos e condições do projeto numa única plataforma.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.request">Projetos personalizados</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.progress">Registo de progresso</li><li data-i18n="commercial.use.siteSensors">Poeira, ruído, ambiente e água</li><li data-i18n="commercial.use.equipmentTracking">Tracking e estado de equipamentos compatíveis</li><li data-i18n="commercial.use.aerialProgress">Mapeamento, progresso e inspeção aérea</li><li data-i18n="commercial.use.inspections">Inspeções e não conformidades</li><li data-i18n="commercial.use.timelineReports">Timeline, mapa, alertas e relatórios</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.constructionKpi">Veja evolução documentada, inspeções abertas, ativos e itens que precisam de atenção.</strong><p data-i18n="commercial.sectors.projectNote">Mapeamento avançado, precisão e entregáveis são confirmados no escopo técnico.</p><a href="loja.html?sector=construction" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
+    </section>
+
+    <section class="sector-summary" id="ambiental">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-leaf"></i></div><div><h2 data-i18n="commercial.sector.environment">Ambiente</h2><p data-i18n="commercial.sectors.environmentDesc">Do sensor no terreno à análise de grandes áreas: reúna condições, mapas e alterações ao longo do tempo.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.request">Projetos personalizados</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.airWater">Ar, água e microclima</li><li data-i18n="commercial.use.groundConditions">Poeira, ruído e meteorologia</li><li data-i18n="commercial.use.landCover">Cobertura e uso do solo</li><li data-i18n="commercial.use.erosionChange">Vegetação, erosão e alteração ambiental</li><li data-i18n="commercial.use.reforestation">Acompanhamento de reflorestação</li><li data-i18n="commercial.use.timelineReports">Histórico, mapas, alertas e relatórios</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.environmentKpi">Indicadores definidos por projeto, fonte e método de observação.</strong><p data-i18n="commercial.sectors.safetyNote">Aplicações de segurança ou humanitárias exigem parceiros habilitados e validação específica.</p><a href="loja.html?sector=environment" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
+    </section>
+
+    <section class="sector-summary" id="mineracao">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-gem"></i></div><div><h2 data-i18n="sectors.mineracao">Mineração</h2><p data-i18n="commercial.sectors.miningDesc">Visibilidade integrada sobre áreas, ativos e operações através de sensores, tracking, mapas e campanhas aéreas.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.specialized">Aplicações especializadas</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.inventory">Inventário e volumetria por campanha</li><li data-i18n="commercial.use.aerialInspection">Mapeamento e inspeção aérea</li><li data-i18n="commercial.use.environmentalSensors">Sensores ambientais</li><li data-i18n="commercial.use.assetTracking">Tracking de ativos compatíveis</li><li data-i18n="commercial.use.historicalTrends">Tendências históricas e mapa do local</li><li data-i18n="commercial.use.technicalReview">Identificação de alterações e apoio à revisão técnica</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.miningKpi">Métricas, tolerâncias e responsabilidade técnica são acordadas no projeto.</strong><p data-i18n="commercial.sectors.miningSafety">A GeoVision não substitui sistemas certificados nem determina a estabilidade geotécnica final.</p><a href="about.html#contact" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
+    </section>
+
+    <section class="sector-summary" id="industria">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-industry"></i></div><div><h2 data-i18n="commercial.sector.utilities">Indústria, Energia &amp; Utilities</h2><p data-i18n="commercial.sectors.industryDesc">Consolide condições de vários locais, equipamentos e rotinas de inspeção numa vista comum.</p></div><span class="maturity-badge expansion" data-i18n="commercial.status.expansion">Em expansão</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.multiSite">Vários locais e ativos</li><li data-i18n="commercial.use.remoteAssets">Ativos remotos e corredores</li><li data-i18n="commercial.use.equipment">Estado de equipamentos</li><li data-i18n="commercial.use.environmentalConditions">Condições ambientais</li><li data-i18n="commercial.use.aerialInspection">Mapeamento e inspeção aérea</li><li data-i18n="commercial.use.maintenance">Inspeções e manutenção</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.industryKpi">KPIs configurados conforme os dados e processos já existentes.</strong><p data-i18n="commercial.sectors.integrationNote">Integrações e automações são validadas tecnicamente antes da proposta.</p><a href="about.html#contact" data-i18n="commercial.cta.talk">Falar connosco →</a></div></div>
+    </section>
+
+    <section class="sector-summary" id="logistica">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-ship"></i></div><div><h2 data-i18n="commercial.sector.logistics">Portos &amp; Logística</h2><p data-i18n="commercial.sectors.logisticsDesc">Casos de uso para pátios, corredores, inventário visual e coordenação de ativos distribuídos.</p></div><span class="maturity-badge expansion" data-i18n="commercial.status.expansion">Em expansão</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.assetTracking">Tracking de ativos compatíveis</li><li data-i18n="commercial.use.yards">Pátios e zonas operacionais</li><li data-i18n="commercial.use.routes">Corredores e acessos</li><li data-i18n="commercial.use.infrastructureCondition">Infraestrutura e condições ambientais</li><li data-i18n="commercial.use.aerialInspection">Mapeamento e inspeção aérea</li><li data-i18n="commercial.use.incidents">Registo de ocorrências</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.logisticsKpi">O primeiro piloto define dados, frequência e indicadores úteis.</strong><p data-i18n="commercial.sectors.integrationNote">Integrações e automações são validadas tecnicamente antes da proposta.</p><a href="about.html#contact" data-i18n="commercial.cta.talk">Falar connosco →</a></div></div>
+    </section>
+  </main>
+
+  <div class="page-layout" hidden inert aria-hidden="true" data-nosnippet>
     <!-- ============ SIDEBAR ============ -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
@@ -738,7 +624,7 @@
     <main class="main-content">
       
       <!-- ============ AGROPECUÁRIA SECTION ============ -->
-      <section class="sector-section" id="agropecuaria">
+      <section class="sector-section" id="legacy-agropecuaria">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-seedling"></i></div>
           <div class="sector-header-content">
@@ -857,7 +743,7 @@
       </section>
 
       <!-- ============ MINERAÇÃO SECTION ============ -->
-      <section class="sector-section" id="mineracao">
+      <section class="sector-section" id="legacy-mineracao">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-gem"></i></div>
           <div class="sector-header-content">
@@ -965,7 +851,7 @@
       </section>
 
       <!-- ============ CONSTRUÇÃO SECTION ============ -->
-      <section class="sector-section" id="construcao">
+      <section class="sector-section" id="legacy-construcao">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-helmet-safety"></i></div>
           <div class="sector-header-content">
@@ -1064,7 +950,7 @@
       </section>
 
       <!-- ============ INFRAESTRUTURAS SECTION ============ -->
-      <section class="sector-section" id="infraestruturas">
+      <section class="sector-section" id="legacy-infraestruturas">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-road"></i></div>
           <div class="sector-header-content">
@@ -1163,7 +1049,7 @@
       </section>
 
       <!-- ============ AMBIENTAL SECTION ============ -->
-      <section class="sector-section" id="ambiental">
+      <section class="sector-section" id="legacy-ambiental">
         <div class="sector-header">
           <div class="sector-icon-large"><i class="fa-solid fa-leaf"></i></div>
           <div class="sector-header-content">
@@ -1269,12 +1155,12 @@
 
   <!-- ============ FOOTER ============ -->
   <footer class="footer">
-    <p class="footer-text">© <span id="year"></span> GeoVision — <span data-i18n="footer.tagline">Inteligência Territorial Multissetorial</span></p>
-    <p class="footer-tagline" data-i18n="common.tagline">Inteligência. Precisão. Execução.</p>
+    <p class="footer-text">© <span id="year"></span> GeoVision — <span data-i18n="footer.tagline">Dispositivos, tracking, inteligência aérea, mapas e IA</span></p>
+    <p class="footer-tagline" data-i18n="common.tagline">Monitorizar. Compreender. Agir.</p>
   </footer>
 
   <!-- Mobile Sidebar Toggle -->
-  <button class="sidebar-mobile-toggle" id="sidebar-toggle" aria-label="Toggle Sectors Menu">
+  <button class="sidebar-mobile-toggle" id="sidebar-toggle" aria-label="Toggle Sectors Menu" hidden>
     ☰
   </button>
 
@@ -1336,9 +1222,9 @@
       });
     });
   </script>
-  <script src="assets/js/site.js"></script>
+  <script src="assets/js/site.js?v=3"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=18"></script>
+  <script src="assets/js/i18n.js?v=25"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>

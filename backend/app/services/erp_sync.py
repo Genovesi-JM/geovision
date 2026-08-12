@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.integrations.erp import get_erp_adapter
 from app.models import AccountEvent, IntegrationOutbox
+from app.time_utils import utc_now
 
 
 ERP_DOCTYPE = {
@@ -89,7 +90,7 @@ def process_pending(db: Session, limit: int = 50) -> dict[str, int]:
             )
             item.external_id = result.external_id
             item.status = "completed"
-            item.processed_at = datetime.utcnow()
+            item.processed_at = utc_now()
             item.last_error = None
             completed += 1
         except Exception as exc:

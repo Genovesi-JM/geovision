@@ -21,7 +21,7 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
   final formKey = GlobalKey<FormState>();
   final name = TextEditingController();
   final area = TextEditingController();
-  Sector sector = Sector.agriculture;
+  Sector sector = Sector.agro;
   String country = 'Angola';
   String countryCode = 'AO';
   SiteRegion? province;
@@ -373,14 +373,18 @@ class _SiteFormCopy {
 
   String sectorName(Sector value) => switch (value) {
         Sector.home => _pick('Casa', 'Home', 'Hogar', 'Maison'),
-        Sector.agriculture =>
-          _pick('Agricultura', 'Agriculture', 'Agricultura', 'Agriculture'),
-        Sector.livestock =>
-          _pick('Pecuária', 'Livestock', 'Ganadería', 'Élevage'),
-        Sector.infrastructure => _pick('Infraestruturas', 'Infrastructure',
-            'Infraestructuras', 'Infrastructures'),
-        Sector.mining => _pick('Mineração', 'Mining', 'Minería', 'Mines'),
+        Sector.agro => _pick(
+            'Agricultura e pecuária',
+            'Agriculture & livestock',
+            'Agricultura y ganadería',
+            'Agriculture et élevage'),
         Sector.environment =>
           _pick('Ambiente', 'Environment', 'Medio ambiente', 'Environnement'),
+        Sector.construction =>
+          _pick('Construção', 'Construction', 'Construcción', 'Construction'),
+        Sector.industry => _pick('Indústria e mineração', 'Industry & mining',
+            'Industria y minería', 'Industrie et mines'),
+        Sector.infrastructure => _pick('Infraestruturas', 'Infrastructure',
+            'Infraestructuras', 'Infrastructures'),
       };
 }

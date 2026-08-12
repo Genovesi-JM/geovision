@@ -51,6 +51,28 @@ extension SeverityX on Severity {
         return 'Info';
     }
   }
+
+  String localizedLabel(BuildContext context) {
+    final language = Localizations.localeOf(context).languageCode;
+    return switch ((this, language)) {
+      (Severity.critical, 'pt') => 'Crítico',
+      (Severity.high, 'pt') => 'Alto',
+      (Severity.medium, 'pt') => 'Médio',
+      (Severity.low, 'pt') => 'Baixo',
+      (Severity.information, 'pt') => 'Info',
+      (Severity.critical, 'es') => 'Crítica',
+      (Severity.high, 'es') => 'Alta',
+      (Severity.medium, 'es') => 'Media',
+      (Severity.low, 'es') => 'Baja',
+      (Severity.information, 'es') => 'Info',
+      (Severity.critical, 'fr') => 'Critique',
+      (Severity.high, 'fr') => 'Élevée',
+      (Severity.medium, 'fr') => 'Moyenne',
+      (Severity.low, 'fr') => 'Faible',
+      (Severity.information, 'fr') => 'Info',
+      _ => label,
+    };
+  }
 }
 
 class SeverityChip extends StatelessWidget {
@@ -69,7 +91,7 @@ class SeverityChip extends StatelessWidget {
         border: Border.all(color: c.withValues(alpha: 0.5)),
       ),
       child: Text(
-        severity.label.toUpperCase(),
+        severity.localizedLabel(context).toUpperCase(),
         style: TextStyle(
             color: c,
             fontSize: 10,

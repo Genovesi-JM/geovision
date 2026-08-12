@@ -15,6 +15,7 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from app.config import settings
+from app.time_utils import utc_now
 
 
 class StorageService:
@@ -62,7 +63,7 @@ class StorageService:
         """Generate S3 key with company/site/dataset hierarchy."""
         # Sanitize filename
         safe_filename = "".join(c for c in filename if c.isalnum() or c in "._-")
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = utc_now().strftime("%Y%m%d_%H%M%S")
         
         return f"companies/{company_id}/sites/{site_id}/datasets/{dataset_id}/{timestamp}_{safe_filename}"
     

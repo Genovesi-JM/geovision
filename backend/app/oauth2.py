@@ -8,15 +8,17 @@ from datetime import datetime, timedelta
 from typing import Any, Optional, Dict
 
 from fastapi import HTTPException, status
-from jose import JWTError, jwt
+import jwt
+from jwt import InvalidTokenError
 
 from .config import settings
+from .time_utils import utc_now
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     minutes = getattr(settings, "access_token_expires_minutes", None) or getattr(settings, "access_token_expire_minutes", 60)
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=minutes))
+    expire = utc_now() + (expires_delta or timedelta(minutes=minutes))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
@@ -25,7 +27,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
 def verify_access_token(token: str) -> Dict[str, Any]:
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-    except JWTError as exc:  # pragma: no cover
+    except InvalidTokenError as exc:  # pragma: no cover
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
     return payload
 

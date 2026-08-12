@@ -18,30 +18,48 @@ let allProducts = [];
 let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
 let currentCart = null;
 const MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
-const STORE_SECTORS = new Set(["home", "agro", "livestock", "mining", "construction", "infrastructure", "ambiental", "demining", "solar"]);
-const recommendedSector = STORE_SECTORS.has(localStorage.getItem(MARKETPLACE_SECTOR_KEY))
-  ? localStorage.getItem(MARKETPLACE_SECTOR_KEY)
-  : null;
+const STORE_SECTORS = new Set(["agro", "environment", "construction", "infrastructure"]);
+function normalizeStoreSector(value) {
+  if (["home", "ambiental"].includes(value)) return "environment";
+  if (value === "livestock") return "agro";
+  return STORE_SECTORS.has(value) ? value : null;
+}
+const recommendedSector = normalizeStoreSector(localStorage.getItem(MARKETPLACE_SECTOR_KEY));
 const requestedSector = new URLSearchParams(window.location.search).get("sector");
-let currentSectorFilter = STORE_SECTORS.has(requestedSector) ? requestedSector : (recommendedSector || "all");
+let currentSectorFilter = normalizeStoreSector(requestedSector) || recommendedSector || "all";
+
+const PRODUCT_PUBLIC_COPY = {
+  prod_kit_water_tank_starter: { name: "GV Level — Água & Bomba", desc: "Acompanhe nível do depósito, caudal e funcionamento da bomba, com alertas configuráveis." },
+  prod_kit_agri_field_node: { name: "GV Soil — Nó Agrícola Solar", desc: "Solo, temperatura, humidade e chuva num nó de campo; configuração final por local." },
+  prod_kit_facility_guard: { name: "GV Site — Propriedade & Fugas", desc: "Porta, movimento e deteção de água para propriedades pequenas, com histórico e alertas." },
+  prod_kit_environment_air: { name: "GV Air — Ambiente & Conforto", desc: "CO₂, partículas, temperatura, humidade e ruído para espaços interiores ou exteriores." },
+  prod_kit_gps_asset_tracker: { name: "GV Track — Ativos Móveis", desc: "Localização, movimento, bateria e sinal para ativos compatíveis." },
+  prod_kit_soil_control: { name: "GV SoilControl — Rega Monitorizada", desc: "Solo, nível e caudal com opção de válvula de baixa tensão, sujeito a validação de instalação." },
+  prod_kit_agro_weather: { name: "GV AgroWeather — Estação de Campo", desc: "Temperatura, humidade, pressão, chuva, vento e radiação para apoio ao trabalho agrícola." },
+  prod_kit_greenhouse_control: { name: "GV Greenhouse — Clima de Estufa", desc: "Clima, substrato, CO₂ e luz, com controlo opcional de baixa tensão." },
+  prod_kit_input_track: { name: "GV InputTrack — Insumos & Ativos", desc: "Localização e nível de stock para apoiar registos de equipamento e reposição." },
+};
 let currentTypeFilter = "all";
 let pendingAddProduct = null;
 let stripeInstance = null;
 let stripeElements = null;
 
 // Sector labels for display
-const SECTOR_LABELS = {
-  "home": "Casa",
-  "mining": "Mineração",
-  "construction": "Construção",
-  "infrastructure": "Construção e Infraestrutura",
-  "ambiental": "Ambiental",
-  "agro": "Agro & Pecuária",
-  "demining": "Desminagem Humanitária",
-  "solar": "Solar & Energia",
-  "livestock": "Pecuária",
+const SECTOR_LABEL_KEYS = {
+  "environment": "loja.sector.environment",
+  "construction": "loja.sector.construction",
+  "infrastructure": "loja.sector.infrastructure",
+  "agro": "loja.sector.agro",
 };
 const storeT = (key) => (window.t && window.t(key)) || key;
+const storeFormat = (key, values = {}) => Object.entries(values).reduce(
+  (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+  storeT(key),
+);
+const storeSectorLabel = (sector) =>
+  SECTOR_LABEL_KEYS[normalizeStoreSector(sector)]
+    ? storeT(SECTOR_LABEL_KEYS[normalizeStoreSector(sector)])
+    : (sector || "—");
 
 // Guardar cartId no localStorage
 function generateCartId() {
@@ -138,7 +156,7 @@ async function loadProducts() {
     const empty = document.getElementById("loja-empty");
     if (empty) {
       empty.style.display = "block";
-      empty.textContent = "Não foi possível carregar os produtos. Verifique a conexão e tente novamente.";
+      empty.textContent = storeT("loja.cart.loadError");
     }
   }
 }
@@ -180,7 +198,7 @@ function renderCart() {
   if (!currentCart || !currentCart.items.length) {
     const empty = document.createElement("div");
     empty.className = "loja-empty";
-    empty.textContent = "O carrinho está vazio.";
+    empty.textContent = storeT("loja.cart.empty");
     list.appendChild(empty);
     countEl.textContent = "0 itens";
     if (subtotalEl) subtotalEl.textContent = formatAOA(0);
@@ -195,22 +213,23 @@ function renderCart() {
   currentCart.items.forEach((item) => {
     // Find the product to get multi-currency prices
     const product = allProducts.find(p => p.id === item.product_id);
+    const itemName = product ? localizedProductCopy(product).name : item.product_name;
     const row = document.createElement("div");
     row.className = "loja-cart-item";
     row.innerHTML = `
       <div>
-        <div class="loja-cart-item-name">${esc(item.product_name)}</div>
+        <div class="loja-cart-item-name">${esc(itemName)}</div>
         <div class="loja-cart-item-meta">
           ${item.quantity} × ${formatAOASimple(item.unit_price)}
         </div>
       </div>
       <div class="loja-cart-item-actions">
         <div class="qty-stepper">
-          <button class="qty-minus" onclick="updateCartQty('${esc(item.id)}', ${item.quantity - 1})" title="Remover 1">−</button>
+          <button class="qty-minus" onclick="updateCartQty('${esc(item.id)}', ${item.quantity - 1})" title="${esc(storeT('loja.cart.removeOne'))}">−</button>
           <span class="qty-val">${item.quantity}</span>
-          <button class="qty-plus" onclick="updateCartQty('${esc(item.id)}', ${item.quantity + 1})" title="Adicionar 1">+</button>
+          <button class="qty-plus" onclick="updateCartQty('${esc(item.id)}', ${item.quantity + 1})" title="${esc(storeT('loja.cart.addOne'))}">+</button>
         </div>
-        <button class="cart-remove-btn" onclick="removeFromCart('${esc(item.id)}')" title="Remover">
+        <button class="cart-remove-btn" onclick="removeFromCart('${esc(item.id)}')" title="${esc(storeT('loja.cart.remove'))}">
           ✕
         </button>
       </div>
@@ -218,7 +237,9 @@ function renderCart() {
     list.appendChild(row);
   });
 
-  const countLabel = currentCart.item_count === 1 ? "1 item" : `${currentCart.item_count} items`;
+  const countLabel = currentCart.item_count === 1
+    ? `1 ${storeT("loja.cart.item")}`
+    : `${currentCart.item_count} ${storeT("loja.cart.items")}`;
   countEl.textContent = countLabel;
   
   // Update subtotal
@@ -232,7 +253,7 @@ function renderCart() {
       discountRow.style.display = "flex";
       discountEl.textContent = "-" + formatAOA(currentCart.discount_amount);
       if (couponStatus && currentCart.coupon_code) {
-        couponStatus.textContent = `Cupão "${currentCart.coupon_code}" aplicado!`;
+        couponStatus.textContent = storeFormat("loja.cart.couponApplied", { code: currentCart.coupon_code });
         couponStatus.style.display = "block";
       }
     } else {
@@ -326,14 +347,12 @@ function showSectorWarning(data) {
   
   if (!modal || !msgEl) return;
   
-  const productSectorLabels = data.product_sectors.map(s => SECTOR_LABELS[s] || s).join(", ");
-  const userSectorLabel = SECTOR_LABELS[data.user_sector] || data.user_sector || "não definido";
-  
-  msgEl.innerHTML = `
-    <p><strong>Atenção:</strong> Este produto pertence ao(s) setor(es) <strong>${esc(productSectorLabels)}</strong>, 
-    mas a sua conta está registada no setor <strong>${esc(userSectorLabel)}</strong>.</p>
-    <p>Deseja continuar assim mesmo?</p>
-  `;
+  const productSectorLabel = storeSectorLabel(data.product_sector);
+  const accountSectorLabel = storeSectorLabel(data.account_sector);
+  msgEl.textContent = storeFormat("loja.sectorWarning.detail", {
+    product: productSectorLabel,
+    account: accountSectorLabel,
+  });
   
   modal.style.display = "flex";
 }
@@ -345,10 +364,10 @@ function closeSectorWarning() {
 }
 
 async function continueAddToCart() {
+  const productId = pendingAddProduct;
   closeSectorWarning();
-  if (pendingAddProduct) {
-    await addToCart(pendingAddProduct);
-    pendingAddProduct = null;
+  if (productId) {
+    await addToCart(productId);
   }
 }
 
@@ -475,17 +494,29 @@ async function applyCoupon() {
 
 function mapCategoryLabel(category) {
   const mapping = {
-    "analysis": "Análise",
-    "mapping": "Mapeamento",
-    "spraying": "Pulverização",
-    "monitoring": "Monitorização",
-    "flight": "Voo",
-    "sensor_kit": "Kit de monitorização",
-    "sensor": "Sensor",
-    "irrigation": "Irrigação",
-    "accessory": "Acessório",
+    "analysis": "loja.category.analysis",
+    "mapping": "loja.category.mapping",
+    "spraying": "loja.category.spraying",
+    "monitoring": "loja.category.monitoring",
+    "flight": "loja.category.flight",
+    "sensor_kit": "loja.category.sensorKit",
+    "sensor": "loja.category.sensor",
+    "irrigation": "loja.category.irrigation",
+    "accessory": "loja.category.accessory",
   };
-  return mapping[category] || category || "Serviço";
+  return mapping[category] ? storeT(mapping[category]) : (category || storeT("loja.category.service"));
+}
+
+function localizedProductCopy(product) {
+  const lang = window.i18n?.getCurrentLanguage?.() || localStorage.getItem('gv_lang') || 'pt';
+  const localized = product.translations?.[lang] || product.translations?.pt || {};
+  const fallback = PRODUCT_PUBLIC_COPY[product.id] || {};
+  return {
+    name: localized.name || fallback.name || product.name,
+    description: localized.short_description || localized.description || fallback.desc ||
+      product.short_description || product.description || storeT("loja.productFallback"),
+    deliverables: localized.deliverables || product.deliverables || [],
+  };
 }
 
 function mapFilterKey(product) {
@@ -512,10 +543,9 @@ function renderProducts() {
   
   // Apply sector filter
   if (currentSectorFilter !== "all") {
-    filtered = filtered.filter((p) => 
-      (p.sectors || []).includes(currentSectorFilter)
-    );
+    filtered = filtered.filter((p) => (p.sectors || []).some((s) => normalizeStoreSector(s) === currentSectorFilter));
   }
+  filtered = filtered.filter((p) => (p.sectors || []).some((s) => normalizeStoreSector(s)));
   
   // Apply type filter
   if (currentTypeFilter !== "all") {
@@ -530,8 +560,8 @@ function renderProducts() {
 
   // Put solutions for the active account first, then globally featured items.
   filtered.sort((a, b) => {
-    const aRecommended = recommendedSector && (a.sectors || []).includes(recommendedSector);
-    const bRecommended = recommendedSector && (b.sectors || []).includes(recommendedSector);
+    const aRecommended = recommendedSector && (a.sectors || []).some((s) => normalizeStoreSector(s) === recommendedSector);
+    const bRecommended = recommendedSector && (b.sectors || []).some((s) => normalizeStoreSector(s) === recommendedSector);
     if (aRecommended && !bRecommended) return -1;
     if (!aRecommended && bRecommended) return 1;
     if (a.is_featured && !b.is_featured) return -1;
@@ -544,15 +574,15 @@ function renderProducts() {
     card.className = "loja-card";
 
     const catLabel = mapCategoryLabel(p.category);
+    const productCopy = localizedProductCopy(p);
     
     // Sector badges
-    const sectorBadges = (p.sectors || []).map(s => 
-      `<span class="${getSectorBadgeClass(s)}">${esc(SECTOR_LABELS[s] || s)}</span>`
-    ).join("");
+    const publicSectors = [...new Set((p.sectors || []).map(normalizeStoreSector).filter(Boolean))];
+    const sectorBadges = publicSectors.map(s => `<span class="${getSectorBadgeClass(s)}">${esc(SECTOR_LABEL_KEYS[s] ? storeT(SECTOR_LABEL_KEYS[s]) : s)}</span>`).join("");
 
     // Execution type badge
     const execBadge = p.execution_type 
-      ? `<span class="execution-badge ${esc(p.execution_type)}">${p.execution_type === 'pontual' ? 'Pontual' : 'Recorrente'}</span>`
+      ? `<span class="execution-badge ${esc(p.execution_type)}">${storeT(p.execution_type === 'pontual' ? 'loja.execution.oneOff' : 'loja.execution.recurring')}</span>`
       : '';
 
     // Meta info
@@ -566,28 +596,27 @@ function renderProducts() {
 
     // Deliverables preview
     let deliverablesHtml = '';
-    if (p.deliverables && p.deliverables.length > 0) {
-      const preview = p.deliverables.slice(0, 3).map(d => esc(d)).join(", ");
-      const more = p.deliverables.length > 3 ? ` +${p.deliverables.length - 3}` : '';
+    if (productCopy.deliverables.length > 0) {
+      const preview = productCopy.deliverables.slice(0, 3).map(d => esc(d)).join(", ");
+      const more = productCopy.deliverables.length > 3 ? ` +${productCopy.deliverables.length - 3}` : '';
       deliverablesHtml = `<div class="deliverables-preview"><i class="fa-solid fa-box"></i> ${preview}${more}</div>`;
     }
 
     // Featured badge
     const featuredBadge = p.is_featured 
-      ? '<span class="featured-badge">Destaque</span>' 
+      ? `<span class="featured-badge">${esc(storeT("loja.featured"))}</span>`
       : '';
-    const recommendationBadge = recommendedSector && (p.sectors || []).includes(recommendedSector)
+    const recommendationBadge = recommendedSector && publicSectors.includes(recommendedSector)
       ? `<span class="recommended-badge">${esc(storeT("loja.recommended"))}</span>`
       : '';
 
     card.innerHTML = `
-      ${featuredBadge}
-      ${recommendationBadge}
+      <div class="loja-card-badges">${recommendationBadge}${featuredBadge}</div>
       <div>
         <div class="loja-card-tag">${esc(catLabel)} ${execBadge}</div>
-        <h3 class="loja-card-title">${esc(p.name)}</h3>
+        <h3 class="loja-card-title">${esc(productCopy.name)}</h3>
         <p class="loja-card-desc">
-          ${esc(p.short_description || p.description || "Serviço GeoVision integrado.")}
+          ${esc(productCopy.description)}
         </p>
         <div class="loja-card-sectors">${sectorBadges}</div>
         ${metaHtml ? `<div class="loja-card-meta">${metaHtml}</div>` : ''}
@@ -609,13 +638,28 @@ function renderProducts() {
           </div>
         </div>
         <button class="btn-add" onclick="handleAddToCart('${esc(p.id)}')">
-          Adicionar
+          ${esc(storeT("loja.add"))}
         </button>
       </div>
     `;
     grid.appendChild(card);
   });
 }
+
+function updateStoreRecommendation() {
+  const recommendation = document.getElementById("loja-account-recommendation");
+  if (recommendation && recommendedSector) {
+    recommendation.hidden = false;
+    recommendation.textContent = `${storeT("loja.recommendedFor")} ${storeSectorLabel(recommendedSector)}`;
+  }
+}
+
+window.addEventListener('gv:languagechange', () => {
+  updateStoreRecommendation();
+  renderProducts();
+  renderCart();
+  renderCheckoutSummary();
+});
 
 function setupFilters() {
   // Sector filter buttons (inside #sector-filters)
@@ -627,11 +671,7 @@ function setupFilters() {
   } else {
     currentSectorFilter = "all";
   }
-  const recommendation = document.getElementById("loja-account-recommendation");
-  if (recommendation && recommendedSector) {
-    recommendation.hidden = false;
-    recommendation.textContent = `${storeT("loja.recommendedFor")} ${SECTOR_LABELS[recommendedSector] || recommendedSector}`;
-  }
+  updateStoreRecommendation();
   sectorButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       sectorButtons.forEach((b) => b.classList.remove("active"));
@@ -666,7 +706,7 @@ function getUserEmail() {
 
 async function openCheckoutModal() {
   if (!currentCart || !currentCart.items.length) {
-    alert("O carrinho está vazio.");
+    alert(storeT("loja.cart.empty"));
     return;
   }
 
@@ -735,20 +775,22 @@ function renderCheckoutSummary() {
 
   let html = "<ul>";
   currentCart.items.forEach((item) => {
-    html += `<li>${item.quantity}x ${esc(item.product_name)} - ${formatAOA(item.total_price)}</li>`;
+    const product = allProducts.find(p => p.id === item.product_id);
+    const itemName = product ? localizedProductCopy(product).name : item.product_name;
+    html += `<li>${item.quantity}x ${esc(itemName)} - ${formatAOA(item.total_price)}</li>`;
   });
   html += "</ul>";
   
   if (currentCart.discount_amount > 0) {
     html += `<p><strong>Desconto:</strong> -${formatAOA(currentCart.discount_amount)}</p>`;
   }
-  html += `<p style="font-size:0.85rem;color:#94a3b8;"><em>IVA (14%) incluído: ${formatAOA(currentCart.tax_amount)}</em></p>`;
+  html += `<p style="font-size:0.85rem;color:#94a3b8;"><em>${esc(storeT('loja.checkout.taxIncluded'))}: ${formatAOA(currentCart.tax_amount)}</em></p>`;
   html += `<p class="checkout-total"><strong>Total:</strong> ${formatAOA(currentCart.total)}</p>`;
 
   // Multi-currency totals
   const totals = computeMultiCurrencyTotals();
   html += `<div class="checkout-multi-totals" style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid rgba(148,163,184,0.2);">
-    <p style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.1em;">Valores em todas as moedas:</p>
+    <p style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.1em;">${esc(storeT('loja.checkout.allCurrencies'))}:</p>
     <div style="display:flex;flex-direction:column;gap:0.3rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-aoa" style="font-size:0.7rem;">AOA</span><strong>${formatPrice(totals.aoa, 'AOA')}</strong></div>
       <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-usd" style="font-size:0.7rem;">USD</span><strong>${formatPrice(totals.usd, 'USD')}</strong></div>
@@ -780,7 +822,7 @@ async function processCheckout() {
   // Loading state
   const btn = document.getElementById("confirm-checkout-btn");
   const btnOrigText = btn ? btn.textContent : "";
-  if (btn) { btn.disabled = true; btn.textContent = "A processar..."; btn.style.opacity = "0.7"; }
+  if (btn) { btn.disabled = true; btn.textContent = storeT("loja.checkout.processing"); btn.style.opacity = "0.7"; }
 
   try {
     const token = localStorage.getItem("gv_token");
@@ -834,7 +876,7 @@ function showPaymentInstructions(result) {
   const paymentInstructions = document.getElementById("payment-instructions");
   
   if (!paymentInstructions) {
-    alert(`Pedido ${result.order_number} criado com sucesso!`);
+    alert(storeFormat("loja.checkout.orderCreatedRef", { number: result.order_number }));
     return;
   }
 
@@ -844,7 +886,7 @@ function showPaymentInstructions(result) {
 
   let html = `
     <div class="payment-instructions" style="text-align:center;">
-      <p class="order-success" style="font-size:1.3rem;margin-bottom:0.5rem;">✓ Pedido Criado</p>
+      <p class="order-success" style="font-size:1.3rem;margin-bottom:0.5rem;">✓ ${esc(storeT('loja.checkout.orderCreated'))}</p>
       <p style="font-size:1.1rem;font-weight:600;margin-bottom:1rem;">${esc(result.order_number)}</p>
   `;
 
@@ -854,7 +896,7 @@ function showPaymentInstructions(result) {
     html += `
       <div class="payment-instructions">
         <h3>Multicaixa Express</h3>
-        <p>Scan the QR code with the Multicaixa Express app:</p>
+        <p>${esc(storeT('loja.payment.scanQr'))}</p>
         <div class="qr-container">
           <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(pd.qr_code)}" alt="QR Code" />
         </div>
@@ -864,14 +906,14 @@ function showPaymentInstructions(result) {
   } else if (result.payment_method === "visa_mastercard" && pd.client_secret) {
     html += `
       <div class="payment-instructions">
-        <h3><i class="fa-brands fa-cc-stripe" style="color:#635bff;"></i> Pagar com Cartão</h3>
-        <p>Introduz os dados do cartão abaixo:</p>
+        <h3><i class="fa-brands fa-cc-stripe" style="color:#635bff;"></i> ${esc(storeT('loja.payment.cardTitle'))}</h3>
+        <p>${esc(storeT('loja.payment.cardDetails'))}</p>
         <div id="stripe-payment-element" style="min-height:120px;margin:1rem 0;padding:1rem;border:1px solid rgba(255,255,255,0.1);border-radius:8px;background:rgba(0,0,0,0.2);"></div>
         <div id="stripe-error" style="color:#f97373;font-size:0.85rem;min-height:1.2rem;margin-bottom:0.5rem;"></div>
         <button id="stripe-pay-btn" class="checkout-btn" style="width:100%;margin-top:0.5rem;" onclick="confirmStripePayment()">
-          Pagar Agora
+          ${esc(storeT('loja.payment.payNow'))}
         </button>
-        <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">Pagamento seguro via Stripe</p>
+        <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">${esc(storeT('loja.payment.stripeSecure'))}</p>
       </div>
     `;
     // Mount Stripe Elements after inserting HTML
@@ -880,23 +922,23 @@ function showPaymentInstructions(result) {
     // Stripe not configured or client_secret missing — show fallback
     html += `
       <div class="payment-instructions">
-        <h3>Pagar com Cartão</h3>
-        <p>O pagamento por cartão está temporariamente indisponível.</p>
-        <p style="font-size:.85rem;color:#94a3b8;margin-top:.5rem;">Podes usar <strong>Transferência Bancária (IBAN)</strong> como alternativa.</p>
+        <h3>${esc(storeT('loja.payment.cardTitle'))}</h3>
+        <p>${esc(storeT('loja.payment.cardUnavailable'))}</p>
+        <p style="font-size:.85rem;color:#94a3b8;margin-top:.5rem;">${esc(storeT('loja.payment.cardAlternative'))}</p>
       </div>
     `;
   } else if (result.payment_method === "iban_angola" && pd.transfer_details) {
     const td = pd.transfer_details;
     html += `
       <div class="payment-instructions">
-        <h3>Bank Transfer</h3>
-        <p>Transfer to the account below and send proof of payment:</p>
+        <h3>${esc(storeT('loja.payment.bankTransfer'))}</h3>
+        <p>${esc(storeT('loja.payment.bankInstructions'))}</p>
         <div class="bank-details">
-          <p><strong>Banco:</strong> ${esc(td.bank_name)}</p>
+          <p><strong>${esc(storeT('loja.payment.bank'))}:</strong> ${esc(td.bank_name)}</p>
           <p><strong>IBAN:</strong> ${esc(td.iban)}</p>
-          <p><strong>Beneficiário:</strong> ${esc(td.beneficiary || "GeoVision Lda")}</p>
-          <p><strong>Referência:</strong> ${esc(td.reference || result.order_number)}</p>
-          <p><strong>Valor:</strong> ${td.amount?.toLocaleString("pt-AO")} AOA</p>
+          <p><strong>${esc(storeT('loja.payment.beneficiary'))}:</strong> ${esc(td.beneficiary || "GeoVision Lda")}</p>
+          <p><strong>${esc(storeT('loja.payment.reference'))}:</strong> ${esc(td.reference || result.order_number)}</p>
+          <p><strong>${esc(storeT('loja.payment.amount'))}:</strong> ${td.amount?.toLocaleString("pt-AO")} AOA</p>
         </div>
       </div>
     `;
@@ -905,14 +947,14 @@ function showPaymentInstructions(result) {
     const cur = td.currency || "EUR";
     html += `
       <div class="payment-instructions">
-        <h3>Transferência Internacional (SWIFT/SEPA)</h3>
+        <h3>${esc(storeT('loja.payment.internationalTransfer'))}</h3>
         <div class="bank-details">
-          <p><strong>Banco:</strong> ${esc(td.bank_name)}</p>
+          <p><strong>${esc(storeT('loja.payment.bank'))}:</strong> ${esc(td.bank_name)}</p>
           <p><strong>IBAN:</strong> ${esc(td.iban)}</p>
           <p><strong>SWIFT/BIC:</strong> ${esc(td.bic)}</p>
-          <p><strong>Beneficiário:</strong> ${esc(td.beneficiary || "GeoVision Lda")}</p>
-          <p><strong>Referência:</strong> ${esc(td.reference || result.order_number)}</p>
-          <p><strong>Valor:</strong> ${td.amount?.toLocaleString("pt-PT", {minimumFractionDigits: 2})} ${cur}</p>
+          <p><strong>${esc(storeT('loja.payment.beneficiary'))}:</strong> ${esc(td.beneficiary || "GeoVision Lda")}</p>
+          <p><strong>${esc(storeT('loja.payment.reference'))}:</strong> ${esc(td.reference || result.order_number)}</p>
+          <p><strong>${esc(storeT('loja.payment.amount'))}:</strong> ${td.amount?.toLocaleString("pt-PT", {minimumFractionDigits: 2})} ${cur}</p>
         </div>
       </div>
     `;
@@ -921,11 +963,11 @@ function showPaymentInstructions(result) {
     const paypalUrl = /^https:\/\//.test(pd.redirect_url) ? pd.redirect_url : '#';
     html += `
       <div class="payment-instructions">
-        <h3><i class="fa-brands fa-paypal" style="color:#003087;"></i> Pagar com PayPal</h3>
-        <p>Serás redirecionado para o PayPal para completar o pagamento.</p>
+        <h3><i class="fa-brands fa-paypal" style="color:#003087;"></i> ${esc(storeT('loja.payment.paypalTitle'))}</h3>
+        <p>${esc(storeT('loja.payment.paypalBody'))}</p>
         <a href="${esc(paypalUrl)}" class="btn-payment" target="_blank"
            style="display:inline-flex;align-items:center;gap:.5rem;background:#0070ba;color:#fff;padding:.8rem 2rem;border-radius:8px;text-decoration:none;font-weight:600;margin:1rem 0;">
-          <i class="fa-brands fa-paypal"></i> Pagar com PayPal
+          <i class="fa-brands fa-paypal"></i> ${esc(storeT('loja.payment.paypalTitle'))}
         </a>
         <p style="font-size:.75rem;color:#94a3b8;margin-top:.5rem;">Ref: ${esc(pd.provider_reference || "")}</p></p>
       </div>
@@ -933,13 +975,13 @@ function showPaymentInstructions(result) {
   } else {
     html += `
       <div class="payment-instructions">
-        <p>Aguarda confirmação. Entraremos em contacto em breve.</p>
+        <p>${esc(storeT('loja.payment.awaiting'))}</p>
       </div>
     `;
   }
 
   html += `
-      <button class="checkout-btn" onclick="closeCheckoutModal()">Fechar</button>
+      <button class="checkout-btn" onclick="closeCheckoutModal()">${esc(storeT('loja.payment.close'))}</button>
     </div>
   `;
 
@@ -965,7 +1007,7 @@ async function initStripe() {
 function mountStripePaymentElement(clientSecret) {
   if (!stripeInstance) {
     const errEl = document.getElementById("stripe-error");
-    if (errEl) errEl.textContent = "Stripe não está configurado. Contacta o suporte.";
+    if (errEl) errEl.textContent = storeT("loja.payment.stripeMissing");
     return;
   }
   const appearance = {

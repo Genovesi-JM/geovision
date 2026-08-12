@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
@@ -50,23 +51,31 @@ class GvErrorState extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(GvSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: GvColors.high),
-              const SizedBox(height: GvSpacing.md),
-              Text(message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GvColors.textSecondary)),
-              if (onRetry != null) ...[
-                const SizedBox(height: GvSpacing.lg),
-                FilledButton(onPressed: onRetry, child: const Text('Retry')),
-              ],
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final technical = message.length > 180 ||
+        message.contains('DioException') ||
+        message.contains('RequestOptions') ||
+        message.contains('StackTrace');
+    final visibleMessage = technical ? l10n.deviceError : message;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(GvSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: GvColors.high),
+            const SizedBox(height: GvSpacing.md),
+            Text(visibleMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: GvColors.textSecondary)),
+            if (onRetry != null) ...[
+              const SizedBox(height: GvSpacing.lg),
+              FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
             ],
-          ),
+          ],
         ),
-      );
+      ),
+    );
+  }
 }

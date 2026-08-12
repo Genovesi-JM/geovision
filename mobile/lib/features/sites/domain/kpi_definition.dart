@@ -57,66 +57,48 @@ abstract final class KpiCatalogue {
         id: 'ndvi_avg',
         label: 'Average NDVI',
         unit: '',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         description: 'Mean vegetation vigour across monitored fields.'),
     KpiDefinition(
         id: 'ndre',
         label: 'NDRE',
         unit: '',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         description: 'Red-edge index — nitrogen / canopy status.'),
     KpiDefinition(
         id: 'vegetation_coverage',
         label: 'Vegetation coverage',
         unit: '%',
-        sector: Sector.agriculture),
+        sector: Sector.agro),
     KpiDefinition(
         id: 'water_stress',
         label: 'Water stress',
         unit: '%',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         higherIsBetter: false),
     KpiDefinition(
         id: 'infestation_risk',
         label: 'Infestation risk',
         unit: '%',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         higherIsBetter: false),
     KpiDefinition(
         id: 'anomaly_count',
         label: 'Anomalies',
         unit: '',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         higherIsBetter: false),
     KpiDefinition(
         id: 'cultivated_area',
         label: 'Cultivated area',
         unit: 'ha',
-        sector: Sector.agriculture),
+        sector: Sector.agro),
     KpiDefinition(
         id: 'chem_cost_ha',
         label: 'Chemical cost / ha',
         unit: 'USD',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         higherIsBetter: false),
-  ];
-
-  static const livestock = <KpiDefinition>[
-    KpiDefinition(
-        id: 'herd_count',
-        label: 'Herd count',
-        unit: '',
-        sector: Sector.livestock),
-    KpiDefinition(
-        id: 'grazing_index',
-        label: 'Grazing index',
-        unit: '',
-        sector: Sector.livestock),
-    KpiDefinition(
-        id: 'water_points',
-        label: 'Water points OK',
-        unit: '%',
-        sector: Sector.livestock),
   ];
 
   static const infrastructure = <KpiDefinition>[
@@ -138,13 +120,12 @@ abstract final class KpiCatalogue {
     switch (s) {
       case Sector.home:
         return home;
-      case Sector.agriculture:
+      case Sector.agro:
         return agriculture;
-      case Sector.livestock:
-        return livestock;
-      case Sector.infrastructure:
-      case Sector.mining:
       case Sector.environment:
+      case Sector.construction:
+      case Sector.industry:
+      case Sector.infrastructure:
         return infrastructure;
     }
   }

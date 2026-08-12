@@ -4,6 +4,8 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
+from app.time_utils import utc_now
+
 from .database import AccountsBase
 
 
@@ -16,7 +18,7 @@ class CustomerAccount(AccountsBase):
     company = Column(String(200), nullable=True)
     country = Column(String(100), nullable=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
 
 class Employee(AccountsBase):
@@ -29,4 +31,4 @@ class Employee(AccountsBase):
     department = Column(String(120), nullable=True)
     phone = Column(String(60), nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import TelemetryAggregate, TelemetryReading
+from app.time_utils import utc_from_timestamp, utc_now
 
 
 BUCKET_SECONDS = 300
@@ -14,7 +15,7 @@ BUCKET_SECONDS = 300
 
 def _bucket(value: datetime) -> datetime:
     epoch = int(value.timestamp())
-    return datetime.utcfromtimestamp(epoch - epoch % BUCKET_SECONDS)
+    return utc_from_timestamp(epoch - epoch % BUCKET_SECONDS)
 
 
 def aggregate_and_retain(db: Session) -> dict[str, int]:
@@ -24,7 +25,7 @@ def aggregate_and_retain(db: Session) -> dict[str, int]:
     Large deployments can replace it with Timescale continuous aggregates while
     retaining the same table/API contract.
     """
-    now = datetime.utcnow(); completed_before = _bucket(now)
+    now = utc_now(); completed_before = _bucket(now)
     recent_after = completed_before - timedelta(minutes=15)
     rows = db.query(TelemetryReading).filter(
         TelemetryReading.numeric_value.is_not(None),

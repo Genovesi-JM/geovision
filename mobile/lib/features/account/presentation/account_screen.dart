@@ -10,6 +10,7 @@ import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_section_header.dart';
 import '../../authentication/presentation/auth_controller.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../authentication/presentation/registration_copy.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -21,6 +22,7 @@ class AccountScreen extends ConsumerWidget {
     final profile = session.profile;
     final language = ref.watch(localeProvider).languageCode.toUpperCase();
     final text = AppLocalizations.of(context);
+    final accountCopy = RegistrationCopy.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(text.navMore)),
@@ -76,6 +78,34 @@ class AccountScreen extends ConsumerWidget {
               ],
             ),
           ),
+          if (profile != null) ...[
+            const SizedBox(height: GvSpacing.md),
+            GvCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(accountCopy.profile(profile.customerType),
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: GvSpacing.sm),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: profile.sectors
+                        .map((sector) => Chip(
+                            label: Text(accountCopy.sector(sector)),
+                            visualDensity: VisualDensity.compact))
+                        .toList(),
+                  ),
+                  if (profile.useCases.isNotEmpty) ...[
+                    const SizedBox(height: GvSpacing.xs),
+                    Text(profile.useCases.map(accountCopy.useCase).join(' · '),
+                        style: const TextStyle(
+                            color: GvColors.textSecondary, fontSize: 12)),
+                  ],
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: GvSpacing.md),
           FilledButton.icon(
             onPressed: () => context.go('/account-live'),

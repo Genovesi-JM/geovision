@@ -24,7 +24,9 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..account_profiles import PUBLIC_SECTORS, normalize_account_profile
 from ..database import SessionLocal, engine, get_db
+from ..time_utils import utc_now
 from ..mail import send_reset_email
 from ..middleware import log_audit
 from ..models import (
@@ -47,7 +49,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 ADMIN_EMAILS: Set[str] = {"genovesi.maria@geovisionops.com"}
 DEFAULT_MODULES = ["kpi", "projects", "store", "alerts"]
-ALLOWED_SECTORS = {"agro", "home", "mining", "demining", "construction", "infrastructure", "solar"}
+# Legacy sectors can remain on historical accounts, but new public onboarding is
+# deliberately limited to the accepted current offer.
+ALLOWED_SECTORS = PUBLIC_SECTORS
 
 REFRESH_TOKEN_BYTES = 48
 
@@ -150,10 +154,14 @@ def _ensure_default_account(db: Session, user: User, sector_focus: str | None = 
     if not account_name:
         account_name = (email.split("@")[0] if "@" in email else (email or "geovision")) + " workspace"
 
+    default_profile = normalize_account_profile("farm", sector_focus=sector_focus or "agro")
     account = Account(
         name=account_name,
-        sector_focus=sector_focus or "agro",
-        entity_type=(getattr(profile, "entity_type", None) or "individual") if profile else "individual",
+        sector_focus=default_profile["sector_focus"],
+        entity_type=default_profile["entity_type"],
+        customer_type=default_profile["customer_type"],
+        dashboard_profile=default_profile["dashboard_profile"],
+        use_cases=json.dumps(default_profile["use_cases"]),
         org_name=(getattr(profile, "org_name", None) if profile else None),
         modules_enabled=json.dumps(DEFAULT_MODULES),
     )
@@ -200,7 +208,7 @@ def _create_refresh_token(db: Session, user_id: str, family_id: str | None = Non
         token_hash=token_hash,
         user_id=user_id,
         family_id=family_id,
-        expires_at=datetime.utcnow() + timedelta(days=settings.refresh_token_expires_days),
+        expires_at=utc_now() + timedelta(days=settings.refresh_token_expires_days),
     )
     db.add(rt)
     db.commit()
@@ -300,9 +308,15 @@ def _build_auth_response(db: Session, user: User) -> dict:
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     email = (payload.email or "").strip().lower()
 
-    sector_focus = payload.sector_focus or "agro"
-    if sector_focus not in ALLOWED_SECTORS:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sector_focus")
+    try:
+        account_profile = normalize_account_profile(
+            payload.customer_type,
+            sectors=payload.sectors,
+            sector_focus=payload.sector_focus,
+            use_cases=payload.use_cases,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     existing = db.query(User).filter(User.email == email).first()
     if existing:
@@ -313,14 +327,24 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     db.add(user)
     db.flush()
 
-    profile = UserProfile(user_id=user.id, full_name=payload.full_name, company=payload.org_name)
+    profile = UserProfile(
+        user_id=user.id,
+        full_name=payload.full_name,
+        company=payload.org_name,
+        entity_type=account_profile["entity_type"],
+        org_name=payload.org_name,
+    )
     db.add(profile)
 
     modules = payload.modules_enabled or DEFAULT_MODULES
     account_name = payload.account_name or payload.org_name or ((payload.full_name or email.split("@")[0]) + " workspace")
     account = Account(
-        name=account_name, sector_focus=sector_focus,
-        entity_type=payload.entity_type, org_name=payload.org_name,
+        name=account_name, sector_focus=account_profile["sector_focus"],
+        entity_type=account_profile["entity_type"],
+        customer_type=account_profile["customer_type"],
+        dashboard_profile=account_profile["dashboard_profile"],
+        use_cases=json.dumps(account_profile["use_cases"]),
+        org_name=payload.org_name,
         modules_enabled=json.dumps(modules),
     )
     db.add(account)
@@ -399,7 +423,7 @@ def refresh_token_endpoint(payload: RefreshTokenRequest, db: Session = Depends(g
     if not rt:
         raise HTTPException(status_code=401, detail="Invalid or revoked refresh token")
 
-    if rt.expires_at < datetime.utcnow():
+    if rt.expires_at < utc_now():
         rt.revoked = True
         db.commit()
         raise HTTPException(status_code=401, detail="Refresh token expired")
@@ -483,12 +507,28 @@ def get_current_user(
         pass
 
     return {
+        "id": user.id,
         "email": user.email,
         "name": getattr(profile, "full_name", None) or "",
+        "full_name": getattr(profile, "full_name", None) or "",
+        "phone": getattr(profile, "phone", None),
         "role": resolve_role(user),
         "company": getattr(profile, "company", None) or getattr(profile, "org_name", None) or "",
         "account_id": getattr(account, "id", "") if account else "",
         "account_name": getattr(account, "name", "") if account else "",
+        "customer_type": getattr(account, "customer_type", "farm") if account else "farm",
+        "dashboard_profile": getattr(account, "dashboard_profile", "farm") if account else "farm",
+        "sector_focus": getattr(account, "sector_focus", "agro") if account else "agro",
+        "use_cases": json.loads(getattr(account, "use_cases", None) or "[]") if account else [],
+        "account": ({
+            "id": account.id,
+            "name": account.name,
+            "org_name": getattr(account, "org_name", None),
+            "customer_type": getattr(account, "customer_type", "farm"),
+            "dashboard_profile": getattr(account, "dashboard_profile", "farm"),
+            "sector_focus": getattr(account, "sector_focus", "agro"),
+            "use_cases": json.loads(getattr(account, "use_cases", None) or "[]"),
+        } if account else None),
         "company_id": company_row.company_id if company_row else "",
     }
 
@@ -543,7 +583,7 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
     user = db.query(User).filter(User.email == email).first()
     if user:
         token = _generate_one_time_token()
-        expires_at = datetime.utcnow() + timedelta(hours=1)
+        expires_at = utc_now() + timedelta(hours=1)
         rt = ResetToken(token=token, user_id=user.id, expires_at=expires_at)
         db.add(rt)
         db.commit()
@@ -562,7 +602,7 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
     if not token:
         raise HTTPException(status_code=400, detail="Token ausente.")
 
-    now = datetime.utcnow()
+    now = utc_now()
     rt = db.query(ResetToken).filter(ResetToken.token == token, ResetToken.used == False).first()
     if not rt:
         raise HTTPException(status_code=400, detail="Token inválido ou já utilizado.")
@@ -602,7 +642,7 @@ def google_login(db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Google OAuth não configurado. Defina {', '.join(missing)}.")
 
     state = _generate_state_token()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    expires_at = utc_now() + timedelta(minutes=10)
     os_state = OAuthState(state=state, expires_at=expires_at)
     db.add(os_state)
     db.commit()
@@ -652,7 +692,7 @@ def google_callback(code: str | None = None, state: str | None = None,
             raise HTTPException(status_code=400, detail="OAuth state inválido.")
         if st.used:
             raise HTTPException(status_code=400, detail="OAuth state já utilizado (replay).")
-        if st.expires_at < datetime.utcnow():
+        if st.expires_at < utc_now():
             raise HTTPException(status_code=400, detail="OAuth state expirado.")
         st.used = True
         db.add(st)
@@ -677,7 +717,8 @@ def google_callback(code: str | None = None, state: str | None = None,
         )
 
         _ensure_profile(db, user, full_name=name)
-        account = _ensure_default_account(db, user)
+        membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+        account = db.get(Account, membership.account_id) if membership else None
 
         role = resolve_role(user)
         token = create_access_token({"sub": email, "role": role, "uid": user.id})
@@ -685,7 +726,7 @@ def google_callback(code: str | None = None, state: str | None = None,
         log_audit(db, "oauth_login", user_id=user.id, user_email=email,
                   details={"provider": "google"}, request=request)
 
-        redirect_path = "/admin.html" if role == "admin" else "/dashboard.html"
+        redirect_path = "/admin.html" if role == "admin" else ("/dashboard.html" if account else "/onboarding.html")
         frontend_base = settings.frontend_base.rstrip("/")
         callback_url = f"{frontend_base}/auth-callback.html"
         # Use URL fragment (#) instead of query params (?) so the token
@@ -707,18 +748,20 @@ def google_callback(code: str | None = None, state: str | None = None,
         raise HTTPException(status_code=500, detail=f"Erro interno: {type(exc).__name__}: {exc}")
 
 
-class GoogleOnboardingRequest(BaseModel):
-    sector_focus: str
+class OnboardingRequest(BaseModel):
+    sector_focus: Optional[str] = None
     sectors: Optional[List[str]] = None
-    entity_type: str = "individual"
+    customer_type: str = "farm"
+    use_cases: Optional[List[str]] = None
     account_name: Optional[str] = None
     org_name: Optional[str] = None
     modules_enabled: Optional[List[str]] = None
 
 
-@router.post("/google/onboarding", response_model=AuthResponse)
-def google_onboarding(
-    payload: GoogleOnboardingRequest,
+@router.post("/onboarding", response_model=AuthResponse)
+@router.post("/google/onboarding", response_model=AuthResponse, include_in_schema=False)
+def complete_onboarding(
+    payload: OnboardingRequest,
     authorization: str | None = Header(default=None, alias="Authorization"),
     db: Session = Depends(get_db),
 ):
@@ -752,20 +795,25 @@ def google_onboarding(
         })
         return AuthResponse(access_token=new_token, user=user, account=account)
 
-    if payload.sectors:
-        sectors_list = [s.strip() for s in payload.sectors if s.strip() in ALLOWED_SECTORS]
-    else:
-        sectors_list = [s.strip() for s in (payload.sector_focus or "agro").split(",") if s.strip() in ALLOWED_SECTORS]
-    if not sectors_list:
-        sectors_list = ["agro"]
+    try:
+        account_profile = normalize_account_profile(
+            payload.customer_type,
+            sectors=payload.sectors,
+            sector_focus=payload.sector_focus,
+            use_cases=payload.use_cases,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    sector = ",".join(sectors_list)
     modules = payload.modules_enabled or DEFAULT_MODULES
     account_name = payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
 
     account = Account(
-        name=account_name, sector_focus=sector,
-        entity_type=payload.entity_type or "individual",
+        name=account_name, sector_focus=account_profile["sector_focus"],
+        entity_type=account_profile["entity_type"],
+        customer_type=account_profile["customer_type"],
+        dashboard_profile=account_profile["dashboard_profile"],
+        use_cases=json.dumps(account_profile["use_cases"]),
         org_name=payload.org_name,
         modules_enabled=json.dumps(modules),
     )
@@ -801,7 +849,7 @@ def microsoft_login(db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Microsoft OAuth não configurado. Defina {', '.join(missing)}.")
 
     state = _generate_state_token()
-    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    expires_at = utc_now() + timedelta(minutes=10)
     os_state = OAuthState(state=state, expires_at=expires_at)
     db.add(os_state)
     db.commit()
@@ -859,7 +907,7 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
             raise HTTPException(status_code=400, detail="OAuth state inválido.")
         if st.used:
             raise HTTPException(status_code=400, detail="OAuth state já utilizado (replay).")
-        if st.expires_at < datetime.utcnow():
+        if st.expires_at < utc_now():
             raise HTTPException(status_code=400, detail="OAuth state expirado.")
         st.used = True
         db.add(st)
@@ -888,7 +936,8 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
         )
 
         _ensure_profile(db, user, full_name=name)
-        account = _ensure_default_account(db, user)
+        membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+        account = db.get(Account, membership.account_id) if membership else None
 
         role = resolve_role(user)
         token = create_access_token({"sub": email, "role": role, "uid": user.id})
@@ -896,7 +945,7 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
         log_audit(db, "oauth_login", user_id=user.id, user_email=email,
                   details={"provider": "microsoft"}, request=request)
 
-        redirect_path = "/admin.html" if role == "admin" else "/dashboard.html"
+        redirect_path = "/admin.html" if role == "admin" else ("/dashboard.html" if account else "/onboarding.html")
         frontend_base = settings.frontend_base.rstrip("/")
         callback_url = f"{frontend_base}/auth-callback.html"
         params = urlencode({

@@ -29,7 +29,7 @@ class ProductImage extends StatelessWidget {
     if (product.sectors.contains('home')) {
       return 'assets/images/store/environmental-monitoring.jpg';
     }
-    if (product.sectors.contains('mining')) {
+    if (product.sectors.contains('industry')) {
       return 'assets/images/store/mining-drone-survey.jpg';
     }
     if (product.sectors.contains('construction')) {
@@ -37,9 +37,6 @@ class ProductImage extends StatelessWidget {
     }
     if (product.sectors.contains('infrastructure')) {
       return 'assets/images/store/infrastructure-inspection.jpg';
-    }
-    if (product.sectors.contains('livestock')) {
-      return 'assets/images/store/livestock-aerial-count.jpg';
     }
     if (product.sectors.contains('environment')) {
       return 'assets/images/store/environmental-monitoring.jpg';

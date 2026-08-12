@@ -13,15 +13,21 @@ import '../../../core/widgets/quick_action.dart';
 import '../../../core/widgets/severity_chip.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../sites/presentation/kpi_labels.dart';
+import '../../authentication/presentation/auth_controller.dart';
+import '../../authentication/presentation/registration_copy.dart';
+import '../../alerts/presentation/alert_copy.dart';
 import '../data/home_repository.dart';
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+class PortalScreen extends ConsumerWidget {
+  const PortalScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(homeSummaryProvider);
     final l10n = AppLocalizations.of(context);
+    final alertCopy = AlertCopy.of(context);
+    final profile = ref.watch(authControllerProvider).profile;
+    final accountCopy = RegistrationCopy.of(context);
 
     return Scaffold(
       body: RefreshIndicator(
@@ -58,6 +64,28 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: GvSpacing.lg),
+              if (profile != null) ...[
+                GvCard(
+                  child: Row(children: [
+                    const Icon(Icons.tune, color: GvColors.accentGreen),
+                    const SizedBox(width: GvSpacing.md),
+                    Expanded(
+                        child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(accountCopy.profile(profile.customerType),
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(
+                            profile.sectors.map(accountCopy.sector).join(' · '),
+                            style: const TextStyle(
+                                color: GvColors.textSecondary, fontSize: 12)),
+                      ],
+                    )),
+                  ]),
+                ),
+                const SizedBox(height: GvSpacing.md),
+              ],
               GvSectionHeader(title: l10n.quickActions),
               GridView.count(
                 shrinkWrap: true,
@@ -66,27 +94,8 @@ class HomeScreen extends ConsumerWidget {
                 mainAxisSpacing: GvSpacing.sm,
                 crossAxisSpacing: GvSpacing.sm,
                 childAspectRatio: 0.82,
-                children: [
-                  QuickAction(
-                      icon: Icons.map_outlined,
-                      label: l10n.siteMap,
-                      onTap: () {
-                        final id = s.selectedSite?.id;
-                        if (id != null) context.go('/sites/$id/map');
-                      }),
-                  QuickAction(
-                      icon: Icons.terrain_outlined,
-                      label: l10n.navAssets,
-                      onTap: () => context.go('/sites')),
-                  QuickAction(
-                      icon: Icons.sensors_outlined,
-                      label: l10n.devices,
-                      onTap: () => context.go('/devices')),
-                  QuickAction(
-                      icon: Icons.warning_amber,
-                      label: l10n.navAlerts,
-                      onTap: () => context.go('/alerts')),
-                ],
+                children: _quickActions(context, l10n,
+                    profile?.dashboardProfile, s.selectedSite?.id),
               ),
               const SizedBox(height: GvSpacing.md),
               GvSectionHeader(
@@ -112,7 +121,7 @@ class HomeScreen extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(a.title,
+                                  Text(alertCopy.title(a),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
@@ -244,5 +253,56 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  List<Widget> _quickActions(BuildContext context, AppLocalizations l10n,
+      String? dashboard, String? siteId) {
+    QuickAction action(String id) => switch (id) {
+          'map' => QuickAction(
+              icon: Icons.map_outlined,
+              label: l10n.siteMap,
+              onTap: () => siteId == null
+                  ? context.go('/sites')
+                  : context.go('/sites/$siteId/map')),
+          'devices' => QuickAction(
+              icon: Icons.sensors_outlined,
+              label: l10n.devices,
+              onTap: () => context.go('/devices')),
+          'work' => QuickAction(
+              icon: Icons.add_task_outlined,
+              label: l10n.requestService,
+              onTap: () => context.go('/work')),
+          'reports' => QuickAction(
+              icon: Icons.description_outlined,
+              label: l10n.reports,
+              onTap: () => context.go('/reports')),
+          'store' => QuickAction(
+              icon: Icons.storefront_outlined,
+              label: l10n.navStore,
+              onTap: () => context.go('/orders')),
+          'alerts' => QuickAction(
+              icon: Icons.warning_amber,
+              label: l10n.navAlerts,
+              onTap: () => context.go('/alerts')),
+          'drones' => QuickAction(
+              icon: Icons.flight_takeoff_outlined,
+              label: 'Drones',
+              onTap: () => context.go('/drones')),
+          _ => QuickAction(
+              icon: Icons.terrain_outlined,
+              label: l10n.navAssets,
+              onTap: () => context.go('/sites')),
+        };
+
+    final ids = switch (dashboard) {
+      'home' || 'device' => ['sites', 'devices', 'alerts', 'store'],
+      'farm' => ['map', 'devices', 'drones', 'alerts'],
+      'construction' => ['map', 'devices', 'drones', 'reports'],
+      'environment' => ['map', 'devices', 'drones', 'reports'],
+      'industry' => ['map', 'devices', 'drones', 'reports'],
+      'enterprise' => ['map', 'devices', 'drones', 'alerts'],
+      _ => ['map', 'sites', 'devices', 'work'],
+    };
+    return ids.map(action).toList();
   }
 }

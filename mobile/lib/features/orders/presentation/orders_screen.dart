@@ -13,6 +13,7 @@ import '../domain/currency.dart';
 import '../domain/product.dart';
 import 'cart_controller.dart';
 import 'product_image.dart';
+import 'store_copy.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
   const OrdersScreen({super.key});
@@ -31,12 +32,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final catalogue = ref.watch(catalogueProvider);
     final orders = ref.watch(ordersProvider);
     final l10n = AppLocalizations.of(context);
+    final copy = StoreCopy.of(context);
+    final language = Localizations.localeOf(context).languageCode;
     final cartCount =
         ref.watch(cartProvider).fold<int>(0, (s, l) => s + l.quantity);
     final currency = ref.watch(storeCurrencyProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GeoVision Store'),
+        title: Text(copy.title),
         actions: [
           DropdownButtonHideUnderline(
             child: DropdownButton<StoreCurrency>(
@@ -60,7 +63,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             isLabelVisible: cartCount > 0,
             label: Text('$cartCount'),
             child: IconButton(
-              tooltip: 'Cart',
+              tooltip: copy.cart,
               onPressed: () => context.go('/orders/cart'),
               icon: const Icon(Icons.shopping_cart_outlined),
             ),
@@ -71,18 +74,19 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       body: ListView(
         padding: const EdgeInsets.all(GvSpacing.lg),
         children: [
-          _CommerceHero(onOrders: () => setState(() => showOrders = true)),
+          _CommerceHero(
+              copy: copy, onOrders: () => setState(() => showOrders = true)),
           const SizedBox(height: GvSpacing.md),
           SegmentedButton<bool>(
-            segments: const [
+            segments: [
               ButtonSegment(
                   value: false,
-                  label: Text('Loja'),
-                  icon: Icon(Icons.storefront)),
+                  label: Text(copy.shop),
+                  icon: const Icon(Icons.storefront)),
               ButtonSegment(
                   value: true,
-                  label: Text('Pedidos'),
-                  icon: Icon(Icons.local_shipping_outlined)),
+                  label: Text(copy.orders),
+                  icon: const Icon(Icons.local_shipping_outlined)),
             ],
             selected: {showOrders},
             onSelectionChanged: (value) =>
@@ -103,13 +107,9 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: {
-                  'all': 'Todos',
-                  'seeds': 'Sementes',
-                  'inputs': 'Insumos',
-                  'equipment': 'Equipamentos',
-                  'hardware': 'Sensores & IoT',
-                  'service': 'Serviços',
-                  'subscription': 'Subscrições',
+                  'all': copy.all,
+                  'hardware': copy.hardware,
+                  'service': copy.services,
                 }
                     .entries
                     .map((e) => Padding(
@@ -129,14 +129,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: {
-                  'all': 'Todos os setores',
-                  'home': 'Casa',
-                  'agro': 'Agro',
-                  'livestock': 'Pecuária',
-                  'mining': 'Mineração',
-                  'construction': 'Construção',
-                  'infrastructure': 'Infraestruturas',
-                  'environment': 'Ambiental',
+                  'all': copy.allSectors,
+                  'home': copy.sector('home'),
+                  'agro': copy.sector('agro'),
+                  'environment': copy.sector('environment'),
+                  'construction': copy.sector('construction'),
+                  'industry': copy.sector('industry'),
+                  'infrastructure': copy.sector('infrastructure'),
                 }
                     .entries
                     .map((entry) => Padding(
@@ -163,17 +162,21 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   final sectorMatches =
                       sector == 'all' || product.sectors.contains(sector);
                   final queryMatches = normalizedQuery.isEmpty ||
-                      product.name.toLowerCase().contains(normalizedQuery) ||
-                      product.description
+                      product
+                          .localizedName(language)
+                          .toLowerCase()
+                          .contains(normalizedQuery) ||
+                      product
+                          .localizedDescription(language)
                           .toLowerCase()
                           .contains(normalizedQuery);
                   return categoryMatches && sectorMatches && queryMatches;
                 }).toList();
                 if (filtered.isEmpty) {
-                  return const GvCard(
+                  return GvCard(
                     child: Text(
-                      'Nenhuma solução corresponde aos filtros selecionados.',
-                      style: TextStyle(color: GvColors.textSecondary),
+                      copy.empty,
+                      style: const TextStyle(color: GvColors.textSecondary),
                     ),
                   );
                 }
@@ -187,7 +190,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                     childAspectRatio: .73,
                   ),
                   itemCount: filtered.length,
-                  itemBuilder: (_, i) => _ProductCard(product: filtered[i]),
+                  itemBuilder: (_, i) => _ProductCard(
+                      product: filtered[i], copy: copy, language: language),
                 );
               },
             ),
@@ -245,8 +249,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                                         style: const TextStyle(
                                             fontWeight: FontWeight.w700)),
                                     if (o.delivery != null)
-                                      const Text('Track',
-                                          style: TextStyle(
+                                      Text(copy.tracking,
+                                          style: const TextStyle(
                                               color: GvColors.accentCyan,
                                               fontSize: 12)),
                                   ]),
@@ -263,7 +267,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
 }
 
 class _CommerceHero extends StatelessWidget {
-  const _CommerceHero({required this.onOrders});
+  const _CommerceHero({required this.copy, required this.onOrders});
+  final StoreCopy copy;
   final VoidCallback onOrders;
   @override
   Widget build(BuildContext context) => Container(
@@ -275,17 +280,17 @@ class _CommerceHero extends StatelessWidget {
           border: Border.all(color: GvColors.borderStrong),
         ),
         child: Row(children: [
-          const Expanded(
+          Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text('Tudo para produzir melhor',
-                    style:
-                        TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-                SizedBox(height: 5),
-                Text('Sementes, equipamentos, sensores e serviços GeoVision.',
-                    style:
-                        TextStyle(color: GvColors.textSecondary, fontSize: 12)),
+                Text(copy.hero,
+                    style: const TextStyle(
+                        fontSize: 19, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 5),
+                Text(copy.heroBody,
+                    style: const TextStyle(
+                        color: GvColors.textSecondary, fontSize: 12)),
               ])),
           IconButton.filled(
               onPressed: onOrders, icon: const Icon(Icons.arrow_forward)),
@@ -294,8 +299,11 @@ class _CommerceHero extends StatelessWidget {
 }
 
 class _ProductCard extends ConsumerWidget {
-  const _ProductCard({required this.product});
+  const _ProductCard(
+      {required this.product, required this.copy, required this.language});
   final GvProduct product;
+  final StoreCopy copy;
+  final String language;
   @override
   Widget build(BuildContext context, WidgetRef ref) => GvCard(
         padding: EdgeInsets.zero,
@@ -312,7 +320,7 @@ class _ProductCard extends ConsumerWidget {
             padding: const EdgeInsets.all(11),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(product.name,
+              Text(product.localizedName(language),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -324,9 +332,9 @@ class _ProductCard extends ConsumerWidget {
                   style: const TextStyle(
                       color: GvColors.accentCyan, fontWeight: FontWeight.w800)),
               Row(children: [
-                const Expanded(
-                    child: Text('Em stock',
-                        style: TextStyle(
+                Expanded(
+                    child: Text(copy.inStock,
+                        style: const TextStyle(
                             color: GvColors.accentGreen, fontSize: 10))),
                 IconButton.filledTonal(
                   visualDensity: VisualDensity.compact,
@@ -334,7 +342,7 @@ class _ProductCard extends ConsumerWidget {
                     ref.read(cartProvider.notifier).add(product);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content:
-                            Text('${product.name} adicionado ao carrinho.')));
+                            Text(copy.added(product.localizedName(language)))));
                   },
                   icon: const Icon(Icons.add, size: 17),
                 ),

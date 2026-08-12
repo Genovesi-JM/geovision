@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/errors/result.dart';
 import 'auth_controller.dart';
+import 'registration_copy.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key, required this.token});
@@ -30,6 +31,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   Future<void> _submit() async {
+    final copy = RegistrationCopy.of(context);
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     final result = await ref
@@ -40,7 +42,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     switch (result) {
       case Ok<void>():
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated. You can sign in.')),
+          SnackBar(content: Text(copy.passwordUpdated)),
         );
         context.go('/login');
       case Err<void>(:final failure):
@@ -53,6 +55,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final copy = RegistrationCopy.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(l10n.createNewPassword)),
       body: Center(
@@ -65,20 +68,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Choose a strong password for your GeoVision account.',
-                    style: TextStyle(fontSize: 16),
+                  Text(
+                    copy.resetIntro,
+                    style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _password,
                     obscureText: true,
                     autofillHints: const [AutofillHints.newPassword],
-                    decoration:
-                        InputDecoration(labelText: l10n.newPassword),
-                    validator: (value) => (value?.length ?? 0) < 8
-                        ? l10n.minChars
-                        : null,
+                    decoration: InputDecoration(labelText: l10n.newPassword),
+                    validator: (value) =>
+                        (value?.length ?? 0) < 8 ? l10n.minChars : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
@@ -87,19 +88,18 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                     autofillHints: const [AutofillHints.newPassword],
                     decoration:
                         InputDecoration(labelText: l10n.confirmPassword),
-                    validator: (value) => value != _password.text
-                        ? l10n.passwordsMismatch
-                        : null,
+                    validator: (value) =>
+                        value != _password.text ? l10n.passwordsMismatch : null,
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _saving || widget.token.isEmpty ? null : _submit,
-                    child: Text(_saving ? 'Updating…' : 'Update password'),
+                    child: Text(_saving ? copy.updating : copy.updatePassword),
                   ),
                   if (widget.token.isEmpty) ...[
                     const SizedBox(height: 12),
-                    const Text(
-                      'This reset link is invalid or incomplete. Request a new link.',
+                    Text(
+                      copy.invalidReset,
                       textAlign: TextAlign.center,
                     ),
                   ],

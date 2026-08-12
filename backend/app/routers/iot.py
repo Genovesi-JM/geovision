@@ -17,6 +17,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.iot.events import event_hub
 from app.iot.registry import valid_unit
+from app.time_utils import utc_now
 from app.iot.schemas import (
     AlertRuleCreate,
     AlertAssignment,
@@ -204,7 +205,7 @@ def _build_device(
     one_time = new_secret()
     token_row = DeviceProvisioningToken(
         device_id=device.id, token_hash=hash_secret(one_time),
-        expires_at=datetime.utcnow() + timedelta(minutes=30), created_by=user.id,
+        expires_at=utc_now() + timedelta(minutes=30), created_by=user.id,
     )
     db.add(token_row)
     return device, one_time, token_row
@@ -317,17 +318,17 @@ def exchange_provisioning_token(payload: ProvisionExchange, db: Session = Depend
         .filter(DeviceProvisioningToken.device_id == device.id, DeviceProvisioningToken.used_at.is_(None))
         .order_by(DeviceProvisioningToken.created_at.desc()).first()
     )
-    if not row or row.expires_at <= datetime.utcnow() or not secret_matches(payload.provisioning_token, row.token_hash):
+    if not row or row.expires_at <= utc_now() or not secret_matches(payload.provisioning_token, row.token_hash):
         raise HTTPException(status_code=401, detail="Invalid or expired provisioning token")
     permanent = new_secret()
-    db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").update({"status": "revoked", "revoked_at": datetime.utcnow()})
+    db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").update({"status": "revoked", "revoked_at": utc_now()})
     credential = DeviceCredential(device_id=device.id, token_hash=hash_secret(permanent), secret_encrypted=protect_secret(permanent))
     db.add(credential)
     device.token_hash = credential.token_hash
     device.secret_encrypted = credential.secret_encrypted
     device.firmware_version = payload.firmware_version
     device.status = "pairing"
-    row.used_at = datetime.utcnow()
+    row.used_at = utc_now()
     db.commit()
     return {
         "device_uid": device.public_id, "device_secret": permanent,
@@ -377,7 +378,7 @@ def get_device(device_id: str, user: User = Depends(get_current_user), db: Sessi
 @router.post("/devices/{device_id}/provision")
 def renew_provisioning(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device = device_for_company(db, device_id, _company_id(user, db)); one_time = new_secret()
-    row = DeviceProvisioningToken(device_id=device.id, token_hash=hash_secret(one_time), expires_at=datetime.utcnow() + timedelta(minutes=30), created_by=user.id)
+    row = DeviceProvisioningToken(device_id=device.id, token_hash=hash_secret(one_time), expires_at=utc_now() + timedelta(minutes=30), created_by=user.id)
     db.add(row); _audit(db, user, "iot.provisioning_token_created", "iot_device", device.id); db.commit()
     return {"outcome": "success", "message": "One-time provisioning token created", "data": {"device_uid": device.public_id, "token": one_time, "expires_at": row.expires_at.isoformat() + "Z", "topics": _topics(device)}}
 
@@ -386,7 +387,7 @@ def renew_provisioning(device_id: str, user: User = Depends(get_current_user), d
 def update_device_status(device_id: str, payload: DeviceStatusUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device = device_for_company(db, device_id, _company_id(user, db)); device.status = payload.status
     if payload.status in {"disabled", "quarantined"}:
-        db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").update({"status": "revoked", "revoked_at": datetime.utcnow()}, synchronize_session=False)
+        db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").update({"status": "revoked", "revoked_at": utc_now()}, synchronize_session=False)
     _audit(db, user, f"iot.device_{payload.status}", "iot_device", device.id, {"reason": payload.reason}); db.commit()
     return {"id": device.id, "status": device.status}
 
@@ -394,7 +395,7 @@ def update_device_status(device_id: str, payload: DeviceStatusUpdate, user: User
 @router.post("/devices/{device_id}/diagnose")
 def diagnose_device(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device = device_for_company(db, device_id, _company_id(user, db)); readings = latest_readings(db, device)
-    stale = not device.last_seen_at or (datetime.utcnow() - device.last_seen_at).total_seconds() > 120
+    stale = not device.last_seen_at or (utc_now() - device.last_seen_at).total_seconds() > 120
     return {"outcome": "offline" if stale else "success", "message": "No recent heartbeat" if stale else "Telemetry route and storage are operational", "retryable": stale, "data": {"last_seen_at": device.last_seen_at.isoformat() + "Z" if device.last_seen_at else None, "channels_reporting": len(readings), "status": device.status}}
 
 
@@ -436,7 +437,7 @@ def telemetry_aggregates(device_id: str, channel: str | None = None, limit: int 
 
 
 def _device_window(db: Session, device: IotDevice, days: int = 30):
-    end = datetime.utcnow(); start = end - timedelta(days=days)
+    end = utc_now(); start = end - timedelta(days=days)
     readings = db.query(TelemetryReading).filter(TelemetryReading.device_id == device.id, TelemetryReading.recorded_at >= start, TelemetryReading.recorded_at <= end).order_by(TelemetryReading.recorded_at).all()
     alerts = db.query(IotAlert).filter(IotAlert.device_id == device.id, IotAlert.opened_at >= start, IotAlert.opened_at <= end).order_by(IotAlert.opened_at).all()
     channels = db.query(SensorChannel).filter(SensorChannel.device_id == device.id).all()
@@ -486,7 +487,7 @@ def acknowledge_alert(alert_id: str, user: User = Depends(get_current_user), db:
     company_id = _company_id(user, db); row = db.get(IotAlert, alert_id)
     if not row or row.company_id != company_id: raise HTTPException(status_code=404, detail="Alert not found")
     if row.status not in {"triggered", "notified"}: raise HTTPException(status_code=409, detail="Alert cannot be acknowledged in its current state")
-    row.status = "acknowledged"; row.acknowledged_at = datetime.utcnow(); row.acknowledged_by = user.id
+    row.status = "acknowledged"; row.acknowledged_at = utc_now(); row.acknowledged_by = user.id
     _audit(db, user, "iot.alert_acknowledged", "iot_alert", row.id); db.commit()
     return {"id": row.id, "status": row.status}
 
@@ -496,7 +497,7 @@ def assign_alert(alert_id: str, payload: AlertAssignment, user: User = Depends(g
     company_id = _company_id(user, db); row = db.get(IotAlert, alert_id)
     if not row or row.company_id != company_id: raise HTTPException(status_code=404, detail="Alert not found")
     if row.status not in {"acknowledged", "assigned"}: raise HTTPException(status_code=409, detail="Acknowledge the alert before assignment")
-    row.status = "assigned"; row.assigned_at = datetime.utcnow(); row.assigned_to = payload.assignee_id
+    row.status = "assigned"; row.assigned_at = utc_now(); row.assigned_to = payload.assignee_id
     _audit(db, user, "iot.alert_assigned", "iot_alert", row.id, {"assigned_to": payload.assignee_id}); db.commit()
     return {"id": row.id, "status": row.status, "assigned_to": row.assigned_to}
 
@@ -506,7 +507,7 @@ def close_alert(alert_id: str, user: User = Depends(get_current_user), db: Sessi
     company_id = _company_id(user, db); row = db.get(IotAlert, alert_id)
     if not row or row.company_id != company_id: raise HTTPException(status_code=404, detail="Alert not found")
     if row.status not in {"resolved", "acknowledged", "assigned"}: raise HTTPException(status_code=409, detail="Alert cannot be closed in its current state")
-    row.status = "closed"; row.closed_at = datetime.utcnow()
+    row.status = "closed"; row.closed_at = utc_now()
     _audit(db, user, "iot.alert_closed", "iot_alert", row.id); db.commit()
     return {"id": row.id, "status": row.status}
 
@@ -528,7 +529,7 @@ def create_command(device_id: str, payload: CommandCreate, user: User = Depends(
         if not device.allow_remote_control: raise HTTPException(status_code=409, detail="Remote output control is disabled")
         latest = {r["channel"]: r["value"] for r in latest_readings(db, device)}
         if latest.get("safety_ok") is not True: raise HTTPException(status_code=409, detail="Local safety interlock is not confirmed")
-    command = IotCommand(company_id=company_id, device_id=device.id, requested_by=user.id, correlation_id=str(uuid.uuid4()), name=payload.name, arguments_json=json.dumps(payload.arguments), reason=payload.reason, fail_safe_state=payload.fail_safe_state, expires_at=datetime.utcnow() + timedelta(seconds=300))
+    command = IotCommand(company_id=company_id, device_id=device.id, requested_by=user.id, correlation_id=str(uuid.uuid4()), name=payload.name, arguments_json=json.dumps(payload.arguments), reason=payload.reason, fail_safe_state=payload.fail_safe_state, expires_at=utc_now() + timedelta(seconds=300))
     db.add(command); _audit(db, user, "iot.command_queued", "iot_command", command.id, {"name": command.name, "reason": command.reason}); db.commit(); db.refresh(command)
     from app.iot.mqtt import mqtt_bridge
     from app.iot.service import active_credential
@@ -538,7 +539,7 @@ def create_command(device_id: str, payload: CommandCreate, user: User = Depends(
         "arguments": payload.arguments, "correlation_id": command.correlation_id,
         "expires_at": command.expires_at.isoformat() + "Z", "id": command.id,
         "name": command.name, "nonce": uuid.uuid4().hex, "reason": command.reason,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": utc_now().isoformat() + "Z",
     }
     signature = sign_mqtt_payload(command_payload, reveal_secret(credential.secret_encrypted if credential else device.secret_encrypted))
     mqtt_bridge.publish_command(_topics(device)["commands"], {"payload": command_payload, "signature": signature})
@@ -554,7 +555,7 @@ def command_history(device_id: str, user: User = Depends(get_current_user), db: 
 
 @router.get("/device/commands")
 def poll_device_commands(authorization: str | None = Header(default=None), x_device_id: str | None = Header(default=None), db: Session = Depends(get_db)):
-    device = _device_auth_headers(db, authorization, x_device_id); now = datetime.utcnow()
+    device = _device_auth_headers(db, authorization, x_device_id); now = utc_now()
     db.query(IotCommand).filter(IotCommand.device_id == device.id, IotCommand.status.in_(["queued", "delivered"]), IotCommand.expires_at <= now).update({"status": "timed_out"}, synchronize_session=False)
     rows = db.query(IotCommand).filter(IotCommand.device_id == device.id, IotCommand.status == "queued", IotCommand.expires_at > now).order_by(IotCommand.created_at).limit(20).all()
     result = []
@@ -568,7 +569,7 @@ def poll_device_commands(authorization: str | None = Header(default=None), x_dev
 def device_command_result(payload: CommandResult, authorization: str | None = Header(default=None), x_device_id: str | None = Header(default=None), db: Session = Depends(get_db)):
     device = _device_auth_headers(db, authorization, x_device_id); command = db.get(IotCommand, payload.command_id)
     if not command or command.device_id != device.id: raise HTTPException(status_code=404, detail="Command not found")
-    command.status = payload.status; command.acknowledged_at = datetime.utcnow(); command.result_json = json.dumps({"actual_state": payload.actual_state, "message": payload.message})
+    command.status = payload.status; command.acknowledged_at = utc_now(); command.result_json = json.dumps({"actual_state": payload.actual_state, "message": payload.message})
     db.commit(); event_hub.publish(device.id, {"type": "command.result", "command_id": command.id, "status": command.status, "actual_state": payload.actual_state})
     return {"accepted": True}
 

@@ -1,8 +1,21 @@
 """Pydantic schemas for request/response models."""
+import json
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+
+def _json_list(value):
+    if isinstance(value, list):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except Exception:
+            return []
+    return []
 
 
 class Token(BaseModel):
@@ -29,11 +42,16 @@ class AccountSummary(BaseModel):
     name: str
     sector_focus: str
     entity_type: str
+    customer_type: str = "farm"
+    dashboard_profile: str = "farm"
+    use_cases: List[str] = Field(default_factory=list)
     org_name: Optional[str] = None
     modules_enabled: List[str] = Field(default_factory=list)
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+    _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
 
 
 class RegisterRequest(BaseModel):
@@ -45,7 +63,10 @@ class RegisterRequest(BaseModel):
     org_name: Optional[str] = None
 
     account_name: Optional[str] = None
-    sector_focus: str = Field(default="agro")
+    sector_focus: Optional[str] = None
+    sectors: Optional[List[str]] = None
+    customer_type: str = Field(default="farm")
+    use_cases: Optional[List[str]] = None
     modules_enabled: Optional[List[str]] = None
 
 
@@ -67,8 +88,14 @@ class AccountOut(BaseModel):
     id: str
     name: str
     sector_focus: str
+    entity_type: str
+    customer_type: str = "farm"
+    dashboard_profile: str = "farm"
+    use_cases: List[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
+
+    _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
 
 
 class AuthResponse(BaseModel):
@@ -82,7 +109,10 @@ class AuthResponse(BaseModel):
 class AccountCreate(BaseModel):
     name: str
     sector_focus: str
+    sectors: Optional[List[str]] = None
     entity_type: str = Field(default="org")
+    customer_type: str = Field(default="business")
+    use_cases: Optional[List[str]] = None
     org_name: Optional[str] = None
     modules_enabled: Optional[List[str]] = None
 
@@ -92,11 +122,16 @@ class AccountPublic(BaseModel):
     name: str
     sector_focus: str
     entity_type: str
+    customer_type: str = "farm"
+    dashboard_profile: str = "farm"
+    use_cases: List[str] = Field(default_factory=list)
     org_name: Optional[str] = None
     modules_enabled: List[str] = Field(default_factory=list)
     role: Optional[str] = None
 
     model_config = {"from_attributes": True}
+
+    _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
 
 
 class ProjectCreate(BaseModel):

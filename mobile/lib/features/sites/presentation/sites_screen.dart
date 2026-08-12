@@ -180,16 +180,20 @@ String _siteText(String language, String pt, String en, String es, String fr) =>
 
 String _localizedSector(Sector sector, String language) => switch (sector) {
       Sector.home => _siteText(language, 'Casa', 'Home', 'Hogar', 'Maison'),
-      Sector.agriculture => _siteText(
-          language, 'Agricultura', 'Agriculture', 'Agricultura', 'Agriculture'),
-      Sector.livestock =>
-        _siteText(language, 'Pecuária', 'Livestock', 'Ganadería', 'Élevage'),
-      Sector.infrastructure => _siteText(language, 'Infraestruturas',
-          'Infrastructure', 'Infraestructuras', 'Infrastructures'),
-      Sector.mining =>
-        _siteText(language, 'Mineração', 'Mining', 'Minería', 'Mines'),
+      Sector.agro => _siteText(
+          language,
+          'Agricultura e pecuária',
+          'Agriculture & livestock',
+          'Agricultura y ganadería',
+          'Agriculture et élevage'),
       Sector.environment => _siteText(language, 'Ambiente', 'Environment',
           'Medio ambiente', 'Environnement'),
+      Sector.construction => _siteText(language, 'Construção', 'Construction',
+          'Construcción', 'Construction'),
+      Sector.industry => _siteText(language, 'Indústria e mineração',
+          'Industry & mining', 'Industria y minería', 'Industrie et mines'),
+      Sector.infrastructure => _siteText(language, 'Infraestruturas',
+          'Infrastructure', 'Infraestructuras', 'Infrastructures'),
     };
 
 class _FilterChip extends StatelessWidget {

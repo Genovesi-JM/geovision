@@ -8,7 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -26,7 +26,9 @@ from app.models import (
 )
 from app.routers.me import _get_user_company_id
 from app.routers.kpi import get_kpis_for_sectors
+from app.time_utils import utc_now
 from app.services.erp_sync import publish_account_event
+from app.account_profiles import normalize_public_sector
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
 
@@ -45,16 +47,19 @@ DJI_AUTOMATION_SUPPORT = {
 
 
 _MOBILE_KPI_SECTORS = {
-    "agriculture": "agro",
     "agro": "agro",
     "home": "home",
+    "environment": "environment",
+    "construction": "construction",
+    # The current public profile combines industry and mining. The existing
+    # mining KPI definitions remain the closest operational fit.
+    "industry": "mining",
     "infrastructure": "infrastructure",
-    "mining": "mining",
 }
 
 
 def _site_kpis(site: Site) -> list[dict[str, Any]]:
-    kpi_sector = _MOBILE_KPI_SECTORS.get(site.sector or "")
+    kpi_sector = _MOBILE_KPI_SECTORS.get(normalize_public_sector(site.sector))
     if not kpi_sector:
         return []
     return [item.model_dump() for item in get_kpis_for_sectors([kpi_sector])]
@@ -67,7 +72,7 @@ def _site_payload(site: Site) -> dict[str, Any]:
     return {
         "id": site.id,
         "name": site.name,
-        "sector": site.sector or "agriculture",
+        "sector": normalize_public_sector(site.sector) or "agro",
         "status": "active" if site.is_active else "offline",
         "location": location,
         "center": {
@@ -102,8 +107,8 @@ def list_sites(
 class SiteCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     sector: str = Field(
-        default="agriculture",
-        pattern="^(home|agriculture|livestock|infrastructure|mining|environment)$",
+        default="agro",
+        pattern="^(home|agro|agriculture|livestock|environment|construction|industry|infrastructure|mining|ambiental)$",
     )
     country: str = Field(min_length=2, max_length=100)
     province: str = Field(min_length=2, max_length=100)
@@ -111,6 +116,11 @@ class SiteCreate(BaseModel):
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
     area_hectares: float | None = Field(default=None, gt=0, le=100_000_000)
+
+    @field_validator("sector")
+    @classmethod
+    def canonical_sector(cls, value: str) -> str:
+        return normalize_public_sector(value)
 
 
 @router.post("/sites", status_code=status.HTTP_201_CREATED)
@@ -567,7 +577,7 @@ def account_stream(
         raise HTTPException(status_code=403, detail="Organisation not found")
 
     async def generate():
-        cursor = after or datetime.utcnow()
+        cursor = after or utc_now()
         yield "event: ready\ndata: {}\n\n"
         while True:
             rows = (

@@ -98,7 +98,7 @@ abstract final class DemoData {
         Site(
           id: 'site-1',
           name: 'Kilombo North Fields',
-          sector: Sector.agriculture,
+          sector: Sector.agro,
           status: SiteStatus.attention,
           location: 'Malanje, Angola',
           center: const GeoPoint(-9.5402, 16.3410),
@@ -135,7 +135,7 @@ abstract final class DemoData {
         Site(
           id: 'site-2',
           name: 'Rio Verde Irrigation',
-          sector: Sector.agriculture,
+          sector: Sector.agro,
           status: SiteStatus.active,
           location: 'Huambo, Angola',
           center: const GeoPoint(-12.7761, 15.7392),
@@ -160,7 +160,7 @@ abstract final class DemoData {
         const Site(
           id: 'site-3',
           name: 'Serra Livestock Range',
-          sector: Sector.livestock,
+          sector: Sector.agro,
           status: SiteStatus.active,
           location: 'Benguela, Angola',
           center: GeoPoint(-12.5763, 13.4055),

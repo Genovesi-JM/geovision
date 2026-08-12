@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
+from app.time_utils import utc_now
 
 from app.services.risk_engine import (
     get_risk_engine,
@@ -107,7 +108,7 @@ async def get_risk_history(
     db: Session = Depends(get_db),
 ):
     from app.models import RiskAssessment as RAModel
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = utc_now() - timedelta(days=days)
     rows = (db.query(RAModel)
             .filter(RAModel.site_id == site_id, RAModel.created_at >= cutoff)
             .order_by(RAModel.created_at.asc()).all())
@@ -116,7 +117,7 @@ async def get_risk_history(
         return RiskHistoryResponse(site_id=site_id, sector=sector.value,
                                    assessments=[], trend="stable", avg_score_7d=0, avg_score_30d=0)
 
-    cutoff_7d = datetime.utcnow() - timedelta(days=7)
+    cutoff_7d = utc_now() - timedelta(days=7)
     scores_7d = [r.risk_score for r in rows if r.created_at >= cutoff_7d]
     scores_30d = [r.risk_score for r in rows]
 

@@ -12,6 +12,7 @@ import '../../features/authentication/domain/auth_session.dart';
 import '../../features/authentication/presentation/auth_controller.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/authentication/presentation/reset_password_screen.dart';
+import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/devices/presentation/devices_screen.dart';
 import '../../features/drones/presentation/drones_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
@@ -33,16 +34,18 @@ final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
 
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/portal',
     redirect: (context, state) {
-      final loggingIn = state.matchedLocation == '/login';
+      final authRoute = state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
       if (auth.mode == AuthMode.unknown) return null;
-      if (!auth.isSignedIn) return loggingIn ? null : '/login';
-      if (auth.isSignedIn && loggingIn) return '/home';
+      if (!auth.isSignedIn) return authRoute ? null : '/login';
+      if (auth.isSignedIn && authRoute) return '/portal';
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
+      GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),
       GoRoute(
         path: '/reset-password',
         builder: (c, s) => ResetPasswordScreen(
@@ -52,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (c, s, child) => AppShell(child: child),
         routes: [
-          GoRoute(path: '/home', builder: (c, s) => const HomeScreen()),
+          GoRoute(path: '/portal', builder: (c, s) => const PortalScreen()),
           GoRoute(
             path: '/sites',
             builder: (c, s) => const SitesScreen(),

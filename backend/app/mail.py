@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Tuple
 
 from .config import settings
+from .time_utils import utc_now
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -43,7 +44,7 @@ def _base_html(title: str, content: str) -> str:
 </td></tr>
 <tr><td style="background:#f8f9fa;padding:20px 40px;text-align:center;border-top:1px solid #e9ecef;">
 <p style="margin:0;color:#6c757d;font-size:12px;">
-© {datetime.utcnow().year} GeoVision Ops · Angola
+© {utc_now().year} GeoVision Ops · Angola
 <br>Este email foi enviado automaticamente. Não responda directamente.
 </p>
 </td></tr>
@@ -147,7 +148,7 @@ def _send_email(to_email: str, subject: str, plain_text: str, html: str | None =
         try:
             path = Path(__file__).resolve().parent.parent / "email_log.txt"
             with open(path, "a", encoding="utf-8") as fh:
-                fh.write(f"[{datetime.utcnow().isoformat()}] to={to_email} subject={subject}\n")
+                fh.write(f"[{utc_now().isoformat()}] to={to_email} subject={subject}\n")
             return True, f"SMTP não configurado – log escrito em {path}"
         except Exception as exc:
             return False, f"Falha a escrever log: {exc}"

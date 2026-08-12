@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user, require_admin
 from app.models import User
+from app.time_utils import utc_now
 
 from app.services.payments import (
     get_payment_orchestrator,
@@ -286,7 +287,7 @@ async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, ad
         "message": "Transfer confirmed",
         "payment_id": payment_id,
         "confirmed_by": request.confirmed_by,
-        "confirmed_at": datetime.utcnow().isoformat(),
+        "confirmed_at": utc_now().isoformat(),
     }
 
 

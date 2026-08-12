@@ -17,7 +17,9 @@ function escapeHTML(str) {
 
 const SECTOR_LABELS = {
   agro: "Agro & Pecuária",
-  home: "Casa",
+  environment: "Ambiente",
+  home: "Casa & Propriedade",
+  industry: "Indústria & Mineração",
   mining: "Mineração",
   demining: "Desminagem",
   construction: "Construção",
@@ -765,13 +767,11 @@ async function loadKpis(accountId, activeSector) {
   
   // Sector-specific KPI mappings (first 4 KPIs of each sector)
   const sectorKpiMapping = {
-    agro: ["ndvi_avg", "water_stress", "hectares_monitored", "yield_estimate"],
-    home: ["comfort_index", "air_quality", "tank_level", "leak_events"],
-    mining: ["extraction_volume", "slope_stability", "sensors_active", "geotechnical_alerts"],
+    agro: ["soil_moisture", "water_level", "data_completeness", "open_incidents"],
+    environment: ["air_quality", "water_level", "leak_events", "data_completeness"],
+    home: ["comfort_index", "air_quality", "water_level", "leak_events"],
     construction: ["progress_percent", "conformity_index", "pending_inspections", "volume_earthwork"],
-    infrastructure: ["km_monitored", "structural_integrity", "vibration_sensors", "maintenance_alerts"],
-    solar: ["panel_efficiency", "irradiance_avg", "anomaly_panels", "energy_generated"],
-    demining: ["area_cleared", "objects_detected", "progress_rate", "priority_zones"],
+    infrastructure: ["data_freshness", "device_health", "maintenance_due", "open_incidents"],
   };
   
   try {
@@ -862,13 +862,11 @@ async function loadAlerts(accountId, activeSector) {
 }
 
 // ── P1: operational home — IoT device-health summary + real device alerts ──
-async function loadOperationalHome(accountId) {
+async function loadOperationalHome(accountId, account) {
   try {
     const devices = await apiGet("/iot/devices", accountId) || [];
     let alerts = [];
     try { alerts = await apiGet("/iot/alerts", accountId) || []; } catch (e) { /* no alerts scope */ }
-    if (!devices.length) { renderPersonaHome(accountId, [], [], 0); return; } // no IoT deployment
-
     const now = Date.now();
     const stale = (d) => !d.last_seen_at || now - new Date(d.last_seen_at).getTime() > 120000;
     const online = devices.filter((d) => d.status === "online" && !stale(d)).length;
@@ -879,6 +877,21 @@ async function loadOperationalHome(accountId) {
     const critical = openAlerts.filter((a) => a.severity === "critical").length;
     const seenTimes = devices.map((d) => d.last_seen_at).filter(Boolean).map((s) => new Date(s).getTime());
     const lastSync = seenTimes.length ? new Date(Math.max(...seenTimes)) : null;
+
+    const maintenanceDue = devices.filter((d) => d.status === "maintenance").length + lowBatt;
+    const freshnessPct = devices.length ? Math.round(100 * (devices.length - needsAttention) / devices.length) : null;
+    const healthPct = devices.length ? Math.round(100 * online / devices.length) : null;
+    const setTopKpi = (id, label, value) => {
+      const valueEl = document.getElementById(id);
+      if (!valueEl) return;
+      valueEl.textContent = value;
+      const labelEl = valueEl.closest(".kpi-card")?.querySelector(".kpi-label");
+      if (labelEl) labelEl.textContent = label;
+    };
+    setTopKpi("kpi-services", "Dados recentes", freshnessPct == null ? "—" : `${freshnessPct}%`);
+    setTopKpi("kpi-hardware", "Dispositivos saudáveis", healthPct == null ? "—" : `${healthPct}%`);
+    setTopKpi("kpi-reports", "Manutenção pendente", String(maintenanceDue));
+    setTopKpi("kpi-alerts", "Incidentes abertos", String(openAlerts.length));
 
     const card = document.getElementById("iot-health-card");
     if (card) card.style.display = "block";
@@ -909,7 +922,7 @@ async function loadOperationalHome(accountId) {
       const kpiA = document.getElementById("kpi-alerts");
       if (kpiA) kpiA.textContent = String(kpiAlertCount + openAlerts.length);
     }
-    renderPersonaHome(accountId, devices, openAlerts, needsAttention);
+    renderPersonaHome(account, devices, openAlerts, needsAttention);
   } catch (err) {
     console.warn("operational home unavailable", err);
   }
@@ -917,6 +930,8 @@ async function loadOperationalHome(accountId) {
 
 // ── Persona-adaptive experience (simple shell vs advanced console) ──
 function gvDefaultExperience(account) {
+  const profile = ((account && (account.dashboard_profile || account.customer_type)) || "").toLowerCase();
+  if (["construction", "business", "industry", "enterprise"].includes(profile)) return "advanced";
   const et = ((account && account.entity_type) || "").toLowerCase();
   return /empresa|enterprise|company|organi|corp|gov|multi/.test(et) ? "advanced" : "simple";
 }
@@ -938,17 +953,17 @@ function initExperience(account) {
   });
 }
 
-// ── Persona "today" home (simple experience: farm / site / device) ──
-function personaFor(accountId) {
-  return localStorage.getItem("gv_persona_" + accountId) || localStorage.getItem("gv_persona") || null;
+// ── Persona "today" home (simple experience: home / farm / environment / device) ──
+function personaFor(account) {
+  return account?.customer_type || account?.dashboard_profile || null;
 }
-function renderPersonaHome(accountId, devices, openAlerts, needsAttention) {
+function renderPersonaHome(account, devices, openAlerts, needsAttention) {
   const card = document.getElementById("persona-home");
   if (!card) return;
   const simple = document.body.getAttribute("data-exp") === "simple";
-  const persona = personaFor(accountId);
-  const simplePersonas = ["farm", "site", "device"];
-  if (!simple && !(persona && simplePersonas.includes(persona))) { card.style.display = "none"; return; }
+  const persona = personaFor(account);
+  const simplePersonas = ["home", "farm", "site", "environment", "device"];
+  if (!simple || (persona && !simplePersonas.includes(persona))) { card.style.display = "none"; return; }
   card.style.display = "block";
 
   const hour = new Date().getHours();
@@ -1237,14 +1252,16 @@ function toggleModal(show) {
 async function handleAccountCreate(currentAccountId, reloadFn) {
   const name = document.getElementById("account-name-input")?.value?.trim();
   const sector = document.getElementById("account-sector-input")?.value || "agro";
-  const entity = document.getElementById("account-entity-input")?.value || "org";
+  const customerType = document.getElementById("account-customer-input")?.value || "industry";
+  const useCases = Array.from(document.querySelectorAll("#account-use-cases input:checked")).map((c) => c.value);
   const modules = Array.from(document.querySelectorAll("#account-modules input[type=checkbox]:checked")).map((c) => c.value);
   if (!name) return alert("Indique um nome para a conta.");
   try {
     const created = await apiPost("/accounts", {
       name,
       sector_focus: sector,
-      entity_type: entity,
+      customer_type: customerType,
+      use_cases: useCases,
       modules_enabled: modules,
     });
     const accountId = created.id;
@@ -1277,27 +1294,34 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     logoutBtn.dataset.gvBound = "1";
   }
 
-  // Individual workspaces only offer consumer-relevant sectors; industrial
-  // ones (mining, construction, infrastructure) are for organisations.
-  const MODAL_INDIVIDUAL_SECTORS = ["home", "agro", "solar"];
-  function filterModalSectors() {
-    const entity = document.getElementById("account-entity-input")?.value || "org";
+  function renderModalProfile() {
+    const config = window.GV_ACCOUNT_PROFILE_CONFIG;
+    const customerType = document.getElementById("account-customer-input")?.value || "industry";
+    const profile = config.profiles[customerType] || config.profiles.industry;
     const sel = document.getElementById("account-sector-input");
     if (!sel) return;
-    const individual = entity === "individual";
-    [...sel.options].forEach((o) => { const ok = !individual || MODAL_INDIVIDUAL_SECTORS.includes(o.value); o.hidden = !ok; o.disabled = !ok; });
-    const current = [...sel.options].find((o) => o.value === sel.value);
-    if (!current || current.hidden) sel.value = "agro";
+    [...sel.options].forEach((o) => { const ok = profile.sectors.includes(o.value); o.hidden = !ok; o.disabled = !ok; });
+    sel.value = profile.defaults[0];
+    const uses = document.getElementById("account-use-cases");
+    if (uses) {
+      uses.innerHTML = "";
+      profile.uses.forEach((value) => {
+        const label = document.createElement("label");
+        const input = document.createElement("input"); input.type = "checkbox"; input.value = value; input.checked = profile.defaultUses.includes(value);
+        const span = document.createElement("span"); span.textContent = config.useCaseLabels[value] || value;
+        label.append(input, span); uses.appendChild(label);
+      });
+    }
   }
-  const entitySel = document.getElementById("account-entity-input");
-  if (entitySel && !entitySel.dataset.gvBound) { entitySel.addEventListener("change", filterModalSectors); entitySel.dataset.gvBound = "1"; }
+  const customerSel = document.getElementById("account-customer-input");
+  if (customerSel && !customerSel.dataset.gvBound) { customerSel.addEventListener("change", renderModalProfile); customerSel.dataset.gvBound = "1"; }
 
   // ── Bind modal buttons early — BEFORE any await/render that could throw ──
   if (openModal && !openModal.dataset.gvBound) {
     openModal.onclick = () => {
       const name = document.getElementById("account-name-input");
       if (name) name.value = "";
-      filterModalSectors();
+      renderModalProfile();
       toggleModal(true);
     };
     openModal.dataset.gvBound = "1";
@@ -1370,7 +1394,7 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   renderServices(portfolio);
   await loadIoTHardware(currentAccountId);
-  await loadOperationalHome(currentAccountId);
+  await loadOperationalHome(currentAccountId, activeAccount);
   await loadEntitlement(currentAccountId);
   // Reports are loaded by loadReports() in dashboard.html from /me/documents API
   // renderReports(portfolio);   // REMOVED — was overwriting real API docs

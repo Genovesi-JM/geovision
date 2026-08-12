@@ -1,0 +1,208 @@
+/* Shared foundation for GeoVision public pages. Page-specific layout stays local. */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-dark: #050914;
+  --bg-darker: #020408;
+  --bg-card: rgba(15, 23, 42, 0.85);
+  --bg-surface: rgba(30, 41, 59, 0.5);
+  --border: rgba(148, 163, 184, 0.12);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #22c55e;
+  --accent-green: #22c55e;
+  --accent-blue: #0ea5e9;
+  --accent-cyan: #06b6d4;
+  --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
+  --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.7;
+}
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: var(--bg-navbar, rgba(5, 9, 20, 0.92));
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.navbar-logo {
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.navbar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.navbar-brand-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+}
+
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.navbar-link {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.navbar-link:hover,
+.navbar-link.active {
+  color: var(--accent-cyan);
+}
+
+.btn-nav {
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  background: var(--gradient-primary);
+  color: #020617;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-nav:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+}
+
+.navbar-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  padding: 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.navbar-toggle span {
+  width: 24px;
+  height: 2px;
+  background: var(--text-primary);
+  transition: 0.3s;
+}
+
+.lang-toggle {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+}
+
+.lang-btn {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  color: var(--text-primary);
+}
+
+.lang-btn.active {
+  border-color: transparent;
+  background: var(--gradient-primary);
+  color: #020617;
+}
+
+@media (max-width: 768px) {
+  .navbar-nav,
+  .lang-toggle {
+    display: none;
+  }
+
+  .navbar-toggle {
+    display: flex;
+  }
+
+  .navbar-nav.show {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    z-index: 9999;
+    display: flex;
+    min-width: 200px;
+    flex-direction: column;
+    padding: 0.5rem 0;
+    border: 1px solid rgba(95, 212, 255, 0.3);
+    border-radius: 12px;
+    background: #0b1428;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.8);
+  }
+
+  .navbar-nav.show a {
+    display: block;
+    padding: 0.9rem 1.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .navbar-nav.show a:last-child {
+    border-bottom: none;
+  }
+
+  .lang-toggle.show {
+    position: static;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-left: 0;
+    padding: 0.7rem 1rem;
+    border-top: 1px solid rgba(95, 212, 255, 0.2);
+    border-left: none;
+  }
+}

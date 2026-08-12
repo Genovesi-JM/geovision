@@ -24,21 +24,53 @@
     const langToggle = document.querySelector(".lang-toggle");
     if (!menuToggle || !nav) return;
 
-    // On mobile, move lang-toggle inside the nav dropdown so it flows below links
-    if (langToggle && window.innerWidth <= 768) {
-      nav.appendChild(langToggle);
+    if (menuToggle.dataset.gvMenuToggle === "ready") return;
+    menuToggle.dataset.gvMenuToggle = "ready";
+
+    if (!nav.id) nav.id = "main-nav";
+    menuToggle.setAttribute("aria-controls", nav.id);
+    menuToggle.setAttribute("aria-expanded", "false");
+
+    const langParent = langToggle && langToggle.parentNode;
+    const langNextSibling = langToggle && langToggle.nextSibling;
+
+    function closeMenu() {
+      nav.classList.remove("show");
+      menuToggle.setAttribute("aria-expanded", "false");
+      if (langToggle) langToggle.classList.remove("show");
     }
 
+    function syncResponsiveLayout() {
+      const isMobile = window.innerWidth <= 768;
+      if (langToggle && isMobile && langToggle.parentNode !== nav) {
+        nav.appendChild(langToggle);
+      } else if (langToggle && !isMobile && langToggle.parentNode !== langParent) {
+        if (langNextSibling && langNextSibling.parentNode === langParent) {
+          langParent.insertBefore(langToggle, langNextSibling);
+        } else {
+          langParent.appendChild(langToggle);
+        }
+      }
+      if (!isMobile) closeMenu();
+    }
+
+    // On mobile, move lang-toggle inside the nav dropdown so it flows below links
+    syncResponsiveLayout();
+
     menuToggle.addEventListener("click", () => {
-      nav.classList.toggle("show");
-      if (langToggle) langToggle.classList.toggle("show");
+      const open = !nav.classList.contains("show");
+      nav.classList.toggle("show", open);
+      menuToggle.setAttribute("aria-expanded", String(open));
+      if (langToggle) langToggle.classList.toggle("show", open);
     });
     // Close menu when clicking a nav link (mobile UX)
     nav.querySelectorAll("a").forEach((a) => {
-      a.addEventListener("click", () => {
-        nav.classList.remove("show");
-        if (langToggle) langToggle.classList.remove("show");
-      });
+      a.addEventListener("click", closeMenu);
+    });
+
+    window.addEventListener("resize", syncResponsiveLayout);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeMenu();
     });
   }
 
@@ -86,10 +118,88 @@
     closeBtns.forEach((b) => b.addEventListener("click", closeVideo));
   }
 
+  function initPasswordToggles() {
+    document.querySelectorAll(".toggle-password[data-target]").forEach((button) => {
+      if (button.dataset.gvPasswordToggle === "ready") return;
+      button.dataset.gvPasswordToggle = "ready";
+
+      button.addEventListener("click", () => {
+        const input = document.getElementById(button.dataset.target);
+        if (!input || (input.type !== "password" && input.type !== "text")) return;
+
+        const reveal = input.type === "password";
+        input.type = reveal ? "text" : "password";
+        button.setAttribute("aria-pressed", String(reveal));
+
+        const icon = button.querySelector("i");
+        if (icon) {
+          icon.classList.toggle("fa-eye", !reveal);
+          icon.classList.toggle("fa-eye-slash", reveal);
+        }
+      });
+    });
+  }
+
+  function initOverlays() {
+    const overlays = document.querySelectorAll("[data-overlay]");
+    if (!overlays.length) return;
+
+    function setOpen(overlay, open) {
+      if (!overlay) return;
+      overlay.classList.toggle("show", open);
+      overlay.setAttribute("aria-hidden", String(!open));
+
+      if (overlay.id) {
+        document.querySelectorAll(`[data-overlay-open="${overlay.id}"]`).forEach((trigger) => {
+          trigger.setAttribute("aria-expanded", String(open));
+        });
+      }
+
+      if (open) {
+        const focusTarget = overlay.querySelector("[data-overlay-close], button, a, input, select, textarea");
+        if (focusTarget) focusTarget.focus();
+      }
+    }
+
+    document.querySelectorAll("[data-overlay-open]").forEach((trigger) => {
+      if (trigger.dataset.gvOverlayTrigger === "ready") return;
+      trigger.dataset.gvOverlayTrigger = "ready";
+      const open = () => setOpen(document.getElementById(trigger.dataset.overlayOpen), true);
+      trigger.addEventListener("click", open);
+      trigger.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        open();
+      });
+    });
+
+    overlays.forEach((overlay) => {
+      if (overlay.dataset.gvOverlay === "ready") return;
+      overlay.dataset.gvOverlay = "ready";
+      overlay.setAttribute("aria-hidden", String(!overlay.classList.contains("show")));
+      overlay.querySelectorAll("[data-overlay-close]").forEach((button) => {
+        button.addEventListener("click", () => setOpen(overlay, false));
+      });
+      overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) setOpen(overlay, false);
+      });
+    });
+
+    if (document.body.dataset.gvOverlayEscape !== "ready") {
+      document.body.dataset.gvOverlayEscape = "ready";
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        document.querySelectorAll("[data-overlay].show").forEach((overlay) => setOpen(overlay, false));
+      });
+    }
+  }
+
   function initSite() {
     initMenuToggle();
     initSmoothAnchors();
     initVideoModal();
+    initPasswordToggles();
+    initOverlays();
   }
 
   GV.initSite = initSite;

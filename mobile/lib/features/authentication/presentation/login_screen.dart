@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../l10n/app_localizations.dart';
 import 'auth_controller.dart';
+import 'registration_copy.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -41,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     res.when(
-      ok: (_) => context.go('/home'),
+      ok: (_) => context.go('/portal'),
       err: (f) => setState(() => _error = f.message),
     );
   }
@@ -49,6 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final registration = RegistrationCopy.of(context);
     return Scaffold(
       backgroundColor: GvColors.bgDarker,
       body: SafeArea(
@@ -80,9 +82,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           fontWeight: FontWeight.w800,
                           color: GvColors.textPrimary)),
                   const SizedBox(height: 4),
-                  const Text('Operational platform',
+                  Text(registration.platformSubtitle,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: GvColors.textSecondary)),
+                      style: const TextStyle(color: GvColors.textSecondary)),
                   const SizedBox(height: GvSpacing.xl),
                   GvCard(
                     child: Form(
@@ -141,6 +143,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             onPressed: () => _showForgot(context),
                             child: Text(l10n.forgotPassword),
                           ),
+                          OutlinedButton(
+                            onPressed:
+                                _loading ? null : () => context.go('/register'),
+                            child: Text(registration.createAccount),
+                          ),
                         ],
                       ),
                     ),
@@ -149,7 +156,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   OutlinedButton.icon(
                     onPressed: () {
                       ref.read(authControllerProvider.notifier).enterDemo();
-                      context.go('/home');
+                      context.go('/portal');
                     },
                     icon: const Icon(Icons.play_circle_outline),
                     label: Text(l10n.continueDemo),

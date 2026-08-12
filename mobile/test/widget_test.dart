@@ -7,7 +7,7 @@ import 'package:geovision/core/config/app_flavor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('GeoVision demo opens the customer home', (tester) async {
+  testWidgets('GeoVision demo opens the customer portal', (tester) async {
     SharedPreferences.setMockInitialValues({'gv_preferred_language': 'en'});
     final prefs = await SharedPreferences.getInstance();
     const config = AppConfig(
@@ -34,19 +34,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Fazenda Kilombo Agro'), findsWidgets);
-    expect(find.text('Home'), findsWidgets);
+    expect(find.text('Portal'), findsWidgets);
     expect(find.text('My assets'), findsWidgets);
-    expect(find.text('Devices'), findsWidgets);
+    expect(find.text('Marketplace'), findsWidgets);
     expect(find.text('Alerts'), findsWidgets);
     expect(find.text('More'), findsWidgets);
+
+    await tester.tap(find.text('Marketplace').last);
+    await tester.pumpAndSettle();
+    expect(find.text('GeoVision Marketplace'), findsOneWidget);
+    expect(find.text('Construction Progress Monitoring'), findsOneWidget);
 
     await tester.tap(find.text('More').last);
     await tester.pumpAndSettle();
     expect(find.text('More'), findsWidgets);
-    await tester.tap(find.text('Store, orders & payments'));
+    await tester.tap(find.text('Marketplace, orders & payments'));
     await tester.pumpAndSettle();
-    expect(find.text('GeoVision Store'), findsOneWidget);
-    expect(find.text('Análise NDVI/NDRE de culturas'), findsOneWidget);
+    expect(find.text('GeoVision Marketplace'), findsOneWidget);
+    expect(find.text('Construction Progress Monitoring'), findsOneWidget);
     expect(find.text('AKZ'), findsOneWidget);
   });
 }

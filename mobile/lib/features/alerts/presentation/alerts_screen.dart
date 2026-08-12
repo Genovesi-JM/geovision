@@ -10,6 +10,7 @@ import '../../../core/widgets/gv_states.dart';
 import '../../../core/widgets/severity_chip.dart';
 import '../data/alerts_repository.dart';
 import '../../../l10n/app_localizations.dart';
+import 'alert_copy.dart';
 
 final _showResolvedProvider = StateProvider<bool>((ref) => false);
 final _severityFilterProvider = StateProvider<String?>((ref) => null);
@@ -20,6 +21,7 @@ class AlertsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final text = AppLocalizations.of(context);
+    final copy = AlertCopy.of(context);
     final alertsAsync = ref.watch(alertsProvider);
     final showResolved = ref.watch(_showResolvedProvider);
     final sevFilter = ref.watch(_severityFilterProvider);
@@ -66,7 +68,8 @@ class AlertsScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(right: GvSpacing.sm),
                         child: FilterChip(
-                          label: Text(severityFromString(s).label,
+                          label: Text(
+                              severityFromString(s).localizedLabel(context),
                               style: const TextStyle(fontSize: 11)),
                           selected: sevFilter == s,
                           onSelected: (v) => ref
@@ -119,12 +122,12 @@ class AlertsScreen extends ConsumerWidget {
                                   ],
                                 ),
                                 const SizedBox(height: GvSpacing.sm),
-                                Text(a.title,
+                                Text(copy.title(a),
                                     style: const TextStyle(
                                         fontWeight: FontWeight.w700,
                                         fontSize: 15)),
                                 const SizedBox(height: 2),
-                                Text(a.description,
+                                Text(copy.description(a),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(

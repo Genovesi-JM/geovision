@@ -48,10 +48,10 @@ def test_mobile_sites_and_service_request_contract(client):
     assert payload[0]["center"] == {"lat": -9.54, "lng": 16.34}
     assert payload[0]["total_hectares"] == 142
     assert {item["id"] for item in payload[0]["kpis"]} == {
-        "ndvi_avg",
-        "water_stress",
-        "hectares_monitored",
-        "yield_estimate",
+        "soil_moisture",
+        "water_level",
+        "data_completeness",
+        "open_incidents",
     }
 
     created = client.post(
@@ -87,6 +87,48 @@ def test_mobile_home_site_returns_home_kpis(client):
         "tank_level",
         "leak_events",
     }
+
+
+def test_mobile_site_sectors_use_current_public_identifiers(client):
+    headers = _login_headers(client)
+    cases = {
+        "construction": "progress_percent",
+        "environment": "air_quality",
+        "industry": "extraction_volume",
+        "infrastructure": "data_freshness",
+    }
+    for sector, expected_kpi in cases.items():
+        response = client.post(
+            "/mobile/sites",
+            headers=headers,
+            json={
+                "name": f"Test {sector}",
+                "sector": sector,
+                "country": "Angola",
+                "province": "Luanda",
+                "municipality": "Viana",
+            },
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["sector"] == sector
+        assert expected_kpi in {item["id"] for item in response.json()["kpis"]}
+
+
+def test_mobile_legacy_sector_alias_is_returned_canonically(client):
+    headers = _login_headers(client)
+    response = client.post(
+        "/mobile/sites",
+        headers=headers,
+        json={
+            "name": "Legacy agriculture input",
+            "sector": "agriculture",
+            "country": "Angola",
+            "province": "Huambo",
+            "municipality": "Caála",
+        },
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["sector"] == "agro"
 
 
 def test_mobile_routes_require_authentication(client):

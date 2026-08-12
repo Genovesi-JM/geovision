@@ -890,6 +890,13 @@
     .geo-item-meta { font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .geo-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
     .geo-badge-alert { background: rgba(239, 68, 68, 0.18); color: #fca5a5; font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 999px; }
+    .geo-capabilities { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.7rem; margin-bottom:1rem; }
+    .geo-capability { display:flex; align-items:center; gap:.7rem; padding:.85rem; border:1px solid rgba(148,163,184,.14); border-radius:12px; background:rgba(15,23,42,.6); }
+    .geo-capability i { display:grid; place-items:center; width:34px; height:34px; border-radius:9px; background:rgba(56,189,248,.1); color:#38bdf8; }
+    .geo-capability strong { display:block; font-size:.78rem; }
+    .geo-capability span { display:block; color:#94a3b8; font-size:.66rem; margin-top:.15rem; }
+    @media (max-width:900px) { .geo-capabilities { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:520px) { .geo-capabilities { grid-template-columns:1fr; } }
     .geo-empty { color: #6b7280; font-size: 0.85rem; padding: 1rem 0; }
 
     /* ============ VIEW PANELS ============ */
@@ -1879,13 +1886,19 @@
         <div class="page-header">
           <div class="page-eyebrow" data-i18n="dash.map.eyebrow">Visualização</div>
           <h1 class="page-title" data-i18n="dash.map.title">Mapa / Layers</h1>
-          <p class="page-subtitle" data-i18n="dash.map.desc">Visualização de camadas, voos e alertas geográficos.</p>
+          <p class="page-subtitle" data-i18n="dash.map.desc">Sites, sensores fixos e dispositivos GPS numa vista geográfica. Geofences e missões aéreas são adicionadas conforme o projeto.</p>
+        </div>
+        <div class="geo-capabilities">
+          <div class="geo-capability"><i class="fa-solid fa-microchip"></i><div><strong data-i18n="dash.map.fixedDevices">Sensores fixos</strong><span data-i18n="dash.map.available">Disponível</span></div></div>
+          <div class="geo-capability"><i class="fa-solid fa-location-crosshairs"></i><div><strong data-i18n="dash.map.mobileAssets">Ativos móveis / GPS</strong><span data-i18n="dash.map.byConfiguration">Mediante configuração</span></div></div>
+          <div class="geo-capability"><i class="fa-solid fa-draw-polygon"></i><div><strong data-i18n="dash.map.geofences">Geofences</strong><span data-i18n="dash.map.inDevelopment">Em desenvolvimento</span></div></div>
+          <div class="geo-capability"><i class="fa-solid fa-helicopter"></i><div><strong data-i18n="dash.map.aerialMissions">Missões aéreas</strong><span data-i18n="dash.map.byProject">Por projeto</span></div></div>
         </div>
         <div class="card">
           <div class="card-header" style="gap:.5rem;flex-wrap:wrap;">
             <div id="geo-layers" style="display:flex;gap:.4rem;flex-wrap:wrap;">
               <button class="badge alert-filter active" data-layer="sites"><i class="fa-solid fa-location-dot"></i> <span data-i18n="geo.layer.sites">Sites</span></button>
-              <button class="badge alert-filter active" data-layer="devices"><i class="fa-solid fa-microchip"></i> <span data-i18n="geo.layer.devices">Dispositivos</span></button>
+              <button class="badge alert-filter active" data-layer="devices"><i class="fa-solid fa-microchip"></i> <span data-i18n="geo.layer.devices">Dispositivos &amp; GPS</span></button>
               <button class="badge alert-filter active" data-layer="alerts"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="geo.layer.alerts">Alertas</span></button>
             </div>
             <button class="btn btn-ghost" id="geo-refresh" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
@@ -2016,23 +2029,31 @@
           <input type="text" class="form-input" id="account-name-input" placeholder="Ex: Minha Operação" />
         </div>
         <div class="form-group">
-          <label class="form-label" data-i18n="dash.modal.entityType">Tipo de entidade</label>
-          <select class="form-select" id="account-entity-input">
-            <option value="org" data-i18n="dash.modal.org">Organização</option>
-            <option value="individual" data-i18n="dash.modal.individual">Individual</option>
+          <label class="form-label">Tipo de cliente</label>
+          <select class="form-select" id="account-customer-input">
+            <option value="home">Casa &amp; propriedade</option>
+            <option value="farm">Exploração agrícola</option>
+            <option value="construction">Obra / construção</option>
+            <option value="environment">Ambiente</option>
+            <option value="industry" selected>Indústria / mineração</option>
+            <option value="device">Só um dispositivo</option>
+            <option value="enterprise">Empresa / vários locais</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="common.sector">Setor</label>
           <select class="form-select" id="account-sector-input">
-            <option value="home" data-i18n="sectors.home">Casa</option>
+            <option value="home">Casa &amp; propriedade</option>
             <option value="agro" data-i18n="dash.modal.agro">Agropecuária</option>
-            <option value="mining" data-i18n="sectors.mineracao">Mineração</option>
+            <option value="environment">Monitorização ambiental</option>
             <option value="construction" data-i18n="login.constructionInfra">Construção</option>
+            <option value="industry">Indústria &amp; mineração</option>
             <option value="infrastructure" data-i18n="sectors.infraestruturas">Infraestruturas</option>
-            <option value="ambiental" data-i18n="admin.modal.sectorAmbiental">Ambiental & Reflorestação</option>
-            <option value="solar" data-i18n="login.solar">Solar</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">O que pretende monitorizar?</label>
+          <div class="form-checkboxes" id="account-use-cases"></div>
         </div>
         <div class="form-group">
           <label class="form-label" data-i18n="dash.modal.modules">Módulos</label>
@@ -2051,10 +2072,11 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=20"></script>
+  <script src="assets/js/i18n.js?v=25"></script>
   <script src="assets/js/config.js?v=4"></script>
+  <script src="assets/js/account-profiles.js?v=2"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=16"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=17"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <style>

@@ -107,25 +107,23 @@
       <div>
         <label data-i18n="onboarding.personaLabel">Que tipo de cliente é?</label>
         <div class="checkbox-grid" id="persona-group">
-          <label class="checkbox-item"><input type="radio" name="persona" value="farm" checked /> <span data-i18n="onboarding.persona.farm">A minha exploração agrícola</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="site" /> <span data-i18n="onboarding.persona.site">A minha propriedade / local</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="construction" /> <span data-i18n="onboarding.persona.construction">Obra / construção</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="business" /> <span data-i18n="onboarding.persona.business">Empresa / site industrial</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="home" checked /> <span data-i18n="commercial.account.home">Casa &amp; propriedade</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="farm" /> <span data-i18n="onboarding.persona.farm">A minha exploração agrícola</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="construction" /> <span data-i18n="commercial.account.construction">Construção / infraestrutura</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="environment" /> <span data-i18n="commercial.account.environment">Ambiente</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="industry" /> <span data-i18n="commercial.account.industry">Indústria / mineração</span></label>
           <label class="checkbox-item"><input type="radio" name="persona" value="device" /> <span data-i18n="onboarding.persona.device">Só comprei um dispositivo</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="enterprise" /> <span data-i18n="onboarding.persona.enterprise">Várias localizações / empresa</span></label>
+          <label class="checkbox-item"><input type="radio" name="persona" value="enterprise" /> <span data-i18n="commercial.account.enterprise">Empresa / vários locais</span></label>
         </div>
       </div>
       <div>
         <label data-i18n="onboarding.sectorsLabel">Setores de atuação (seleciona todos os que se aplicam)</label>
-        <div class="checkbox-grid" id="sectors-group">
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="home" /> <span data-i18n="sectors.home">Casa</span></label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="agro" /> <span data-i18n="dash.modal.agro">Agro &amp; Pecuária</span></label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="mining" /> <span data-i18n="sectors.mineracao">Mineração</span></label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="demining" /> <span data-i18n="sectors.demining">Desminagem</span></label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="construction" /> <span data-i18n="login.construction">Construção</span></label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="infrastructure" /> <span data-i18n="login.infrastructure">Infraestruturas</span></label>
-          <label class="checkbox-item"><input type="checkbox" name="sector" value="solar" /> <span data-i18n="login.solar">Solar</span></label>
-        </div>
+        <div class="checkbox-grid" id="sectors-group"></div>
+      </div>
+      <div>
+        <label>O que pretende monitorizar?</label>
+        <div class="checkbox-grid" id="use-cases-group"></div>
+        <p class="subtitle" id="dashboard-profile-hint"></p>
       </div>
       <div>
         <label for="org-name" data-i18n="onboarding.orgLabel">Nome da organização (opcional)</label>
@@ -143,6 +141,7 @@
   </div>
 
   <script src="assets/js/config.js"></script>
+  <script src="assets/js/account-profiles.js?v=2"></script>
   <script>
     const API_BASE = window.API_BASE;
     const successBox = document.getElementById("success-box");
@@ -174,44 +173,43 @@
       window.location.href = "login.html";
     }
 
-    // Individual/home customers only see consumer-relevant sectors; industrial
-    // ones (mining, demining, construction, infrastructure) are org-only.
-    const INDIVIDUAL_PERSONAS = ["farm", "site", "device"];
-    const INDIVIDUAL_SECTORS = ["home", "agro", "solar"];
-    const PERSONA_DEFAULT_SECTOR = { farm: "agro", site: "home", device: "home" };
-    function filterSectorsForPersona() {
-      const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
-      const individual = INDIVIDUAL_PERSONAS.includes(persona);
-      document.querySelectorAll('#sectors-group .checkbox-item').forEach((item) => {
-        const cb = item.querySelector('input[name="sector"]');
-        const ok = !individual || INDIVIDUAL_SECTORS.includes(cb.value);
-        item.style.display = ok ? "" : "none";
-        if (!ok) cb.checked = false;
+    const profileConfig = window.GV_ACCOUNT_PROFILE_CONFIG;
+    function renderChoices(hostId, name, values, defaults, labels) {
+      const host = document.getElementById(hostId); host.innerHTML = "";
+      values.forEach((value) => {
+        const label = document.createElement("label"); label.className = "checkbox-item";
+        const input = document.createElement("input"); input.type = "checkbox"; input.name = name; input.value = value; input.checked = defaults.includes(value);
+        const span = document.createElement("span"); span.textContent = labels[value] || value;
+        label.append(input, span); host.appendChild(label);
       });
-      const visibleChecked = document.querySelector('#sectors-group .checkbox-item:not([style*="display: none"]) input[name="sector"]:checked');
-      if (!visibleChecked && PERSONA_DEFAULT_SECTOR[persona]) {
-        const preferred = document.querySelector(`input[name="sector"][value="${PERSONA_DEFAULT_SECTOR[persona]}"]`);
-        if (preferred) preferred.checked = true;
-      }
     }
-    document.querySelectorAll('input[name="persona"]').forEach((r) => r.addEventListener("change", filterSectorsForPersona));
-    filterSectorsForPersona();
+    function renderProfileChoices() {
+      const customerType = (document.querySelector('input[name="persona"]:checked') || {}).value || "home";
+      const profile = profileConfig.profiles[customerType] || profileConfig.profiles.home;
+      renderChoices("sectors-group", "sector", profile.sectors, profile.defaults, profileConfig.sectorLabels);
+      renderChoices("use-cases-group", "use_case", profile.uses, profile.defaultUses, profileConfig.useCaseLabels);
+      document.getElementById("dashboard-profile-hint").textContent = profile.dashboard;
+    }
+    document.querySelectorAll('input[name="persona"]').forEach((r) => r.addEventListener("change", renderProfileChoices));
+    renderProfileChoices();
 
     document.getElementById("onboarding-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       hide(errorBox); hide(successBox);
 
       const selectedSectors = [...document.querySelectorAll('input[name="sector"]:checked')].map(cb => cb.value);
+      const selectedUseCases = [...document.querySelectorAll('input[name="use_case"]:checked')].map(cb => cb.value);
       const orgName = document.getElementById("org-name").value.trim();
       const accountName = document.getElementById("account-name").value.trim();
       // Customer type drives the dashboard experience (simple shell vs advanced console).
-      const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
-      const orgPersonas = ["construction", "business", "enterprise"];
-      const entityType = orgPersonas.includes(persona) ? "company" : "individual";
-      localStorage.setItem("gv_persona", persona);
+      const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "home";
 
       if (selectedSectors.length === 0) {
         show(errorBox, "Seleciona pelo menos um setor.");
+        return;
+      }
+      if (selectedUseCases.length === 0) {
+        show(errorBox, "Seleciona pelo menos um objetivo de monitorização.");
         return;
       }
 
@@ -219,7 +217,7 @@
       btn.disabled = true;
 
       try {
-        const res = await fetch(API_BASE + "/auth/google/onboarding", {
+        const res = await fetch(API_BASE + "/auth/onboarding", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -228,7 +226,8 @@
           body: JSON.stringify({
             sectors: selectedSectors,
             sector_focus: selectedSectors[0],
-            entity_type: entityType,
+            customer_type: persona,
+            use_cases: selectedUseCases,
             org_name: orgName || null,
             account_name: accountName || null,
           }),
@@ -249,7 +248,6 @@
         try {
           if (data.account && data.account.id) {
             localStorage.setItem('gv_account_id', data.account.id);
-            localStorage.setItem('gv_persona_' + data.account.id, persona);
           }
         } catch (_) {}
         localStorage.setItem("gv_toast", JSON.stringify({
@@ -268,7 +266,7 @@
       }
     });
   </script>
-  <script src="assets/js/i18n.js?v=20"></script>
+  <script src="assets/js/i18n.js?v=25"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>

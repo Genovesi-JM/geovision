@@ -15,6 +15,7 @@ class GvProduct {
     this.deliverables = const [],
     this.indicativePrice = true,
     this.image,
+    this.translations = const {},
   });
   final String id;
   final String name;
@@ -33,6 +34,59 @@ class GvProduct {
 
   /// Bundled asset path in demo mode or HTTPS URL supplied by the commerce API.
   final String? image;
+  final Map<String, Map<String, dynamic>> translations;
+
+  String localizedName(String languageCode) =>
+      translations[languageCode]?['name']?.toString() ??
+      translations['pt']?['name']?.toString() ??
+      name;
+
+  String localizedDescription(String languageCode) =>
+      translations[languageCode]?['description']?.toString() ??
+      translations['pt']?['description']?.toString() ??
+      description;
+
+  List<String> localizedDeliverables(String languageCode) {
+    final translated = translations[languageCode]?['deliverables'];
+    if (translated is List) {
+      return translated.map((item) => item.toString()).toList();
+    }
+    if (languageCode == 'pt') return deliverables;
+    final kind = category == 'service' ? 'service' : 'hardware';
+    const generic = {
+      'service': {
+        'en': [
+          'Mapped visual evidence',
+          'Technical summary',
+          'Agreed output files'
+        ],
+        'es': [
+          'Evidencia visual cartografiada',
+          'Resumen técnico',
+          'Archivos de entrega acordados'
+        ],
+        'fr': [
+          'Preuves visuelles cartographiées',
+          'Synthèse technique',
+          'Fichiers de livraison convenus'
+        ],
+      },
+      'hardware': {
+        'en': ['Selected hardware', 'Connection guide', 'Compatibility check'],
+        'es': [
+          'Hardware seleccionado',
+          'Guía de conexión',
+          'Verificación de compatibilidad'
+        ],
+        'fr': [
+          'Matériel sélectionné',
+          'Guide de connexion',
+          'Vérification de compatibilité'
+        ],
+      },
+    };
+    return generic[kind]?[languageCode] ?? deliverables;
+  }
 
   String get priceLabel => '${(priceCents / 100).toStringAsFixed(2)} $currency';
 
@@ -57,6 +111,13 @@ class GvProduct {
                 const [],
         indicativePrice: j['indicative_price'] != false,
         image: (j['image_url'] ?? j['image'])?.toString(),
+        translations: (j['translations'] as Map?)?.map((key, value) => MapEntry(
+                  key.toString(),
+                  value is Map
+                      ? Map<String, dynamic>.from(value)
+                      : <String, dynamic>{},
+                )) ??
+            const {},
       );
 
   static String _mobileCategory(Map<String, dynamic> json) {

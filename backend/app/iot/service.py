@@ -24,6 +24,7 @@ from app.models import (
     Site,
     TelemetryReading,
 )
+from app.time_utils import utc_now
 
 # On-device firmware also enforces these locally; the backend rule is the
 # "decide" layer of detect → decide → act → confirm.
@@ -46,7 +47,7 @@ def device_for_company(db: Session, device_id: str, company_id: str) -> IotDevic
 
 
 def active_credential(db: Session, device: IotDevice) -> DeviceCredential | None:
-    now = datetime.utcnow()
+    now = utc_now()
     return (
         db.query(DeviceCredential)
         .filter(
@@ -104,7 +105,7 @@ def _evaluate_alerts(db: Session, device: IotDevice, reading: TelemetryReading, 
     )
     events: list[dict] = []
     for rule in rules:
-        now = datetime.utcnow()
+        now = utc_now()
         triggered = _comparison(rule.operator, reading.numeric_value, rule.threshold, previous)
         open_alert = (
             db.query(IotAlert)
@@ -178,7 +179,7 @@ def _evaluate_irrigation(db: Session, device: IotDevice) -> list[dict]:
         db.add(IotCommand(
             company_id=device.company_id, device_id=device.id, requested_by="system-auto-irrig",
             correlation_id=str(uuid.uuid4()), name=name, arguments_json="{}", reason=reason,
-            fail_safe_state="off", expires_at=datetime.utcnow() + timedelta(seconds=300),
+            fail_safe_state="off", expires_at=utc_now() + timedelta(seconds=300),
         ))
         db.flush()
         return {"type": "automation.irrigation", "action": name, "device_id": device.id, "reason": reason, "soil_moisture": soil}
@@ -213,7 +214,7 @@ def ingest_telemetry(
 
     recent_count = db.query(TelemetryReading.id).filter(
         TelemetryReading.device_id == device.id,
-        TelemetryReading.received_at >= datetime.utcnow() - timedelta(minutes=1),
+        TelemetryReading.received_at >= utc_now() - timedelta(minutes=1),
     ).count()
     if recent_count >= settings.iot_max_messages_per_minute * max(len(envelope.measurements), 1):
         raise HTTPException(status_code=429, detail="Device telemetry rate limit exceeded")
@@ -267,7 +268,7 @@ def ingest_telemetry(
 
     automation_events = _evaluate_irrigation(db, device)
 
-    device.last_seen_at = datetime.utcnow()
+    device.last_seen_at = utc_now()
     device.last_ip = remote_ip
     device.status = "online"
     try:

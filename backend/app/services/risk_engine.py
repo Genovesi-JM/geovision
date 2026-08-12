@@ -22,6 +22,8 @@ from enum import Enum
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 
+from app.time_utils import utc_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -77,7 +79,7 @@ class RiskAlert:
     metric_value: Optional[float] = None
     threshold: Optional[float] = None
     recommendation: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=utc_now)
 
 
 @dataclass
@@ -92,7 +94,7 @@ class RiskAssessmentResult:
     alerts: List[RiskAlert]
     recommendations: List[str]
     input_data: Dict[str, Any]
-    assessed_at: datetime = field(default_factory=datetime.utcnow)
+    assessed_at: datetime = field(default_factory=utc_now)
 
 
 # ============ RULE DEFINITIONS ============

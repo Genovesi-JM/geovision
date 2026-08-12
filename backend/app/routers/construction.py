@@ -22,6 +22,7 @@ from app.database import get_db
 from app.deps import get_current_user
 from app.models import AssetInspection, AuditLog, Company, IotAsset, Site, User
 from app.routers.me import _get_user_company_id
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/construction", tags=["construction"])
 
@@ -74,7 +75,7 @@ def create_inspection(payload: InspectionCreate, user: User = Depends(get_curren
         checklist_json=json.dumps(payload.checklist), photos_json=json.dumps(payload.photos),
         latitude=payload.latitude if payload.latitude is not None else asset.latitude,
         longitude=payload.longitude if payload.longitude is not None else asset.longitude,
-        created_at=datetime.utcnow(),
+        created_at=utc_now(),
     )
     db.add(row)
     db.add(AuditLog(user_id=user.id, user_email=user.email, action="construction.inspection_created",
@@ -146,7 +147,7 @@ def _build_inspection_pdf(asset, site, company, inspections) -> bytes:
             ["Asset type", asset.asset_type],
             ["Inspections", str(len(inspections))],
             ["Pass / Attention / Fail", f"{counts.get('pass',0)} / {counts.get('attention',0)} / {counts.get('fail',0)}"],
-            ["Generated", datetime.utcnow().isoformat() + "Z"],
+            ["Generated", utc_now().isoformat() + "Z"],
         ]),
         Spacer(1, 12), Paragraph("Inspection timeline", styles["Heading2"]),
     ]

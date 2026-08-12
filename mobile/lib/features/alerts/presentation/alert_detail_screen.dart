@@ -9,7 +9,9 @@ import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_section_header.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../core/widgets/severity_chip.dart';
+import '../../../l10n/app_localizations.dart';
 import '../data/alerts_repository.dart';
+import 'alert_copy.dart';
 
 class AlertDetailScreen extends ConsumerWidget {
   const AlertDetailScreen({super.key, required this.alertId});
@@ -18,15 +20,17 @@ class AlertDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(alertsProvider);
+    final text = AppLocalizations.of(context);
+    final copy = AlertCopy.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Alert')),
+      appBar: AppBar(title: Text(text.navAlerts)),
       body: alertsAsync.when(
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(message: '$e'),
         data: (env) {
           final matches = env.value.where((a) => a.id == alertId);
           if (matches.isEmpty) {
-            return const GvEmpty(message: 'Alert not found.');
+            return GvEmpty(message: copy.alertNotFound);
           }
           final a = matches.first;
           return ListView(
@@ -43,11 +47,11 @@ class AlertDetailScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: GvSpacing.md),
-              Text(a.title,
+              Text(copy.title(a),
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: GvSpacing.sm),
-              Text(a.description,
+              Text(copy.description(a),
                   style: const TextStyle(
                       color: GvColors.textSecondary, height: 1.4)),
               const SizedBox(height: GvSpacing.md),
@@ -61,26 +65,26 @@ class AlertDetailScreen extends ConsumerWidget {
                     if (a.siteId != null)
                       TextButton(
                         onPressed: () => context.go('/sites/${a.siteId}/map'),
-                        child: const Text('View on map'),
+                        child: Text(copy.viewOnMap),
                       ),
                   ]),
                 ),
               if (a.recommendation != null) ...[
                 const SizedBox(height: GvSpacing.md),
-                const GvSectionHeader(title: 'Recommended action'),
+                GvSectionHeader(title: text.recommendedAction),
                 GvCard(
                   child: Row(children: [
                     const Icon(Icons.lightbulb_outline, color: GvColors.medium),
                     const SizedBox(width: GvSpacing.md),
                     Expanded(
-                        child: Text(a.recommendation!,
+                        child: Text(copy.recommendation(a)!,
                             style: const TextStyle(height: 1.4))),
                   ]),
                 ),
               ],
               if (a.evidence.isNotEmpty) ...[
                 const SizedBox(height: GvSpacing.md),
-                const GvSectionHeader(title: 'Evidence'),
+                GvSectionHeader(title: copy.evidence),
                 GvCard(
                     child: Text(a.evidence.join(', '),
                         style: const TextStyle(color: GvColors.textSecondary))),
@@ -99,8 +103,9 @@ class AlertDetailScreen extends ConsumerWidget {
                               ref.invalidate(alertsProvider);
                             },
                       icon: const Icon(Icons.check),
-                      label:
-                          Text(a.acknowledged ? 'Acknowledged' : 'Acknowledge'),
+                      label: Text(a.acknowledged
+                          ? copy.acknowledged
+                          : text.acknowledge),
                     ),
                   ),
                   const SizedBox(width: GvSpacing.md),
@@ -108,7 +113,7 @@ class AlertDetailScreen extends ConsumerWidget {
                     child: FilledButton.icon(
                       onPressed: () => context.go('/work/new'),
                       icon: const Icon(Icons.build_outlined),
-                      label: const Text('Request intervention'),
+                      label: Text(text.requestIntervention),
                     ),
                   ),
                 ],

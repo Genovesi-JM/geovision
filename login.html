@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -13,176 +13,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/chatbot.css" />
 
+  <link rel="stylesheet" href="assets/css/public-shell.css?v=2" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    :root {
-      --bg-dark: #050914;
-      --bg-darker: #020408;
-      --bg-card: rgba(15, 23, 42, 0.85);
-      --border: rgba(148, 163, 184, 0.12);
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-green: #22c55e;
-      --accent-blue: #0ea5e9;
-      --accent-cyan: #06b6d4;
-      --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
-      --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
-    }
-
     body {
-      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-primary);
-      margin: 0;
       min-height: 100vh;
       display: grid;
       place-items: center;
       padding: 6rem 1rem 2rem;
-      line-height: 1.7;
-    }
-
-    /* ============ NAVBAR ============ */
-    .navbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(5, 9, 20, 0.92);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .navbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: var(--text-primary);
-    }
-
-    .navbar-logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .navbar-logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .navbar-brand-text {
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-    }
-
-    .navbar-nav {
-      display: flex;
-      align-items: center;
-      gap: 2.5rem;
-    }
-
-    .navbar-link {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .navbar-link:hover,
-    .navbar-link.active {
-      color: var(--accent-cyan);
-    }
-
-    .btn-nav {
-      padding: 0.6rem 1.4rem;
-      border-radius: 8px;
-      background: var(--gradient-primary);
-      color: #020617;
-      font-weight: 600;
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .btn-nav:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
-    }
-
-    .navbar-toggle {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.5rem;
-    }
-
-    .navbar-toggle span {
-      width: 24px;
-      height: 2px;
-      background: var(--text-primary);
-      transition: 0.3s;
-    }
-
-    /* ============ LANGUAGE TOGGLE ============ */
-    .lang-toggle {
-      display: flex;
-      gap: 0.25rem;
-      margin-left: 1rem;
-      padding-left: 1rem;
-      border-left: 1px solid var(--border);
-    }
-
-    .lang-btn {
-      padding: 0.35rem 0.6rem;
-      border-radius: 6px;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .lang-btn:hover {
-      color: var(--text-primary);
-    }
-
-    .lang-btn.active {
-      background: var(--gradient-primary);
-      color: #020617;
-      border-color: transparent;
-    }
-
-    @media (max-width: 768px) {
-      .navbar-nav, .lang-toggle { display: none; }
-      .navbar-toggle { display: flex; }
-      .navbar-nav.show {
-        display: flex; flex-direction: column; position: absolute;
-        top: 100%; right: 0; background: #0b1428;
-        border-radius: 12px; border: 1px solid rgba(95,212,255,0.3);
-        padding: 0.5rem 0; min-width: 200px; z-index: 9999;
-        box-shadow: 0 14px 36px rgba(0,0,0,0.8);
-      }
-      .navbar-nav.show a { display: block; padding: 0.9rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-      .navbar-nav.show a:last-child { border-bottom: none; }
-      .lang-toggle.show { display: flex; position: static; justify-content: center; padding: 0.7rem 1rem; gap: 0.5rem; border-top: 1px solid rgba(95,212,255,0.2); border-left: none; margin-left: 0; padding-left: 1rem; }
     }
 
     /* ============ LOGIN SHELL ============ */
@@ -299,7 +136,11 @@
       color: #9fb4d3;
     }
     .link {
+      padding: 0;
+      border: 0;
+      background: none;
       color: #8ed0ff;
+      font: inherit;
       text-decoration: underline;
       cursor: pointer;
     }
@@ -364,6 +205,12 @@
     .wizard-dot.done { background: rgba(34,197,94,0.6); }
     .wizard-nav { display: flex; flex-wrap: wrap; gap: 0.6rem; }
     .wizard-nav .btn-primary, .wizard-nav .btn-ghost { flex: 1 1 auto; }
+    .choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; margin-top:.45rem; }
+    .choice-item { display:flex; align-items:flex-start; gap:.5rem; padding:.65rem; border:1px solid rgba(148,163,184,.22); border-radius:10px; color:#d7deea; cursor:pointer; }
+    .choice-item:has(input:checked) { border-color:rgba(56,189,248,.75); background:rgba(56,189,248,.08); }
+    .choice-item input { width:1rem; height:1rem; margin-top:.1rem; accent-color:#38bdf8; }
+    .profile-hint { margin:.55rem 0 0; color:#94a3b8; font-size:.82rem; line-height:1.4; }
+    @media (max-width:520px) { .choice-grid { grid-template-columns:1fr; } }
 
     /* Forgot email modal */
     .forgot-email-overlay {
@@ -454,11 +301,11 @@
       <span class="navbar-brand-text">GEOVISION</span>
     </a>
     <div class="navbar-nav">
-      <a href="index.html" class="navbar-link" data-i18n="nav.home">Home</a>
-      <a href="about.html" class="navbar-link" data-i18n="nav.about">About</a>
-      <a href="sectors.html" class="navbar-link" data-i18n="nav.sectors">Sectors</a>
-      <a href="technology.html" class="navbar-link" data-i18n="nav.technology">Technology</a>
-      <a href="loja.html" class="navbar-link" data-i18n="nav.services">Services</a>
+      <a href="index.html" class="navbar-link" data-i18n="nav.home">Início</a>
+      <a href="about.html" class="navbar-link" data-i18n="nav.about">Sobre</a>
+      <a href="sectors.html" class="navbar-link" data-i18n="nav.sectors">Setores</a>
+      <a href="technology.html" class="navbar-link" data-i18n="nav.technology">Tecnologia</a>
+      <a href="loja.html" class="navbar-link" data-i18n="nav.services">Serviços</a>
       <a href="login.html" class="btn-nav active" data-i18n="nav.portal">Portal</a>
     </div>
     <div class="lang-toggle">
@@ -476,35 +323,35 @@
     <div class="brand">
       <img src="assets/img/geovision-logo.png" alt="GeoVision" />
       <div>
-        <div class="title" data-i18n="login.signin">Sign In</div>
-        <p class="subtitle" data-i18n="login.subtitle">Access the GeoVision portal</p>
+        <div class="title" data-i18n="login.signin">Entrar</div>
+        <p class="subtitle" data-i18n="login.subtitle">Aceder ao portal GeoVision</p>
       </div>
     </div>
 
     <form id="login-form" class="grid" autocomplete="on">
       <div>
         <label for="login-email" data-i18n="login.email">Email</label>
-        <input type="email" id="login-email" data-i18n-placeholder="login.emailPlaceholder" placeholder="user@company.com" required />
+        <input type="email" id="login-email" data-i18n-placeholder="login.emailPlaceholder" placeholder="utilizador@empresa.com" required />
       </div>
       <div>
-        <label for="login-password" data-i18n="login.password">Password</label>
+        <label for="login-password" data-i18n="login.password">Senha</label>
         <div class="input-wrapper">
           <input type="password" id="login-password" data-i18n-placeholder="login.passwordPlaceholder" placeholder="••••••••" required />
-          <button type="button" class="toggle-password" data-target="login-password" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+          <button type="button" class="toggle-password" data-target="login-password" title="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
         </div>
       </div>
       <div class="actions">
-        <button class="btn-primary" type="submit" id="login-submit" data-i18n="login.signin">Sign In</button>
+        <button class="btn-primary" type="submit" id="login-submit" data-i18n="login.signin">Entrar</button>
         <button class="google-btn" type="button" id="google-btn">
-          <img src="assets/img/google-logo.svg" alt="Google" /> <span data-i18n="login.google">Sign in with Google</span>
+          <img src="assets/img/google-logo.svg" alt="Google" /> <span data-i18n="login.google">Entrar com Google</span>
         </button>
         <button class="microsoft-btn" type="button" id="microsoft-btn">
-          <img src="assets/img/microsoft-logo.svg" alt="Microsoft" /> <span data-i18n="login.microsoft">Sign in with Microsoft</span>
+          <img src="assets/img/microsoft-logo.svg" alt="Microsoft" /> <span data-i18n="login.microsoft">Entrar com Microsoft</span>
         </button>
         <div class="split">
-          <span class="link" id="forgot-link" data-i18n="login.forgot">Forgot password</span>
-          <span class="link" id="forgot-email-link" data-i18n="login.forgotEmail">Forgot email?</span>
-          <span class="link" id="toggle-create" aria-expanded="false" data-i18n="login.createAccount">Create account</span>
+          <button class="link" type="button" id="forgot-link" data-i18n="login.forgot">Esqueci a senha</button>
+          <button class="link" type="button" id="forgot-email-link" aria-controls="forgot-email-overlay" aria-expanded="false" data-overlay-open="forgot-email-overlay" data-i18n="login.forgotEmail">Esqueceu o email?</button>
+          <button class="link" type="button" id="toggle-create" aria-controls="create-form" aria-expanded="false" data-i18n="login.createAccount">Criar conta</button>
         </div>
       </div>
     </form>
@@ -521,7 +368,7 @@
         <div class="wizard-title" data-i18n="login.wiz.emailTitle">Qual é o seu email?</div>
         <div>
           <label for="create-email" data-i18n="login.email">Email</label>
-          <input type="email" id="create-email" placeholder="user@company.com" autocomplete="email" />
+          <input type="email" id="create-email" placeholder="utilizador@empresa.com" autocomplete="email" />
         </div>
         <div>
           <label for="create-email-confirm" data-i18n="login.confirmEmail">Confirmar email</label>
@@ -533,17 +380,17 @@
       <div class="wizard-step" data-step="2" hidden>
         <div class="wizard-title" data-i18n="login.wiz.passwordTitle">Crie uma palavra-passe</div>
         <div>
-          <label for="create-password" data-i18n="login.password">Password</label>
+          <label for="create-password" data-i18n="login.password">Senha</label>
           <div class="input-wrapper">
-            <input type="password" id="create-password" data-i18n-placeholder="login.choosePassword" placeholder="Choose a password" autocomplete="new-password" />
-            <button type="button" class="toggle-password" data-target="create-password" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+            <input type="password" id="create-password" data-i18n-placeholder="login.choosePassword" placeholder="Escolha uma senha" autocomplete="new-password" />
+            <button type="button" class="toggle-password" data-target="create-password" title="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
           </div>
         </div>
         <div>
-          <label for="create-password-confirm" data-i18n="login.confirmPassword">Confirm password</label>
+          <label for="create-password-confirm" data-i18n="login.confirmPassword">Confirmar senha</label>
           <div class="input-wrapper">
-            <input type="password" id="create-password-confirm" data-i18n-placeholder="login.repeatPassword" placeholder="Repeat password" autocomplete="new-password" />
-            <button type="button" class="toggle-password" data-target="create-password-confirm" title="Show/hide password"><i class="fa-solid fa-eye"></i></button>
+            <input type="password" id="create-password-confirm" data-i18n-placeholder="login.repeatPassword" placeholder="Repetir senha" autocomplete="new-password" />
+            <button type="button" class="toggle-password" data-target="create-password-confirm" title="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
           </div>
         </div>
       </div>
@@ -554,33 +401,31 @@
         <div>
           <label for="create-persona" data-i18n="onboarding.personaLabel">Que tipo de cliente é?</label>
           <select id="create-persona">
+            <option value="home" data-i18n="commercial.account.home">Casa &amp; propriedade</option>
             <option value="farm" data-i18n="onboarding.persona.farm">A minha exploração agrícola</option>
-            <option value="site" data-i18n="onboarding.persona.site">A minha propriedade / local</option>
-            <option value="construction" data-i18n="onboarding.persona.construction">Obra / construção</option>
-            <option value="business" data-i18n="onboarding.persona.business">Empresa / site industrial</option>
+            <option value="construction" data-i18n="commercial.account.construction">Construção / infraestrutura</option>
+            <option value="environment" data-i18n="commercial.account.environment">Ambiente</option>
+            <option value="industry" data-i18n="commercial.account.industry">Indústria / mineração</option>
             <option value="device" data-i18n="onboarding.persona.device">Só comprei um dispositivo</option>
-            <option value="enterprise" data-i18n="onboarding.persona.enterprise">Várias localizações / empresa</option>
+            <option value="enterprise" data-i18n="commercial.account.enterprise">Empresa / vários locais</option>
           </select>
         </div>
         <div>
-          <label for="create-sector" data-i18n="login.accountType">Account Type</label>
-          <select id="create-sector">
-            <option value="home" data-i18n="sectors.home">Home</option>
-            <option value="agro" data-i18n="sectors.agriculture">Agriculture</option>
-            <option value="mining" data-i18n="sectors.mineracao">Mining</option>
-            <option value="demining" data-i18n="sectors.demining">Demining</option>
-            <option value="construction" data-i18n="login.construction">Construction</option>
-            <option value="infrastructure" data-i18n="login.infrastructure">Infrastructure</option>
-            <option value="solar" data-i18n="login.solar">Solar</option>
-          </select>
+          <label>Área de atuação</label>
+          <div class="choice-grid" id="create-sectors"></div>
+        </div>
+        <div>
+          <label>O que pretende monitorizar?</label>
+          <div class="choice-grid" id="create-use-cases"></div>
+          <p class="profile-hint" id="create-dashboard-hint"></p>
         </div>
       </div>
 
       <div class="actions wizard-nav">
         <button id="wizard-back" class="btn-ghost" type="button" data-i18n="common.back" style="display:none;">Voltar</button>
         <button id="wizard-next" class="btn-primary" type="button" data-i18n="common.next">Seguinte</button>
-        <button id="create-submit" class="btn-primary" type="submit" data-i18n="login.createAccount" style="display:none;">Create account</button>
-        <button id="create-cancel" class="btn-ghost" type="button" data-i18n="common.cancel">Cancel</button>
+        <button id="create-submit" class="btn-primary" type="submit" data-i18n="login.createAccount" style="display:none;">Criar conta</button>
+        <button id="create-cancel" class="btn-ghost" type="button" data-i18n="common.cancel">Cancelar</button>
       </div>
     </form>
 
@@ -592,14 +437,14 @@
     </div>
 
     <div style="margin-top: 0.8rem; text-align:center;">
-      <a href="index.html" class="link" data-i18n="login.backToSite">← Back to site</a>
+      <a href="index.html" class="link" data-i18n="login.backToSite">← Voltar ao site</a>
     </div>
   </div>
 
   <!-- Forgot Email Modal -->
-  <div class="forgot-email-overlay" id="forgot-email-overlay">
+  <div class="forgot-email-overlay" id="forgot-email-overlay" data-overlay role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="forgot-email-title">
     <div class="forgot-email-card">
-      <h3 data-i18n="login.forgotEmail.title">Esqueceu o seu email?</h3>
+      <h3 id="forgot-email-title" data-i18n="login.forgotEmail.title">Esqueceu o seu email?</h3>
       <p data-i18n="login.forgotEmail.desc">
         Se não se lembra do email utilizado no registo, tente iniciar sessão com Google ou Microsoft — a sua conta será encontrada automaticamente. Caso contrário, contacte a nossa equipa de suporte:
       </p>
@@ -620,37 +465,17 @@
       <p class="hint-text" data-i18n="login.forgotEmail.hint">
         A equipa irá verificar a sua identidade e fornecer o email associado à sua conta.
       </p>
-      <button class="close-modal" id="close-forgot-email" data-i18n="login.forgotEmail.close">Fechar</button>
+      <button class="close-modal" id="close-forgot-email" data-overlay-close data-i18n="login.forgotEmail.close">Fechar</button>
     </div>
   </div>
 
-  <script>
-    document.querySelectorAll('.toggle-password').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const input = document.getElementById(btn.dataset.target);
-        const isPassword = input.type === 'password';
-        input.type = isPassword ? 'text' : 'password';
-        btn.innerHTML = isPassword ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
-      });
-    });
-
-    // Forgot email modal
-    document.getElementById('forgot-email-link').addEventListener('click', () => {
-      document.getElementById('forgot-email-overlay').classList.add('show');
-    });
-    document.getElementById('close-forgot-email').addEventListener('click', () => {
-      document.getElementById('forgot-email-overlay').classList.remove('show');
-    });
-    document.getElementById('forgot-email-overlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) e.currentTarget.classList.remove('show');
-    });
-  </script>
-  <script src="assets/js/site.js"></script>
+  <script src="assets/js/site.js?v=3"></script>
   <script src="assets/js/session.js?v=1"></script>
   <script src="assets/js/config.js?v=4"></script>
+  <script src="assets/js/account-profiles.js?v=2"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script src="assets/js/auth.js?v=5"></script>
-  <script src="assets/js/i18n.js?v=20"></script>
+  <script src="assets/js/auth.js?v=6"></script>
+  <script src="assets/js/i18n.js?v=25"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <script src="assets/js/theme.js?v=1"></script>

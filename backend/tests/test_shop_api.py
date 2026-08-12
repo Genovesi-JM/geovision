@@ -10,6 +10,8 @@ def _customer_headers(client):
 def test_diy_kits_appear_in_marketplace(client):
     products = client.get("/shop/products").json()
     product_ids = {p["id"] for p in products}
+    assert all(set(product["translations"]) == {"pt", "en", "es", "fr"} for product in products)
+    assert all("ambiental" not in product["sectors"] for product in products)
     assert {
         "prod_infra_progress",
         "prod_infra_inspection",
@@ -37,6 +39,9 @@ def test_diy_kits_appear_in_marketplace(client):
     assert water["price"] > water["price_usd"]  # AOA figure is larger than USD
     assert water["price_eur"] > 0
     assert water["deliverables"] and water["sectors"]
+    assert set(water["translations"]) == {"pt", "en", "es", "fr"}
+    assert water["translations"]["pt"]["name"].startswith("GV Level")
+    assert water["translations"]["en"]["description"]
 
     home_products = client.get("/shop/products", params={"sector": "home"}).json()
     home_kit_ids = {p["id"] for p in home_products if p["id"].startswith("prod_kit_")}
@@ -46,6 +51,11 @@ def test_diy_kits_appear_in_marketplace(client):
         "prod_kit_water_tank_starter",
     }
     assert "home" in water["sectors"]
+    environment_products = client.get(
+        "/shop/products", params={"sector": "ambiental"}
+    ).json()
+    assert environment_products
+    assert all("environment" in product["sectors"] for product in environment_products)
     assert not any(p["id"] == "prod_kit_energy_meter_starter" for p in products)
 
 
@@ -61,6 +71,7 @@ def test_catalogue_exposes_explicit_multi_currency_contract(client):
     assert product["currency"] == "AOA"
     assert product["sectors"]
     assert product["deliverables"]
+    assert set(product["translations"]) == {"pt", "en", "es", "fr"}
 
 
 def test_cart_currency_checkout_and_owned_order_contract(client):

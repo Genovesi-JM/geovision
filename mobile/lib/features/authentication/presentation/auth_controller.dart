@@ -4,6 +4,7 @@ import '../../../app/providers.dart';
 import '../../../core/errors/result.dart';
 import '../data/auth_repository.dart';
 import '../domain/auth_session.dart';
+import '../domain/registration_request.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(
       api: ref.watch(apiClientProvider),
@@ -35,6 +36,12 @@ class AuthController extends StateNotifier<AuthSession> {
     final r = await _repo.login(email, password);
     if (r is Ok<AuthSession>) state = r.value;
     return r;
+  }
+
+  Future<Result<AuthSession>> register(RegistrationRequest request) async {
+    final result = await _repo.register(request);
+    if (result is Ok<AuthSession>) state = result.value;
+    return result;
   }
 
   void enterDemo() => state = _repo.enterDemo();

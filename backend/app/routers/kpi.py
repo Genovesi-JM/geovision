@@ -12,12 +12,13 @@ from fastapi import APIRouter, Depends, Query
 from app.deps import get_current_account, get_current_user
 from app.schemas import KPIItem, KPIResponse, AlertItem, AlertsResponse, DashboardContext
 from app.models import Account, User
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/kpi", tags=["kpi"])
 
 
 def _now_minus(minutes: int) -> datetime:
-    return datetime.utcnow() - timedelta(minutes=minutes)
+    return utc_now() - timedelta(minutes=minutes)
 
 
 # ============================================================================
@@ -27,18 +28,14 @@ def _now_minus(minutes: int) -> datetime:
 
 def get_agro_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="ndvi_avg", label="NDVI Medio", value=0, unit="", status="ok", trend="stable",
-                updated_at=_now_minus(30), sector="agro",
-                description="Indice de vegetacao medio das areas monitoradas. Valores acima de 0.6 indicam vegetacao saudavel."),
-        KPIItem(id="water_stress", label="Stress Hidrico", value=0, unit="%", status="ok", trend="stable",
-                updated_at=_now_minus(45), sector="agro",
-                description="Percentagem da area com indicadores de stress hidrico. Abaixo de 20% e considerado normal."),
-        KPIItem(id="hectares_monitored", label="Hectares Monitorados", value=0, unit="ha", status="ok", trend="stable",
-                updated_at=_now_minus(60), sector="agro",
-                description="Total de area agricola sob monitorizacao ativa por drone e sensores."),
-        KPIItem(id="yield_estimate", label="Produtividade Estimada", value=0, unit="ton/ha", status="ok", trend="stable",
-                updated_at=_now_minus(120), sector="agro",
-                description="Estimativa de produtividade baseada em analise multispectral e historico."),
+        KPIItem(id="soil_moisture", label="Humidade do Solo", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(30), sector="agro", description="Ultima leitura de humidade do solo no local selecionado."),
+        KPIItem(id="water_level", label="Disponibilidade de Agua", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(30), sector="agro", description="Nivel ou disponibilidade de agua medida no local."),
+        KPIItem(id="data_completeness", label="Completude dos Dados", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(10), sector="agro", description="Percentagem das leituras esperadas que foram recebidas."),
+        KPIItem(id="open_incidents", label="Incidentes Abertos", value=0, unit="", status=None, trend=None,
+                updated_at=_now_minus(5), sector="agro", description="Alertas operacionais ainda nao resolvidos."),
     ]
 
 
@@ -78,18 +75,27 @@ def get_construction_kpis() -> List[KPIItem]:
 
 def get_infrastructure_kpis() -> List[KPIItem]:
     return [
-        KPIItem(id="km_monitored", label="Km Monitorados", value=0, unit="km", status="ok", trend="stable",
-                updated_at=_now_minus(60), sector="infrastructure",
-                description="Extensao total de infraestrutura linear (estradas, linhas) sob monitorizacao."),
-        KPIItem(id="structural_integrity", label="Integridade Estrutural", value=0, unit="%", status="ok", trend="stable",
-                updated_at=_now_minus(30), sector="infrastructure",
-                description="Indice medio de integridade das estruturas inspecionadas (pontes, viadutos)."),
-        KPIItem(id="vibration_sensors", label="Sensores Vibracao", value=0, unit="", status="ok", trend="stable",
-                updated_at=_now_minus(5), sector="infrastructure",
-                description="Sensores de vibracao ativos em pontes e estruturas criticas."),
-        KPIItem(id="maintenance_alerts", label="Alertas Manutencao", value=0, unit="", status="ok", trend="stable",
-                updated_at=_now_minus(15), sector="infrastructure",
-                description="Alertas ativos que requerem intervencao de manutencao."),
+        KPIItem(id="data_freshness", label="Dados Recentes", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(5), sector="infrastructure", description="Percentagem de dispositivos com dados recentes."),
+        KPIItem(id="device_health", label="Saude dos Dispositivos", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(5), sector="infrastructure", description="Dispositivos online, com bateria e sinal adequados."),
+        KPIItem(id="maintenance_due", label="Manutencao Pendente", value=0, unit="", status=None, trend=None,
+                updated_at=_now_minus(15), sector="infrastructure", description="Equipamentos com manutencao ou intervencao pendente."),
+        KPIItem(id="open_incidents", label="Incidentes Abertos", value=0, unit="", status=None, trend=None,
+                updated_at=_now_minus(5), sector="infrastructure", description="Alertas operacionais ainda nao resolvidos."),
+    ]
+
+
+def get_environment_kpis() -> List[KPIItem]:
+    return [
+        KPIItem(id="air_quality", label="Qualidade do Ar", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(10), sector="environment", description="Ultima leitura dos canais de qualidade do ar configurados."),
+        KPIItem(id="water_level", label="Nivel de Agua", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(10), sector="environment", description="Nivel atual do deposito ou ponto de agua monitorizado."),
+        KPIItem(id="leak_events", label="Eventos de Fuga", value=0, unit="", status=None, trend=None,
+                updated_at=_now_minus(5), sector="environment", description="Fugas detetadas que requerem verificacao."),
+        KPIItem(id="data_completeness", label="Completude dos Dados", value="—", unit="", status=None, trend=None,
+                updated_at=_now_minus(10), sector="environment", description="Percentagem das leituras esperadas que foram recebidas."),
     ]
 
 
@@ -163,6 +169,7 @@ def get_home_kpis() -> List[KPIItem]:
 
 SECTOR_KPI_FUNCTIONS = {
     "agro": get_agro_kpis,
+    "environment": get_environment_kpis,
     "home": get_home_kpis,
     "mining": get_mining_kpis,
     "construction": get_construction_kpis,
@@ -282,6 +289,7 @@ def dashboard_context(
     # Build human-readable summary for chatbot
     sector_names = {
         "agro": "Agricultura e Pecuaria",
+        "environment": "Monitorizacao Ambiental",
         "home": "Casa",
         "mining": "Mineracao",
         "construction": "Construcao",

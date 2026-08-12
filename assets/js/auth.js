@@ -143,24 +143,27 @@
     let wizardStep = 1;
     const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-    // Individual/home customers only see consumer-relevant sectors — industrial
-    // ones (mining, demining, construction, infrastructure) are org-only.
-    const INDIVIDUAL_PERSONAS = ['farm', 'site', 'device'];
-    const INDIVIDUAL_SECTORS = ['home', 'agro', 'solar'];
-    const PERSONA_DEFAULT_SECTOR = { farm: 'agro', site: 'home', device: 'home', construction: 'construction', business: 'agro', enterprise: 'agro' };
-    function filterSectorsForPersona() {
-      const sel = document.getElementById('create-sector');
-      const persona = document.getElementById('create-persona')?.value || 'farm';
-      if (!sel) return;
-      const individual = INDIVIDUAL_PERSONAS.includes(persona);
-      [...sel.options].forEach((o) => {
-        const ok = !individual || INDIVIDUAL_SECTORS.includes(o.value);
-        o.hidden = !ok; o.disabled = !ok;
+    const PROFILE_CONFIG = window.GV_ACCOUNT_PROFILE_CONFIG;
+    const SECTOR_LABELS = PROFILE_CONFIG.sectorLabels;
+    const USE_CASE_LABELS = PROFILE_CONFIG.useCaseLabels;
+    const ACCOUNT_PROFILES = PROFILE_CONFIG.profiles;
+    function renderChoices(containerId, name, values, defaults, labels) {
+      const host = document.getElementById(containerId);
+      if (!host) return;
+      host.innerHTML = '';
+      values.forEach((value) => {
+        const label = document.createElement('label'); label.className = 'choice-item';
+        const input = document.createElement('input'); input.type = 'checkbox'; input.name = name; input.value = value; input.checked = defaults.includes(value);
+        const span = document.createElement('span'); span.textContent = labels[value] || value;
+        label.append(input, span); host.appendChild(label);
       });
-      // Pick a persona-appropriate default (re-runs only on persona change / step entry).
-      const def = PERSONA_DEFAULT_SECTOR[persona] || 'agro';
-      const defOpt = [...sel.options].find((o) => o.value === def && !o.hidden);
-      sel.value = defOpt ? def : ([...sel.options].find((o) => !o.hidden) || {}).value || sel.value;
+    }
+    function renderProfileChoices() {
+      const persona = document.getElementById('create-persona')?.value || 'home';
+      const config = ACCOUNT_PROFILES[persona] || ACCOUNT_PROFILES.farm;
+      renderChoices('create-sectors', 'create-sector', config.sectors, config.defaults, SECTOR_LABELS);
+      renderChoices('create-use-cases', 'create-use-case', config.uses, config.defaultUses, USE_CASE_LABELS);
+      const hint = document.getElementById('create-dashboard-hint'); if (hint) hint.textContent = config.dashboard;
     }
 
     function showWizardStep(n) {
@@ -179,7 +182,7 @@
       if (wizardBack) wizardBack.style.display = wizardStep > 1 ? '' : 'none';
       if (wizardNext) wizardNext.style.display = wizardStep < WIZ_TOTAL ? '' : 'none';
       if (createSubmit) createSubmit.style.display = wizardStep < WIZ_TOTAL ? 'none' : '';
-      if (wizardStep === WIZ_TOTAL) filterSectorsForPersona();
+      if (wizardStep === WIZ_TOTAL) renderProfileChoices();
       const first = createForm.querySelector(`.wizard-step[data-step="${wizardStep}"] input, .wizard-step[data-step="${wizardStep}"] select`);
       if (first) setTimeout(() => first.focus(), 30);
     }
@@ -221,7 +224,7 @@
     }
     const createPersona = document.getElementById('create-persona');
     if (createPersona && !createPersona.dataset.gvBound) {
-      createPersona.addEventListener('change', filterSectorsForPersona);
+      createPersona.addEventListener('change', renderProfileChoices);
       createPersona.dataset.gvBound = '1';
     }
     if (wizardBack && !wizardBack.dataset.gvBound) {
@@ -248,25 +251,25 @@
 
         const email = (document.getElementById('create-email')?.value || '').trim().toLowerCase();
         const password = document.getElementById('create-password')?.value || '';
-        const sector_focus = (document.getElementById('create-sector')?.value || 'agro').trim();
-        const persona = document.getElementById('create-persona')?.value || 'farm';
-        const entity_type = ['construction', 'business', 'enterprise'].includes(persona) ? 'company' : 'individual';
+        const persona = document.getElementById('create-persona')?.value || 'home';
+        const sectors = [...document.querySelectorAll('input[name="create-sector"]:checked')].map((el) => el.value);
+        const use_cases = [...document.querySelectorAll('input[name="create-use-case"]:checked')].map((el) => el.value);
 
         if (!validateWizardStep(1)) { showWizardStep(1); return; }
         if (!validateWizardStep(2)) { showWizardStep(2); return; }
+        if (!sectors.length) { show(errorBox, 'Selecione pelo menos uma área de atuação.'); return; }
+        if (!use_cases.length) { show(errorBox, 'Selecione pelo menos um objetivo de monitorização.'); return; }
 
         if (createSubmit) createSubmit.disabled = true;
         try {
-          localStorage.setItem('gv_persona', persona);
           const res = await fetch(`${apiBase()}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password, sector_focus, entity_type }),
+            body: JSON.stringify({ email, password, customer_type: persona, sectors, sector_focus: sectors[0], use_cases }),
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(() => ({}));
           persistSession(data, email);
-          try { if (data.account && data.account.id) localStorage.setItem('gv_persona_' + data.account.id, persona); } catch (_) {}
           setToast('Conta criada com sucesso.', 'success');
           redirectAfterAuth((data.user && data.user.role) || 'cliente');
         } catch (err) {

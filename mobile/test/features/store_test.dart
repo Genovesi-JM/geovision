@@ -8,10 +8,10 @@ import 'package:geovision/features/orders/domain/product.dart';
 import 'package:geovision/features/orders/presentation/product_image.dart';
 
 void main() {
-  test('commerce catalogue covers customer product categories', () {
+  test('demo catalogue contains only the current public product categories',
+      () {
     final categories = DemoData.products().map((p) => p.category).toSet();
-    expect(categories,
-        containsAll(['seeds', 'inputs', 'equipment', 'hardware', 'service']));
+    expect(categories, {'hardware', 'service'});
   });
 
   test('cart calculates quantities and removes empty lines', () {
@@ -44,21 +44,14 @@ void main() {
     expect(StoreMoney.allPrices(usdCents), hasLength(3));
   });
 
-  test('catalogue matches GeoVision sectors and declares deliverables', () {
+  test('catalogue matches current GeoVision sectors and declares deliverables',
+      () {
     final products = DemoData.products();
     final sectors = products.expand((product) => product.sectors).toSet();
+    expect(sectors,
+        containsAll(['agro', 'construction', 'infrastructure', 'environment']));
     expect(
-        sectors,
-        containsAll([
-          'agro',
-          'livestock',
-          'mining',
-          'construction',
-          'infrastructure',
-          'environment'
-        ]));
-    expect(
-        products.every((product) => product.description.length > 80), isTrue);
+        products.every((product) => product.description.length > 45), isTrue);
     expect(
         products.every((product) => product.deliverables.isNotEmpty), isTrue);
   });
@@ -81,12 +74,31 @@ void main() {
         .toList();
     expect(illustrated.length, products.length,
         reason: 'Every commercial card must have a product image.');
-    expect(illustrated.any((product) => product.category == 'seeds'), isTrue);
     expect(
         illustrated.any((product) => product.category == 'hardware'), isTrue);
-    expect(
-        illustrated.any((product) => product.category == 'equipment'), isTrue);
     expect(illustrated.any((product) => product.category == 'service'), isTrue);
+  });
+
+  test('demo products are production IDs and include all mobile translations',
+      () {
+    const activeIds = {
+      'prod_infra_progress',
+      'prod_infra_inspection',
+      'prod_aerial_basic_mapping',
+      'prod_agro_visual_inspection',
+      'prod_supply_soil_probe',
+      'prod_supply_irrigation_parts',
+      'prod_kit_water_tank_starter',
+      'prod_kit_environment_air',
+    };
+    final products = DemoData.products();
+    expect(products.map((product) => product.id).toSet(), activeIds);
+    for (final product in products) {
+      expect(product.localizedName('en'), isNotEmpty);
+      expect(product.localizedName('es'), isNotEmpty);
+      expect(product.localizedName('fr'), isNotEmpty);
+      expect(product.localizedDescription('en'), isNotEmpty);
+    }
   });
 
   test('maps the FastAPI product contract into mobile catalogue fields', () {
@@ -104,6 +116,9 @@ void main() {
       'sectors': ['agro'],
       'deliverables': ['Mapa NDVI'],
       'is_featured': true,
+      'translations': {
+        'en': {'name': 'NDVI Analysis', 'description': 'Multispectral mapping'}
+      },
     });
     expect(product.category, 'service');
     expect(product.priceAkzCents, 45000000);
@@ -111,6 +126,7 @@ void main() {
     expect(product.priceEurCents, 50000);
     expect(product.deliverables, ['Mapa NDVI']);
     expect(product.featured, isTrue);
+    expect(product.localizedName('en'), 'NDVI Analysis');
   });
 
   testWidgets('legacy backend image paths render a bundled photo fallback',

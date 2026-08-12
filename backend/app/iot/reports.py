@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 
+from app.time_utils import utc_now
+
 # ── Shared PDF scaffolding (used by device reports and construction inspections) ──
 # reportlab is imported lazily inside the helpers so importing this module stays cheap
 # and optional for callers that never render a PDF.
@@ -63,7 +65,7 @@ def build_device_pdf(device, site, company, readings, alerts, start: datetime, e
     story.append(meta_table([
         ["Customer", company.name if company else device.company_id], ["Site", site.name if site else device.site_id],
         ["Device UID", device.public_id], ["Period", f"{start.isoformat()}Z — {end.isoformat()}Z"],
-        ["Status", device.status], ["Generated", datetime.utcnow().isoformat() + "Z"],
+        ["Status", device.status], ["Generated", utc_now().isoformat() + "Z"],
     ], col_mm=(42, 120)))
     grouped = defaultdict(list)
     for row in readings:

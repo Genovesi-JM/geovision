@@ -6,6 +6,7 @@ import '../../../core/storage/secure_token_store.dart';
 import '../../../core/utils/app_logger.dart';
 import '../../account/domain/user_profile.dart';
 import '../domain/auth_session.dart';
+import '../domain/registration_request.dart';
 
 /// Talks to the existing GeoVision FastAPI auth endpoints
 /// (/auth/login, /auth/refresh, /auth/logout, /auth/me). Tokens are stored in
@@ -56,6 +57,24 @@ class AuthRepository {
     }
   }
 
+  Future<Result<AuthSession>> register(RegistrationRequest request) async {
+    try {
+      final res = await _api.raw.post('/auth/register', data: request.toJson());
+      final data = Map<String, dynamic>.from(res.data as Map);
+      final access = data['access_token'] as String?;
+      final refresh = data['refresh_token'] as String?;
+      if (access == null || refresh == null) {
+        return const Err(ServerFailure('Malformed registration response.'));
+      }
+      await _tokens.saveTokens(access: access, refresh: refresh);
+      final profile = UserProfile.fromJson(data);
+      _log.info('Account created successfully.');
+      return Ok(AuthSession(mode: AuthMode.authenticated, profile: profile));
+    } catch (e) {
+      return Err(_api.mapError(e));
+    }
+  }
+
   AuthSession enterDemo() {
     _log.info('Entering demo mode.');
     return const AuthSession(
@@ -65,6 +84,10 @@ class AuthRepository {
         email: 'demo@geovisionops.com',
         fullName: 'Demo Operator',
         organisation: 'Fazenda Kilombo Agro',
+        customerType: 'farm',
+        dashboardProfile: 'farm',
+        sectors: ['agro'],
+        useCases: ['soil', 'water', 'weather'],
       ),
     );
   }

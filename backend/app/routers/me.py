@@ -8,11 +8,20 @@ from app.deps import get_current_user
 from app.models import User, UserProfile, AccountMember, Account, CompanyUser, Company
 from app.schemas import AccountPublic, MeResponse, ProfileOut, UserSummary
 from app.services.storage import get_storage_service, is_s3_key
+from app.time_utils import utc_now
 
 router = APIRouter(prefix="/me", tags=["me"])
 
 
 def _parse_modules(value: str):
+    try:
+        parsed = json.loads(value) if value else None
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
+def _parse_list(value: str):
     try:
         parsed = json.loads(value) if value else None
         return parsed if isinstance(parsed, list) else []
@@ -39,6 +48,9 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
                     name=acct.name,
                     sector_focus=acct.sector_focus,
                     entity_type=acct.entity_type,
+                    customer_type=acct.customer_type,
+                    dashboard_profile=acct.dashboard_profile,
+                    use_cases=_parse_list(acct.use_cases),
                     org_name=acct.org_name,
                     modules_enabled=_parse_modules(acct.modules_enabled),
                     role=member.role if member else None,
@@ -110,7 +122,7 @@ def my_entitlement(user: User = Depends(get_current_user), db: Session = Depends
     kits = sorted({(d.hardware_model or d.device_type or "device") for d in devices})
 
     ent = db.query(CompanyEntitlement).filter(CompanyEntitlement.company_id == company_id).first()
-    now = datetime.utcnow()
+    now = utc_now()
     if ent:
         tier = ent.tier
         allowance = ent.sensor_allowance

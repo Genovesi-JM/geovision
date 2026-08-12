@@ -9,7 +9,7 @@ E-commerce endpoints for:
 - Customer profile (Minhas Compras)
 """
 import logging
-from typing import Optional, List
+from typing import Any, Optional, List
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
@@ -22,6 +22,7 @@ from app.deps import get_db
 from app.services.cart import get_cart_service, get_sector_labels
 from app.services.orders import get_order_service, OrderStatus, PaymentMethod, EventType
 from app.services.erp_sync import enqueue_erp_event, publish_account_event
+from app.account_profiles import normalize_public_sector
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +221,7 @@ class ProductResponse(BaseModel):
     deliverables: Optional[List[str]] = None
     image_url: Optional[str]
     is_featured: Optional[bool] = False
+    translations: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
 class SectorMismatchWarning(BaseModel):
@@ -277,7 +279,13 @@ async def list_products(
         products = [p for p in products if p.get("category") == category]
     
     if sector:
-        products = [p for p in products if sector in p.get("sectors", [])]
+        requested_sector = normalize_public_sector(sector)
+        products = [
+            p for p in products
+            if requested_sector in {
+                normalize_public_sector(item) for item in p.get("sectors", [])
+            }
+        ]
     
     if product_type:
         products = [p for p in products if p.get("product_type") == product_type]
@@ -310,6 +318,7 @@ async def list_products(
             deliverables=p.get("deliverables"),
             image_url=p.get("image_url"),
             is_featured=p.get("is_featured", False),
+            translations=p.get("translations", {}),
         )
         for p in products
     ]
@@ -347,6 +356,7 @@ async def get_product(product_id: str, db: Session = Depends(get_db)):
         deliverables=product.get("deliverables"),
         image_url=product.get("image_url"),
         is_featured=product.get("is_featured", False),
+        translations=product.get("translations", {}),
     )
 
 

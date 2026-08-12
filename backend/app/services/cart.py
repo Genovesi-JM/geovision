@@ -13,6 +13,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
+from app.product_translations import get_product_translations
+from app.account_profiles import normalize_public_sector
 
 from sqlalchemy.orm import Session
 
@@ -91,8 +93,11 @@ TAX_RATES = {
 # ============ SECTOR LABELS ============
 
 SECTOR_LABELS = {
+    "environment": "Ambiental & Propriedades",
     "mining": "Mineração",
     "infrastructure": "Construção e Infraestrutura",
+    "construction": "Construção",
+    "industry": "Indústria e Mineração",
     "agro": "Agro & Pecuária",
     "home": "Casa",
     "demining": "Desminagem Humanitária",
@@ -129,12 +134,12 @@ SHOP_PRODUCTS = [
 # SHOP_PRODUCTS as standby definitions, but are not advertised until a validated
 # project justifies rental, partnership or specialist delivery.
 SHOP_PRODUCTS += [
-    {"id": "prod_aerial_basic_mapping", "name": "Mapeamento Aéreo Essencial", "slug": "mapeamento-aereo-essencial", "description": "Mapeamento visual de uma quinta, propriedade ou local com ortomosaico e resumo de observações.", "short_description": "Mapa visual e documentação do local", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 35000000, "price_usd": 42500, "price_eur": 38900, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro", "infrastructure", "ambiental"], "deliverables": ["Ortomosaico visual", "Fotografias georreferenciadas", "Resumo de observações"], "image_url": "/assets/img/products/agro-cadastral.jpg", "is_active": True, "is_featured": True},
+    {"id": "prod_aerial_basic_mapping", "name": "Mapeamento Aéreo Essencial", "slug": "mapeamento-aereo-essencial", "description": "Mapeamento visual de uma quinta, propriedade ou local com ortomosaico e resumo de observações.", "short_description": "Mapa visual e documentação do local", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 35000000, "price_usd": 42500, "price_eur": 38900, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro", "infrastructure", "environment"], "deliverables": ["Ortomosaico visual", "Fotografias georreferenciadas", "Resumo de observações"], "image_url": "/assets/img/products/agro-cadastral.jpg", "is_active": True, "is_featured": True},
     {"id": "prod_agro_visual_inspection", "name": "Inspeção Visual Agrícola", "slug": "inspecao-visual-agricola", "description": "Inspeção aérea visual para documentar culturas, irrigação, acessos e anomalias visíveis sem prometer análise multiespectral.", "short_description": "Observação visual e registo da exploração", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 25000000, "price_usd": 30500, "price_eur": 27800, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro"], "deliverables": ["Fotografias aéreas", "Mapa de observações", "Relatório visual"], "image_url": "/assets/img/products/agro-ndvi.jpg", "is_active": True, "is_featured": True},
     {"id": "prod_supply_soil_probe", "name": "Kit de Sondas de Solo", "slug": "kit-sondas-solo", "description": "Sondas de humidade do solo para substituição, expansão ou primeiro protótipo GeoVision. Fornecimento sujeito a confirmação de compatibilidade.", "short_description": "Sondas para medir humidade do solo", "product_type": "hardware", "category": "sensor", "price": 2550000, "price_usd": 3000, "price_eur": 2800, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro"], "deliverables": ["2 sondas capacitivas", "Guia de ligação", "Verificação de compatibilidade"], "image_url": None, "is_active": True},
     {"id": "prod_supply_irrigation_parts", "name": "Kit de Componentes de Irrigação", "slug": "kit-componentes-irrigacao", "description": "Conjunto inicial de válvula de baixa tensão, sensor de caudal e conectores para um protótipo de irrigação monitorizada.", "short_description": "Válvula, caudal e ligações para protótipo", "product_type": "hardware", "category": "irrigation", "price": 4250000, "price_usd": 5000, "price_eur": 4600, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "home"], "deliverables": ["Válvula de baixa tensão", "Sensor de caudal", "Conectores e guia"], "image_url": None, "is_active": True},
-    {"id": "prod_supply_monitoring_spares", "name": "Pack de Acessórios para Sensores", "slug": "pack-acessorios-sensores", "description": "Cabos, conectores, prensa-cabos e pequenos consumíveis para manutenção de um nó GeoVision.", "short_description": "Peças pequenas para instalar e manter sensores", "product_type": "hardware", "category": "accessory", "price": 2125000, "price_usd": 2500, "price_eur": 2300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["home", "agro", "infrastructure", "ambiental"], "deliverables": ["Cabos e conectores", "Prensa-cabos", "Consumíveis de instalação"], "image_url": None, "is_active": True},
-    {"id": "prod_supply_weather_pack", "name": "Pack de Sensores Meteorológicos", "slug": "pack-sensores-meteorologicos", "description": "Sensores de temperatura, humidade e chuva para protótipos de campo e pequenas estações meteorológicas.", "short_description": "Temperatura, humidade e chuva", "product_type": "hardware", "category": "sensor", "price": 7650000, "price_usd": 9000, "price_eur": 8300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "ambiental"], "deliverables": ["Sensor de temperatura/humidade", "Pluviómetro", "Guia de protótipo"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_monitoring_spares", "name": "Pack de Acessórios para Sensores", "slug": "pack-acessorios-sensores", "description": "Cabos, conectores, prensa-cabos e pequenos consumíveis para manutenção de um nó GeoVision.", "short_description": "Peças pequenas para instalar e manter sensores", "product_type": "hardware", "category": "accessory", "price": 2125000, "price_usd": 2500, "price_eur": 2300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["home", "agro", "infrastructure", "environment"], "deliverables": ["Cabos e conectores", "Prensa-cabos", "Consumíveis de instalação"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_weather_pack", "name": "Pack de Sensores Meteorológicos", "slug": "pack-sensores-meteorologicos", "description": "Sensores de temperatura, humidade e chuva para protótipos de campo e pequenas estações meteorológicas.", "short_description": "Temperatura, humidade e chuva", "product_type": "hardware", "category": "sensor", "price": 7650000, "price_usd": 9000, "price_eur": 8300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "environment"], "deliverables": ["Sensor de temperatura/humidade", "Pluviómetro", "Guia de protótipo"], "image_url": None, "is_active": True},
 ]
 
 _PUBLIC_STATIC_PRODUCT_IDS = {
@@ -205,7 +210,7 @@ def seed_shop_products(db: Session) -> int:
 # Home follows the supported property use cases: air/comfort, water and leaks.
 _KIT_SECTORS = {
     "agriculture": ["agro"],
-    "environment": ["home", "ambiental"],
+    "environment": ["home", "environment"],
     "water": ["home", "infrastructure"],
     "energy": ["infrastructure"],
     "facilities": ["home", "infrastructure"],
@@ -253,9 +258,10 @@ def seed_kit_products(db: Session) -> int:
             sp = ShopProduct(id=pid, slug=f"diy-kit-{kit['id']}".replace("_", "-"), name=kit["name"])
             db.add(sp)
             upserted += 1
-        sp.name = kit["name"]
-        sp.description = desc[:2000]
-        sp.short_description = kit.get("summary", "")[:500]
+        localized = get_product_translations(pid).get("pt", {})
+        sp.name = localized.get("name", kit["name"])
+        sp.description = localized.get("description", desc)[:2000]
+        sp.short_description = localized.get("short_description", kit.get("summary", ""))[:500]
         sp.product_type = "hardware"
         sp.category = "sensor_kit"
         sp.price = price_aoa
@@ -507,6 +513,7 @@ class CartService:
                 "duration_hours": p.duration_hours, "requires_site": p.requires_site,
                 "min_area_ha": p.min_area_ha, "sectors": json.loads(p.sectors_json or "[]"),
                 "deliverables": json.loads(p.deliverables_json or "[]"),
+                "translations": get_product_translations(p.id),
                 "image_url": p.image_url, "is_active": p.is_active, "is_featured": p.is_featured,
                 "track_inventory": p.track_inventory, "stock_quantity": p.stock_quantity,
                 "created_at": p.created_at, "updated_at": p.updated_at}
@@ -516,10 +523,15 @@ class CartService:
         product = self.get_product(product_id)
         if not product: return None
         sectors = product.get("sectors", [])
-        if not sectors or account_sector in sectors: return None
-        pl = SECTOR_LABELS.get(sectors[0], sectors[0])
+        def current_sector(value):
+            return normalize_public_sector(value)
+        account_sector = current_sector(account_sector)
+        normalized_sectors = [current_sector(s) for s in sectors]
+        if not sectors or account_sector in normalized_sectors: return None
+        product_sector = normalized_sectors[0]
+        pl = SECTOR_LABELS.get(product_sector, product_sector)
         al = SECTOR_LABELS.get(account_sector, account_sector)
-        return {"warning": True, "sector_mismatch": True, "product_sector": sectors[0],
+        return {"warning": True, "sector_mismatch": True, "product_sector": product_sector,
                 "product_sector_label": pl, "account_sector": account_sector,
                 "account_sector_label": al,
                 "message": f"Este serviço é destinado ao sector {pl}. A sua conta está configurada para {al}.",

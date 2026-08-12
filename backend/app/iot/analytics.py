@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 from statistics import median
 
+from app.time_utils import utc_now
+
 
 def _num(row) -> float | None:
     if row.numeric_value is not None:
@@ -81,7 +83,7 @@ def compute_device_analytics(device, channels, readings, alerts, start: datetime
             completeness_pct = round(min(100.0, 100.0 * len(all_times) / expected), 1) if expected else None
 
     last_seen = device.last_seen_at
-    stale = not last_seen or (datetime.utcnow() - last_seen).total_seconds() > 120
+    stale = not last_seen or (utc_now() - last_seen).total_seconds() > 120
 
     # Incident analytics.
     sev_counts: dict[str, int] = {}

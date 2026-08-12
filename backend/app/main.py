@@ -1,6 +1,7 @@
 # backend/app/main.py
 
-from pathlib import Path
+import asyncio
+from contextlib import asynccontextmanager, suppress
 
 import os
 from urllib.parse import urlparse
@@ -21,9 +22,35 @@ from .seed_data import (
 from .services.cart import seed_shop_products, seed_kit_products
 
 
+@asynccontextmanager
+async def application_lifespan(application: FastAPI):
+    """Start and stop background IoT services with the FastAPI application."""
+
+    from .iot.mqtt import mqtt_bridge
+    from .iot.watchdog import device_watchdog
+
+    stop_event = asyncio.Event()
+    watchdog_task = asyncio.create_task(device_watchdog(stop_event))
+    application.state.iot_watchdog_stop = stop_event
+    application.state.iot_watchdog_task = watchdog_task
+    mqtt_bridge.start(asyncio.get_running_loop())
+
+    try:
+        yield
+    finally:
+        stop_event.set()
+        mqtt_bridge.stop()
+        try:
+            await asyncio.wait_for(watchdog_task, timeout=2)
+        except TimeoutError:
+            watchdog_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await watchdog_task
+
+
 def create_application() -> FastAPI:
     """Build and configure the FastAPI instance."""
-    application = FastAPI(title=settings.app_name)
+    application = FastAPI(title=settings.app_name, lifespan=application_lifespan)
 
     # Safe startup diagnostics (no secrets)
     try:
@@ -132,22 +159,6 @@ def create_application() -> FastAPI:
     application.include_router(iot.router)
     application.include_router(iot.mobile_router)
     application.include_router(construction.router)
-
-    @application.on_event("startup")
-    async def start_iot_bridge() -> None:
-        import asyncio
-        from .iot.mqtt import mqtt_bridge
-        mqtt_bridge.start(asyncio.get_running_loop())
-        from .iot.watchdog import device_watchdog
-        application.state.iot_watchdog_stop = asyncio.Event()
-        application.state.iot_watchdog_task = asyncio.create_task(device_watchdog(application.state.iot_watchdog_stop))
-
-    @application.on_event("shutdown")
-    def stop_iot_bridge() -> None:
-        from .iot.mqtt import mqtt_bridge
-        mqtt_bridge.stop()
-        if hasattr(application.state, "iot_watchdog_stop"):
-            application.state.iot_watchdog_stop.set()
 
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:

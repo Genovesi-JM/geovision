@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from app.config import settings
 from app.iot.events import event_hub
 from app.models import IotDevice
+from app.time_utils import utc_now
 
 
 async def device_watchdog(stop: asyncio.Event) -> None:
@@ -27,7 +28,7 @@ def _mark_offline() -> list[str]:
     from app.database import SessionLocal
     db = SessionLocal()
     try:
-        cutoff = datetime.utcnow() - timedelta(seconds=settings.iot_offline_after_seconds)
+        cutoff = utc_now() - timedelta(seconds=settings.iot_offline_after_seconds)
         rows = db.query(IotDevice).filter(IotDevice.last_seen_at.is_not(None), IotDevice.last_seen_at < cutoff, IotDevice.status == "online").all()
         for device in rows:
             device.status = "offline"

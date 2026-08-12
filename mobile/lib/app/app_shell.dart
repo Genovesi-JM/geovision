@@ -13,16 +13,15 @@ class AppShell extends ConsumerWidget {
   final Widget child;
 
   static const _tabs = [
-    '/home',
+    '/portal',
     '/sites',
-    '/devices',
+    '/orders',
     '/alerts',
     '/account',
   ];
 
   int _indexFor(String location) {
     if (location.startsWith('/account') ||
-        location.startsWith('/orders') ||
         location.startsWith('/work') ||
         location.startsWith('/reports') ||
         location.startsWith('/guides')) {
@@ -67,17 +66,17 @@ class AppShell extends ConsumerWidget {
         onTap: (i) => context.go(_tabs[i]),
         items: [
           BottomNavigationBarItem(
-              icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home),
-              label: text.navHome),
+              icon: const Icon(Icons.dashboard_outlined),
+              activeIcon: const Icon(Icons.dashboard),
+              label: text.navPortal),
           BottomNavigationBarItem(
               icon: const Icon(Icons.terrain_outlined),
               activeIcon: const Icon(Icons.terrain),
               label: text.navAssets),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.sensors_outlined),
-              activeIcon: const Icon(Icons.sensors),
-              label: text.devices),
+              icon: const Icon(Icons.storefront_outlined),
+              activeIcon: const Icon(Icons.storefront),
+              label: text.navStore),
           BottomNavigationBarItem(
               icon: const Icon(Icons.notifications_outlined),
               activeIcon: const Icon(Icons.notifications),

@@ -36,7 +36,7 @@ void main() {
       final site = Site(
         id: 's1',
         name: 'Test',
-        sector: Sector.agriculture,
+        sector: Sector.agro,
         status: SiteStatus.active,
         location: 'Malanje',
         center: const GeoPoint(-9.5, 16.3),
@@ -51,7 +51,7 @@ void main() {
       );
       final decoded = Site.fromJson(site.toJson());
       expect(decoded.id, 's1');
-      expect(decoded.sector, Sector.agriculture);
+      expect(decoded.sector, Sector.agro);
       expect(decoded.kpis.first.value, 0.7);
     });
   });
@@ -75,12 +75,11 @@ void main() {
 
   group('KPI catalogue', () {
     test('is sector-aware and agriculture-first', () {
-      expect(KpiCatalogue.forSector(Sector.agriculture).length, greaterThan(5));
-      expect(
-          KpiCatalogue.forSector(Sector.agriculture)
-              .any((k) => k.id == 'ndvi_avg'),
+      expect(KpiCatalogue.forSector(Sector.agro).length, greaterThan(5));
+      expect(KpiCatalogue.forSector(Sector.agro).any((k) => k.id == 'ndvi_avg'),
           true);
-      expect(KpiCatalogue.forSector(Sector.livestock).isNotEmpty, true);
+      expect(sectorFromString('livestock'), Sector.agro);
+      expect(sectorFromString('mining'), Sector.industry);
     });
 
     test('maps Home independently from Agriculture', () {

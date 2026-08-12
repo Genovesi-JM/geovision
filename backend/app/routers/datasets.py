@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_current_user
 from app.services.storage import get_storage_service, detect_file_type, detect_mime_type
+from app.time_utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -221,7 +222,7 @@ async def update_dataset(dataset_id: str, data: DatasetUpdate, db: Session = Dep
         existing = json.loads(ds.metadata_json or "{}")
         existing.update(data.metadata)
         ds.metadata_json = json.dumps(existing)
-    ds.updated_at = datetime.utcnow()
+    ds.updated_at = utc_now()
     db.commit(); db.refresh(ds)
     return _ds_out(ds)
 
@@ -266,7 +267,7 @@ async def upload_file(dataset_id: str, file: UploadFile = File(...), db: Session
     ds.file_count = len(ds.files) + 1
     if ds.status == DatasetStatus.UPLOADING.value:
         ds.status = DatasetStatus.PROCESSING.value
-    ds.updated_at = datetime.utcnow()
+    ds.updated_at = utc_now()
     db.commit(); db.refresh(df)
     logger.info(f"Uploaded file {filename} to dataset {dataset_id}")
     return DatasetFileOut(id=df.id, filename=df.filename, file_type=file_type,
@@ -300,7 +301,7 @@ async def confirm_upload(dataset_id: str, storage_key: str = Form(...),
     file_type = detect_file_type(filename)
     df = DFModel(id=file_id, dataset_id=dataset_id, filename=filename,
                  storage_key=storage_key, file_size=size_bytes)
-    db.add(df); ds.file_count = len(ds.files) + 1; ds.updated_at = datetime.utcnow()
+    db.add(df); ds.file_count = len(ds.files) + 1; ds.updated_at = utc_now()
     db.commit(); db.refresh(df)
     return DatasetFileOut(id=df.id, filename=df.filename, file_type=file_type,
                           size_bytes=df.file_size or 0, storage_key=df.storage_key,
@@ -329,7 +330,7 @@ async def delete_file(dataset_id: str, file_id: str, db: Session = Depends(get_d
     storage = get_storage_service()
     storage.delete_file(df.storage_key)
     db.delete(df); ds.file_count = max(0, (ds.file_count or 0) - 1)
-    ds.updated_at = datetime.utcnow(); db.commit()
+    ds.updated_at = utc_now(); db.commit()
     return {"message": "File deleted", "id": file_id}
 
 
@@ -339,7 +340,7 @@ async def finalize_dataset(dataset_id: str, db: Session = Depends(get_db)):
     ds = db.get(DSModel, dataset_id)
     if not ds: raise HTTPException(404, "Dataset not found")
     if not ds.files: raise HTTPException(400, "Dataset has no files")
-    ds.status = DatasetStatus.READY.value; ds.updated_at = datetime.utcnow()
+    ds.status = DatasetStatus.READY.value; ds.updated_at = utc_now()
     db.commit(); db.refresh(ds)
     logger.info(f"Finalized dataset {dataset_id} with {ds.file_count} files")
     return _ds_out(ds)

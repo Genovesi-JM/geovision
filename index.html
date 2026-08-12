@@ -5,176 +5,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
-  <title>GeoVision | Inteligência Territorial Multissetorial</title>
-  <meta name="description" content="GeoVision — plataforma de inteligência territorial multissetorial. Monitorização geoespacial estruturada, análise de dados e sistemas de apoio à decisão para agropecuária, mineração, construção, infraestruturas e setor ambiental." />
-  <meta name="keywords" content="GeoVision, inteligência territorial, monitorização geoespacial, drones, mineração, agropecuária, construção, infraestruturas, ambiental, dashboard, GPS tracking" />
-  <meta property="og:title" content="GeoVision — Inteligência Territorial Multissetorial" />
-  <meta property="og:description" content="Monitorização geoespacial estruturada, análise de dados e sistemas de apoio à decisão para setores estratégicos." />
+  <title>GeoVision | Monitorização para Casas, Propriedades e Operações</title>
+  <meta name="description" content="Sensores, GPS e tracking, inteligência aérea, mapas e IA numa única plataforma para monitorizar casas, propriedades, terras, ativos e operações." />
+  <meta name="keywords" content="GeoVision, monitorização, sensores, GPS, tracking, drones, inteligência aérea, mapas, IA, casa, agricultura, construção, indústria" />
+  <meta property="og:title" content="GeoVision — Veja o que está a acontecer. Saiba quando agir." />
+  <meta property="og:description" content="Do dispositivo no terreno à missão aérea: monitorização simples para espaços individuais e operações complexas." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://geovisionops.com" />
   <link rel="canonical" href="https://geovisionops.com" />
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"Organization","name":"GeoVision","url":"https://geovisionops.com","description":"Operational intelligence for field, asset and territorial monitoring.","email":"operations@geovisionops.com","areaServed":["Angola","Spain"]}
+  {"@context":"https://schema.org","@type":"Organization","name":"GeoVision","url":"https://geovisionops.com","description":"Connected devices, tracking, aerial intelligence, maps and AI for monitoring homes, land, assets and operations.","email":"operations@geovisionops.com","areaServed":["Angola","Spain"]}
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/css/chatbot.css">
+  <link rel="stylesheet" href="assets/css/public-shell.css?v=2" />
+  <link rel="stylesheet" href="assets/css/commercial.css?v=4" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    :root {
-      --bg-dark: #050914;
-      --bg-darker: #020408;
-      --bg-card: rgba(15, 23, 42, 0.85);
-      --border: rgba(148, 163, 184, 0.12);
-      --text-primary: #f1f5f9;
-      --text-secondary: #94a3b8;
-      --text-muted: #64748b;
-      --accent-green: #22c55e;
-      --accent-blue: #0ea5e9;
-      --accent-cyan: #06b6d4;
-      --gradient-primary: linear-gradient(135deg, #22c55e, #0ea5e9);
-      --gradient-glow: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(14, 165, 233, 0.15));
-    }
-    
-    html { scroll-behavior: smooth; }
-    
-    body {
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-primary);
-      line-height: 1.7;
-      overflow-x: hidden;
-    }
-
-    /* ============ NAVBAR ============ */
-    .navbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(5, 9, 20, 0.92);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .navbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      text-decoration: none;
-      color: var(--text-primary);
-    }
-
-    .navbar-logo {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .navbar-logo img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .navbar-brand-text {
-      font-size: 1.1rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-    }
-
-    .navbar-nav {
-      display: flex;
-      align-items: center;
-      gap: 2.5rem;
-    }
-
-    .navbar-link {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-
-    .navbar-link:hover,
-    .navbar-link.active {
-      color: var(--accent-cyan);
-    }
-
-    .btn-nav {
-      padding: 0.6rem 1.4rem;
-      border-radius: 8px;
-      background: var(--gradient-primary);
-      color: #020617;
-      font-weight: 600;
-      text-decoration: none;
-      font-size: 0.85rem;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-
-    .btn-nav:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
-    }
-
-    .navbar-toggle {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.5rem;
-    }
-
-    .navbar-toggle span {
-      width: 24px;
-      height: 2px;
-      background: var(--text-primary);
-      transition: 0.3s;
-    }
-
-    /* ============ LANGUAGE TOGGLE ============ */
-    .lang-toggle {
-      display: flex;
-      gap: 0.25rem;
-      margin-left: 1rem;
-      padding-left: 1rem;
-      border-left: 1px solid var(--border);
-    }
-
-    .lang-btn {
-      padding: 0.35rem 0.6rem;
-      border-radius: 6px;
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .lang-btn:hover {
-      color: var(--text-primary);
-    }
-
-    .lang-btn.active {
-      background: var(--gradient-primary);
-      color: #020617;
-      border-color: transparent;
-    }
-
     /* ============ HERO ============ */
     .hero {
       position: relative;
@@ -696,25 +544,6 @@
     }
 
     @media (max-width: 768px) {
-      .navbar-nav,
-      .lang-toggle {
-        display: none;
-      }
-
-      .navbar-toggle {
-        display: flex;
-      }
-      .navbar-nav.show {
-        display: flex; flex-direction: column; position: absolute;
-        top: 100%; right: 0; background: #0b1428;
-        border-radius: 12px; border: 1px solid rgba(95,212,255,0.3);
-        padding: 0.5rem 0; min-width: 200px; z-index: 9999;
-        box-shadow: 0 14px 36px rgba(0,0,0,0.8);
-      }
-      .navbar-nav.show a { display: block; padding: 0.9rem 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-      .navbar-nav.show a:last-child { border-bottom: none; }
-      .lang-toggle.show { display: flex; position: static; justify-content: center; padding: 0.7rem 1rem; gap: 0.5rem; border-top: 1px solid rgba(95,212,255,0.2); border-left: none; margin-left: 0; padding-left: 1rem; }
-
       .hero {
         min-height: auto;
         padding: 6rem 1.5rem 3rem;
@@ -812,32 +641,32 @@
   <header class="hero">
     <div class="hero-container">
       <div class="hero-content">
-        <span class="hero-eyebrow" data-i18n="index.eyebrow">Visibilidade operacional para decisões no terreno</span>
-        <h1 class="hero-title" data-i18n="index.title">Veja o que está a acontecer. Decida antes que o problema cresça.</h1>
-        <p class="hero-subtitle" data-i18n="index.subtitle">
-          Reunimos sensores, dados aéreos e equipas de campo num único fluxo operacional — para monitorizar ativos, priorizar riscos e documentar cada decisão.
+        <span class="hero-eyebrow" data-i18n="commercial.home.eyebrow">Monitorização simples. Decisões mais rápidas.</span>
+        <h1 class="hero-title" data-i18n="commercial.home.title">Veja o que está a acontecer. Saiba quando agir.</h1>
+        <p class="hero-subtitle" data-i18n="commercial.home.subtitle">
+          Sensores, tracking, inteligência aérea e IA numa única plataforma para monitorizar casas, propriedades, terras, ativos e operações.
         </p>
         <div class="hero-buttons">
-          <a href="about.html#contact" class="btn btn-primary" data-i18n="index.primaryCta">Falar sobre a minha operação</a>
-          <a href="sectors.html" class="btn btn-secondary" data-i18n="index.secondaryCta">Explorar soluções</a>
+          <a href="loja.html" class="btn btn-primary" data-i18n="commercial.cta.exploreDevices">Explorar dispositivos</a>
+          <a href="about.html#contact" class="btn btn-secondary" data-i18n="commercial.cta.requestSolution">Solicitar solução</a>
         </div>
 
-        <p style="margin-top:1rem;color:var(--text-muted);font-size:.82rem;max-width:540px;" data-i18n="index.trustLine">
-          Começamos com um diagnóstico do local e uma solução proporcional — sem promessas de automação ou resultados que ainda não tenham sido validados.
+        <p style="margin-top:1rem;color:var(--text-muted);font-size:.82rem;max-width:540px;" data-i18n="commercial.home.trust">
+          Comece com um dispositivo ou peça uma solução adaptada ao seu local. Confirmamos compatibilidade, preço e prazo antes de avançar.
         </p>
 
         <div class="hero-stats">
           <div class="stat-item">
-            <div class="stat-value">5</div>
-            <div class="stat-label" data-i18n="nav.sectors">Setores</div>
+            <div class="stat-value"><i class="fa-solid fa-eye"></i></div>
+            <div class="stat-label" data-i18n="commercial.flow.monitor">Monitorizar</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">±1–2 cm</div>
-            <div class="stat-label" data-i18n="index.monitoring">Precisão RTK</div>
+            <div class="stat-value"><i class="fa-solid fa-bell"></i></div>
+            <div class="stat-label" data-i18n="commercial.flow.detect">Detetar</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">4G GPS</div>
-            <div class="stat-label" data-i18n="index.precision">Rastreio Pecuário</div>
+            <div class="stat-value"><i class="fa-solid fa-check"></i></div>
+            <div class="stat-label" data-i18n="commercial.flow.act">Agir</div>
           </div>
         </div>
       </div>
@@ -848,14 +677,26 @@
             <span class="hero-card-title" data-i18n="index.liveDemo">Painel de Inteligência</span>
             <span class="hero-card-badge" data-i18n="adm.active">Ativo</span>
           </div>
-          <div class="hero-map" id="hero-map">
-            <!-- Animated map placeholder -->
+          <div class="system-map" id="hero-map" aria-label="Sistema GeoVision com sensores, tracking, drones e plataforma">
+            <span class="system-pulse one"></span><span class="system-pulse two"></span>
+            <span class="system-node sensor"><i class="fa-solid fa-wind"></i><span data-i18n="commercial.hero.nodeSensor">Sensor · GV Air</span></span>
+            <span class="system-node home"><i class="fa-solid fa-house"></i><span data-i18n="commercial.hero.nodeHome">Casa &amp; propriedade</span></span>
+            <span class="system-node platform"><i class="fa-solid fa-layer-group"></i><span data-i18n="commercial.hero.nodePlatform">GeoVision · mapa + IA</span></span>
+            <span class="system-node track"><i class="fa-solid fa-location-dot"></i><span data-i18n="commercial.hero.nodeTrack">GV Track · ativo móvel</span></span>
+            <span class="system-node aerial"><i class="fa-solid fa-helicopter"></i><span data-i18n="commercial.hero.nodeAerial">Missão aérea</span></span>
+          </div>
+          <div class="system-strip" aria-label="Componentes do ecossistema GeoVision">
+            <span><i class="fa-solid fa-microchip"></i><span data-i18n="commercial.system.sensors">Sensores</span></span>
+            <span><i class="fa-solid fa-location-crosshairs"></i><span data-i18n="commercial.system.tracking">Tracking</span></span>
+            <span><i class="fa-solid fa-helicopter"></i><span data-i18n="commercial.system.aerial">Inteligência aérea</span></span>
+            <span><i class="fa-solid fa-map"></i><span data-i18n="commercial.system.platform">Plataforma &amp; mapas</span></span>
+            <span><i class="fa-solid fa-wand-magic-sparkles"></i><span data-i18n="commercial.system.ai">IA &amp; análise</span></span>
           </div>
           <div class="map-tabs">
-            <button class="map-tab active" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
+            <button class="map-tab active" data-sector="home" data-i18n="commercial.sector.home">Casa</button>
+            <button class="map-tab" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
             <button class="map-tab" data-sector="mining" data-i18n="sectors.mineracao">Mineração</button>
             <button class="map-tab" data-sector="construction" data-i18n="login.construction">Construção</button>
-            <button class="map-tab" data-sector="infra" data-i18n="sectors.infrastructure">Infraestruturas</button>
             <button class="map-tab" data-sector="ambiental" data-i18n="sectors.ambiental">Ambiental</button>
           </div>
         </div>
@@ -866,31 +707,44 @@
   <!-- ============ SIMPLE ENTRY (problem-led) ============ -->
   <section class="section" style="padding-bottom:0;">
     <div class="section-header">
+      <div class="section-eyebrow" data-i18n="commercial.home.chooseEyebrow">Comece pela sua necessidade</div>
       <h2 class="section-title" data-i18n="index.entry.title">O que quer monitorizar?</h2>
     </div>
     <div class="sectors-grid">
-      <a href="loja.html" class="sector-card">
+      <a href="sectors.html#casa" class="sector-card">
+        <div class="sector-icon"><i class="fa-solid fa-house"></i></div>
+        <h3 class="sector-name" data-i18n="commercial.sector.homeFull">Casa &amp; Propriedade</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardHome">Monitorize ar, humidade, água, fugas, jardim e equipamentos selecionados, com alertas na app.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
+      </a>
+      <a href="sectors.html#agropecuaria" class="sector-card">
         <div class="sector-icon"><i class="fa-solid fa-seedling"></i></div>
-        <h3 class="sector-name" data-i18n="index.entry.farm.name">Terra & Culturas</h3>
-        <p class="sector-desc" data-i18n="index.entry.farm.desc">Acompanhe solo, água, clima e culturas.</p>
-        <span class="sector-link" data-i18n="index.viewServices">Ver Serviços </span>
+        <h3 class="sector-name" data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardAgro">Monitorize solo, água, culturas, animais e equipamentos através de sensores, tracking, mapas e dados aéreos.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
       </a>
-      <a href="loja.html" class="sector-card">
+      <a href="sectors.html#construcao" class="sector-card">
+        <div class="sector-icon"><i class="fa-solid fa-helmet-safety"></i></div>
+        <h3 class="sector-name" data-i18n="commercial.sector.construction">Construção &amp; Infraestruturas</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardConstruction">Acompanhe progresso, equipamentos, condições ambientais e alterações do local, do terreno à visão aérea.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
+      </a>
+      <a href="sectors.html#ambiental" class="sector-card">
+        <div class="sector-icon"><i class="fa-solid fa-leaf"></i></div>
+        <h3 class="sector-name" data-i18n="commercial.sector.environment">Ambiente</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardEnvironment">Combine sensores no terreno, mapas e observação aérea para acompanhar condições e alterações em grandes áreas.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
+      </a>
+      <a href="sectors.html#mineracao" class="sector-card">
         <div class="sector-icon"><i class="fa-solid fa-industry"></i></div>
-        <h3 class="sector-name" data-i18n="index.entry.sites.name">Locais & Ativos</h3>
-        <p class="sector-desc" data-i18n="index.entry.sites.desc">Acompanhe ar, ruído, vibração, água e equipamento.</p>
-        <span class="sector-link" data-i18n="index.viewServices">Ver Serviços </span>
-      </a>
-      <a href="loja.html" class="sector-card">
-        <div class="sector-icon"><i class="fa-solid fa-microchip"></i></div>
-        <h3 class="sector-name" data-i18n="index.entry.products.name">Produtos & Dispositivos</h3>
-        <p class="sector-desc" data-i18n="index.entry.products.desc">Compre sensores, kits de rega e hardware de monitorização.</p>
-        <span class="sector-link" data-i18n="index.viewServices">Ver Serviços </span>
+        <h3 class="sector-name" data-i18n="commercial.sector.industry">Mineração &amp; Indústria</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardIndustry">Monitorize áreas, ativos, equipamentos e condições operacionais com dados de campo, tracking e inteligência aérea.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
       </a>
     </div>
     <p style="text-align:center;color:#94a3b8;font-size:.95rem;margin-top:1.5rem;">
-      <span data-i18n="index.entry.enterprise">Para empresas: monitorização multi-local, APIs, inteligência aérea, analítica avançada e implementações à medida.</span>
-      <a href="sectors.html" style="color:#22c55e;white-space:nowrap;" data-i18n="index.entry.enterpriseLink">Ver soluções empresariais</a>
+      <span data-i18n="commercial.home.entryHint">Não sabe por onde começar?</span>
+      <a href="about.html#contact" style="color:#22c55e;white-space:nowrap;" data-i18n="commercial.cta.request">Peça uma recomendação</a>
     </p>
   </section>
 
@@ -898,14 +752,12 @@
   <section class="section-full sectors-section">
     <div class="section" style="padding-top: 0; padding-bottom: 0;">
       <div class="section-header">
-        <div class="section-eyebrow" data-i18n="index.sectors2.eyebrow">Setores</div>
-        <h2 class="section-title" data-i18n="index.sectors2.title">Inteligência Territorial por Setor</h2>
-        <p class="section-desc" data-i18n="index.sectors2.subtitle">
-          Monitorização geoespacial estruturada, dashboards setoriais e relatórios de apoio à decisão — adaptados a cada indústria.
-        </p>
+        <div class="section-eyebrow" data-i18n="commercial.flow.eyebrow">Como funciona</div>
+        <h2 class="section-title" data-i18n="commercial.flow.title">Do sinal à ação, sem complicar.</h2>
+        <p class="section-desc" data-i18n="commercial.flow.desc">A GeoVision reúne informação do terreno, de ativos móveis e do ar para criar uma visão única da operação.</p>
       </div>
 
-      <div class="sectors-grid">
+      <div class="sectors-grid" hidden inert aria-hidden="true" data-nosnippet>
         <a href="sectors.html#agropecuaria" class="sector-card">
           <div class="sector-icon"><i class="fa-solid fa-seedling"></i></div>
           <h3 class="sector-name" data-i18n="sectors.agropecuaria">Agropecuária</h3>
@@ -951,51 +803,94 @@
           <span class="sector-link" data-i18n="index.exploreModule">Explorar Módulo </span>
         </a>
       </div>
+      <div class="commercial-flow">
+        <article><strong data-i18n="commercial.flow.sources">Terreno, ativos &amp; ar</strong><span data-i18n="commercial.flow.sourcesDesc">Sensores, GPS, drones e dados externos recolhem o contexto necessário.</span></article>
+        <article><strong data-i18n="commercial.flow.platformStep">Plataforma GeoVision</strong><span data-i18n="commercial.flow.platformStepDesc">Organiza locais, dispositivos, ativos móveis e missões numa vista comum.</span></article>
+        <article><strong data-i18n="commercial.flow.analysis">Mapas, análise &amp; IA</strong><span data-i18n="commercial.flow.analysisDesc">Compara histórico, identifica alterações e ajuda a priorizar.</span></article>
+        <article><strong data-i18n="commercial.flow.outputs">Alertas, relatórios &amp; recomendações</strong><span data-i18n="commercial.flow.outputsDesc">Entrega informação clara para a próxima decisão.</span></article>
+        <article><strong data-i18n="commercial.flow.actionVerify">Ação &amp; verificação</strong><span data-i18n="commercial.flow.actionVerifyDesc">Regista a resposta, confirma o resultado e guarda evidência.</span></article>
+      </div>
     </div>
   </section>
 
   <!-- ============ FEATURES ============ -->
   <section class="section">
     <div class="section-header">
-      <div class="section-eyebrow" data-i18n="index.features2.eyebrow">Stack Tecnológico</div>
-      <h2 class="section-title" data-i18n="index.features2.title">Capacidades Tecnológicas</h2>
-      <p class="section-desc" data-i18n="index.features2.subtitle">
-        Da aquisição em campo ao portal cliente — tecnologia operacional completa e integrada.
-      </p>
+      <div class="section-eyebrow" data-i18n="commercial.devices.eyebrow">Dispositivos e dados</div>
+      <h2 class="section-title" data-i18n="commercial.devices.title">Comece pequeno. Expanda quando fizer sentido.</h2>
+      <p class="section-desc" data-i18n="commercial.devices.desc">As famílias GeoVision organizam a solução por necessidade. A disponibilidade e configuração são confirmadas para cada local.</p>
     </div>
 
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon"><i class="fa-solid fa-helicopter"></i></div>
-        <h3 class="feature-title" data-i18n="index.feature.field.title">Camada de Campo</h3>
-        <p class="feature-text" data-i18n="index.feature.field.desc">
-          Drones DJI (Matrice 350 RTK, Mavic 3M, Agras T40), sensores multiespectrais, sistemas RTK e dispositivos GPS 4G para rastreio pecuário.
-        </p>
+        <div class="maturity-badge" data-i18n="commercial.status.available">Disponível por configuração</div>
+        <div class="feature-icon"><i class="fa-solid fa-wind"></i></div>
+        <h3 class="feature-title">GV Air</h3>
+        <p class="feature-text" data-i18n="commercial.devices.air">Temperatura, humidade e qualidade do ar para espaços e locais.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon"><i class="fa-solid fa-chart-column"></i></div>
-        <h3 class="feature-title" data-i18n="index.feature.interface.title">Camada de Interface</h3>
-        <p class="feature-text" data-i18n="index.feature.interface.desc">
-          Portal Cliente com dashboards KPI setoriais, mapas interativos, visualização 3D e relatórios estruturados (PDF, DOCX, ficheiros 3D).
-        </p>
+        <div class="maturity-badge" data-i18n="commercial.status.pilot">Piloto</div>
+        <div class="feature-icon"><i class="fa-solid fa-seedling"></i></div>
+        <h3 class="feature-title">GV Soil</h3>
+        <p class="feature-text" data-i18n="commercial.devices.soil">Humidade do solo e apoio a decisões de rega.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon"><i class="fa-solid fa-crosshairs"></i></div>
-        <h3 class="feature-title" data-i18n="sectors.stat.rtk">Precisão RTK</h3>
-        <p class="feature-text" data-i18n="index.feature.rtk.desc">
-          Precisão centimétrica (±1–2 cm) via estação base dedicada ou rede NTRIP. Base dedicada recomendada para operações rurais.
-        </p>
+        <div class="maturity-badge" data-i18n="commercial.status.pilot">Piloto</div>
+        <div class="feature-icon"><i class="fa-solid fa-water"></i></div>
+        <h3 class="feature-title">GV Level</h3>
+        <p class="feature-text" data-i18n="commercial.devices.level">Nível de depósitos, reservatórios e pontos de água.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon"><i class="fa-solid fa-spray-can-sparkles"></i></div>
-        <h3 class="feature-title" data-i18n="index.feature.execution.title">Execução Seletiva & Reflorestação</h3>
-        <p class="feature-text" data-i18n="index.feature.execution.desc">
-          Pulverização variável, dispersão de sementes para reflorestação e recuperação vegetal com Agras T40, baseada em mapas de prescrição NDVI. Monitorização pós-reflorestação com análise NDVI periódica.
-        </p>
+        <div class="maturity-badge on-request" data-i18n="commercial.status.request">Por pedido</div>
+        <div class="feature-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+        <h3 class="feature-title">GV Site</h3>
+        <p class="feature-text" data-i18n="commercial.devices.site">Reúne vários sensores e locais numa vista operacional.</p>
       </div>
+
+      <div class="feature-card">
+        <div class="maturity-badge on-request" data-i18n="commercial.status.request">Por pedido</div>
+        <div class="feature-icon"><i class="fa-solid fa-tower-broadcast"></i></div>
+        <h3 class="feature-title">GV Gateway</h3>
+        <p class="feature-text" data-i18n="commercial.tech.gateway">Liga dispositivos compatíveis e envia dados para a plataforma.</p>
+      </div>
+    </div>
+
+    <div class="ecosystem-heading"><div><div class="section-eyebrow" data-i18n="commercial.roadmap.eyebrow">Próximas capacidades</div><h3 data-i18n="commercial.roadmap.title">Dispositivos em desenvolvimento</h3></div><span class="maturity-badge expansion" data-i18n="commercial.status.development">Em desenvolvimento</span></div>
+    <div class="roadmap-grid">
+      <article class="roadmap-item"><strong>GV Track</strong><span data-i18n="commercial.roadmap.track">Localização, geofence, histórico e alertas para animais, equipamentos e ativos compatíveis.</span></article>
+      <article class="roadmap-item"><strong>GV Leak</strong><span data-i18n="commercial.roadmap.leak">Deteção de fugas e alertas para espaços e instalações compatíveis.</span></article>
+      <article class="roadmap-item"><strong>GV Pump</strong><span data-i18n="commercial.roadmap.pump">Estado e acompanhamento remoto de bombas suportadas.</span></article>
+      <article class="roadmap-item"><strong>GV Vibe</strong><span data-i18n="commercial.roadmap.vibe">Observação de vibração e apoio à identificação de anomalias.</span></article>
+      <article class="roadmap-item"><strong>GV Weather</strong><span data-i18n="commercial.roadmap.weather">Condições meteorológicas locais para decisões operacionais.</span></article>
+      <article class="roadmap-item"><strong>GV Home</strong><span data-i18n="commercial.roadmap.home">Módulos simples para água, ambiente e estado da propriedade.</span></article>
+    </div>
+  </section>
+
+  <!-- ============ AERIAL INTELLIGENCE ============ -->
+  <section class="section">
+    <div class="section-header">
+      <div class="section-eyebrow" data-i18n="commercial.aerial.eyebrow">Inteligência aérea</div>
+      <h2 class="section-title" data-i18n="commercial.aerial.title">Mais contexto quando a área é grande ou difícil de observar.</h2>
+      <p class="section-desc" data-i18n="commercial.aerial.desc">Quando é necessário compreender grandes áreas ou locais de difícil acesso, a GeoVision complementa os dados do terreno com informação aérea.</p>
+    </div>
+    <div class="capability-grid">
+      <article class="capability-card"><i class="fa-solid fa-map-location-dot"></i><h3 data-i18n="commercial.aerial.mapping">Mapeamento</h3><p data-i18n="commercial.aerial.mappingDesc">Criação de mapas e documentação georreferenciada para acompanhar áreas e projetos.</p></article>
+      <article class="capability-card"><i class="fa-solid fa-magnifying-glass"></i><h3 data-i18n="commercial.aerial.inspection">Inspeção</h3><p data-i18n="commercial.aerial.inspectionDesc">Observação visual de ativos, estruturas e locais de difícil acesso.</p></article>
+      <article class="capability-card"><i class="fa-solid fa-chart-line"></i><h3 data-i18n="commercial.aerial.progress">Progresso</h3><p data-i18n="commercial.aerial.progressDesc">Compare períodos e acompanhe visualmente a evolução de obras e operações.</p></article>
+      <article class="capability-card"><i class="fa-solid fa-seedling"></i><h3 data-i18n="commercial.aerial.agriculture">Agricultura</h3><p data-i18n="commercial.aerial.agricultureDesc">Analise grandes parcelas com imagens RGB e, quando necessário, dados multiespectrais.</p></article>
+    </div>
+    <p class="capability-note" data-i18n="commercial.aerial.specialized">Capacidades especializadas disponíveis conforme o projeto: RTK, térmico, multiespectral, LiDAR, fotogrametria avançada e operações agrícolas. Plataforma, parceiros e requisitos são confirmados antes da proposta.</p>
+  </section>
+
+  <!-- ============ UNIFIED PLATFORM ============ -->
+  <section class="section">
+    <div class="section-header"><div class="section-eyebrow" data-i18n="commercial.portal.eyebrow">Uma visão única</div><h2 class="section-title" data-i18n="commercial.portal.title">Do dispositivo no terreno à missão aérea, tudo no mesmo portal.</h2><p class="section-desc" data-i18n="commercial.portal.desc">Veja locais, sensores fixos, ativos móveis, geofences, voos, alertas e relatórios sem alternar entre sistemas isolados.</p></div>
+    <div class="portal-preview">
+      <article class="portal-map-card"><h3 data-i18n="commercial.portal.mapTitle">Mapa da propriedade</h3><div class="system-map"><span class="system-pulse one"></span><span class="system-pulse two"></span><span class="system-node sensor"><i class="fa-solid fa-seedling"></i>GV Soil · 21%</span><span class="system-node home"><i class="fa-solid fa-water"></i>Tank 02 · 68%</span><span class="system-node platform"><i class="fa-solid fa-map"></i><span data-i18n="commercial.portal.liveMap">Mapa operacional</span></span><span class="system-node track"><i class="fa-solid fa-location-dot"></i>GV Track · 2 min</span><span class="system-node aerial"><i class="fa-solid fa-helicopter"></i><span data-i18n="commercial.portal.lastMission">Última missão</span></span></div></article>
+      <article class="portal-feed"><h3 data-i18n="commercial.portal.feedTitle">Informação que leva à ação</h3><div class="portal-feed-item"><i class="fa-solid fa-seedling"></i><div><strong>GV Soil · Zona 4</strong><span data-i18n="commercial.portal.soilAlert">Humidade abaixo do limite definido</span></div><em data-i18n="commercial.portal.now">Agora</em></div><div class="portal-feed-item warning"><i class="fa-solid fa-location-crosshairs"></i><div><strong>GV Track · Asset 15</strong><span data-i18n="commercial.portal.geofenceAlert">Ativo saiu da geofence definida</span></div><em>2 min</em></div><div class="portal-feed-item"><i class="fa-solid fa-helicopter"></i><div><strong data-i18n="commercial.portal.droneSurvey">Levantamento aéreo</strong><span data-i18n="commercial.portal.changeDetected">Alteração visual pronta para revisão</span></div><em data-i18n="commercial.portal.review">Rever</em></div><div class="portal-feed-item"><i class="fa-solid fa-file-lines"></i><div><strong data-i18n="commercial.portal.report">Relatório semanal</strong><span data-i18n="commercial.portal.reportReady">Mapa, histórico e recomendações disponíveis</span></div><em data-i18n="commercial.portal.ready">Pronto</em></div></article>
     </div>
   </section>
 
@@ -1035,7 +930,7 @@
     <div class="footer-divider"></div>
 
     <p class="footer-copyright">
-      © <span id="year"></span> GeoVision. <span data-i18n="index.footer.tagline">Inteligência Territorial Multissetorial.</span>
+      © <span id="year"></span> GeoVision. <span data-i18n="index.footer.tagline">Dispositivos, tracking, inteligência aérea, mapas e IA.</span>
     </p>
   </footer>
 
@@ -1050,21 +945,25 @@
 
     // Sector-specific visual configurations
     const sectorVisuals = {
+      home: {
+        gradient: 'radial-gradient(circle at 32% 45%, rgba(56, 189, 248, 0.2) 0%, transparent 40%), radial-gradient(circle at 72% 58%, rgba(34, 197, 94, 0.14) 0%, transparent 35%)',
+        overlay: 'Casa & Propriedade'
+      },
       agro: {
         gradient: 'radial-gradient(circle at 30% 40%, rgba(34, 197, 94, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 60%, rgba(14, 165, 233, 0.15) 0%, transparent 35%)',
-        overlay: 'Análise NDVI Ativa'
+        overlay: 'Solo · animais · culturas'
       },
       mining: {
         gradient: 'radial-gradient(circle at 50% 30%, rgba(249, 115, 22, 0.25) 0%, transparent 40%), radial-gradient(circle at 30% 70%, rgba(239, 68, 68, 0.15) 0%, transparent 35%)',
-        overlay: 'Scan 3D de Terreno'
+        overlay: 'Áreas · ativos · operações'
       },
       construction: {
         gradient: 'radial-gradient(circle at 40% 50%, rgba(168, 85, 247, 0.25) 0%, transparent 40%), radial-gradient(circle at 70% 30%, rgba(249, 115, 22, 0.15) 0%, transparent 35%)',
-        overlay: 'Acompanhamento de Obra'
+        overlay: 'Terreno + visão aérea'
       },
       infra: {
         gradient: 'radial-gradient(circle at 60% 40%, rgba(14, 165, 233, 0.25) 0%, transparent 40%), radial-gradient(circle at 25% 65%, rgba(6, 182, 212, 0.15) 0%, transparent 35%)',
-        overlay: 'Monitorização de Corredores'
+        overlay: 'Corredores e ativos'
       },
       ambiental: {
         gradient: 'radial-gradient(circle at 35% 50%, rgba(34, 197, 94, 0.2) 0%, transparent 40%), radial-gradient(circle at 70% 35%, rgba(6, 182, 212, 0.2) 0%, transparent 35%)',
@@ -1124,9 +1023,9 @@
     // Mobile menu toggle handled by site.js
   </script>
 
-  <script src="assets/js/site.js"></script>
+  <script src="assets/js/site.js?v=3"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=18"></script>
+  <script src="assets/js/i18n.js?v=25"></script>
   <script src="assets/js/config.js?v=4"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>

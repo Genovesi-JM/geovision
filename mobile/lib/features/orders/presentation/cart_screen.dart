@@ -9,6 +9,7 @@ import '../../authentication/presentation/auth_controller.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import 'cart_controller.dart';
+import 'store_copy.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -33,15 +34,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final lines = ref.watch(cartProvider);
     final currency = ref.watch(storeCurrencyProvider);
     final l10n = AppLocalizations.of(context);
+    final copy = StoreCopy.of(context);
+    final language = Localizations.localeOf(context).languageCode;
     final sync = ref.watch(cartSyncProvider);
     final paymentOptions = currency == StoreCurrency.akz
-        ? const {
-            'iban_angola': 'Transferência bancária / IBAN Angola',
+        ? {
+            'iban_angola': copy.bankTransfer,
             'multicaixa_express': 'Multicaixa Express',
           }
-        : const {
+        : {
             'visa_mastercard': 'Visa / Mastercard',
-            'iban_international': 'IBAN internacional',
+            'iban_international': copy.internationalIban,
             'paypal': 'PayPal',
           };
     if (!paymentOptions.containsKey(payment)) {
@@ -53,16 +56,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             sum +
             StoreMoney.productCents(line.product, target) * line.quantity);
     return Scaffold(
-        appBar: AppBar(title: const Text('Carrinho')),
+        appBar: AppBar(title: Text(copy.cart)),
         body: ListView(padding: const EdgeInsets.all(GvSpacing.lg), children: [
           if (lines.isEmpty)
-            const Padding(
-                padding: EdgeInsets.only(top: 100),
+            Padding(
+                padding: const EdgeInsets.only(top: 100),
                 child: Column(children: [
-                  Icon(Icons.shopping_cart_outlined,
+                  const Icon(Icons.shopping_cart_outlined,
                       size: 64, color: GvColors.textMuted),
-                  SizedBox(height: 12),
-                  Text('O seu carrinho está vazio.')
+                  const SizedBox(height: 12),
+                  Text(copy.emptyCart)
                 ]))
           else ...[
             if (sync.isLoading) const LinearProgressIndicator(minHeight: 2),
@@ -74,13 +77,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   color: GvColors.high.withValues(alpha: .12),
                   borderRadius: BorderRadius.circular(GvSpacing.radiusMd),
                 ),
-                child: const Row(children: [
-                  Icon(Icons.cloud_off, color: GvColors.high, size: 18),
-                  SizedBox(width: 8),
+                child: Row(children: [
+                  const Icon(Icons.cloud_off, color: GvColors.high, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'O carrinho ainda não foi sincronizado. Verifique a ligação antes de finalizar.',
-                      style: TextStyle(fontSize: 12),
+                      copy.syncError,
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ]),
@@ -96,7 +99,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text(line.product.name,
+                        Text(line.product.localizedName(language),
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
                         Text(StoreMoney.formatProduct(line.product, currency),
@@ -116,8 +119,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       icon: const Icon(Icons.add)),
                 ])))),
             const SizedBox(height: 12),
-            const Text('Entrega',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(copy.delivery,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             const SizedBox(height: 8),
             GvCard(
                 child: TextField(
@@ -133,8 +137,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               ),
             )),
             const SizedBox(height: 12),
-            const Text('Pagamento',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Text(copy.payment,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             DropdownButtonFormField<String>(
               initialValue: payment,
               decoration: const InputDecoration(
@@ -147,8 +152,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ),
             const Divider(),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Total',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              Text(copy.total,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w800)),
               Text(StoreMoney.formatCents(totalFor(currency), currency),
                   style: const TextStyle(
                       fontSize: 18,
@@ -175,15 +181,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     ? null
                     : () => _checkout(currency),
                 child: Text(checkingOut
-                    ? 'A processar…'
+                    ? copy.processing
                     : ref.read(ordersRepositoryProvider).isDemo
-                        ? 'Finalizar pedido (demo)'
-                        : 'Confirmar encomenda')),
+                        ? copy.finishDemo
+                        : copy.confirmOrder)),
           ],
         ]));
   }
 
   Future<void> _checkout(StoreCurrency currency) async {
+    final copy = StoreCopy.of(context);
     final session = ref.read(authControllerProvider);
     final profile = session.profile;
     setState(() => checkingOut = true);
@@ -211,12 +218,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         builder: (dialogContext) => AlertDialog(
           icon: Icon(result.success ? Icons.check_circle : Icons.error_outline,
               color: result.success ? GvColors.accentGreen : GvColors.critical),
-          title:
-              Text(result.success ? 'Encomenda criada' : 'Falha no checkout'),
+          title: Text(result.success ? copy.orderCreated : copy.checkoutFailed),
           content: Text(result.success
               ? 'Referência ${result.orderNumber ?? result.orderId ?? ''}. '
-                  '${result.paymentRequired ? 'Siga as instruções do método de pagamento selecionado.' : 'Nenhum pagamento real foi efetuado em modo demo.'}'
-              : result.error ?? 'Não foi possível criar a encomenda.'),
+                  '${result.paymentRequired ? copy.paymentInstructions : copy.demoNoPayment}'
+              : result.error ?? copy.couldNotCreate),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
@@ -228,7 +234,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Checkout não concluído: $error')),
+        SnackBar(content: Text(copy.checkoutError(error))),
       );
     } finally {
       if (mounted) setState(() => checkingOut = false);

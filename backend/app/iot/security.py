@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from app.config import settings
 from app.crypto import decrypt, encrypt
+from app.time_utils import utc_now
 
 
 def new_secret() -> str:
@@ -59,5 +60,5 @@ def parse_utc(value: str) -> datetime:
 
 
 def timestamp_is_fresh(value: datetime) -> bool:
-    delta = abs((datetime.utcnow() - value).total_seconds())
+    delta = abs((utc_now() - value).total_seconds())
     return delta <= settings.iot_message_max_age_seconds

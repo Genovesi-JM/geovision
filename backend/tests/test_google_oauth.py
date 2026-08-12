@@ -37,7 +37,7 @@ def test_google_flow_monkeypatch(monkeypatch, tmp_path):
     client = TestClient(app)
 
     # 1) Call /auth/google/login and ensure redirect contains state
-    resp = client.get('/auth/google/login', allow_redirects=False)
+    resp = client.get('/auth/google/login', follow_redirects=False)
     assert resp.status_code in (302, 307)
     loc = resp.headers.get('location')
     assert 'accounts.google.com' in loc

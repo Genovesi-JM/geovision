@@ -10,197 +10,198 @@ import '../../../core/widgets/gv_card.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
+import 'store_copy.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({required this.orderId, super.key});
   final String orderId;
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        appBar: AppBar(title: const Text('Detalhes do pedido')),
-        body: ref.watch(ordersProvider).when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('$e')),
-              data: (orders) {
-                final order = orders.where((o) => o.id == orderId).firstOrNull;
-                if (order == null) {
-                  return const Center(child: Text('Pedido não encontrado.'));
-                }
-                return ListView(
-                    padding: const EdgeInsets.all(GvSpacing.lg),
-                    children: [
+  Widget build(BuildContext context, WidgetRef ref) {
+    final copy = StoreCopy.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(copy.orderDetails)),
+      body: ref.watch(ordersProvider).when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('$e')),
+            data: (orders) {
+              final order = orders.where((o) => o.id == orderId).firstOrNull;
+              if (order == null) {
+                return Center(child: Text(copy.orderNotFound));
+              }
+              return ListView(
+                  padding: const EdgeInsets.all(GvSpacing.lg),
+                  children: [
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(order.id.toUpperCase(),
+                                    style: const TextStyle(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w800)),
+                                Text(DateFormat.yMMMd().format(order.createdAt),
+                                    style: const TextStyle(
+                                        color: GvColors.textMuted))
+                              ]),
+                          Chip(
+                              label:
+                                  Text(order.delivery?.status ?? order.status)),
+                        ]),
+                    const SizedBox(height: 16),
+                    GvCard(
+                        child: Column(children: [
+                      for (final item in order.items)
+                        ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.check_circle_outline,
+                                color: GvColors.accentGreen),
+                            title: Text(item)),
+                      const Divider(),
                       Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(order.id.toUpperCase(),
-                                      style: const TextStyle(
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w800)),
-                                  Text(
-                                      DateFormat.yMMMd()
-                                          .format(order.createdAt),
-                                      style: const TextStyle(
-                                          color: GvColors.textMuted))
-                                ]),
-                            Chip(
-                                label: Text(
-                                    order.delivery?.status ?? order.status)),
+                            Text(copy.total,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800)),
+                            Text(
+                                StoreMoney.formatOrder(
+                                    order.totalCents, order.currency),
+                                style: const TextStyle(
+                                    color: GvColors.accentCyan,
+                                    fontWeight: FontWeight.w800))
                           ]),
-                      const SizedBox(height: 16),
+                    ])),
+                    if (order.delivery != null) ...[
+                      const SizedBox(height: 14),
                       GvCard(
-                          child: Column(children: [
-                        for (final item in order.items)
-                          ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: const Icon(Icons.check_circle_outline,
-                                  color: GvColors.accentGreen),
-                              title: Text(item)),
-                        const Divider(),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Total',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w800)),
-                              Text(
-                                  StoreMoney.formatOrder(
-                                      order.totalCents, order.currency),
-                                  style: const TextStyle(
-                                      color: GvColors.accentCyan,
-                                      fontWeight: FontWeight.w800))
-                            ]),
-                      ])),
-                      if (order.delivery != null) ...[
-                        const SizedBox(height: 14),
-                        GvCard(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              const Text('Entrega',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.w800)),
-                              const SizedBox(height: 8),
-                              Text(order.delivery!.destination,
-                                  style: const TextStyle(
-                                      color: GvColors.textSecondary)),
-                              const SizedBox(height: 10),
-                              LinearProgressIndicator(
-                                  value: order.delivery!.progress,
-                                  minHeight: 7,
-                                  borderRadius: BorderRadius.circular(8)),
-                              const SizedBox(height: 8),
-                              Text(
-                                  'Previsão: ${DateFormat.MMMd().add_Hm().format(order.delivery!.estimatedArrival)}',
-                                  style: const TextStyle(
-                                      color: GvColors.textMuted, fontSize: 12)),
-                            ])),
-                        const SizedBox(height: 14),
-                        FilledButton.icon(
-                            onPressed: () =>
-                                context.go('/orders/${order.id}/tracking'),
-                            icon: const Icon(Icons.map_outlined),
-                            label: const Text('Acompanhar entrega')),
-                      ],
-                    ]);
-              },
-            ),
-      );
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                            Text(copy.delivery,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 8),
+                            Text(order.delivery!.destination,
+                                style: const TextStyle(
+                                    color: GvColors.textSecondary)),
+                            const SizedBox(height: 10),
+                            LinearProgressIndicator(
+                                value: order.delivery!.progress,
+                                minHeight: 7,
+                                borderRadius: BorderRadius.circular(8)),
+                            const SizedBox(height: 8),
+                            Text(
+                                '${copy.estimate}: ${DateFormat.MMMd().add_Hm().format(order.delivery!.estimatedArrival)}',
+                                style: const TextStyle(
+                                    color: GvColors.textMuted, fontSize: 12)),
+                          ])),
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                          onPressed: () =>
+                              context.go('/orders/${order.id}/tracking'),
+                          icon: const Icon(Icons.map_outlined),
+                          label: Text(copy.trackDelivery)),
+                    ],
+                  ]);
+            },
+          ),
+    );
+  }
 }
 
 class DeliveryTrackingScreen extends ConsumerWidget {
   const DeliveryTrackingScreen({required this.orderId, super.key});
   final String orderId;
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        appBar: AppBar(title: const Text('Acompanhar entrega')),
-        body: ref.watch(ordersProvider).when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('$e')),
-              data: (orders) {
-                final order = orders.where((o) => o.id == orderId).firstOrNull;
-                final delivery = order?.delivery;
-                if (delivery == null) {
-                  return const Center(
-                      child:
-                          Text('Este pedido não possui entrega rastreável.'));
-                }
-                return Column(children: [
-                  Expanded(child: _DemoRouteMap(delivery: delivery)),
-                  Container(
-                    padding: const EdgeInsets.all(GvSpacing.lg),
-                    decoration: const BoxDecoration(
-                        color: GvColors.surface,
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(24))),
-                    child: SafeArea(
-                        top: false,
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(children: [
-                                const Icon(Icons.local_shipping,
-                                    color: GvColors.accentGreen),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                    child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                      Text(delivery.status,
-                                          style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800)),
-                                      Text(delivery.trackingCode,
-                                          style: const TextStyle(
-                                              color: GvColors.textMuted))
-                                    ])),
-                                Text(
-                                    DateFormat.Hm()
-                                        .format(delivery.estimatedArrival),
-                                    style: const TextStyle(
-                                        fontSize: 19,
-                                        fontWeight: FontWeight.w800))
-                              ]),
-                              const SizedBox(height: 14),
-                              _TimelineStep(
-                                  label: AppLocalizations.of(context)
-                                      .orderConfirmed,
-                                  complete: true),
-                              _TimelineStep(
-                                  label: AppLocalizations.of(context)
-                                      .orderPicked,
-                                  complete: true),
-                              _TimelineStep(
-                                  label: AppLocalizations.of(context)
-                                      .orderInTransit,
-                                  complete: true),
-                              _TimelineStep(
-                                  label: AppLocalizations.of(context)
-                                      .orderOutForDelivery,
-                                  complete: false),
-                              _TimelineStep(
-                                  label:
-                                      AppLocalizations.of(context).orderDelivered,
-                                  complete: false,
-                                  last: true),
-                              const SizedBox(height: 8),
-                              Text(delivery.destination,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final copy = StoreCopy.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(copy.trackDelivery)),
+      body: ref.watch(ordersProvider).when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('$e')),
+            data: (orders) {
+              final order = orders.where((o) => o.id == orderId).firstOrNull;
+              final delivery = order?.delivery;
+              if (delivery == null) {
+                return Center(child: Text(copy.noTracking));
+              }
+              return Column(children: [
+                Expanded(child: _DemoRouteMap(delivery: delivery)),
+                Container(
+                  padding: const EdgeInsets.all(GvSpacing.lg),
+                  decoration: const BoxDecoration(
+                      color: GvColors.surface,
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(24))),
+                  child: SafeArea(
+                      top: false,
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.local_shipping,
+                                  color: GvColors.accentGreen),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                    Text(delivery.status,
+                                        style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800)),
+                                    Text(delivery.trackingCode,
+                                        style: const TextStyle(
+                                            color: GvColors.textMuted))
+                                  ])),
+                              Text(
+                                  DateFormat.Hm()
+                                      .format(delivery.estimatedArrival),
                                   style: const TextStyle(
-                                      color: GvColors.textSecondary,
-                                      fontSize: 12)),
-                              const SizedBox(height: 8),
-                              const Text(
-                                  'Mapa demonstrativo · preparado para Google Maps e API logística',
-                                  style: TextStyle(
-                                      color: GvColors.textMuted, fontSize: 10)),
-                            ])),
-                  ),
-                ]);
-              },
-            ),
-      );
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w800))
+                            ]),
+                            const SizedBox(height: 14),
+                            _TimelineStep(
+                                label:
+                                    AppLocalizations.of(context).orderConfirmed,
+                                complete: true),
+                            _TimelineStep(
+                                label: AppLocalizations.of(context).orderPicked,
+                                complete: true),
+                            _TimelineStep(
+                                label:
+                                    AppLocalizations.of(context).orderInTransit,
+                                complete: true),
+                            _TimelineStep(
+                                label: AppLocalizations.of(context)
+                                    .orderOutForDelivery,
+                                complete: false),
+                            _TimelineStep(
+                                label:
+                                    AppLocalizations.of(context).orderDelivered,
+                                complete: false,
+                                last: true),
+                            const SizedBox(height: 8),
+                            Text(delivery.destination,
+                                style: const TextStyle(
+                                    color: GvColors.textSecondary,
+                                    fontSize: 12)),
+                            const SizedBox(height: 8),
+                            Text(copy.demoMap,
+                                style: const TextStyle(
+                                    color: GvColors.textMuted, fontSize: 10)),
+                          ])),
+                ),
+              ]);
+            },
+          ),
+    );
+  }
 }
 
 class _DemoRouteMap extends StatelessWidget {
