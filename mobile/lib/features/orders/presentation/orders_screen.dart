@@ -24,7 +24,7 @@ class OrdersScreen extends ConsumerStatefulWidget {
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   static const _storeSectors = {
-    'home', 'agro', 'environment', 'construction', 'industry', 'infrastructure'
+    'agro', 'environment', 'construction', 'industry', 'infrastructure'
   };
   String category = 'all';
   String sector = 'all';
@@ -34,8 +34,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   @override
   void initState() {
     super.initState();
-    // Recommend the account's own sector first (e.g. a Home account opens the
-    // store on Home products); fall back to all sectors when unknown.
+    // Recommend the account's own sector first; fall back to all sectors when
+    // unknown.
     final profile = ref.read(authControllerProvider).profile;
     sector = (profile?.sectors ?? const <String>[])
         .map((e) => e.toLowerCase())
@@ -145,7 +145,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 scrollDirection: Axis.horizontal,
                 children: {
                   'all': copy.allSectors,
-                  'home': copy.sector('home'),
                   'agro': copy.sector('agro'),
                   'environment': copy.sector('environment'),
                   'construction': copy.sector('construction'),

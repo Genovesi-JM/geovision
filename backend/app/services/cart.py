@@ -99,7 +99,6 @@ SECTOR_LABELS = {
     "construction": "Construção",
     "industry": "Indústria e Mineração",
     "agro": "Agro & Pecuária",
-    "home": "Casa",
     "demining": "Desminagem Humanitária",
     "solar": "Solar & Energia",
     "livestock": "Pecuária",
@@ -137,8 +136,8 @@ SHOP_PRODUCTS += [
     {"id": "prod_aerial_basic_mapping", "name": "Mapeamento Aéreo Essencial", "slug": "mapeamento-aereo-essencial", "description": "Mapeamento visual de uma quinta, propriedade ou local com ortomosaico e resumo de observações.", "short_description": "Mapa visual e documentação do local", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 35000000, "price_usd": 42500, "price_eur": 38900, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro", "infrastructure", "environment"], "deliverables": ["Ortomosaico visual", "Fotografias georreferenciadas", "Resumo de observações"], "image_url": "/assets/img/products/agro-cadastral.jpg", "is_active": True, "is_featured": True},
     {"id": "prod_agro_visual_inspection", "name": "Inspeção Visual Agrícola", "slug": "inspecao-visual-agricola", "description": "Inspeção aérea visual para documentar culturas, irrigação, acessos e anomalias visíveis sem prometer análise multiespectral.", "short_description": "Observação visual e registo da exploração", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 25000000, "price_usd": 30500, "price_eur": 27800, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro"], "deliverables": ["Fotografias aéreas", "Mapa de observações", "Relatório visual"], "image_url": "/assets/img/products/agro-ndvi.jpg", "is_active": True, "is_featured": True},
     {"id": "prod_supply_soil_probe", "name": "Kit de Sondas de Solo", "slug": "kit-sondas-solo", "description": "Sondas de humidade do solo para substituição, expansão ou primeiro protótipo GeoVision. Fornecimento sujeito a confirmação de compatibilidade.", "short_description": "Sondas para medir humidade do solo", "product_type": "hardware", "category": "sensor", "price": 2550000, "price_usd": 3000, "price_eur": 2800, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro"], "deliverables": ["2 sondas capacitivas", "Guia de ligação", "Verificação de compatibilidade"], "image_url": None, "is_active": True},
-    {"id": "prod_supply_irrigation_parts", "name": "Kit de Componentes de Irrigação", "slug": "kit-componentes-irrigacao", "description": "Conjunto inicial de válvula de baixa tensão, sensor de caudal e conectores para um protótipo de irrigação monitorizada.", "short_description": "Válvula, caudal e ligações para protótipo", "product_type": "hardware", "category": "irrigation", "price": 4250000, "price_usd": 5000, "price_eur": 4600, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "home"], "deliverables": ["Válvula de baixa tensão", "Sensor de caudal", "Conectores e guia"], "image_url": None, "is_active": True},
-    {"id": "prod_supply_monitoring_spares", "name": "Pack de Acessórios para Sensores", "slug": "pack-acessorios-sensores", "description": "Cabos, conectores, prensa-cabos e pequenos consumíveis para manutenção de um nó GeoVision.", "short_description": "Peças pequenas para instalar e manter sensores", "product_type": "hardware", "category": "accessory", "price": 2125000, "price_usd": 2500, "price_eur": 2300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["home", "agro", "infrastructure", "environment"], "deliverables": ["Cabos e conectores", "Prensa-cabos", "Consumíveis de instalação"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_irrigation_parts", "name": "Kit de Componentes de Irrigação", "slug": "kit-componentes-irrigacao", "description": "Conjunto inicial de válvula de baixa tensão, sensor de caudal e conectores para um protótipo de irrigação monitorizada.", "short_description": "Válvula, caudal e ligações para protótipo", "product_type": "hardware", "category": "irrigation", "price": 4250000, "price_usd": 5000, "price_eur": 4600, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro"], "deliverables": ["Válvula de baixa tensão", "Sensor de caudal", "Conectores e guia"], "image_url": None, "is_active": True},
+    {"id": "prod_supply_monitoring_spares", "name": "Pack de Acessórios para Sensores", "slug": "pack-acessorios-sensores", "description": "Cabos, conectores, prensa-cabos e pequenos consumíveis para manutenção de um nó GeoVision.", "short_description": "Peças pequenas para instalar e manter sensores", "product_type": "hardware", "category": "accessory", "price": 2125000, "price_usd": 2500, "price_eur": 2300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "infrastructure", "environment"], "deliverables": ["Cabos e conectores", "Prensa-cabos", "Consumíveis de instalação"], "image_url": None, "is_active": True},
     {"id": "prod_supply_weather_pack", "name": "Pack de Sensores Meteorológicos", "slug": "pack-sensores-meteorologicos", "description": "Sensores de temperatura, humidade e chuva para protótipos de campo e pequenas estações meteorológicas.", "short_description": "Temperatura, humidade e chuva", "product_type": "hardware", "category": "sensor", "price": 7650000, "price_usd": 9000, "price_eur": 8300, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro", "environment"], "deliverables": ["Sensor de temperatura/humidade", "Pluviómetro", "Guia de protótipo"], "image_url": None, "is_active": True},
 ]
 
@@ -207,20 +206,17 @@ def seed_shop_products(db: Session) -> int:
 
 
 # Map active DIY kit industries onto the store sectors where the kit is useful.
-# Home covers the supported property use cases: air/comfort, water & leaks,
-# energy consumption and door/motion/leak security.
 _KIT_SECTORS = {
     "agriculture": ["agro"],
-    "environment": ["home", "environment"],
-    "water": ["home", "infrastructure"],
-    "energy": ["home", "infrastructure"],
-    "facilities": ["home", "infrastructure"],
+    "environment": ["environment"],
+    "water": ["infrastructure"],
+    "energy": ["infrastructure"],
+    "facilities": ["infrastructure"],
     "cold_chain": ["infrastructure"],
 }
 
 # Preserve the kit definition for possible future/on-request work, but do not
-# advertise unsupported monitoring products in the public marketplace. Energy &
-# Power Monitor is a supported Home product and stays in the catalogue.
+# advertise unsupported monitoring products in the public marketplace.
 _MARKETPLACE_EXCLUDED_KITS = {
     "cold_chain_starter",
     "spray_control",

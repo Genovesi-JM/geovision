@@ -23,21 +23,6 @@ class AccountProfileDefinition {
 abstract final class AccountProfiles {
   static const public = <AccountProfileDefinition>[
     AccountProfileDefinition(
-      id: 'home',
-      defaultSector: 'home',
-      allowedSectors: ['home'],
-      defaultUseCases: ['water', 'leaks'],
-      allowedUseCases: [
-        'water',
-        'leaks',
-        'comfort',
-        'air_quality',
-        'security',
-        'weather'
-      ],
-      isCompany: false,
-    ),
-    AccountProfileDefinition(
       id: 'farm',
       defaultSector: 'agro',
       allowedSectors: ['agro', 'environment'],
@@ -88,9 +73,8 @@ abstract final class AccountProfiles {
     ),
     AccountProfileDefinition(
       id: 'device',
-      defaultSector: 'home',
+      defaultSector: 'environment',
       allowedSectors: [
-        'home',
         'environment',
         'agro',
         'infrastructure',
@@ -112,7 +96,6 @@ abstract final class AccountProfiles {
       id: 'enterprise',
       defaultSector: 'infrastructure',
       allowedSectors: [
-        'home',
         'agro',
         'environment',
         'construction',

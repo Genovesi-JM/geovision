@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 
-PUBLIC_SECTORS = {"home", "agro", "environment", "construction", "industry", "infrastructure"}
+PUBLIC_SECTORS = {"agro", "environment", "construction", "industry", "infrastructure"}
 
 # Historical web and mobile builds used a few sector names that no longer match
 # the public account model. Keep accepting them at API boundaries, but always
@@ -35,11 +35,6 @@ class CustomerProfile:
 
 
 CUSTOMER_PROFILES: dict[str, CustomerProfile] = {
-    "home": CustomerProfile(
-        "individual", "home", "home", ("home",),
-        ("water", "leaks"),
-        ("water", "leaks", "comfort", "air_quality", "security", "weather"),
-    ),
     "farm": CustomerProfile(
         "individual", "farm", "agro", ("agro", "environment"),
         ("soil", "water", "weather"),
@@ -71,12 +66,12 @@ CUSTOMER_PROFILES: dict[str, CustomerProfile] = {
         ("site_environment", "maintenance", "equipment", "inventory", "inspections"),
     ),
     "device": CustomerProfile(
-        "individual", "device", "environment", ("home", "environment", "agro", "infrastructure", "construction", "industry"),
+        "individual", "device", "environment", ("environment", "agro", "infrastructure", "construction", "industry"),
         ("device_monitoring",),
         ("device_monitoring", "air_quality", "soil", "water", "weather", "equipment"),
     ),
     "enterprise": CustomerProfile(
-        "company", "enterprise", "infrastructure", ("home", "agro", "environment", "construction", "industry", "infrastructure"),
+        "company", "enterprise", "infrastructure", ("agro", "environment", "construction", "industry", "infrastructure"),
         ("site_environment", "maintenance"),
         ("soil", "irrigation", "water", "weather", "livestock", "comfort", "air_quality",
          "leaks", "progress", "inspections", "site_environment", "maintenance", "equipment",

@@ -43,25 +43,17 @@ def test_diy_kits_appear_in_marketplace(client):
     assert water["translations"]["pt"]["name"].startswith("GV Level")
     assert water["translations"]["en"]["description"]
 
-    home_products = client.get("/shop/products", params={"sector": "home"}).json()
-    home_kit_ids = {p["id"] for p in home_products if p["id"].startswith("prod_kit_")}
-    # Home is recommended the property-relevant kits: air/comfort, security
-    # (door/motion/leak), energy consumption and water.
-    assert home_kit_ids == {
-        "prod_kit_facility_guard",
-        "prod_kit_environment_air",
-        "prod_kit_energy_meter_starter",
-        "prod_kit_water_tank_starter",
-    }
-    assert "home" in water["sectors"]
+    # "home" is no longer a GeoVision sector — no product may carry it.
+    assert all("home" not in product["sectors"] for product in products)
     environment_products = client.get(
         "/shop/products", params={"sector": "ambiental"}
     ).json()
     assert environment_products
     assert all("environment" in product["sectors"] for product in environment_products)
-    # Energy & Power Monitor is a supported Home product and stays listed.
+    # The former Home kits remain in the catalogue under their professional
+    # sectors (infrastructure / environment), just not recommended for "home".
     energy = next((p for p in products if p["id"] == "prod_kit_energy_meter_starter"), None)
-    assert energy is not None and "home" in energy["sectors"]
+    assert energy is not None and "infrastructure" in energy["sectors"]
 
 
 def test_catalogue_exposes_explicit_multi_currency_contract(client):

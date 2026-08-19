@@ -48,7 +48,6 @@ DJI_AUTOMATION_SUPPORT = {
 
 _MOBILE_KPI_SECTORS = {
     "agro": "agro",
-    "home": "home",
     "environment": "environment",
     "construction": "construction",
     # The current public profile combines industry and mining. The existing
@@ -108,7 +107,7 @@ class SiteCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     sector: str = Field(
         default="agro",
-        pattern="^(home|agro|agriculture|livestock|environment|construction|industry|infrastructure|mining|ambiental)$",
+        pattern="^(agro|agriculture|livestock|environment|construction|industry|infrastructure|mining|ambiental)$",
     )
     country: str = Field(min_length=2, max_length=100)
     province: str = Field(min_length=2, max_length=100)

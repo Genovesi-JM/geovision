@@ -8,8 +8,8 @@ def _register(client, email):
             "email": email,
             "password": "strong-pass-123",
             "full_name": "Delete Me",
-            "customer_type": "home",
-            "sectors": ["home"],
+            "customer_type": "farm",
+            "sectors": ["agro"],
         },
     )
     assert resp.status_code == 201, resp.text
@@ -40,8 +40,8 @@ def test_delete_account_removes_user_and_blocks_reuse_of_token(client):
             "email": email,
             "password": "another-pass-456",
             "full_name": "Fresh Start",
-            "customer_type": "home",
-            "sectors": ["home"],
+            "customer_type": "farm",
+            "sectors": ["agro"],
         },
     )
     assert again.status_code == 201, again.text

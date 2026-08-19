@@ -82,17 +82,10 @@ void main() {
       expect(sectorFromString('mining'), Sector.industry);
     });
 
-    test('maps Home independently from Agriculture', () {
-      expect(sectorFromString('home'), Sector.home);
-      expect(Sector.home.id, 'home');
-      expect(
-        KpiCatalogue.forSector(Sector.home).map((k) => k.id).toList(),
-        ['comfort_index', 'air_quality', 'energy_use', 'security_events'],
-      );
-      expect(
-        KpiCatalogue.forSector(Sector.home).any((k) => k.id == 'ndvi_avg'),
-        false,
-      );
+    test('the removed "home" sector falls back to infrastructure', () {
+      // "home" is no longer a GeoVision sector; unknown values normalise to
+      // infrastructure rather than resolving to a dedicated Home catalogue.
+      expect(sectorFromString('home'), Sector.infrastructure);
     });
   });
 }

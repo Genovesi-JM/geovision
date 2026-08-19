@@ -20,7 +20,7 @@ let currentCart = null;
 const MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
 const STORE_SECTORS = new Set(["agro", "environment", "construction", "infrastructure"]);
 function normalizeStoreSector(value) {
-  if (["home", "ambiental"].includes(value)) return "environment";
+  if (["ambiental"].includes(value)) return "environment";
   if (value === "livestock") return "agro";
   return STORE_SECTORS.has(value) ? value : null;
 }

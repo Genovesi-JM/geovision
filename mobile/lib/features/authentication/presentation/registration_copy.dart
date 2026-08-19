@@ -110,8 +110,6 @@ class RegistrationCopy {
       'Vous pourrez modifier ces préférences plus tard. GeoVision n’active aucun capteur ou service sans votre choix.');
 
   String profile(String id) => switch (id) {
-        'home' => pick('Casa e propriedade', 'Home & property',
-            'Hogar y propiedad', 'Maison et propriété'),
         'farm' => pick('Agricultura e pecuária', 'Farm & livestock',
             'Agricultura y ganadería', 'Agriculture et élevage'),
         'construction' =>
@@ -128,7 +126,6 @@ class RegistrationCopy {
       };
 
   String sector(String id) => switch (id) {
-        'home' => pick('Casa', 'Home', 'Hogar', 'Maison'),
         'agro' => pick('Agro e pecuária', 'Agriculture & livestock',
             'Agro y ganadería', 'Agriculture et élevage'),
         'environment' =>

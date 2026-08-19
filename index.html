@@ -677,7 +677,7 @@
             <span class="hero-card-title" data-i18n="index.liveDemo">Painel de Inteligência</span>
             <span class="hero-card-badge" data-i18n="adm.active">Ativo</span>
           </div>
-          <div class="system-map hero-sector-map" id="hero-map" data-sector="home" aria-label="Sistema GeoVision para Casa e Propriedade" aria-live="polite">
+          <div class="system-map hero-sector-map" id="hero-map" data-sector="agro" aria-label="Sistema GeoVision para Agricultura e Pecuária" aria-live="polite">
             <svg class="sector-connections" viewBox="0 0 500 300" preserveAspectRatio="none" aria-hidden="true">
               <path class="sector-boundary" d="M48 176 C62 74 160 45 250 62 C354 34 447 88 452 171 C457 245 353 256 267 238 C176 272 67 246 48 176Z" />
               <path class="connection-line line-one" d="M120 92 C180 105 195 128 250 150" />
@@ -685,17 +685,17 @@
               <path class="connection-line line-three" d="M382 105 C331 113 304 130 250 150" />
               <path class="connection-line line-four" d="M370 220 C326 194 301 177 250 150" />
             </svg>
-            <span class="scene-landmark" aria-hidden="true"><i class="fa-solid fa-house-signal"></i></span>
+            <span class="scene-landmark" aria-hidden="true"><i class="fa-solid fa-wheat-awn"></i></span>
             <span class="system-pulse one"></span><span class="system-pulse two"></span>
-            <span class="system-node sensor"><i class="fa-solid fa-wind"></i><span>GV Air · interior</span></span>
-            <span class="system-node home"><i class="fa-solid fa-droplet"></i><span>Depósito · 68%</span></span>
+            <span class="system-node sensor"><i class="fa-solid fa-seedling"></i><span>GV Soil · 21%</span></span>
+            <span class="system-node home"><i class="fa-solid fa-cow"></i><span>Rebanho · 184</span></span>
             <span class="system-node platform"><i class="fa-solid fa-layer-group"></i><span>GeoVision · mapa + IA</span></span>
-            <span class="system-node track"><i class="fa-solid fa-shield-house"></i><span>Propriedade · segura</span></span>
-            <span class="system-node aerial"><i class="fa-solid fa-faucet-drip"></i><span>Fugas · normal</span></span>
+            <span class="system-node track"><i class="fa-solid fa-location-dot"></i><span>GV Track · animal 27</span></span>
+            <span class="system-node aerial"><i class="fa-solid fa-helicopter"></i><span>Voo NDVI · concluído</span></span>
             <div class="map-kpis" aria-label="Indicadores principais">
-              <span><small>Qualidade do ar</small><strong>92%</strong></span>
-              <span><small>Água</small><strong>68%</strong></span>
-              <span><small>Alertas</small><strong>0</strong></span>
+              <span><small>Humidade</small><strong>21%</strong></span>
+              <span><small>NDVI</small><strong>0,74</strong></span>
+              <span><small>Animais</small><strong>184</strong></span>
             </div>
           </div>
           <div class="system-strip" aria-label="Componentes do ecossistema GeoVision">
@@ -706,8 +706,7 @@
             <span><i class="fa-solid fa-wand-magic-sparkles"></i><span data-i18n="commercial.system.ai">IA &amp; análise</span></span>
           </div>
           <div class="map-tabs">
-            <button class="map-tab active" type="button" role="tab" aria-selected="true" data-sector="home" data-i18n="commercial.sector.home">Casa</button>
-            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
+            <button class="map-tab active" type="button" role="tab" aria-selected="true" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
             <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="mining" data-i18n="sectors.mineracao">Mineração</button>
             <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="construction" data-i18n="login.construction">Construção</button>
             <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="ambiental" data-i18n="sectors.ambiental">Ambiental</button>
@@ -724,12 +723,6 @@
       <h2 class="section-title" data-i18n="index.entry.title">O que quer monitorizar?</h2>
     </div>
     <div class="sectors-grid">
-      <a href="sectors.html#casa" class="sector-card">
-        <div class="sector-icon"><i class="fa-solid fa-house"></i></div>
-        <h3 class="sector-name" data-i18n="commercial.sector.homeFull">Casa &amp; Propriedade</h3>
-        <p class="sector-desc" data-i18n="commercial.home.cardHome">Monitorize ar, humidade, água, fugas, jardim e equipamentos selecionados, com alertas na app.</p>
-        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
-      </a>
       <a href="sectors.html#agropecuaria" class="sector-card">
         <div class="sector-icon"><i class="fa-solid fa-seedling"></i></div>
         <h3 class="sector-name" data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</h3>
@@ -878,7 +871,6 @@
       <article class="roadmap-item"><strong>GV Pump</strong><span data-i18n="commercial.roadmap.pump">Estado e acompanhamento remoto de bombas suportadas.</span></article>
       <article class="roadmap-item"><strong>GV Vibe</strong><span data-i18n="commercial.roadmap.vibe">Observação de vibração e apoio à identificação de anomalias.</span></article>
       <article class="roadmap-item"><strong>GV Weather</strong><span data-i18n="commercial.roadmap.weather">Condições meteorológicas locais para decisões operacionais.</span></article>
-      <article class="roadmap-item"><strong>GV Home</strong><span data-i18n="commercial.roadmap.home">Módulos simples para água, ambiente e estado da propriedade.</span></article>
     </div>
   </section>
 
@@ -960,17 +952,6 @@
 
     // Sector-specific operational illustrations
     const sectorVisuals = {
-      home: {
-        icon: 'fa-house-signal',
-        labels: {
-          pt: ['GV Air · interior', 'Depósito · 68%', 'GeoVision · mapa + IA', 'Propriedade · segura', 'Fugas · normal'],
-          en: ['GV Air · indoor', 'Water tank · 68%', 'GeoVision · map + AI', 'Property · secure', 'Leaks · normal'],
-          es: ['GV Air · interior', 'Depósito · 68%', 'GeoVision · mapa + IA', 'Propiedad · segura', 'Fugas · normal']
-        },
-        icons: ['fa-wind', 'fa-droplet', 'fa-layer-group', 'fa-shield-house', 'fa-faucet-drip'],
-        metrics: { pt: [['Qualidade do ar','92%'],['Água','68%'],['Alertas','0']], en: [['Air quality','92%'],['Water','68%'],['Alerts','0']], es: [['Calidad del aire','92%'],['Agua','68%'],['Alertas','0']] },
-        aria: { pt: 'Sistema GeoVision para Casa e Propriedade', en: 'GeoVision system for Home and Property', es: 'Sistema GeoVision para Casa y Propiedad' }
-      },
       agro: {
         icon: 'fa-wheat-awn',
         labels: { pt: ['GV Soil · 21%', 'Rebanho · 184', 'GeoVision · mapa + IA', 'GV Track · animal 27', 'Voo NDVI · concluído'], en: ['GV Soil · 21%', 'Herd · 184', 'GeoVision · map + AI', 'GV Track · animal 27', 'NDVI flight · complete'], es: ['GV Soil · 21%', 'Rebaño · 184', 'GeoVision · mapa + IA', 'GV Track · animal 27', 'Vuelo NDVI · completo'] },
@@ -1071,7 +1052,7 @@
 
   <script src="assets/js/site.js?v=3"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=26"></script>
+  <script src="assets/js/i18n.js?v=27"></script>
   <script src="assets/js/config.js?v=5"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
   <script src="assets/js/chatbot.js?v=4"></script>

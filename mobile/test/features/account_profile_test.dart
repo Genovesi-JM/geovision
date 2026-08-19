@@ -4,9 +4,8 @@ import 'package:geovision/features/account/domain/user_profile.dart';
 import 'package:geovision/features/authentication/domain/registration_request.dart';
 
 void main() {
-  test('mobile onboarding exposes the same seven public account types', () {
+  test('mobile onboarding exposes the same six public account types', () {
     expect(AccountProfiles.public.map((profile) => profile.id).toSet(), {
-      'home',
       'farm',
       'construction',
       'environment',

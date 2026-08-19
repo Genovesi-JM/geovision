@@ -18,7 +18,6 @@ function escapeHTML(str) {
 const SECTOR_LABELS = {
   agro: "Agro & Pecuária",
   environment: "Ambiente",
-  home: "Casa & Propriedade",
   industry: "Indústria & Mineração",
   mining: "Mineração",
   demining: "Desminagem",
@@ -769,7 +768,6 @@ async function loadKpis(accountId, activeSector) {
   const sectorKpiMapping = {
     agro: ["soil_moisture", "water_level", "data_completeness", "open_incidents"],
     environment: ["air_quality", "water_level", "leak_events", "data_completeness"],
-    home: ["comfort_index", "air_quality", "water_level", "leak_events"],
     construction: ["progress_percent", "conformity_index", "pending_inspections", "volume_earthwork"],
     infrastructure: ["data_freshness", "device_health", "maintenance_due", "open_incidents"],
   };
@@ -962,7 +960,7 @@ function renderPersonaHome(account, devices, openAlerts, needsAttention) {
   if (!card) return;
   const simple = document.body.getAttribute("data-exp") === "simple";
   const persona = personaFor(account);
-  const simplePersonas = ["home", "farm", "site", "environment", "device"];
+  const simplePersonas = ["farm", "site", "environment", "device"];
   if (!simple || (persona && !simplePersonas.includes(persona))) { card.style.display = "none"; return; }
   card.style.display = "block";
 

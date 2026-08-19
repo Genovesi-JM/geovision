@@ -159,7 +159,7 @@
       });
     }
     function renderProfileChoices() {
-      const persona = document.getElementById('create-persona')?.value || 'home';
+      const persona = document.getElementById('create-persona')?.value || 'farm';
       const config = ACCOUNT_PROFILES[persona] || ACCOUNT_PROFILES.farm;
       renderChoices('create-sectors', 'create-sector', config.sectors, config.defaults, SECTOR_LABELS);
       renderChoices('create-use-cases', 'create-use-case', config.uses, config.defaultUses, USE_CASE_LABELS);
@@ -251,7 +251,7 @@
 
         const email = (document.getElementById('create-email')?.value || '').trim().toLowerCase();
         const password = document.getElementById('create-password')?.value || '';
-        const persona = document.getElementById('create-persona')?.value || 'home';
+        const persona = document.getElementById('create-persona')?.value || 'farm';
         const sectors = [...document.querySelectorAll('input[name="create-sector"]:checked')].map((el) => el.value);
         const use_cases = [...document.querySelectorAll('input[name="create-use-case"]:checked')].map((el) => el.value);
 

@@ -3,15 +3,15 @@ const { test, expect } = require('@playwright/test');
 const BASE = process.env.TEST_BASE_URL || 'http://127.0.0.1:8001';
 
 test.describe('B2C and B2B capability balance', () => {
-  test('a homeowner can immediately find a purchasable path', async ({ page }) => {
+  test('a visitor can immediately find a purchasable path', async ({ page }) => {
     await page.goto(`${BASE}/index.html`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', {
       name: 'Veja o que está a acontecer. Saiba quando agir.',
     })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Explorar dispositivos' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Casa & Propriedade' })).toBeVisible();
-    await expect(page.getByText('GV Air · interior', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Agricultura & Pecuária' }).first()).toBeVisible();
+    await expect(page.getByText('Rebanho · 184', { exact: true })).toBeVisible();
   });
 
   test('hero illustration gives every sector its own operational picture', async ({ page }) => {
@@ -19,7 +19,6 @@ test.describe('B2C and B2B capability balance', () => {
     const map = page.locator('#hero-map');
 
     const sectors = [
-      ['Casa', 'home', 'Qualidade do ar', 'GV Air · interior'],
       ['Agropecuária', 'agro', 'Humidade', 'Rebanho · 184'],
       ['Mineração', 'mining', 'Volume', 'Talude norte · estável'],
       ['Construção', 'construction', 'Progresso', 'Máquina · EX-04'],
