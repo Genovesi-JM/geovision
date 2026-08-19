@@ -122,5 +122,10 @@
   "liveAccount": "Ver cuenta en tiempo real",
   "paymentMethods": "Métodos de pago",
   "visualGuides": "Guías visuales",
-  "gaiaAssistant": "Asistente GAIA"
+  "gaiaAssistant": "Asistente GAIA",
+  "deleteAccount": "Eliminar cuenta",
+  "deleteAccountWarning": "Esto elimina permanentemente tu cuenta y tus datos personales. Esta acción no se puede deshacer.",
+  "deleteAccountConfirm": "Eliminar definitivamente",
+  "deleteAccountFailed": "No se pudo eliminar la cuenta. Inténtalo de nuevo.",
+  "linkOpenFailed": "No se pudo abrir el enlace."
 }

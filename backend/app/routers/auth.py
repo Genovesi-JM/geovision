@@ -533,6 +533,73 @@ def get_current_user(
     }
 
 
+# ── Account Deletion (self-service) ──
+
+class DeleteAccountRequest(BaseModel):
+    password: Optional[str] = None
+
+
+@router.delete("/account", tags=["auth"])
+@router.post("/account/delete", tags=["auth"], include_in_schema=False)
+def delete_account(
+    request: Request,
+    payload: Optional[DeleteAccountRequest] = None,
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: Session = Depends(get_db),
+):
+    """Permanently delete the authenticated user's account and personal data.
+
+    Removes the user identity, profile, auth/refresh/reset tokens, external
+    identities, company links and workspace memberships. Any workspace
+    (Account) left with no remaining members is also removed. Operational
+    records the law may require us to keep (e.g. billing) are out of scope.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Token required")
+    claims = verify_access_token(authorization[7:])
+    if not claims:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    email = (claims.get("sub") or "").strip().lower()
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # If the caller supplies a password for a password-based account it must
+    # match — a cheap guard against deletion with a stolen/stale token.
+    if payload and payload.password and user.password_hash:
+        if not verify_password(payload.password, user.password_hash):
+            raise HTTPException(status_code=403, detail="Password does not match")
+
+    user_id = user.id
+    account_ids = [
+        m.account_id
+        for m in db.query(AccountMember).filter(AccountMember.user_id == user_id).all()
+    ]
+
+    db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id == user_id).delete(synchronize_session=False)
+    db.query(AuthIdentity).filter(AuthIdentity.user_id == user_id).delete(synchronize_session=False)
+    db.query(ResetToken).filter(ResetToken.user_id == user_id).delete(synchronize_session=False)
+    db.query(AccountMember).filter(AccountMember.user_id == user_id).delete(synchronize_session=False)
+    db.query(CompanyUser).filter(CompanyUser.email == email).delete(synchronize_session=False)
+    db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
+
+    # Drop personal workspaces that no longer have any members.
+    for account_id in account_ids:
+        remaining = db.query(AccountMember).filter(AccountMember.account_id == account_id).count()
+        if remaining == 0:
+            db.query(Account).filter(Account.id == account_id).delete(synchronize_session=False)
+
+    db.delete(user)
+    try:
+        log_audit(db, "delete_account", user_id=user_id, user_email=email,
+                  resource_type="user", resource_id=user_id, request=request)
+    except Exception:
+        pass
+    db.commit()
+    return {"success": True, "deleted": True}
+
+
 # ── Status ──
 
 @router.get("/status", tags=["auth", "system"])

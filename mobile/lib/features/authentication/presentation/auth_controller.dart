@@ -50,6 +50,14 @@ class AuthController extends StateNotifier<AuthSession> {
     await _repo.logout();
     state = AuthSession.unauthenticated;
   }
+
+  /// Permanently deletes the account. On success the local session is cleared
+  /// and the app returns to the unauthenticated state.
+  Future<Result<void>> deleteAccount({String? password}) async {
+    final r = await _repo.deleteAccount(password: password);
+    if (r is Ok<void>) state = AuthSession.unauthenticated;
+    return r;
+  }
 }
 
 final authControllerProvider =

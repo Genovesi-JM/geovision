@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/errors/result.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/config/app_flavor.dart';
@@ -14,6 +17,9 @@ import '../../authentication/presentation/registration_copy.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
+
+  static final _privacyUrl = Uri.parse('https://geovisionops.com/privacy');
+  static final _termsUrl = Uri.parse('https://geovisionops.com/terms');
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -159,8 +165,11 @@ class AccountScreen extends ConsumerWidget {
             _Tile(
                 icon: Icons.privacy_tip_outlined,
                 label: text.privacy,
-                onTap: () {}),
-            _Tile(icon: Icons.gavel_outlined, label: text.terms, onTap: () {}),
+                onTap: () => _openUrl(context, _privacyUrl, text.linkOpenFailed)),
+            _Tile(
+                icon: Icons.gavel_outlined,
+                label: text.terms,
+                onTap: () => _openUrl(context, _termsUrl, text.linkOpenFailed)),
             _Tile(
                 icon: Icons.support_agent,
                 label: text.contactSupport,
@@ -173,7 +182,7 @@ class AccountScreen extends ConsumerWidget {
               icon: const Icon(Icons.login),
               label: Text(text.signInToAccount),
             )
-          else
+          else ...[
             OutlinedButton.icon(
               onPressed: () async {
                 await ref.read(authControllerProvider.notifier).logout();
@@ -182,6 +191,15 @@ class AccountScreen extends ConsumerWidget {
               icon: const Icon(Icons.logout),
               label: Text(text.signOut),
             ),
+            const SizedBox(height: GvSpacing.sm),
+            TextButton.icon(
+              onPressed: () => _confirmAndDelete(context, ref, text),
+              style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error),
+              icon: const Icon(Icons.delete_forever_outlined, size: 18),
+              label: Text(text.deleteAccount),
+            ),
+          ],
           const SizedBox(height: GvSpacing.lg),
           Center(
             child: Text(
@@ -192,6 +210,48 @@ class AccountScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openUrl(BuildContext context, Uri url, String failMsg) async {
+    final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(failMsg)));
+    }
+  }
+
+  Future<void> _confirmAndDelete(
+      BuildContext context, WidgetRef ref, AppLocalizations text) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(text.deleteAccount),
+        content: Text(text.deleteAccountWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(text.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(text.deleteAccountConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final result =
+        await ref.read(authControllerProvider.notifier).deleteAccount();
+    if (!context.mounted) return;
+    if (result is Ok<void>) {
+      context.go('/login');
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(text.deleteAccountFailed)));
+    }
   }
 
   Future<void> _selectLanguage(BuildContext context, WidgetRef ref) async {

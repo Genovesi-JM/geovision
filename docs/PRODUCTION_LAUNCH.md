@@ -51,10 +51,19 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **App Store / Play listings** | Store accounts + Privacy/Terms URLs. | Publish `privacy.html`/`terms.html`; complete store listings. |
 
 ## Still to build (code, not gated)
-- Wire mobile Privacy/Terms + account‑deletion screens (store compliance).
-- Publish web Privacy/Terms/Cookie pages.
+- Android release signing config (keystore) + version bump — currently
+  debug‑signed at v0.1.0+1 (tracked as the "Android release signing" gate).
 
 ## Recently landed (code, done)
+- **Legal pages** — `privacy.html` + `terms.html` published (GeoVision‑specific
+  content, site chrome, linked in the footer of index/about/technology,
+  `nav.privacy`/`nav.terms` i18n). Satisfies the store‑review Privacy/Terms URL
+  requirement; essential‑only cookies noted in the policy.
+- **Account deletion (self‑service)** — real `DELETE /auth/account`
+  (token‑auth, optional password check, prunes tokens/identities/profile/
+  memberships and empty workspaces; 3 backend tests). Mobile *More → Delete
+  account* wired with a confirmation dialog; Privacy/Terms tiles open the
+  published pages. Matches the deletion path promised in `privacy.html`.
 - `mobile/integration_test/app_test.dart` rewritten for the live
   Portal / My assets / Marketplace / Alerts / More navigation (was driving
   the removed Sites/Work tabs). Analyzes clean; runs on a booted device.

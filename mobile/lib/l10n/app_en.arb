@@ -122,5 +122,10 @@
   "liveAccount": "View live account",
   "paymentMethods": "Payment methods",
   "visualGuides": "Visual guides",
-  "gaiaAssistant": "GAIA assistant"
+  "gaiaAssistant": "GAIA assistant",
+  "deleteAccount": "Delete account",
+  "deleteAccountWarning": "This permanently deletes your account and personal data. This cannot be undone.",
+  "deleteAccountConfirm": "Delete permanently",
+  "deleteAccountFailed": "Could not delete the account. Please try again.",
+  "linkOpenFailed": "Could not open the link."
 }

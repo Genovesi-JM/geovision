@@ -123,6 +123,23 @@ class AuthRepository {
     }
   }
 
+  /// Permanently deletes the signed-in account server-side, then clears the
+  /// local session. [password] is optional but, when supplied, the backend
+  /// verifies it for password-based accounts before deleting.
+  Future<Result<void>> deleteAccount({String? password}) async {
+    try {
+      await _api.raw.delete(
+        '/auth/account',
+        data: (password == null || password.isEmpty) ? null : {'password': password},
+      );
+      await _tokens.clear();
+      _log.info('Account deleted; session cleared.');
+      return const Ok(null);
+    } catch (e) {
+      return Err(_api.mapError(e));
+    }
+  }
+
   Future<void> logout() async {
     final refresh = await _tokens.readRefresh();
     try {
