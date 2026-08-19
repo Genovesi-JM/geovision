@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <title>Política de Privacidade | GeoVision</title>
+  <meta name="description" content="Como a GeoVision recolhe, usa, partilha e protege os dados de conta, telemetria IoT, localização e encomendas — e como exercer os seus direitos, incluindo a eliminação de conta." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://geovisionops.com/privacy" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/chatbot.css" />
+  <link rel="stylesheet" href="assets/css/public-shell.css?v=2" />
+  <link rel="stylesheet" href="assets/css/commercial.css?v=4" />
+  <style>
+    .legal-hero {
+      padding: 9rem 2rem 3rem;
+      text-align: center;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(34, 197, 94, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 80% 70%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+        linear-gradient(180deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+    }
+    .legal-hero .eyebrow {
+      display: inline-block;
+      font-size: .8rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent, #22c55e); font-weight: 700; margin-bottom: 1rem;
+    }
+    .legal-hero h1 { font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 800; margin: 0 0 .75rem; }
+    .legal-hero .updated { color: var(--text-muted, #94a3b8); font-size: .9rem; }
+    .legal-wrap {
+      max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem 5rem;
+      line-height: 1.7; color: var(--text-secondary, #cbd5e1);
+    }
+    .legal-wrap h2 {
+      font-size: 1.4rem; font-weight: 700; color: var(--text-primary, #f1f5f9);
+      margin: 2.6rem 0 .8rem; padding-top: 1.2rem;
+      border-top: 1px solid var(--border, rgba(148,163,184,.15));
+    }
+    .legal-wrap h3 { font-size: 1.05rem; font-weight: 600; color: var(--text-primary, #f1f5f9); margin: 1.4rem 0 .5rem; }
+    .legal-wrap p, .legal-wrap li { font-size: 1rem; }
+    .legal-wrap ul { margin: .5rem 0 1rem 1.2rem; }
+    .legal-wrap li { margin-bottom: .4rem; }
+    .legal-wrap a { color: var(--accent, #22c55e); }
+    .legal-toc {
+      background: var(--bg-card, rgba(148,163,184,.06));
+      border: 1px solid var(--border, rgba(148,163,184,.15));
+      border-radius: 14px; padding: 1.4rem 1.6rem; margin-bottom: 2rem;
+    }
+    .legal-toc strong { display:block; margin-bottom:.6rem; color: var(--text-primary,#f1f5f9); }
+    .legal-toc ol { margin: 0 0 0 1.2rem; columns: 2; column-gap: 2rem; }
+    .legal-note {
+      background: rgba(14,165,233,.08); border: 1px solid rgba(14,165,233,.25);
+      border-radius: 12px; padding: 1rem 1.2rem; margin: 1.5rem 0; font-size: .95rem;
+    }
+    @media (max-width: 640px){ .legal-toc ol { columns: 1; } }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAVBAR ============ -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <div class="navbar-logo"><img src="assets/img/geovision-logo.png" alt="GeoVision" /></div>
+      <span class="navbar-brand-text">GEOVISION</span>
+    </a>
+    <div class="navbar-nav">
+      <a href="index.html" class="navbar-link" data-i18n="nav.home">Início</a>
+      <a href="about.html" class="navbar-link" data-i18n="nav.about">Sobre</a>
+      <a href="sectors.html" class="navbar-link" data-i18n="nav.sectors">Setores</a>
+      <a href="technology.html" class="navbar-link" data-i18n="nav.technology">Tecnologia</a>
+      <a href="loja.html" class="navbar-link" data-i18n="nav.services">Serviços</a>
+      <a href="login.html" class="btn-nav" data-i18n="nav.portal">Portal</a>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" data-lang="pt">PT</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="es">ES</button>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Ativar modo claro" title="Modo Claro"></button>
+    <button class="navbar-toggle" id="menu-toggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ============ HEADER ============ -->
+  <header class="legal-hero">
+    <span class="eyebrow">Privacidade</span>
+    <h1>Política de Privacidade</h1>
+    <p class="updated">Última atualização: 19 de agosto de 2026</p>
+  </header>
+
+  <main class="legal-wrap">
+    <p>
+      Esta Política descreve como a <strong>GeoVision</strong> ("GeoVision", "nós")
+      recolhe, utiliza, partilha e protege dados pessoais no âmbito do portal web,
+      da aplicação móvel, dos dispositivos e sensores IoT e do marketplace de
+      soluções. Aplica-se a todos os utilizadores dos nossos serviços.
+    </p>
+
+    <div class="legal-note">
+      A versão autoritativa desta política é a portuguesa. Para uma versão noutro
+      idioma ou esclarecimentos, contacte
+      <a href="mailto:privacy@geovisionops.com">privacy@geovisionops.com</a>.
+    </div>
+
+    <div class="legal-toc">
+      <strong>Índice</strong>
+      <ol>
+        <li><a href="#responsavel">Responsável pelo tratamento</a></li>
+        <li><a href="#dados">Dados que recolhemos</a></li>
+        <li><a href="#finalidades">Finalidades e base legal</a></li>
+        <li><a href="#partilha">Com quem partilhamos</a></li>
+        <li><a href="#conservacao">Conservação</a></li>
+        <li><a href="#seguranca">Segurança</a></li>
+        <li><a href="#direitos">Os seus direitos</a></li>
+        <li><a href="#eliminacao">Eliminação de conta</a></li>
+        <li><a href="#cookies">Cookies</a></li>
+        <li><a href="#transferencias">Transferências internacionais</a></li>
+        <li><a href="#menores">Menores</a></li>
+        <li><a href="#alteracoes">Alterações</a></li>
+      </ol>
+    </div>
+
+    <h2 id="responsavel">1. Responsável pelo tratamento</h2>
+    <p>
+      A GeoVision, com operações em Luanda, Angola, e presença em Espanha/Europa, é
+      a responsável pelo tratamento dos dados descritos nesta política. Contactos:
+      <a href="mailto:privacy@geovisionops.com">privacy@geovisionops.com</a> ·
+      <a href="mailto:operations@geovisionops.com">operations@geovisionops.com</a>.
+    </p>
+
+    <h2 id="dados">2. Dados que recolhemos</h2>
+    <h3>2.1 Dados de conta e perfil</h3>
+    <p>Nome, endereço de e-mail, organização, setor de atividade, tipo de conta
+      (propriedade, agricultura, obra, ambiente, indústria, dispositivo individual
+      ou operação multi-local) e palavra-passe (armazenada de forma cifrada, nunca
+      em texto simples).</p>
+    <h3>2.2 Telemetria de dispositivos e sensores IoT</h3>
+    <p>Leituras de sensores (por exemplo, temperatura, humidade, qualidade do ar,
+      nível de água, energia, estado de portas/movimento), identificadores de
+      dispositivo, estado de ligação, bateria e eventos/alertas gerados pela
+      plataforma.</p>
+    <h3>2.3 Localização e GPS</h3>
+    <p>Quando utiliza funcionalidades de tracking, mapas ou dispositivos com GPS,
+      tratamos coordenadas e trajetos dos ativos que associa à sua conta.</p>
+    <h3>2.4 Encomendas e faturação</h3>
+    <p>Dados necessários para processar encomendas do marketplace: nome, contacto,
+      morada de entrega/faturação e método de pagamento selecionado. Os pagamentos
+      são liquidados por transferência bancária/IBAN ou, quando ativados, por
+      gateways externos (cartão, Multicaixa Express, PayPal); nesses casos os dados
+      completos do instrumento de pagamento são tratados pelo prestador de pagamento
+      e <strong>não</strong> são armazenados nos nossos sistemas.</p>
+    <h3>2.5 Dados técnicos e de utilização</h3>
+    <p>Registos de acesso, endereço IP, tipo de dispositivo/navegador e ações na
+      plataforma, para segurança, diagnóstico e melhoria do serviço.</p>
+
+    <h2 id="finalidades">3. Finalidades e base legal</h2>
+    <ul>
+      <li><strong>Execução do contrato</strong> — criar e gerir a conta, operar
+        dispositivos, apresentar KPIs e alertas, processar encomendas e suporte.</li>
+      <li><strong>Interesse legítimo</strong> — segurança da plataforma, prevenção
+        de abuso, diagnóstico técnico e melhoria dos serviços.</li>
+      <li><strong>Consentimento</strong> — comunicações opcionais e funcionalidades
+        que o exijam explicitamente (que pode retirar a qualquer momento).</li>
+      <li><strong>Obrigação legal</strong> — faturação, contabilidade e respostas a
+        autoridades competentes quando aplicável.</li>
+    </ul>
+
+    <h2 id="partilha">4. Com quem partilhamos</h2>
+    <p>Não vendemos dados pessoais. Partilhamos apenas com:</p>
+    <ul>
+      <li>fornecedores de infraestrutura e alojamento que operam a plataforma em
+        nosso nome, sob contrato e dever de confidencialidade;</li>
+      <li>prestadores de pagamento, estritamente para liquidar as encomendas que
+        iniciar;</li>
+      <li>autoridades, quando exigido por lei.</li>
+    </ul>
+
+    <h2 id="conservacao">5. Conservação</h2>
+    <p>Conservamos os dados enquanto a conta estiver ativa e pelo período necessário
+      para cumprir obrigações legais, contabilísticas e de segurança. Após esse
+      período, os dados são eliminados ou anonimizados.</p>
+
+    <h2 id="seguranca">6. Segurança</h2>
+    <p>Aplicamos controlo de acesso, cifragem de palavras-passe, comunicação por
+      HTTPS e segregação de dados por conta. Nenhum sistema é totalmente imune;
+      trabalhamos continuamente para reduzir riscos.</p>
+
+    <h2 id="direitos">7. Os seus direitos</h2>
+    <p>Pode solicitar o acesso, retificação, apagamento, limitação, portabilidade e
+      oposição ao tratamento dos seus dados, bem como retirar consentimentos.
+      Exerça estes direitos através de
+      <a href="mailto:privacy@geovisionops.com">privacy@geovisionops.com</a>;
+      responderemos dentro dos prazos legais aplicáveis.</p>
+
+    <h2 id="eliminacao">8. Eliminação de conta</h2>
+    <p>Pode eliminar a sua conta e os dados associados a qualquer momento:</p>
+    <ul>
+      <li>na aplicação móvel, em <em>Mais → A minha conta → Eliminar conta</em>;</li>
+      <li>no portal web, na área de definições da conta;</li>
+      <li>ou por pedido para
+        <a href="mailto:privacy@geovisionops.com">privacy@geovisionops.com</a>.</li>
+    </ul>
+    <p>A eliminação remove o perfil e os dados pessoais associados, salvo registos
+      que a lei nos obrigue a conservar (por exemplo, faturação).</p>
+
+    <h2 id="cookies">9. Cookies e armazenamento local</h2>
+    <p>Utilizamos apenas cookies e armazenamento local essenciais para o
+      funcionamento do serviço — sessão autenticada, preferências de idioma/tema e
+      estado do carrinho. Não utilizamos cookies de publicidade nem rastreadores de
+      terceiros por defeito.</p>
+
+    <h2 id="transferencias">10. Transferências internacionais</h2>
+    <p>Os dados podem ser processados em Angola e na Europa. Quando ocorrem
+      transferências internacionais, adotamos salvaguardas contratuais adequadas.</p>
+
+    <h2 id="menores">11. Menores</h2>
+    <p>Os serviços destinam-se a utilizadores profissionais e maiores de idade. Não
+      recolhemos intencionalmente dados de menores.</p>
+
+    <h2 id="alteracoes">12. Alterações a esta política</h2>
+    <p>Podemos atualizar esta política. Publicaremos a versão revista nesta página,
+      com a respetiva data de "última atualização". Consulte também os nossos
+      <a href="terms.html">Termos de Serviço</a>.</p>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <div class="footer-logo">G</div>
+      <span class="footer-brand-text">GEOVISION</span>
+    </div>
+    <div class="footer-links">
+      <a href="index.html" class="footer-link" data-i18n="nav.home">Início</a>
+      <a href="about.html" class="footer-link" data-i18n="nav.about">Sobre</a>
+      <a href="sectors.html" class="footer-link" data-i18n="nav.sectors">Setores</a>
+      <a href="technology.html" class="footer-link" data-i18n="nav.technology">Tecnologia</a>
+      <a href="loja.html" class="footer-link" data-i18n="nav.services">Supply Hub</a>
+      <a href="privacy.html" class="footer-link" data-i18n="nav.privacy">Privacidade</a>
+      <a href="terms.html" class="footer-link" data-i18n="nav.terms">Termos</a>
+      <a href="login.html" class="footer-link" data-i18n="nav.portal">Portal</a>
+    </div>
+    <div class="contact-info">
+      <div class="contact-item">
+        <span><i class="fa-solid fa-location-dot"></i></span> Luanda, Angola • Operações Globais
+      </div>
+      <div class="contact-item">
+        <span><i class="fa-solid fa-envelope"></i></span> privacy@geovisionops.com
+      </div>
+    </div>
+    <div class="footer-divider"></div>
+    <p class="footer-copyright">
+      © <span id="year"></span> GeoVision. <span data-i18n="index.footer.tagline">Dispositivos, tracking, inteligência aérea, mapas e IA.</span>
+    </p>
+  </footer>
+
+  <script src="assets/js/site.js?v=3"></script>
+  <script src="assets/js/session.js?v=1"></script>
+  <script src="assets/js/i18n.js?v=26"></script>
+  <script src="assets/js/config.js?v=5"></script>
+  <script src="assets/js/theme.js?v=1"></script>
+</body>
+</html>

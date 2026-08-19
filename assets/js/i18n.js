@@ -297,6 +297,8 @@ const translations = {
   "nav.services": { pt: "Serviços", en: "Services", es: "Servicios" },
   "nav.technology": { pt: "Tecnologia", en: "Technology", es: "Tecnología" },
   "nav.portal": { pt: "Portal", en: "Portal", es: "Portal" },
+  "nav.privacy": { pt: "Privacidade", en: "Privacy", es: "Privacidad" },
+  "nav.terms": { pt: "Termos", en: "Terms", es: "Términos" },
 
   // ============ INDEX PAGE ============
   "index.eyebrow": { pt: "Visibilidade operacional para decisões no terreno", en: "Operational visibility for decisions in the field", es: "Visibilidad operativa para decisiones en terreno" },
