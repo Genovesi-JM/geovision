@@ -46,15 +46,20 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **Company IBAN** | Your real IBANs. | Set `COMPANY_IBAN`, `COMPANY_IBAN_INTL` (defaults are placeholders). |
 | **Push notifications** | FCM/APNS project. | Set `GV_PUSH_PROVIDER=fcm` (+ config); currently `mock`. |
 | **Maps** | Mapbox/ArcGIS key. | Set `GV_MAP_PROVIDER=mapbox` (+ token); currently `demo`. |
-| **Android release signing** | A release keystore. | Store keystore; wire `signingConfigs.release` (currently debug‑signed). |
+| **Android release signing** | A release keystore. | `signingConfigs.release` is wired — just `cp android/key.properties.example android/key.properties`, fill in the keystore path/passwords, and `make android-release`. Without it, release builds fall back to the debug cert. |
 | **iOS signing / TestFlight** | Apple Developer account. | Configure signing; upload to TestFlight. |
 | **App Store / Play listings** | Store accounts + Privacy/Terms URLs. | Publish `privacy.html`/`terms.html`; complete store listings. |
 
 ## Still to build (code, not gated)
-- Android release signing config (keystore) + version bump — currently
-  debug‑signed at v0.1.0+1 (tracked as the "Android release signing" gate).
+- (Nothing outstanding on the code side of this checklist — remaining items
+  are the external gates in the table above.)
 
 ## Recently landed (code, done)
+- **Android release signing** — `app/build.gradle.kts` now loads
+  `android/key.properties` (git-ignored) and signs `release` with the private
+  keystore when present, falling back to the debug cert otherwise. Validated:
+  `./gradlew :app:signingReport` → BUILD SUCCESSFUL. Template at
+  `android/key.properties.example`.
 - **Legal pages** — `privacy.html` + `terms.html` published (GeoVision‑specific
   content, site chrome, linked in the footer of index/about/technology,
   `nav.privacy`/`nav.terms` i18n). Satisfies the store‑review Privacy/Terms URL

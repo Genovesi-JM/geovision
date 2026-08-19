@@ -1,0 +1,14 @@
+# Android release signing — copy this file to android/key.properties and fill in
+# your keystore details. key.properties and *.jks/*.keystore are git-ignored and
+# must never be committed. See https://flutter.dev/to/reference-keystore
+#
+# Create a keystore (once):
+#   keytool -genkey -v -keystore ~/geovision-release.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias geovision
+#
+# Then set storeFile below to that path (absolute, or relative to android/app/).
+
+storeFile=/absolute/path/to/geovision-release.jks
+storePassword=CHANGE_ME
+keyAlias=geovision
+keyPassword=CHANGE_ME
