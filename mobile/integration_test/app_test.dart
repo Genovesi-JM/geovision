@@ -11,7 +11,8 @@ import 'package:geovision/core/config/app_flavor.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Critical journey: launch → demo → home → sites → alerts → work',
+  testWidgets(
+      'Critical journey: launch → Portal → My assets → Alerts → Marketplace → More',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -36,22 +37,27 @@ void main() {
     ));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // Home renders the demo organisation.
+    // Portal (Home) renders the demo organisation.
     expect(find.text('Fazenda Kilombo Agro'), findsWidgets);
 
-    // Navigate to Sites.
-    await tester.tap(find.text('Sites').last);
+    // My assets → sites list (route /sites).
+    await tester.tap(find.text('My assets').last);
     await tester.pumpAndSettle();
     expect(find.text('Kilombo North Fields'), findsWidgets);
 
-    // Navigate to Alerts.
+    // Alerts → IoT alert console (route /alerts).
     await tester.tap(find.text('Alerts').last);
     await tester.pumpAndSettle();
     expect(find.textContaining('Irrigation'), findsWidgets);
 
-    // Navigate to Work.
-    await tester.tap(find.text('Work').last);
+    // Marketplace → store (route /orders).
+    await tester.tap(find.text('Marketplace').last);
     await tester.pumpAndSettle();
-    expect(find.text('New request'), findsWidgets);
+    expect(find.text('GeoVision Marketplace'), findsWidgets);
+
+    // More → account (route /account).
+    await tester.tap(find.text('More').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Sign out'), findsWidgets);
   });
 }

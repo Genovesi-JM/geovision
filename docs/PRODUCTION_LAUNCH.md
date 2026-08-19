@@ -51,7 +51,10 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **App Store / Play listings** | Store accounts + Privacy/Terms URLs. | Publish `privacy.html`/`terms.html`; complete store listings. |
 
 ## Still to build (code, not gated)
-- Rewrite `mobile/integration_test/app_test.dart` for the Portal/My Assets/
-  Devices/Alerts/More navigation (currently references the old Sites/Work nav).
 - Wire mobile Privacy/Terms + account‑deletion screens (store compliance).
 - Publish web Privacy/Terms/Cookie pages.
+
+## Recently landed (code, done)
+- `mobile/integration_test/app_test.dart` rewritten for the live
+  Portal / My assets / Marketplace / Alerts / More navigation (was driving
+  the removed Sites/Work tabs). Analyzes clean; runs on a booted device.
