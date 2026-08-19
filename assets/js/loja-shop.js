@@ -100,12 +100,30 @@ function getProductPrice(product) {
 
 // ============ CURRENCY / PAYMENT TOGGLE ============
 
+// Only offer payment methods that actually settle in this deployment. Bank/IBAN
+// transfer always works; gateway methods appear only when their credentials are
+// configured (otherwise they would silently mock). null = not yet loaded (allow all).
+let enabledPaymentMethods = null;
+function paymentEnabled(method) {
+  return !enabledPaymentMethods || enabledPaymentMethods.has(method);
+}
+async function loadPaymentMethods() {
+  try {
+    const res = await fetch(`${API_BASE}/shop/payment-methods`);
+    if (!res.ok) return;
+    const data = await res.json();
+    enabledPaymentMethods = new Set((data.methods || []).filter((m) => m.enabled).map((m) => m.method));
+    onCurrencyChange(selectedCurrency || 'AOA');
+  } catch (_) { /* leave all methods available on error */ }
+}
+
 async function onCurrencyChange(currency) {
   selectedCurrency = currency;
-  // Show/hide payment methods based on currency
+  // Show/hide payment methods based on currency AND real availability
   document.querySelectorAll('.payment-option[data-currencies]').forEach(el => {
     const currencies = el.getAttribute('data-currencies').split(',');
-    if (currencies.includes(currency)) {
+    const method = el.querySelector('input[type="radio"]')?.value;
+    if (currencies.includes(currency) && paymentEnabled(method)) {
       el.style.display = 'flex';
     } else {
       el.style.display = 'none';
@@ -1118,6 +1136,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupFilters();
   loadProducts();
   loadCart();
+  loadPaymentMethods();
   initStripe();
 
   // Handle Stripe return redirect

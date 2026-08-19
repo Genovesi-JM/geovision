@@ -63,6 +63,16 @@ ios:
 android:
 	cd $(MOBILE) && flutter build apk --debug
 
+# --- Real (non-demo) builds/runs: hit a real backend, no mock data ---
+mobile-real:   ## Run the app NON-DEMO against a real backend (default: local 8010)
+	cd $(MOBILE) && flutter run --dart-define-from-file=dart_defines/real-local.json
+
+android-release: ## Build a production (non-demo) release APK
+	cd $(MOBILE) && flutter build apk --release --dart-define-from-file=dart_defines/production.json
+
+ios-release:   ## Build a production (non-demo) iOS app
+	cd $(MOBILE) && flutter build ios --release --dart-define-from-file=dart_defines/production.json
+
 format:
 	cd $(MOBILE) && dart format lib test
 

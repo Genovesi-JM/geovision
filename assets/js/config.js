@@ -6,8 +6,9 @@
 
 (function () {
 	const LOCAL_DEFAULT = "http://127.0.0.1:8010";
-	// Production backend URL (use direct Render URL until api.geovisionops.com SSL is ready)
-	const PROD_DEFAULT = "https://geovisionops-sqknb.ondigitalocean.app";
+	// Production backend URL. Override at runtime by setting window.API_BASE
+	// before this script loads.
+	const PROD_DEFAULT = "https://api.geovisionops.com";
 
 	const isProduction =
 		typeof window !== "undefined" &&
