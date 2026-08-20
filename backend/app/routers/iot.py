@@ -46,7 +46,9 @@ from app.models import (
     IotCommand,
     IotDevice,
     IotGateway,
+    Recommendation,
     SensorChannel,
+    ShopProduct,
     Site,
     TelemetryAggregate,
     TelemetryReading,
@@ -509,6 +511,160 @@ def close_alert(alert_id: str, user: User = Depends(get_current_user), db: Sessi
     if row.status not in {"resolved", "acknowledged", "assigned"}: raise HTTPException(status_code=409, detail="Alert cannot be closed in its current state")
     row.status = "closed"; row.closed_at = utc_now()
     _audit(db, user, "iot.alert_closed", "iot_alert", row.id); db.commit()
+    return {"id": row.id, "status": row.status}
+
+
+# ── Recommendations (the decision layer: alert -> advice -> action/marketplace) ──
+
+# Map an alert channel to the advice + the kind of marketplace product that helps.
+# Product hints are matched loosely against active ShopProduct id/category/name so
+# the store link survives catalogue changes.
+_RECOMMENDATION_RULES = [
+    (("soil", "moisture"), "irrigation", "high", "marketplace",
+     "Irrigation recommended",
+     "Soil moisture is below the healthy range. Check the irrigation line and consider watering the affected zone.",
+     ("irrigation", "water", "pump")),
+    (("batt",), "replacement", "medium", "marketplace",
+     "Replace device power",
+     "Device battery is low. Replace or recharge it to avoid a monitoring gap.",
+     ("spare", "accessor", "monitoring", "battery")),
+    (("tank", "level", "water"), "inspection", "high", "review",
+     "Check water supply",
+     "Water level/tank reading is abnormal. Inspect the supply, valve and level sensor.",
+     ("water", "pump")),
+    (("leak",), "inspection", "critical", "review",
+     "Investigate possible leak",
+     "A leak signal was detected. Inspect the location and stop the source if confirmed.",
+     ("water", "facility")),
+    (("air", "co2", "pm", "quality"), "inspection", "medium", "review",
+     "Check ventilation / air quality",
+     "Air-quality reading is outside the comfortable range. Improve ventilation or inspect the source.",
+     ("environment", "air")),
+    (("vibration", "vibe", "temp"), "drone_mission", "high", "drone_mission",
+     "Schedule an inspection flight",
+     "An anomaly was detected on an asset. A drone inspection can document the area before deciding on maintenance.",
+     ("inspection", "mapping", "progress")),
+]
+
+
+def _pick_product(db: Session, hints: tuple[str, ...]) -> ShopProduct | None:
+    if not hints:
+        return None
+    products = db.query(ShopProduct).filter(ShopProduct.is_active.is_(True)).all()
+    for p in products:
+        blob = f"{p.id} {p.category} {p.name}".lower()
+        if any(h in blob for h in hints):
+            return p
+    return None
+
+
+def _recommendation_for_alert(db: Session, alert: IotAlert) -> dict:
+    channel = (alert.channel or "").lower()
+    for keys, category, priority, action_type, title, body, hints in _RECOMMENDATION_RULES:
+        if any(k in channel for k in keys):
+            product = _pick_product(db, hints) if action_type == "marketplace" else None
+            return {
+                "category": category,
+                "title": title,
+                "body": body,
+                "priority": "critical" if alert.severity == "critical" else priority,
+                "action_type": "marketplace" if product else ("review" if action_type == "marketplace" else action_type),
+                "product_id": product.id if product else None,
+            }
+    # Fallback: no specific rule — advise review, raise priority on critical alerts.
+    return {
+        "category": "investigate",
+        "title": "Review this alert",
+        "body": f"{alert.message} Review the device and decide on an action.",
+        "priority": "high" if alert.severity == "critical" else "medium",
+        "action_type": "review",
+        "product_id": None,
+    }
+
+
+def _recommendation_payload(r: Recommendation) -> dict:
+    return {
+        "id": r.id, "site_id": r.site_id, "device_id": r.device_id, "alert_id": r.alert_id,
+        "category": r.category, "title": r.title, "body": r.body, "priority": r.priority,
+        "action_type": r.action_type, "product_id": r.product_id, "status": r.status,
+        "created_at": r.created_at.isoformat() + "Z",
+        "resolved_at": r.resolved_at.isoformat() + "Z" if r.resolved_at else None,
+    }
+
+
+@router.get("/recommendations")
+def list_recommendations(status: str | None = None, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    company_id = _company_id(user, db)
+    q = db.query(Recommendation).filter(Recommendation.company_id == company_id)
+    if status:
+        q = q.filter(Recommendation.status == status)
+    rows = q.order_by(Recommendation.created_at.desc()).limit(500).all()
+    return [_recommendation_payload(r) for r in rows]
+
+
+@router.post("/recommendations/generate")
+def generate_recommendations(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Derive recommendations from open alerts that don't yet have one (idempotent)."""
+    company_id = _company_id(user, db)
+    open_alerts = db.query(IotAlert).filter(
+        IotAlert.company_id == company_id,
+        IotAlert.status.in_(["open", "triggered", "notified", "acknowledged", "assigned"]),
+    ).all()
+    existing = {
+        r.alert_id for r in db.query(Recommendation.alert_id).filter(
+            Recommendation.company_id == company_id, Recommendation.alert_id.isnot(None)
+        ).all()
+    }
+    created = []
+    for alert in open_alerts:
+        if alert.id in existing:
+            continue
+        device = db.get(IotDevice, alert.device_id)
+        fields = _recommendation_for_alert(db, alert)
+        row = Recommendation(
+            company_id=company_id,
+            site_id=getattr(device, "site_id", None),
+            device_id=alert.device_id,
+            alert_id=alert.id,
+            **fields,
+        )
+        db.add(row)
+        created.append(row)
+    if created:
+        _audit(db, user, "iot.recommendations_generated", "recommendation", "batch", {"count": len(created)})
+        db.commit()
+        for r in created:
+            db.refresh(r)
+    return {"generated": len(created), "recommendations": [_recommendation_payload(r) for r in created]}
+
+
+@router.post("/recommendations/{recommendation_id}/accept")
+def accept_recommendation(recommendation_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    company_id = _company_id(user, db)
+    row = db.get(Recommendation, recommendation_id)
+    if not row or row.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    row.status = "accepted"
+    _audit(db, user, "iot.recommendation_accepted", "recommendation", row.id)
+    db.commit()
+    # If it links to a product, surface it so the client can jump straight to the store.
+    product = db.get(ShopProduct, row.product_id) if row.product_id else None
+    return {
+        "id": row.id, "status": row.status,
+        "product": {"id": product.id, "name": product.name, "slug": product.slug} if product else None,
+    }
+
+
+@router.post("/recommendations/{recommendation_id}/dismiss")
+def dismiss_recommendation(recommendation_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    company_id = _company_id(user, db)
+    row = db.get(Recommendation, recommendation_id)
+    if not row or row.company_id != company_id:
+        raise HTTPException(status_code=404, detail="Recommendation not found")
+    row.status = "dismissed"
+    row.resolved_at = utc_now()
+    _audit(db, user, "iot.recommendation_dismissed", "recommendation", row.id)
+    db.commit()
     return {"id": row.id, "status": row.status}
 
 

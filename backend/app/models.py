@@ -1172,5 +1172,33 @@ class CompanyEntitlement(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 
+class Recommendation(Base):
+    """The decision layer between an alert and an action.
+
+    Per the GeoVision dossier the platform loop is
+    sense -> alert -> **recommendation** -> action (service/command/marketplace).
+    A recommendation turns a raw alert into human-readable advice and, where
+    useful, links to a marketplace product/service so action can be taken at the
+    moment of need (recommendation-linked marketplace, not a generic shop).
+    """
+    __tablename__ = "recommendations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    site_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True, index=True)
+    device_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="SET NULL"), nullable=True, index=True)
+    alert_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("iot_alerts.id", ondelete="SET NULL"), nullable=True, index=True)
+    category: Mapped[str] = mapped_column(String(40), nullable=False)  # irrigation, replacement, inspection, drone_mission, investigate
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str] = mapped_column(String(800), nullable=False)
+    priority: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")  # low|medium|high|critical
+    action_type: Mapped[str] = mapped_column(String(30), nullable=False, default="review")  # marketplace|service_request|command|drone_mission|review
+    product_id: Mapped[Optional[str]] = mapped_column(String(50), ForeignKey("shop_products.id", ondelete="SET NULL"), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="open", index=True)  # open|accepted|dismissed|done
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
 # Compatibility alias so routers can import Profile per spec
 Profile = UserProfile
