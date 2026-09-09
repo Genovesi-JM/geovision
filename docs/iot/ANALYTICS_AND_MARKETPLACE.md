@@ -1,4 +1,4 @@
-# Analytical reports & marketplace wiring
+# Analytical reports & first-party catalogue wiring
 
 Two pieces that complete the "sensors → data → analytical reports → sellable" loop.
 
@@ -20,8 +20,8 @@ Time-integrated figures (run-hours, uptime) are honest estimates from sample den
 
 Tests: `tests/test_iot_platform.py::test_device_analytics_kpis`.
 
-## Marketplace wiring
-DIY kits are sold through the **existing** store — no new storefront.
+## Catalogue wiring
+DIY kits are sold by GeoVision through the **existing** catalogue — no external storefront.
 
 - `backend/app/services/cart.py::seed_kit_products` upserts active `ShopProduct` records on every
   startup (id `prod_kit_<kit_id>`, `product_type="hardware"`, `category="sensor_kit"`) and

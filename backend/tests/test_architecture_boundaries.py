@@ -25,8 +25,8 @@ from app.sectors.registry import (
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 GENERATED_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}
-PHASE_6_ROUTE_COUNT = 233
-PHASE_6_ROUTE_SHA256 = "f1a03777cf7c8e40be6c72e032ca0ee7358e6935e9c79751b50f3beed96b321a"
+PHASE_7_ROUTE_COUNT = 242
+PHASE_7_ROUTE_SHA256 = "04b52b24c9ffa8df43d4a1e893d672d448cb0c9a5124810f9b14241cc5e880c6"
 
 
 def _route_contract(application) -> list[str]:
@@ -57,13 +57,13 @@ def _import_targets(path: Path) -> set[str]:
     return targets
 
 
-def test_phase_6_http_and_websocket_contract_is_pinned(client):
+def test_phase_7_http_and_websocket_contract_is_pinned(client):
     routes = _route_contract(client.app)
     payload = "\n".join(routes).encode()
 
-    assert len(routes) == PHASE_6_ROUTE_COUNT, "\n".join(routes)
+    assert len(routes) == PHASE_7_ROUTE_COUNT, "\n".join(routes)
     assert len(routes) == len(set(routes)), "duplicate method/path registration detected"
-    assert hashlib.sha256(payload).hexdigest() == PHASE_6_ROUTE_SHA256, "\n".join(routes)
+    assert hashlib.sha256(payload).hexdigest() == PHASE_7_ROUTE_SHA256, "\n".join(routes)
 
 
 def test_application_mount_order_preserves_legacy_router_order():
@@ -77,6 +77,7 @@ def test_application_mount_order_preserves_legacy_router_order():
         "organizations.accounts",
         "identity.me",
         "analytics.kpi",
+        "catalog.canonical",
         "catalog.products",
         "orders.legacy",
         "organizations.customer_accounts",

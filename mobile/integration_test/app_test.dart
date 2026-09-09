@@ -12,7 +12,7 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-      'Critical journey: launch → Portal → My assets → Alerts → Marketplace → More',
+      'Critical journey: launch → Portal → My assets → Alerts → Catalogue → More',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
@@ -50,10 +50,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Irrigation'), findsWidgets);
 
-    // Marketplace → store (route /orders).
-    await tester.tap(find.text('Marketplace').last);
+    // Catalogue → store (route /orders).
+    await tester.tap(find.text('Catalogue').last);
     await tester.pumpAndSettle();
-    expect(find.text('GeoVision Marketplace'), findsWidgets);
+    expect(find.text('GeoVision Catalogue'), findsWidgets);
 
     // More → account (route /account).
     await tester.tap(find.text('More').last);

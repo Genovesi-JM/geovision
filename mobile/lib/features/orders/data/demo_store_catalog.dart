@@ -1,7 +1,7 @@
 import '../domain/product.dart';
 
 /// A small offline catalogue made only from products that are active in the
-/// production marketplace. The API remains authoritative outside demo mode.
+/// production first-party catalogue. The API remains authoritative outside demo mode.
 abstract final class DemoStoreCatalog {
   static const products = <GvProduct>[
     GvProduct(

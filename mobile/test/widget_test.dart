@@ -36,21 +36,21 @@ void main() {
     expect(find.text('Fazenda Kilombo Agro'), findsWidgets);
     expect(find.text('Portal'), findsWidgets);
     expect(find.text('My assets'), findsWidgets);
-    expect(find.text('Marketplace'), findsWidgets);
+    expect(find.text('Catalogue'), findsWidgets);
     expect(find.text('Alerts'), findsWidgets);
     expect(find.text('More'), findsWidgets);
 
-    await tester.tap(find.text('Marketplace').last);
+    await tester.tap(find.text('Catalogue').last);
     await tester.pumpAndSettle();
-    expect(find.text('GeoVision Marketplace'), findsOneWidget);
+    expect(find.text('GeoVision Catalogue'), findsOneWidget);
     expect(find.text('Construction Progress Monitoring'), findsOneWidget);
 
     await tester.tap(find.text('More').last);
     await tester.pumpAndSettle();
     expect(find.text('More'), findsWidgets);
-    await tester.tap(find.text('Marketplace, orders & payments'));
+    await tester.tap(find.text('Catalogue, orders & payments'));
     await tester.pumpAndSettle();
-    expect(find.text('GeoVision Marketplace'), findsOneWidget);
+    expect(find.text('GeoVision Catalogue'), findsOneWidget);
     expect(find.text('Construction Progress Monitoring'), findsOneWidget);
     expect(find.text('AKZ'), findsOneWidget);
   });

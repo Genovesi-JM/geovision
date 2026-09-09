@@ -1586,6 +1586,132 @@ class ShopProduct(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
 
+class ProcurementSupplier(Base):
+    """Internal procurement identity; never a customer-facing storefront."""
+
+    __tablename__ = "procurement_suppliers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
+    legal_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="ACTIVE", server_default="ACTIVE"
+    )
+    contact_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    contact_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    catalog_items = relationship("CatalogItem", back_populates="supplier")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('ACTIVE', 'ON_HOLD', 'INACTIVE')",
+            name="ck_procurement_supplier_status",
+        ),
+    )
+
+
+class CatalogItem(Base):
+    """Canonical first-party offer across products, services, and plans."""
+
+    __tablename__ = "catalog_items"
+
+    id: Mapped[str] = mapped_column(String(50), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True)
+    slug: Mapped[str] = mapped_column(String(200), nullable=False, unique=True, index=True)
+    item_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    category: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    sectors_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]", server_default="[]")
+    asset_types_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]", server_default="[]")
+    customer_content_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
+    deliverables_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]", server_default="[]")
+    price_model: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="FIXED", server_default="FIXED"
+    )
+    currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA", server_default="AOA")
+    unit_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    pricing_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
+    availability_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="AVAILABLE", server_default="AVAILABLE"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="DRAFT", server_default="DRAFT", index=True
+    )
+    recommendation_triggers_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    requires_site: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    requires_scheduling: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    duration_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    fulfilment_type: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    installed_product_type: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    supplier_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("procurement_suppliers.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    legacy_source: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    legacy_source_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    supplier = relationship("ProcurementSupplier", back_populates="catalog_items")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "legacy_source",
+            "legacy_source_id",
+            name="uq_catalog_items_legacy_source_id",
+        ),
+        CheckConstraint(
+            "item_type IN ('PHYSICAL_PRODUCT', 'SERVICE', 'MONITORING_PLAN', "
+            "'INSTALLATION', 'INSPECTION', 'ANALYSIS')",
+            name="ck_catalog_item_type",
+        ),
+        CheckConstraint(
+            "price_model IN ('FIXED', 'STARTING_AT', 'QUOTE', 'SUBSCRIPTION', 'USAGE')",
+            name="ck_catalog_price_model",
+        ),
+        CheckConstraint(
+            "availability_status IN ('AVAILABLE', 'UNAVAILABLE', 'PREORDER', 'ON_REQUEST')",
+            name="ck_catalog_availability_status",
+        ),
+        CheckConstraint(
+            "status IN ('DRAFT', 'PUBLISHED', 'UNAVAILABLE', 'ARCHIVED')",
+            name="ck_catalog_item_status",
+        ),
+        CheckConstraint(
+            "unit_amount IS NULL OR unit_amount >= 0",
+            name="ck_catalog_unit_amount_nonnegative",
+        ),
+        CheckConstraint(
+            "duration_hours IS NULL OR duration_hours > 0",
+            name="ck_catalog_duration_positive",
+        ),
+    )
+
+
 # â”€â”€ Payment â”€â”€
 
 class Payment(Base):
@@ -1724,10 +1850,10 @@ class Recommendation(Base):
     """The decision layer between an alert and an action.
 
     Per the GeoVision dossier the platform loop is
-    sense -> alert -> **recommendation** -> action (service/command/marketplace).
+    sense -> alert -> **recommendation** -> action (service/command/catalogue).
     A recommendation turns a raw alert into human-readable advice and, where
-    useful, links to a marketplace product/service so action can be taken at the
-    moment of need (recommendation-linked marketplace, not a generic shop).
+    useful, links to a GeoVision catalogue item so action can be taken at the
+    moment of need. The stored ``marketplace`` action is a legacy wire alias.
     """
     __tablename__ = "recommendations"
 
@@ -1740,7 +1866,7 @@ class Recommendation(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     body: Mapped[str] = mapped_column(String(800), nullable=False)
     priority: Mapped[str] = mapped_column(String(20), nullable=False, default="medium")  # low|medium|high|critical
-    action_type: Mapped[str] = mapped_column(String(30), nullable=False, default="review")  # marketplace|service_request|command|drone_mission|review
+    action_type: Mapped[str] = mapped_column(String(30), nullable=False, default="review")  # marketplace (legacy catalogue alias)|service_request|command|drone_mission|review
     product_id: Mapped[Optional[str]] = mapped_column(String(50), ForeignKey("shop_products.id", ondelete="SET NULL"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="open", index=True)  # open|accepted|dismissed|done
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)

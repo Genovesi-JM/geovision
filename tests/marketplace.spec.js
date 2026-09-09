@@ -1,11 +1,11 @@
 const { test, expect } = require('@playwright/test');
 const BASE = process.env.TEST_BASE_URL || 'http://127.0.0.1:8001';
 
-test.describe('Controlled marketplace', () => {
+test.describe('GeoVision first-party catalogue', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.clear();
-      localStorage.setItem('gv_marketplace_sector', 'environment');
+      localStorage.setItem('gv_catalog_sector', 'environment');
     });
     await page.goto(`${BASE}/loja.html`);
     await page.locator('#sector-filters [data-sector="all"]').click();

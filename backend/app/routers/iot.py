@@ -525,9 +525,9 @@ def close_alert(alert_id: str, user: User = Depends(get_current_user), db: Sessi
     return {"id": row.id, "status": row.status}
 
 
-# ── Recommendations (the decision layer: alert -> advice -> action/marketplace) ──
+# ── Recommendations (alert -> advice -> action/GeoVision catalogue) ──
 
-# Map an alert channel to the advice + the kind of marketplace product that helps.
+# Map an alert channel to advice + the kind of GeoVision catalogue item that helps.
 # Product hints are matched loosely against active ShopProduct id/category/name so
 # the store link survives catalogue changes.
 _RECOMMENDATION_RULES = [

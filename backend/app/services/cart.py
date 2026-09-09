@@ -216,8 +216,8 @@ _KIT_SECTORS = {
 }
 
 # Preserve the kit definition for possible future/on-request work, but do not
-# advertise unsupported monitoring products in the public marketplace.
-_MARKETPLACE_EXCLUDED_KITS = {
+# advertise unsupported monitoring products in the public catalogue.
+_CATALOG_EXCLUDED_KITS = {
     "cold_chain_starter",
     "spray_control",
     "seed_flow",
@@ -225,7 +225,7 @@ _MARKETPLACE_EXCLUDED_KITS = {
 
 
 def seed_kit_products(db: Session) -> int:
-    """Surface DIY solution kits in the existing marketplace as hardware products.
+    """Surface DIY solution kits in the first-party catalogue as hardware products.
 
     Idempotent upsert (by id) that runs on every startup so kits appear even on a
     pre-existing product catalogue. Reuses the ShopProduct catalogue — no new
@@ -237,7 +237,7 @@ def seed_kit_products(db: Session) -> int:
     upserted = 0
     for kit in list_kits(include_standby=True):
         pid = f"prod_kit_{kit['id']}"[:50]
-        if kit["id"] in _MARKETPLACE_EXCLUDED_KITS:
+        if kit["id"] in _CATALOG_EXCLUDED_KITS:
             existing = db.get(ShopProduct, pid)
             if existing is not None:
                 existing.is_active = False
@@ -493,13 +493,23 @@ class CartService:
             created_at=cart.created_at or _utcnow(), updated_at=cart.updated_at or _utcnow())
 
     def list_products(self):
-        SP = self._models()[2]
-        return [self._p2d(p) for p in self.db.query(SP).filter(SP.is_active == True).all()]
+        from app.models import CatalogItem
+        from app.modules.catalog.services import legacy_product
+
+        items = (
+            self.db.query(CatalogItem)
+            .filter(CatalogItem.status == "PUBLISHED")
+            .order_by(CatalogItem.is_featured.desc(), CatalogItem.name, CatalogItem.id)
+            .all()
+        )
+        return [legacy_product(item) for item in items]
 
     def get_product(self, product_id):
-        SP = self._models()[2]
-        p = self.db.get(SP, product_id)
-        return self._p2d(p) if p else None
+        from app.models import CatalogItem
+        from app.modules.catalog.services import legacy_product
+
+        item = self.db.get(CatalogItem, product_id)
+        return legacy_product(item) if item and item.status == "PUBLISHED" else None
 
     def _p2d(self, p):
         return {"id": p.id, "name": p.name, "slug": p.slug, "description": p.description,

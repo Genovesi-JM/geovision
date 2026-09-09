@@ -1158,6 +1158,9 @@ async def create_product(data: ProductCreate, db: Session = Depends(get_db)):
         track_inventory=data.track_inventory, stock_quantity=data.stock_quantity,
     )
     db.add(p)
+    db.flush()
+    from app.modules.catalog.services import sync_shop_product
+    sync_shop_product(db, p, overwrite=True)
     db.commit()
     db.refresh(p)
     return _product_to_dict(p)
@@ -1179,6 +1182,8 @@ async def update_product(product_id: str, data: ProductUpdate, db: Session = Dep
     for k, v in update_data.items():
         setattr(p, k, v)
     p.updated_at = _utcnow()
+    from app.modules.catalog.services import sync_shop_product
+    sync_shop_product(db, p, overwrite=True)
     db.commit()
     db.refresh(p)
     return _product_to_dict(p)
@@ -1186,14 +1191,23 @@ async def update_product(product_id: str, data: ProductUpdate, db: Session = Dep
 
 @router.delete("/products/{product_id}")
 async def delete_product(product_id: str, db: Session = Depends(get_db)):
-    """Delete a shop product."""
+    """Compatibility archive; catalogue history is never destructively deleted."""
     from app.models import ShopProduct as SP
     p = db.get(SP, product_id)
     if not p:
         raise HTTPException(404, "Produto nao encontrado")
-    db.delete(p)
+    p.is_active = False
+    p.is_featured = False
+    p.updated_at = _utcnow()
+    from app.modules.catalog.services import sync_shop_product
+    sync_shop_product(db, p, overwrite=True)
     db.commit()
-    return {"message": "Produto eliminado", "product_id": product_id}
+    return {
+        "message": "Produto arquivado; use /catalog/internal/items para gestão futura",
+        "product_id": product_id,
+        "status": "ARCHIVED",
+        "deprecated": True,
+    }
 
 
 @router.post("/products/{product_id}/stock")
@@ -1208,6 +1222,8 @@ async def adjust_stock(product_id: str, data: StockAdjust, db: Session = Depends
         raise HTTPException(400, f"Stock insuficiente. Atual: {p.stock_quantity}, ajuste: {data.adjustment}")
     p.stock_quantity = new_qty
     p.updated_at = _utcnow()
+    from app.modules.catalog.services import sync_shop_product
+    sync_shop_product(db, p, overwrite=True)
     _log_audit(db, None, "stock_adjusted", "product", product_id,
                details={"adjustment": data.adjustment, "new_quantity": new_qty, "reason": data.reason})
     db.commit()

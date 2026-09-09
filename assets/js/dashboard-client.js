@@ -2,7 +2,7 @@ const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
 const SESSION_ACCOUNT_KEY = "gv_account_id";
 const SESSION_ACTIVE_SECTOR_KEY = "gv_active_sector";
-const MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
+const CATALOG_SECTOR_KEY = "gv_catalog_sector";
 const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
 // i18n helper for dynamically-generated strings (falls back to the key if missing).
 const T = (key) => (window.t && window.t(key)) || key;
@@ -739,9 +739,9 @@ function renderAccountMeta(account) {
   if (account) {
     const sectors = getSectorsFromAccount(account);
     const selected = localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY);
-    const marketplaceSector = selected && sectors.includes(selected) ? selected : sectors[0];
-    if (marketplaceSector && marketplaceSector !== "generic") {
-      localStorage.setItem(MARKETPLACE_SECTOR_KEY, marketplaceSector);
+    const catalogSector = selected && sectors.includes(selected) ? selected : sectors[0];
+    if (catalogSector && catalogSector !== "generic") {
+      localStorage.setItem(CATALOG_SECTOR_KEY, catalogSector);
     }
   }
   if (chips) {

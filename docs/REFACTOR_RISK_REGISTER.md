@@ -32,6 +32,7 @@ instead of treating legacy structures as disposable.
 | R22 | Medium | Android and iOS builds pass with future plugin migration warnings | A future Flutter upgrade can turn warnings into build failures | Track `package_info_plus` Kotlin and `flutter_secure_storage` Swift Package Manager compatibility before the next SDK upgrade |
 | R23 | Critical | No production backup-restore drill or migration rollback rehearsal is recorded | A structurally correct migration can still cause unrecoverable downtime or data loss | Require a production-like restore, migration dry run, rollback decision and owner sign-off before any live schema cutover |
 | R24 | High | Connector and integration credential fields now use the canonical encryption helper and deployed profiles require a valid Fernet key, but free-form metadata and endpoint/base/webhook URLs remain plaintext, historical rows may contain plaintext, local/dev can retain explicit `plain:` values, and only one active encryption key is supported | Secrets embedded in unrestricted fields remain exposed; operators can assume every legacy value is encrypted; replacing or losing the key can make encrypted credentials unavailable | Forbid secrets in metadata/URLs, inventory and migrate confirmed plaintext under backup and verification, protect and back up the active key, design an audited rotation/re-encryption procedure, and consolidate overlapping persistence models before activating enterprise connectors |
+| R25 | Medium | Phase 7 makes `catalog_items` authoritative while retaining `shop_products` and `products` as checkout/client compatibility data | A legacy writer or failed projection could leave price, publication, or stock fields inconsistent between canonical and compatibility rows | Route staff changes through `/catalog/internal`, monitor projection parity, retain legacy IDs/order snapshots, and retire the old write routes only after all deployed clients and Phase 8 order flows migrate |
 
 ## Controls that already reduce risk
 
@@ -62,8 +63,8 @@ instead of treating legacy structures as disposable.
 - Deployed SMTP delivery requires STARTTLS with certificate verification; the
   local metadata log remains a development-only compatibility adapter.
 - Environment files and local virtual environments are ignored by Git.
-- The shop exposes GeoVision-controlled products and services; no public seller
-  or contractor marketplace was found.
+- The catalogue exposes only GeoVision-controlled products and services; no
+  public seller, seller payout, bidding, or contractor storefront exists.
 
 ## Phase gate policy
 
@@ -216,3 +217,23 @@ without a compatibility plan.
 - **Unchanged:** Existing legacy membership creation remains compatible.
   Historical pending memberships receive no fabricated token and require an
   explicit secure reissue.
+
+## Phase 7 outcome
+
+- **Reduced:** R06, because one public `/catalog/items` contract now covers all
+  six offer types while `/shop/products`, carts, orders, `/products`, and old
+  admin URLs retain compatibility projections and stable item identifiers.
+- **Reduced:** R16, because applicability is normalized to the five common
+  sector identifiers without publicly activating unready sector capabilities.
+- **Contained:** Supplier contact and qualification data live in an internal
+  procurement table and are never serialized to customers. Customer roles
+  cannot manage items; only explicit GeoVision staff permissions can do so.
+- **Contained:** Only published items are customer-visible. Publication enforces
+  price rules, archives preserve history, and credential-like metadata keys are
+  rejected. The historical delete endpoint now performs a reversible archive.
+- **Introduced and controlled:** R25 records the temporary dual-model projection.
+  Additive migration, write-through compatibility, parity tests, and retained
+  source identifiers protect existing carts and order data during cutover.
+- **Unchanged:** Payment settlement, order/service lifecycle, fulfilment jobs,
+  supplier qualification, recommendation-action migration, and installed-device
+  creation remain owned by Phases 8, 9, 10, and 17.

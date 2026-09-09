@@ -8,6 +8,12 @@ definition = DomainModule(
     maturity="implemented-transitional",
     routes=(
         RouterMount(
+            "catalog.canonical",
+            "catalog",
+            "app.routers.catalog",
+            65,
+        ),
+        RouterMount(
             "catalog.products",
             "catalog",
             "app.routers.products",

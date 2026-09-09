@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.deps import require_admin
 from app.models import Product, ProductImage, Inventory, Category
+from app.modules.catalog.services import sync_basic_product
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -54,5 +55,7 @@ def create_product(
     if image_url:
         db.add(ProductImage(product_id=p.id, url=image_url, is_primary=True))
 
+    db.flush()
+    sync_basic_product(db, p, overwrite=True)
     db.commit()
     return {"id": p.id}

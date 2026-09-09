@@ -14,7 +14,8 @@ class StoreCopy {
         _ => en,
       };
 
-  String get title => 'GeoVision Marketplace';
+  String get title => pick('Catálogo GeoVision', 'GeoVision Catalogue',
+      'Catálogo GeoVision', 'Catalogue GeoVision');
   String get cart => pick('Carrinho', 'Cart', 'Carrito', 'Panier');
   String get shop => pick('Catálogo', 'Catalogue', 'Catálogo', 'Catalogue');
   String get orders => pick('Pedidos', 'Orders', 'Pedidos', 'Commandes');

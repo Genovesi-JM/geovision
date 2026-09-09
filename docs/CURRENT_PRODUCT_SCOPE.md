@@ -36,7 +36,7 @@ website/app implementation discussion.
 - Home/property signals supported by the current scope: temperature/humidity comfort,
   air quality, water level, and leak events. Home is an onboarding/site experience, not
   a separate GeoVision brand.
-- Marketplace recommendations tied to the active account/site and monitored problem.
+- GeoVision catalogue recommendations tied to the active account/site and monitored problem.
 - Supply categories introduced through partners first: soil probes, irrigation parts,
   valves, pump accessories, weather equipment, replacement probes, cables/connectors,
   batteries, small tools, and selected seeds. Fertilisers and regulated crop-protection

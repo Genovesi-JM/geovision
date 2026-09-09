@@ -8,7 +8,7 @@ This is the exact list of what is already real in code vs. what still needs
   login, and backend refresh rotation. Flutter uses that rotation with secure
   storage. The static web client intentionally uses access-token-only sessions
   and asks the user to sign in again after the configured short expiry.
-- **Marketplace** — real catalogue, cart, currency conversion, checkout and
+- **GeoVision catalogue** — first-party catalogue, cart, currency conversion, checkout and
   orders. The web dashboard's old demo portfolio returns empty; KPIs, IoT,
   alerts, entitlement and geospatial come from the API.
 - **Payments — bank/IBAN transfer is a fully real path** (manual confirmation,
@@ -77,5 +77,5 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
   External-only deletion remains gated on a dedicated provider reauthentication
   flow; Privacy/Terms tiles open the published pages.
 - `mobile/integration_test/app_test.dart` rewritten for the live
-  Portal / My assets / Marketplace / Alerts / More navigation (was driving
+  Portal / My assets / Catalogue / Alerts / More navigation (was driving
   the removed Sites/Work tabs). Analyzes clean; runs on a booted device.

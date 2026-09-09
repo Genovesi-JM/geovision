@@ -17,14 +17,19 @@ const esc = window.escapeHTML || (s => { const d = document.createElement('div')
 let allProducts = [];
 let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
 let currentCart = null;
-const MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
+const CATALOG_SECTOR_KEY = "gv_catalog_sector";
+const LEGACY_MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
 const STORE_SECTORS = new Set(["agro", "environment", "construction", "infrastructure"]);
 function normalizeStoreSector(value) {
   if (["ambiental"].includes(value)) return "environment";
   if (value === "livestock") return "agro";
   return STORE_SECTORS.has(value) ? value : null;
 }
-const recommendedSector = normalizeStoreSector(localStorage.getItem(MARKETPLACE_SECTOR_KEY));
+const recommendedSector = normalizeStoreSector(
+  localStorage.getItem(CATALOG_SECTOR_KEY) ||
+  localStorage.getItem(LEGACY_MARKETPLACE_SECTOR_KEY)
+);
+if (recommendedSector) localStorage.setItem(CATALOG_SECTOR_KEY, recommendedSector);
 const requestedSector = new URLSearchParams(window.location.search).get("sector");
 let currentSectorFilter = normalizeStoreSector(requestedSector) || recommendedSector || "all";
 

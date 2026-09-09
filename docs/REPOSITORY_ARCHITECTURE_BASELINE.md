@@ -130,8 +130,9 @@ infrastructure KPIs.
 
 The shop is first-party: customers buy GeoVision products and services. No
 public seller registration, storefront ownership or contractor bidding model
-was found. The word “marketplace” remains in names and customer copy, but it
-describes the GeoVision-controlled shop.
+was found. Phase 7 has since replaced customer-facing “marketplace” wording
+with “catalogue”; the historical recommendation action value remains a
+documented compatibility alias for opening the GeoVision-controlled catalogue.
 
 ## Storage and processing
 

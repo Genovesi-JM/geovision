@@ -18,6 +18,7 @@ from .seed_data import (
     seed_admin_users,
 )
 from .services.cart import seed_shop_products, seed_kit_products
+from .modules.catalog.services import sync_catalog_from_legacy
 from .workers import application_workers
 
 
@@ -89,6 +90,7 @@ def create_application() -> FastAPI:
         try:
             seed_shop_products(db)
             seed_kit_products(db)
+            sync_catalog_from_legacy(db)
             inserted_users = seed_admin_users()
             if inserted_users:
                 print(f"[GeoVision] Utilizadores admin criados: {inserted_users}")

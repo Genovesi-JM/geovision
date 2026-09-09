@@ -22,7 +22,10 @@ legacy Site/IoT mapping are documented in the
 [generic Asset/PostGIS guide](docs/ASSET_POSTGIS_FOUNDATION.md).
 Secure invitation acceptance, service-first onboarding intents, and browser/
 mobile deep-link behavior are defined in the
-[invitation onboarding guide](docs/INVITATION_ONBOARDING_DEEP_LINKS.md). Run
+[invitation onboarding guide](docs/INVITATION_ONBOARDING_DEEP_LINKS.md). The
+single GeoVision-owned commercial model, staff permissions, publication rules,
+and legacy shop migration are in the
+[first-party catalogue guide](docs/FIRST_PARTY_CATALOG.md). Run
 the non-mutating baseline suite with:
 
 ```bash

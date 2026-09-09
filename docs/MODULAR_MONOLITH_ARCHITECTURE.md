@@ -146,7 +146,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Identity | Immutable internal user IDs, versioned sessions, issuer-qualified external mappings, and a strict Entra External ID API-token adapter are implemented; legacy browser logins remain transitional, while Phase 4 owns canonical organization/RBAC consolidation |
 | Organizations | Canonical organizations/workspaces, membership lifecycle, separate staff roles, server-enforced RBAC, and secure invitation-first acceptance/deep-link contracts are implemented over compatibility table names |
 | Assets | Generic organization/workspace-owned hierarchy, validated GeoJSON, portable bbox queries, optional PostGIS projection, and legacy Site/IoT mirroring are implemented |
-| Catalog | Product, shop-product, kit and service catalogue behavior exists; Phase 7 owns consolidation |
+| Catalog | Canonical first-party products, services, plans, installations, inspections and analyses; legacy shop/product routes are compatibility projections |
 | Orders | Legacy order routes and the richer shop lifecycle exist; Phase 8 owns the standard lifecycle |
 | Operations | Admin, internal resources, mobile operations and inspections are compatibility facades; Phases 9 and 10 own extraction |
 | Missions | Drone mission contracts exist inside the mobile facade; Phase 11 owns acquisition abstraction |
