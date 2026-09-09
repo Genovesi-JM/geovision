@@ -319,6 +319,40 @@ class Order(Base):
     company_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
 
+    # Canonical commercial ownership. ``company_id``/``site_id`` remain as
+    # compatibility aliases while callers move to organization/workspace IDs.
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    order_type: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="MIXED", server_default="MIXED", index=True
+    )
+
+    # ``status`` is the legacy projection consumed by existing clients. The
+    # two canonical states below are authoritative and deliberately separate.
+    fulfilment_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="DRAFT", server_default="DRAFT", index=True
+    )
+    payment_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="PENDING", server_default="PENDING", index=True
+    )
+    previous_fulfilment_status: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    checkout_idempotency_key: Mapped[Optional[str]] = mapped_column(
+        String(160), nullable=True, unique=True, index=True
+    )
+
     status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
     currency: Mapped[str] = mapped_column(String, default="AOA", nullable=False)
 
@@ -353,6 +387,9 @@ class Order(Base):
     billing_info_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    on_hold_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
@@ -364,6 +401,24 @@ class Order(Base):
     __table_args__ = (
         CheckConstraint("subtotal >= 0"),
         CheckConstraint("total >= 0"),
+        CheckConstraint(
+            "order_type IN ('PHYSICAL', 'SERVICE', 'MONITORING', 'MIXED')",
+            name="ck_order_type",
+        ),
+        CheckConstraint(
+            "fulfilment_status IN ('DRAFT', 'QUOTED', 'CONFIRMED', "
+            "'PAYMENT_AUTHORIZED', 'PAID', 'SCHEDULING', 'ASSIGNED', "
+            "'IN_PROGRESS', 'DATA_UPLOADED', 'PROCESSING', 'QA_REVIEW', "
+            "'RESULTS_READY', 'DELIVERED', 'COMPLETED', 'CANCELLED', "
+            "'FAILED', 'NEEDS_REFLIGHT', 'ON_HOLD')",
+            name="ck_order_fulfilment_status",
+        ),
+        CheckConstraint(
+            "payment_status IN ('NOT_REQUIRED', 'PENDING', 'AUTHORIZED', 'PAID', "
+            "'FAILED', 'CANCELLED', 'PARTIALLY_REFUNDED', 'REFUNDED')",
+            name="ck_order_payment_status",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_order_lifecycle_version"),
     )
 
 class OrderItem(Base):
@@ -373,15 +428,34 @@ class OrderItem(Base):
     order_id: Mapped[str] = mapped_column(String(36), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
 
     product_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    catalog_item_id: Mapped[Optional[str]] = mapped_column(
+        String(50),
+        ForeignKey("catalog_items.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     sku: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     product_type: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    catalog_item_type: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    currency: Mapped[str] = mapped_column(
+        String(5), nullable=False, default="AOA", server_default="AOA"
+    )
+    pricing_snapshot_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    fulfilment_hints_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
 
     unit_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     qty: Mapped[int] = mapped_column(Integer, nullable=False)
     line_total: Mapped[float] = mapped_column(Numeric(12, 2), default=0, nullable=False)
     tax_rate: Mapped[float] = mapped_column(Numeric(5, 4), nullable=True, default=0.14)
     tax_amount: Mapped[float] = mapped_column(Numeric(12, 2), nullable=True, default=0)
+    discount_amount: Mapped[float] = mapped_column(
+        Numeric(12, 2), nullable=False, default=0, server_default="0"
+    )
     status: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, default="pending")
     scheduled_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -391,6 +465,7 @@ class OrderItem(Base):
         CheckConstraint("qty > 0"),
         CheckConstraint("unit_price >= 0"),
         CheckConstraint("line_total >= 0"),
+        CheckConstraint("discount_amount >= 0", name="ck_order_item_discount_nonnegative"),
     )
 
 
@@ -1720,6 +1795,12 @@ class Payment(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     order_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     amount: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
     provider: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -1727,10 +1808,59 @@ class Payment(Base):
     idempotency_key: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, unique=True)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
     provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    refunded_amount: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    authorized_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_payment_amount_positive"),
+        CheckConstraint("refunded_amount >= 0", name="ck_payment_refunded_nonnegative"),
+    )
+
+
+class PaymentWebhookEvent(Base):
+    """Verified provider notification receipt without retaining raw payloads."""
+
+    __tablename__ = "payment_webhook_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    provider: Mapped[str] = mapped_column(String(30), nullable=False)
+    event_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    payload_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    signature_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    payment_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("payments.id", ondelete="SET NULL"), nullable=True
+    )
+    order_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True
+    )
+    provider_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    outcome: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="RECEIVED", server_default="RECEIVED"
+    )
+    error_code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("provider", "event_id", name="uq_payment_webhook_provider_event"),
+        Index("ix_payment_webhook_ledger_payment_id", "payment_id"),
+        Index("ix_payment_webhook_ledger_order_id", "order_id"),
+        CheckConstraint(
+            "outcome IN ('RECEIVED', 'PROCESSED', 'IGNORED')",
+            name="ck_payment_webhook_outcome",
+        ),
+    )
 
 
 # â”€â”€ Risk Assessment History â”€â”€

@@ -166,18 +166,24 @@ added as another adapter and cut over explicitly in Phase 21.
 ### Payments
 
 The legacy payment result and route shapes remain intact. Concrete bank,
-Multicaixa, Stripe, and PayPal adapters are loaded by a payment factory, the
-orchestrator accepts an explicit adapter map, and a normalized facade implements
-the billing module's `PaymentProvider` port. Missing credentials may produce a
-clearly simulated result only in local/dev/test; deployed environments return a
-provider-not-configured failure instead of a mock payment. Provider readiness is
-operation-specific: creation and webhook verification do not share identical
-requirements. The bank adapter retains compatibility defaults and optional
-overrides, but GeoVision does not validate those values against a live bank;
-deployments must explicitly supply verified values. PayPal still lacks deployed
-webhook verification and an API-backed refund path. Phase 8 owns these gaps,
-the canonical payment lifecycle, reconciliation, and provider-qualified
-reference constraints.
+Multicaixa, Stripe, and PayPal adapters are loaded by a payment factory and are
+normalized before every live create, status, refund, or webhook-verification
+operation uses the billing module's `PaymentProvider` port. Missing credentials
+may produce a clearly simulated result only in local/dev/test; deployed
+environments return a provider-not-configured failure instead of a mock payment.
+Provider readiness is operation-specific: creation and webhook verification do
+not share identical requirements. The bank adapter retains compatibility
+defaults and optional overrides, but GeoVision does not validate those values
+against a live bank; deployments must explicitly supply verified values. PayPal
+still lacks deployed webhook verification and an API-backed refund path, so
+those capabilities remain unavailable rather than simulated when deployed.
+
+Phase 8 binds idempotency keys to an immutable tenant/order/amount/currency/
+provider tuple, derives public payment requests from the GeoVision-owned order,
+and records verified callbacks in a raw-payload-free digest ledger. Payment
+state is separate from fulfilment state and provider references never replace a
+GeoVision UUID. See `docs/ORDER_PAYMENT_LIFECYCLE.md` for transition and rollback
+details.
 
 ### Notifications and identity
 

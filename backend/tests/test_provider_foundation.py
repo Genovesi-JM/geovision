@@ -32,7 +32,7 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_7_OPENAPI_SHA256 = "0717d1701a219b674e1efde0fdba8f4246485740b15dc60a35abd8c684466016"
+PHASE_8_OPENAPI_SHA256 = "e451e9c0d2c1c7605260b020b83e5c45f49330158f0eb1fc52cf0d7e197d1fa8"
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
 DEPLOYED_BACKEND_BASE = "https://api.geovisionops.com"
@@ -741,11 +741,13 @@ def test_payment_orchestrator_accepts_fake_without_importing_gateway_clients(db_
         adapters={PaymentProvider.VISA_MASTERCARD: adapter},
     )
     idempotency_key = f"phase2-{uuid.uuid4().hex}"
+    company_id = str(uuid.uuid4())
+    order_id = str(uuid.uuid4())
 
     first = asyncio.run(
         orchestrator.create_payment(
-            company_id=str(uuid.uuid4()),
-            order_id=str(uuid.uuid4()),
+            company_id=company_id,
+            order_id=order_id,
             amount=4200,
             currency=Currency.EUR,
             provider=PaymentProvider.VISA_MASTERCARD,
@@ -755,8 +757,8 @@ def test_payment_orchestrator_accepts_fake_without_importing_gateway_clients(db_
     )
     second = asyncio.run(
         orchestrator.create_payment(
-            company_id=str(uuid.uuid4()),
-            order_id=str(uuid.uuid4()),
+            company_id=company_id,
+            order_id=order_id,
             amount=4200,
             currency=Currency.EUR,
             provider=PaymentProvider.VISA_MASTERCARD,
@@ -1355,4 +1357,4 @@ def test_openapi_contract_is_byte_stable(client):
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_7_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_8_OPENAPI_SHA256

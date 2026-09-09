@@ -83,7 +83,7 @@ class EventType(str, Enum):
 @dataclass
 class OrderItemData:
     id: str
-    product_id: str
+    product_id: Optional[str]
     product_name: str
     product_type: str
     sku: Optional[str]
@@ -178,20 +178,10 @@ class OrderService:
         return Order, OrderItem, OrderEvent, Deliverable
 
     def _generate_order_number(self) -> str:
-        OM = self._models()[0]
         year = _utcnow().year
-        prefix = f"GV-{year}-"
-        last = (self.db.query(OM.order_number)
-                .filter(OM.order_number.like(f"{prefix}%"))
-                .order_by(OM.order_number.desc()).first())
-        if last and last[0]:
-            try:
-                seq = int(last[0].split("-")[-1]) + 1
-            except ValueError:
-                seq = 1
-        else:
-            seq = 1
-        return f"{prefix}{seq:06d}"
+        # UUID-derived public references avoid the duplicate-number race of
+        # selecting MAX(sequence)+1 across concurrent checkout workers.
+        return f"GV-{year}-{uuid.uuid4().hex[:10].upper()}"
 
     def _add_event(self, order_id, event_type, title, description=None,
                    actor_name="Sistema", is_customer_visible=True, metadata=None):
@@ -203,12 +193,80 @@ class OrderService:
         self.db.add(ev)
         return ev
 
-    async def checkout(self, cart_id: str, user_id: str, payment_method: PaymentMethod,
+    def _transition(self, order, target, *, actor_name, reason=None) -> bool:
+        from app.modules.orders.domain import OrderLifecycleError
+        from app.modules.orders.services import transition_order
+
+        try:
+            transition_order(
+                self.db,
+                order=order,
+                target=target,
+                actor=None,
+                actor_name=actor_name,
+                reason=reason,
+                customer_visible=True,
+            )
+            self.db.commit()
+            return True
+        except OrderLifecycleError:
+            self.db.rollback()
+            return False
+
+    async def checkout(self, cart_id: str, user_id: Optional[str], payment_method: PaymentMethod,
                        billing_info: Optional[Dict[str, Any]] = None,
                        customer_notes: Optional[str] = None,
-                       currency: Optional[str] = None) -> CheckoutResult:
+                       currency: Optional[str] = None,
+                       organization_id: Optional[str] = None,
+                       workspace_id: Optional[str] = None,
+                       idempotency_key: Optional[str] = None) -> CheckoutResult:
         from app.services.cart import get_cart_service
-        from app.services.payments import get_payment_orchestrator, PaymentProvider, Currency
+        from app.models import CatalogItem, Payment, Product
+        from app.modules.orders.domain import (
+            FulfilmentStatus,
+            OrderPaymentStatus,
+            classify_order,
+        )
+
+        OM, OIM, _, _ = self._models()
+        if idempotency_key:
+            existing = (
+                self.db.query(OM)
+                .filter(OM.checkout_idempotency_key == idempotency_key)
+                .first()
+            )
+            if existing:
+                same_owner = str(existing.user_id or "") == str(user_id or "")
+                same_organization = not organization_id or (
+                    existing.organization_id or existing.company_id
+                ) == organization_id
+                same_currency = not currency or existing.currency == currency.upper()
+                if not (same_owner and same_organization and same_currency):
+                    return CheckoutResult(
+                        success=False,
+                        error="Idempotency key is already bound to another checkout",
+                    )
+                payment = (
+                    self.db.get(Payment, existing.payment_intent_id)
+                    if existing.payment_intent_id
+                    else None
+                )
+                return CheckoutResult(
+                    success=True,
+                    order_id=existing.id,
+                    order_number=existing.order_number,
+                    payment_required=existing.payment_status != "NOT_REQUIRED",
+                    payment_method=existing.payment_method,
+                    payment_data=(
+                        {
+                            "payment_id": payment.id,
+                            "status": payment.status,
+                            "provider_reference": payment.provider_reference,
+                        }
+                        if payment
+                        else None
+                    ),
+                )
 
         cart_svc = get_cart_service(self.db)
         cart = cart_svc.get_cart(cart_id)
@@ -216,11 +274,32 @@ class OrderService:
             return CheckoutResult(success=False, error="Carrinho não encontrado")
         if not cart.items:
             return CheckoutResult(success=False, error="Carrinho vazio")
+        if cart.user_id and str(cart.user_id) != str(user_id or ""):
+            return CheckoutResult(success=False, error="Carrinho não disponível")
+        if cart.company_id and organization_id and cart.company_id != organization_id:
+            return CheckoutResult(success=False, error="Carrinho não disponível")
 
-        OM, OIM, _, _ = self._models()
         order_id = str(uuid.uuid4())
         order_number = self._generate_order_number()
         now = _utcnow()
+
+        catalog_items = {}
+        for item in cart.items:
+            catalog_item = self.db.get(CatalogItem, item.product_id)
+            if catalog_item is None:
+                catalog_item = (
+                    self.db.query(CatalogItem)
+                    .filter(CatalogItem.legacy_source_id == item.product_id)
+                    .first()
+                )
+            if catalog_item is None or catalog_item.status != "PUBLISHED":
+                return CheckoutResult(success=False, error="Item do catálogo indisponível")
+            catalog_items[item.product_id] = catalog_item
+
+        effective_organization_id = organization_id or cart.company_id
+        order_type = classify_order(
+            catalog_items[item.product_id].item_type for item in cart.items
+        ).value
 
         payment_reference = None
         if payment_method in [PaymentMethod.IBAN_ANGOLA, PaymentMethod.IBAN_INTERNATIONAL]:
@@ -228,26 +307,73 @@ class OrderService:
 
         order = OM(
             id=order_id, order_number=order_number, user_id=user_id,
-            company_id=cart.company_id, site_id=cart.site_id,
-            status=OrderStatus.CREATED.value, payment_method=payment_method.value,
+            company_id=effective_organization_id, site_id=cart.site_id,
+            organization_id=effective_organization_id, workspace_id=workspace_id,
+            order_type=order_type,
+            fulfilment_status=FulfilmentStatus.CONFIRMED.value,
+            payment_status=OrderPaymentStatus.PENDING.value,
+            lifecycle_version=1,
+            checkout_idempotency_key=idempotency_key,
+            status=OrderStatus.AWAITING_PAYMENT.value, payment_method=payment_method.value,
             payment_reference=payment_reference, currency=currency or cart.currency or "AOA",
             subtotal=cart.subtotal, discount_total=cart.discount_amount,
             coupon_code=cart.coupon_code, tax_amount=cart.tax_amount,
             shipping_fee=cart.delivery_cost, total=cart.total,
             delivery_method=cart.delivery_method, customer_notes=customer_notes,
             billing_info_json=json.dumps(billing_info) if billing_info else None,
+            confirmed_at=now,
+            metadata_json=json.dumps(
+                {"checkout": {"cart_id": cart.id, "idempotency_key_present": bool(idempotency_key)}},
+                sort_keys=True,
+            ),
         )
         self.db.add(order)
 
         for item in cart.items:
+            catalog_item = catalog_items[item.product_id]
+            basic_product = self.db.get(Product, item.product_id)
             oi = OIM(
                 id=str(uuid.uuid4()), order_id=order_id,
-                product_id=item.product_id, name=item.product_name,
-                product_type=item.product_type, sku=item.sku,
+                # The historical FK targets ``products`` while storefront
+                # items now belong to ``catalog_items``. Do not write an
+                # invalid legacy FK merely to preserve a display identifier.
+                product_id=basic_product.id if basic_product else None,
+                catalog_item_id=catalog_item.id,
+                name=catalog_item.name,
+                product_type=item.product_type,
+                catalog_item_type=catalog_item.item_type,
+                sku=catalog_item.code,
+                currency=currency or cart.currency or "AOA",
                 qty=item.quantity, unit_price=item.unit_price,
                 line_total=item.total_price, tax_rate=item.tax_rate,
-                tax_amount=item.tax_amount, status="pending",
+                tax_amount=item.tax_amount, discount_amount=0, status="pending",
                 scheduled_date=item.scheduled_date,
+                pricing_snapshot_json=json.dumps(
+                    {
+                        "catalog_item_id": catalog_item.id,
+                        "code": catalog_item.code,
+                        "name": catalog_item.name,
+                        "item_type": catalog_item.item_type,
+                        "price_model": catalog_item.price_model,
+                        "currency": currency or cart.currency or "AOA",
+                        "unit_amount": int(item.unit_price),
+                        "quantity": item.quantity,
+                        "tax_rate": float(item.tax_rate or 0),
+                        "custom_options": item.custom_options,
+                        "captured_at": now.isoformat(),
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ),
+                fulfilment_hints_json=json.dumps(
+                    {
+                        "fulfilment_type": catalog_item.fulfilment_type,
+                        "requires_site": catalog_item.requires_site,
+                        "requires_scheduling": catalog_item.requires_scheduling,
+                        "duration_hours": catalog_item.duration_hours,
+                    },
+                    sort_keys=True,
+                ),
             )
             self.db.add(oi)
 
@@ -259,25 +385,23 @@ class OrderService:
         # Decrement stock for items that track inventory
         try:
             from sqlalchemy import text as sa_text
-            for item in cart.items:
-                result = self.db.execute(
-                    sa_text("""UPDATE shop_products
-                               SET stock_quantity = stock_quantity - :qty,
-                                   updated_at = :now
-                               WHERE id = :pid AND track_inventory = true
-                                 AND stock_quantity >= :qty"""),
-                    {"qty": item.quantity, "now": now.isoformat(), "pid": item.product_id}
-                )
-                if result.rowcount > 0:
-                    logger.info(f"Stock decremented: product {item.product_id} by {item.quantity}")
+            with self.db.begin_nested():
+                for item in cart.items:
+                    result = self.db.execute(
+                        sa_text("""UPDATE shop_products
+                                   SET stock_quantity = stock_quantity - :qty,
+                                       updated_at = :now
+                                   WHERE id = :pid AND track_inventory = true
+                                     AND stock_quantity >= :qty"""),
+                        {"qty": item.quantity, "now": now, "pid": item.product_id}
+                    )
+                    if result.rowcount > 0:
+                        logger.info(f"Stock decremented: product {item.product_id} by {item.quantity}")
         except Exception as e:
-            logger.warning(f"Stock decrement failed (non-critical): {e}")
-
-        cart_svc.clear_cart(cart_id)
+            logger.warning("Stock decrement failed (%s)", type(e).__name__)
 
         payment_data = await self._initiate_payment(order, payment_method)
 
-        order.status = OrderStatus.AWAITING_PAYMENT.value
         self._add_event(order_id, EventType.PAYMENT_INITIATED.value,
                         "Aguardando pagamento",
                         f"Pagamento via {payment_method.value} iniciado.",
@@ -285,7 +409,9 @@ class OrderService:
 
         if payment_data:
             order.payment_intent_id = payment_data.get("payment_id")
+            order.payment_reference = payment_data.get("provider_reference") or order.payment_reference
 
+        cart_svc.clear_cart(cart_id)
         self.db.commit()
         logger.info(f"Checkout completed: order {order_number}, payment {payment_method.value}")
 
@@ -324,133 +450,165 @@ class OrderService:
             idempotency_key=f"order-{order.id}",
         )
         return {
+            "success": result.success,
             "payment_id": result.payment_id, "status": result.status.value,
             "provider_reference": result.provider_reference,
             "client_secret": result.client_secret,
             "qr_code": result.qr_code, "redirect_url": result.redirect_url,
             "transfer_details": result.raw_response.get("transfer_details") if result.raw_response else None,
+            "error_code": result.error_code,
+            "error_message": result.error_message,
         }
 
     async def confirm_payment(self, order_id: str, payment_reference=None, confirmed_by=None) -> bool:
+        from app.models import Payment
+        from app.modules.orders.domain import FulfilmentStatus, OrderPaymentStatus
+        from app.modules.orders.services import apply_payment_state
+        from app.services.payments import PaymentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
         now = _utcnow()
-        order.status = OrderStatus.PAID.value
-        order.payment_confirmed_at = now
-        order.updated_at = now
         if payment_reference:
             order.payment_reference = payment_reference
-        self._add_event(order_id, EventType.PAYMENT_CONFIRMED.value,
-                        "Pagamento confirmado", "O pagamento foi confirmado com sucesso.",
-                        actor_name=confirmed_by or "Sistema",
-                        metadata={"reference": payment_reference})
+        payment = (
+            self.db.get(Payment, order.payment_intent_id)
+            if order.payment_intent_id
+            else self.db.query(Payment).filter(Payment.order_id == order.id).first()
+        )
+        if payment is not None:
+            payment.status = PaymentStatus.COMPLETED.value
+            payment.completed_at = payment.completed_at or now
+            payment.updated_at = now
+            if payment_reference:
+                payment.provider_reference = payment_reference
+            apply_payment_state(
+                self.db,
+                payment=payment,
+                provider_status=PaymentStatus.COMPLETED.value,
+                actor_name=confirmed_by or "GeoVision finance",
+            )
+        else:
+            order.payment_status = OrderPaymentStatus.PAID.value
+            order.payment_confirmed_at = now
+            order.updated_at = now
+            if order.fulfilment_status in {
+                FulfilmentStatus.CONFIRMED.value,
+                FulfilmentStatus.PAYMENT_AUTHORIZED.value,
+            }:
+                order.previous_fulfilment_status = order.fulfilment_status
+                order.fulfilment_status = FulfilmentStatus.PAID.value
+                order.status = OrderStatus.PAID.value
+            order.lifecycle_version = int(order.lifecycle_version or 0) + 1
+            self._add_event(
+                order_id,
+                EventType.PAYMENT_CONFIRMED.value,
+                "Pagamento confirmado",
+                "O pagamento foi confirmado com sucesso.",
+                actor_name=confirmed_by or "Sistema",
+                metadata={"reference": payment_reference},
+            )
         self.db.commit()
-        await self.start_processing(order_id)
         return True
 
     async def start_processing(self, order_id: str) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        order.status = OrderStatus.PROCESSING.value
-        order.updated_at = _utcnow()
-        self._add_event(order_id, EventType.ORDER_PROCESSING.value,
-                        "Em processamento", "O seu pedido está a ser processado.")
-        self.db.commit()
-        return True
+        return self._transition(
+            order,
+            FulfilmentStatus.PROCESSING,
+            actor_name="Sistema",
+        )
 
     async def assign_team(self, order_id: str, team_name: str,
                           scheduled_start=None, scheduled_end=None, assigned_by=None) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus, OrderLifecycleError
+        from app.modules.orders.services import transition_order
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        now = _utcnow()
-        order.status = OrderStatus.ASSIGNED.value
-        order.assigned_team = team_name
-        order.scheduled_start = scheduled_start
-        order.scheduled_end = scheduled_end
-        order.updated_at = now
-        self._add_event(order_id, EventType.TEAM_ASSIGNED.value,
-                        "Equipa atribuída", f"Equipa {team_name} foi atribuída ao seu pedido.",
-                        actor_name=assigned_by or "Admin", metadata={"team": team_name})
-        if scheduled_start:
-            self._add_event(order_id, EventType.SERVICE_SCHEDULED.value,
-                            "Serviço agendado",
-                            f"Agendado para {scheduled_start.strftime('%d/%m/%Y %H:%M')}.",
-                            metadata={"scheduled_start": scheduled_start.isoformat()})
-        self.db.commit()
-        return True
+        try:
+            transition_order(
+                self.db,
+                order=order,
+                target=FulfilmentStatus.ASSIGNED,
+                actor=None,
+                actor_name=assigned_by or "GeoVision operations",
+                customer_visible=True,
+            )
+            order.assigned_team = team_name
+            order.scheduled_start = scheduled_start
+            order.scheduled_end = scheduled_end
+            self.db.commit()
+            return True
+        except OrderLifecycleError:
+            self.db.rollback()
+            return False
 
     async def start_service(self, order_id: str, started_by=None) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        now = _utcnow()
-        order.status = OrderStatus.IN_PROGRESS.value
-        order.actual_start = now
-        order.updated_at = now
-        self._add_event(order_id, EventType.SERVICE_STARTED.value,
-                        "Serviço iniciado", "A equipa iniciou o serviço.",
-                        actor_name=started_by or "Equipa")
-        self.db.commit()
-        return True
+        return self._transition(
+            order,
+            FulfilmentStatus.IN_PROGRESS,
+            actor_name=started_by or "GeoVision operations",
+        )
 
     async def complete_service(self, order_id: str, completed_by=None, notes=None) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        now = _utcnow()
-        order.status = OrderStatus.COMPLETED.value
-        order.actual_end = now
-        order.completed_at = now
-        order.updated_at = now
         if notes:
             order.internal_notes = (order.internal_notes or "") + f"\n{notes}"
-        self._add_event(order_id, EventType.SERVICE_COMPLETED.value,
-                        "Serviço concluído", "O serviço foi concluído com sucesso.",
-                        actor_name=completed_by or "Equipa", metadata={"notes": notes})
-        self.db.commit()
-        logger.info(f"Service completed for order {order.order_number}")
-        return True
+        return self._transition(
+            order,
+            FulfilmentStatus.COMPLETED,
+            actor_name=completed_by or "GeoVision operations",
+        )
 
     async def ship_order(self, order_id: str, tracking_number=None, carrier=None) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        now = _utcnow()
-        order.status = OrderStatus.DISPATCHED.value
-        order.updated_at = now
-        desc = "O seu pedido foi enviado."
-        if tracking_number:
-            desc += f" Código de rastreio: {tracking_number}"
-        self._add_event(order_id, EventType.SHIPPED.value,
-                        "Pedido enviado", desc,
-                        metadata={"tracking": tracking_number, "carrier": carrier})
-        self.db.commit()
-        return True
+        metadata = json.loads(order.metadata_json or "{}")
+        metadata["shipment"] = {"tracking": tracking_number, "carrier": carrier}
+        order.metadata_json = json.dumps(metadata, sort_keys=True)
+        return self._transition(
+            order,
+            FulfilmentStatus.IN_PROGRESS,
+            actor_name="GeoVision logistics",
+        )
 
     async def deliver_order(self, order_id: str, delivered_by=None) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        now = _utcnow()
-        order.status = OrderStatus.DELIVERED.value
-        order.actual_delivery = now
-        order.completed_at = now
-        order.updated_at = now
-        self._add_event(order_id, EventType.DELIVERED.value,
-                        "Pedido entregue", "O seu pedido foi entregue com sucesso.",
-                        actor_name=delivered_by or "Transportadora")
-        self.db.commit()
-        return True
+        return self._transition(
+            order,
+            FulfilmentStatus.DELIVERED,
+            actor_name=delivered_by or "GeoVision logistics",
+        )
 
     async def add_deliverable(self, order_id: str, name: str, deliverable_type: str,
                               storage_key=None, download_url=None,
@@ -473,21 +631,18 @@ class OrderService:
         return did
 
     async def cancel_order(self, order_id: str, reason=None, cancelled_by=None) -> bool:
+        from app.modules.orders.domain import FulfilmentStatus
+
         OM = self._models()[0]
         order = self.db.get(OM, order_id)
         if not order:
             return False
-        if order.status in [OrderStatus.COMPLETED.value, OrderStatus.DELIVERED.value]:
-            return False
-        now = _utcnow()
-        order.status = OrderStatus.CANCELLED.value
-        order.cancelled_at = now
-        order.updated_at = now
-        self._add_event(order_id, EventType.CANCELLED.value,
-                        "Pedido cancelado", reason or "O pedido foi cancelado.",
-                        actor_name=cancelled_by or "Sistema", metadata={"reason": reason})
-        self.db.commit()
-        return True
+        return self._transition(
+            order,
+            FulfilmentStatus.CANCELLED,
+            actor_name=cancelled_by or "Sistema",
+            reason=reason or "O pedido foi cancelado.",
+        )
 
     def get_order(self, order_id: str) -> Optional[OrderData]:
         OM = self._models()[0]
@@ -516,8 +671,9 @@ class OrderService:
 
     def _to_data(self, order) -> OrderData:
         items = [OrderItemData(
-            id=i.id, product_id=i.product_id, product_name=i.name,
-            product_type=getattr(i, 'product_type', None), sku=i.sku, quantity=i.qty,
+            id=i.id, product_id=getattr(i, 'catalog_item_id', None) or i.product_id,
+            product_name=i.name,
+            product_type=getattr(i, 'catalog_item_type', None) or getattr(i, 'product_type', None), sku=i.sku, quantity=i.qty,
             unit_price=i.unit_price, total_price=i.line_total,
             tax_rate=float(i.tax_rate or 0), tax_amount=getattr(i, 'tax_amount', 0) or 0,
             status=getattr(i, 'status', None) or "pending", scheduled_date=getattr(i, 'scheduled_date', None))

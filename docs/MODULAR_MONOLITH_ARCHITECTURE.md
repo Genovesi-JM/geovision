@@ -147,7 +147,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Organizations | Canonical organizations/workspaces, membership lifecycle, separate staff roles, server-enforced RBAC, and secure invitation-first acceptance/deep-link contracts are implemented over compatibility table names |
 | Assets | Generic organization/workspace-owned hierarchy, validated GeoJSON, portable bbox queries, optional PostGIS projection, and legacy Site/IoT mirroring are implemented |
 | Catalog | Canonical first-party products, services, plans, installations, inspections and analyses; legacy shop/product routes are compatibility projections |
-| Orders | Legacy order routes and the richer shop lifecycle exist; Phase 8 owns the standard lifecycle |
+| Orders | Canonical customer/internal order APIs, catalogue pricing snapshots, separate fulfilment/settlement state machines, optimistic lifecycle guards, and legacy shop/order projections are implemented |
 | Operations | Admin, internal resources, mobile operations and inspections are compatibility facades; Phases 9 and 10 own extraction |
 | Missions | Drone mission contracts exist inside the mobile facade; Phase 11 owns acquisition abstraction |
 | Datasets | Dataset/file CRUD and upload flows exist; Phase 12 owns storage/provider hardening |
@@ -157,7 +157,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Actions | Recommendations, commands and assignments exist across compatibility facades; Phase 17 owns the aggregate |
 | Reports | PDF/document/deliverable behavior exists across facades; Phase 19 owns report workflow and publication |
 | Notifications | Contact routes, email and IoT notification adapters exist; Phase 20 owns durable delivery |
-| Billing | Payment, reconciliation and entitlement behavior exists; Phase 8 owns provider/lifecycle consolidation |
+| Billing | Every payment operation uses the module-owned provider port; tenant-derived payment truth, irreversible transitions, refunds, and digest-only idempotent webhook receipts are implemented |
 | Audit | Audit records and domain timelines exist across middleware and routers; Phase 25 owns the unified boundary |
 
 `app/modules/organizations/services.py` owns organization/workspace context,
@@ -193,6 +193,8 @@ mounts them in the exact Phase 0 order. Existing implementation files remain in
 Important compatibility details intentionally retained:
 
 - `/products/products` and `/orders/orders` remain mounted as they were.
+- `/orders` is the canonical order history while `/orders/orders` remains the
+  historical physical-order compatibility path.
 - The mobile and admin routers remain cross-domain facades.
 - IoT's primary and mobile routers remain separate mounts from the same module.
 - `app/routers/dashboard.py` and `app/routers/services.py` remain unregistered;

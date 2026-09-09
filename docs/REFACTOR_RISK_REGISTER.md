@@ -19,7 +19,7 @@ instead of treating legacy structures as disposable.
 | R09 | High | IoT MQTT and offline detection run inside each API process; Redis fan-out is not active | Multiple API replicas can duplicate work or fail to deliver consistent live events | Move durable work behind the event/outbox boundary and add distributed coordination before scaling replicas |
 | R10 | High | ERP outbox work is provider-pinned and has bounded due-time retries plus terminal failure state, but no independent scheduled worker or dead-letter/operator workflow; provider-side ERP deduplication is not yet proven | ERP records remain pending unless sync is invoked manually, terminal work lacks a dedicated recovery surface, and an uncertain provider write requires manual reconciliation | Add an asynchronous worker with concurrency control, terminal/dead-letter visibility and operator controls in Phase 13; permit uncertain-write retries only after provider-side uniqueness/idempotency is verified |
 | R11 | High | Typed configuration fails closed for signing/encryption in staging/production, but the JWT guard is syntactic rather than an entropy assessment and most provider validation occurs when a factory/adapter is used; local/development may still generate an ephemeral JWT key or explicit `plain:` connector compatibility values | Misclassified environments can invalidate sessions, weak-looking secrets can pass a length/placeholder check, or a dormant provider misconfiguration can remain undiscovered until use | Use high-entropy managed secrets, exercise every enabled provider in deployment checks, keep redacted diagnostics, require encryption anywhere real connector credentials are used, and track historical-row remediation under R24 |
-| R12 | High | Payment creation and webhook verification have distinct configuration gates; local compatibility paths can accept unsigned/mock behavior, bank fields have built-in compatibility values that are not live-validated, and PayPal lacks deployed webhook verification and API-backed refund | A consumer can mistake simulation for settlement, accept an unverified callback outside production, or deploy invalid banking details | Require explicit verified overrides in deployed profiles, preserve operation-specific capability/status checks, and complete the public lifecycle, webhook, refund, and reconciliation controls in Phase 8 |
+| R12 | High | Phase 8 derives payment truth from the owned order, routes operations through the provider port, separates settlement/fulfilment, and deduplicates signed Stripe/Multicaixa callbacks; bank fields are still not live-validated and PayPal lacks deployed webhook verification/API-backed refunds | An operator can deploy invalid bank details or mistake an unsupported PayPal operation for a live capability | Require verified banking values and keep unavailable capability states explicit; add and verify PayPal webhook/refund support only when real credentials and provider verification are available |
 | R13 | High | Dataset/document storage uses a provider port and classifies S3 failures, but local-file support is read-only compatibility, failed writes have no local fallback, uploads are fully buffered, and some legacy facade shapes collapse error detail | Large uploads can exhaust memory, callers can lose retry/diagnostic context, and Azure migration can strand objects or break URLs | Add streaming and explicit error propagation, immutable GeoVision file IDs, an Azure Blob adapter, dual-read migration and checksum verification before cutover in Phase 12 |
 | R14 | High | The provider-neutral ERP port preserves the current ERPNext adapter, while the playbook specifies a later Odoo integration | Replacing ERP code prematurely can interrupt commerce and accounting synchronization | Add Odoo as another adapter and retire ERPNext only after an approved Phase 21 cutover |
 | R15 | High | Current deployment is DigitalOcean; provider ports exist but Azure infrastructure, Blob, Service Bus and Event Grid adapters are absent | A big-bang cloud move can mix domain refactoring with operational migration | Implement Azure adapters behind the established interfaces and perform staged infrastructure migration with rollback |
@@ -32,7 +32,8 @@ instead of treating legacy structures as disposable.
 | R22 | Medium | Android and iOS builds pass with future plugin migration warnings | A future Flutter upgrade can turn warnings into build failures | Track `package_info_plus` Kotlin and `flutter_secure_storage` Swift Package Manager compatibility before the next SDK upgrade |
 | R23 | Critical | No production backup-restore drill or migration rollback rehearsal is recorded | A structurally correct migration can still cause unrecoverable downtime or data loss | Require a production-like restore, migration dry run, rollback decision and owner sign-off before any live schema cutover |
 | R24 | High | Connector and integration credential fields now use the canonical encryption helper and deployed profiles require a valid Fernet key, but free-form metadata and endpoint/base/webhook URLs remain plaintext, historical rows may contain plaintext, local/dev can retain explicit `plain:` values, and only one active encryption key is supported | Secrets embedded in unrestricted fields remain exposed; operators can assume every legacy value is encrypted; replacing or losing the key can make encrypted credentials unavailable | Forbid secrets in metadata/URLs, inventory and migrate confirmed plaintext under backup and verification, protect and back up the active key, design an audited rotation/re-encryption procedure, and consolidate overlapping persistence models before activating enterprise connectors |
-| R25 | Medium | Phase 7 makes `catalog_items` authoritative while retaining `shop_products` and `products` as checkout/client compatibility data | A legacy writer or failed projection could leave price, publication, or stock fields inconsistent between canonical and compatibility rows | Route staff changes through `/catalog/internal`, monitor projection parity, retain legacy IDs/order snapshots, and retire the old write routes only after all deployed clients and Phase 8 order flows migrate |
+| R25 | Medium | Phase 7 makes `catalog_items` authoritative and Phase 8 snapshots canonical catalogue lines into orders, while `shop_products` and `products` remain cart/client compatibility data | A legacy writer or failed projection could still make pre-checkout price, publication, or stock fields inconsistent | Route staff changes through `/catalog/internal`, monitor projection parity, compare prices again at checkout, retain immutable order snapshots, and retire old write/cart projections only after deployed clients migrate |
+| R26 | High | The enterprise prototype persisted raw provider callback payloads; Phase 8 preserves that table as `legacy_payment_webhook_events` while all new callbacks use a digest-only ledger | Historical payloads may contain personal or provider-sensitive data beyond the required retention period | Restrict table access now; inventory/classify rows, define legal retention, export only required evidence, then securely purge raw payloads with Phase 25 audit approval and a verified backup/restore plan |
 
 ## Controls that already reduce risk
 
@@ -65,6 +66,8 @@ instead of treating legacy structures as disposable.
 - Environment files and local virtual environments are ignored by Git.
 - The catalogue exposes only GeoVision-controlled products and services; no
   public seller, seller payout, bidding, or contractor storefront exists.
+- Payment amounts, currency, organization and description are derived from the
+  owned order; verified webhook IDs are unique and raw new payloads are not stored.
 
 ## Phase gate policy
 
@@ -237,3 +240,28 @@ without a compatibility plan.
 - **Unchanged:** Payment settlement, order/service lifecycle, fulfilment jobs,
   supplier qualification, recommendation-action migration, and installed-device
   creation remain owned by Phases 8, 9, 10, and 17.
+
+## Phase 8 outcome
+
+- **Reduced:** R06 and R12, because canonical `/orders` customer/internal APIs
+  coexist with legacy routes, settlement is separate from fulfilment, every
+  payment operation uses the billing provider port, and provider references
+  never replace GeoVision IDs.
+- **Reduced:** Cross-tenant payment risk, because payment creation now derives
+  organization, amount, currency and description from an owned order; customer
+  reads/lists and the old shop cancellation path enforce ownership.
+- **Contained:** Webhook retries and reordering, because signature verification
+  precedes a unique provider/event receipt, duplicate delivery has no second
+  effect, and stale events cannot reverse terminal settlement.
+- **Contained:** Lifecycle shortcuts, because explicit forward transitions,
+  payment gates, reasons for exceptional states, and optimistic versions reject
+  invalid or stale operational changes.
+- **Reduced:** R25, because order lines point to canonical catalogue items and
+  preserve immutable pricing/fulfilment snapshots while cart compatibility
+  remains in service.
+- **Introduced and controlled:** R26 records the preserved raw legacy webhook
+  archive. The Phase 8 migration never writes new raw payloads and restores the
+  historical table on rollback; retention/purge requires Phase 25 approval.
+- **Unchanged:** Supplier/resource qualification, fulfilment jobs, event-bus
+  dispatch, PayPal provider gaps, and production backup/restore sign-off remain
+  owned by later phases.

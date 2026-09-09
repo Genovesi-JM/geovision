@@ -15,6 +15,12 @@ definition = DomainModule(
             prefix="/orders",
             tags=("orders",),
         ),
+        RouterMount(
+            "orders.canonical",
+            "orders",
+            "app.routers.commercial_orders",
+            82,
+        ),
     ),
 )
 

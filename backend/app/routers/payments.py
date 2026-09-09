@@ -12,22 +12,25 @@ Admin endpoints for:
 - Refund processing
 """
 import logging
-from typing import Optional, List
+from typing import Any, Optional, List
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Header, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
-from app.deps import get_current_user, require_admin
-from app.models import User
+from app.deps import get_current_user
+from app.models import Order, Payment, User
 from app.core.time import utc_now
+from app.modules.organizations.domain import internal_permissions
+from app.modules.organizations.services import active_internal_roles
 
 from app.services.payments import (
     get_payment_orchestrator,
     PaymentProvider,
+    PaymentIdempotencyConflict,
     PaymentStatus,
     Currency,
 )
@@ -49,6 +52,34 @@ class PaymentCreateRequest(BaseModel):
     description: str = Field(..., max_length=500)
     metadata: Optional[dict] = None
     idempotency_key: Optional[str] = Field(None, max_length=100)
+
+    @field_validator("metadata")
+    @classmethod
+    def reject_credentials(cls, value: Optional[dict]) -> Optional[dict]:
+        sensitive = {
+            "password",
+            "secret",
+            "token",
+            "api_key",
+            "apikey",
+            "private_key",
+            "credential",
+            "connection_string",
+        }
+
+        def inspect(item: Any) -> None:
+            if isinstance(item, dict):
+                for key, nested in item.items():
+                    normalized = str(key).strip().lower().replace("-", "_")
+                    if any(part in normalized for part in sensitive):
+                        raise ValueError("Payment metadata cannot contain credentials")
+                    inspect(nested)
+            elif isinstance(item, list):
+                for nested in item:
+                    inspect(nested)
+
+        inspect(value)
+        return value
 
 
 class PaymentResponse(BaseModel):
@@ -92,7 +123,10 @@ class RefundResponse(BaseModel):
 
 class IBANConfirmRequest(BaseModel):
     """IBAN transfer confirmation request."""
-    confirmed_by: str = Field(..., description="Admin user ID")
+    confirmed_by: Optional[str] = Field(
+        None,
+        description="Deprecated: the authenticated GeoVision staff identity is used",
+    )
     bank_reference: Optional[str] = Field(None, description="Bank transfer reference")
 
 
@@ -112,6 +146,57 @@ class ProviderConfigResponse(BaseModel):
 
 # ============ ENDPOINTS ============
 
+def _staff_payment_permissions(db: Session, user: User) -> frozenset[str]:
+    return internal_permissions(active_internal_roles(db, user))
+
+
+def require_billing_staff(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    if not _staff_payment_permissions(db, user).intersection(
+        {"platform:admin", "billing:internal"}
+    ):
+        raise HTTPException(status_code=403, detail="GeoVision finance permission required")
+    return user
+
+
+def _can_manage_order_payment(db: Session, user: User, order: Order) -> bool:
+    permissions = _staff_payment_permissions(db, user)
+    if permissions.intersection({"platform:admin", "billing:internal"}):
+        return True
+    if str(order.user_id or "") == str(user.id):
+        return True
+    context = getattr(user, "_authorization_context", None)
+    active_organization_id = getattr(context, "active_organization_id", None)
+    customer_permissions = frozenset(getattr(context, "permissions", frozenset()))
+    return bool(
+        "billing:manage" in customer_permissions
+        and active_organization_id
+        and active_organization_id == (order.organization_id or order.company_id)
+    )
+
+
+def _can_view_payment(db: Session, user: User, payment: Payment) -> bool:
+    permissions = _staff_payment_permissions(db, user)
+    if permissions.intersection({"platform:admin", "billing:internal"}):
+        return True
+    order = db.get(Order, payment.order_id)
+    if order is not None:
+        if str(order.user_id or "") == str(user.id):
+            return True
+        context = getattr(user, "_authorization_context", None)
+        return bool(
+            "billing:read" in frozenset(getattr(context, "permissions", frozenset()))
+            and getattr(context, "active_organization_id", None)
+            == (order.organization_id or order.company_id)
+        )
+    context = getattr(user, "_authorization_context", None)
+    return bool(
+        "billing:read" in frozenset(getattr(context, "permissions", frozenset()))
+        and getattr(context, "active_organization_id", None) == payment.company_id
+    )
+
 @router.post("/", response_model=PaymentResponse)
 async def create_payment(request: PaymentCreateRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
@@ -128,18 +213,32 @@ async def create_payment(request: PaymentCreateRequest, user: User = Depends(get
     Use `idempotency_key` to safely retry failed requests.
     Same key returns the original result without creating duplicate payments.
     """
+    order = db.get(Order, request.order_id)
+    if order is None or not _can_manage_order_payment(db, user, order):
+        raise HTTPException(status_code=404, detail="Order not found")
+    authoritative_company = order.organization_id or order.company_id or "default"
+    if request.company_id != authoritative_company:
+        raise HTTPException(status_code=422, detail="Payment organization does not match order")
+    if request.amount != int(order.total) or request.currency.value != order.currency:
+        raise HTTPException(status_code=422, detail="Payment amount or currency does not match order")
+    if order.payment_status in {"PAID", "REFUNDED"}:
+        raise HTTPException(status_code=409, detail="Order is already settled")
+
     orchestrator = get_payment_orchestrator(db)
     
-    result = await orchestrator.create_payment(
-        company_id=request.company_id,
-        order_id=request.order_id,
-        amount=request.amount,
-        currency=request.currency,
-        provider=request.provider,
-        description=request.description,
-        metadata=request.metadata,
-        idempotency_key=request.idempotency_key,
-    )
+    try:
+        result = await orchestrator.create_payment(
+            company_id=authoritative_company,
+            order_id=request.order_id,
+            amount=int(order.total),
+            currency=Currency(order.currency),
+            provider=request.provider,
+            description=f"GeoVision order {order.order_number or order.id}",
+            metadata=request.metadata,
+            idempotency_key=request.idempotency_key or f"order-{order.id}",
+        )
+    except PaymentIdempotencyConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     
     response = PaymentResponse(
         success=result.success,
@@ -159,6 +258,31 @@ async def create_payment(request: PaymentCreateRequest, user: User = Depends(get
     return response
 
 
+@router.get("/providers", response_model=List[ProviderConfigResponse])
+async def list_providers():
+    """List available payment providers and configuration status."""
+    return [
+        ProviderConfigResponse(
+            provider="multicaixa_express",
+            configured=settings.multicaixa_configuration_complete,
+            test_mode=not settings.multicaixa_configuration_complete,
+            supported_currencies=["AOA"],
+        ),
+        ProviderConfigResponse(
+            provider="visa_mastercard",
+            configured=bool(settings.stripe_secret_key),
+            test_mode="test" in (settings.stripe_secret_key or "test"),
+            supported_currencies=["USD", "EUR", "AOA"],
+        ),
+        ProviderConfigResponse(
+            provider="iban_transfer",
+            configured=bool(settings.company_iban),
+            test_mode=False,
+            supported_currencies=["AOA", "USD", "EUR"],
+        ),
+    ]
+
+
 @router.get("/{payment_id}", response_model=PaymentStatusResponse)
 async def get_payment_status(payment_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get payment status."""
@@ -169,9 +293,14 @@ async def get_payment_status(payment_id: str, user: User = Depends(get_current_u
     
     if payment is None:
         raise HTTPException(status_code=404, detail="Payment not found")
+    row = db.get(Payment, payment_id)
+    if row is None or not _can_view_payment(db, user, row):
+        raise HTTPException(status_code=404, detail="Payment not found")
     
     # Poll provider for latest status
     await orchestrator.check_status(payment_id)
+    payment = orchestrator.get_payment(payment_id)
+    assert payment is not None
     
     return PaymentStatusResponse(
         payment_id=payment.id,
@@ -198,11 +327,20 @@ async def list_payments(
     orchestrator = get_payment_orchestrator(db)
     
     payments = orchestrator.list_payments(
-        company_id=company_id,
+        company_id=None,
         status=status,
         provider=provider,
-        limit=limit,
+        limit=500,
     )
+    visible = []
+    for payment in payments:
+        row = db.get(Payment, payment.id)
+        if row is not None and _can_view_payment(db, user, row):
+            visible.append(payment)
+        if len(visible) >= limit:
+            break
+    if company_id and any(payment.company_id != company_id for payment in visible):
+        visible = [payment for payment in visible if payment.company_id == company_id]
     
     return PaymentListResponse(
         payments=[
@@ -215,14 +353,14 @@ async def list_payments(
                 created_at=p.created_at,
                 updated_at=p.updated_at,
             )
-            for p in payments
+            for p in visible
         ],
-        total=len(payments),
+        total=len(visible),
     )
 
 
 @router.post("/{payment_id}/refund", response_model=RefundResponse)
-async def refund_payment(payment_id: str, request: RefundRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+async def refund_payment(payment_id: str, request: RefundRequest, admin: User = Depends(require_billing_staff), db: Session = Depends(get_db)):
     """
     Refund a payment.
     
@@ -256,7 +394,7 @@ async def refund_payment(payment_id: str, request: RefundRequest, admin: User = 
 # ============ ADMIN ENDPOINTS ============
 
 @router.post("/{payment_id}/confirm-transfer")
-async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, admin: User = Depends(require_billing_staff), db: Session = Depends(get_db)):
     """
     **Admin only**: Confirm IBAN bank transfer receipt.
     
@@ -277,7 +415,7 @@ async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, ad
     
     success = await orchestrator.confirm_iban_transfer(
         payment_id=payment_id,
-        confirmed_by=request.confirmed_by,
+        confirmed_by=admin.email,
         bank_reference=request.bank_reference,
     )
     
@@ -287,7 +425,7 @@ async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, ad
     return {
         "message": "Transfer confirmed",
         "payment_id": payment_id,
-        "confirmed_by": request.confirmed_by,
+        "confirmed_by": admin.id,
         "confirmed_at": utc_now().isoformat(),
     }
 
@@ -296,7 +434,7 @@ async def confirm_iban_transfer(payment_id: str, request: IBANConfirmRequest, ad
 async def list_pending_transfers(
     company_id: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_billing_staff),
     db: Session = Depends(get_db),
 ):
     """
@@ -334,7 +472,7 @@ async def get_reconciliation_report(
     company_id: Optional[str] = Query(None),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
-    admin: User = Depends(require_admin),
+    admin: User = Depends(require_billing_staff),
     db: Session = Depends(get_db),
 ):
     """
@@ -439,34 +577,3 @@ async def stripe_webhook(
         raise HTTPException(status_code=400, detail=result.get("message"))
     
     return result
-
-
-# ============ PROVIDER CONFIG ============
-
-@router.get("/providers", response_model=List[ProviderConfigResponse])
-async def list_providers():
-    """
-    List available payment providers and configuration status.
-    """
-    providers = [
-        ProviderConfigResponse(
-            provider="multicaixa_express",
-            configured=settings.multicaixa_configuration_complete,
-            test_mode=not settings.multicaixa_configuration_complete,
-            supported_currencies=["AOA"],
-        ),
-        ProviderConfigResponse(
-            provider="visa_mastercard",
-            configured=bool(settings.stripe_secret_key),
-            test_mode="test" in (settings.stripe_secret_key or "test"),
-            supported_currencies=["USD", "EUR", "AOA"],
-        ),
-        ProviderConfigResponse(
-            provider="iban_transfer",
-            configured=bool(settings.company_iban),
-            test_mode=False,  # Always production
-            supported_currencies=["AOA", "USD", "EUR"],
-        ),
-    ]
-    
-    return providers

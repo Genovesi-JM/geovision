@@ -25,7 +25,10 @@ mobile deep-link behavior are defined in the
 [invitation onboarding guide](docs/INVITATION_ONBOARDING_DEEP_LINKS.md). The
 single GeoVision-owned commercial model, staff permissions, publication rules,
 and legacy shop migration are in the
-[first-party catalogue guide](docs/FIRST_PARTY_CATALOG.md). Run
+[first-party catalogue guide](docs/FIRST_PARTY_CATALOG.md). The
+The provider-independent order, settlement, webhook-idempotency, customer
+history, and internal lifecycle contracts are in the
+[commercial order/payment guide](docs/ORDER_PAYMENT_LIFECYCLE.md). Run
 the non-mutating baseline suite with:
 
 ```bash

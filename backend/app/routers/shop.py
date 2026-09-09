@@ -12,7 +12,7 @@ import logging
 from typing import Any, Optional, List
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, Depends, Query, Body, Header
 from pydantic import BaseModel, Field
 
 from app.deps import get_current_user, get_optional_user, require_admin
@@ -866,7 +866,15 @@ def get_payment_methods():
 
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
-async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] = Depends(get_optional_user), db: Session = Depends(get_db)):
+async def checkout(
+    cart_id: str,
+    request: CheckoutRequest,
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+    idempotency_key: Optional[str] = Header(
+        default=None, alias="Idempotency-Key", min_length=8, max_length=160
+    ),
+):
     """
     Process checkout and create order.
     
@@ -905,6 +913,7 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] 
 
     order_service = get_order_service(db)
     
+    authorization = getattr(user, "_authorization_context", None) if user else None
     result = await order_service.checkout(
         cart_id=cart_id,
         user_id=user.id if user else None,
@@ -912,6 +921,9 @@ async def checkout(cart_id: str, request: CheckoutRequest, user: Optional[User] 
         billing_info=request.billing_info.model_dump(),
         customer_notes=request.customer_notes,
         currency=req_currency,
+        organization_id=getattr(authorization, "active_organization_id", None),
+        workspace_id=getattr(authorization, "active_workspace_id", None),
+        idempotency_key=idempotency_key,
     )
 
     # Persist the ERP hand-off and customer live event after a successful
@@ -1158,10 +1170,19 @@ class CancelOrderRequest(BaseModel):
     reason: Optional[str] = None
 
 @router.post("/orders/{order_id}/cancel")
-async def cancel_order(order_id: str, request: CancelOrderRequest = Body(default=CancelOrderRequest()), db: Session = Depends(get_db)):
+async def cancel_order(
+    order_id: str,
+    request: CancelOrderRequest = Body(default=CancelOrderRequest()),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Cancel an order."""
     
     order_service = get_order_service(db)
+    order = order_service.get_order(order_id)
+    if not order or str(order.user_id or "") != str(user.id):
+        # Do not disclose whether another customer's order exists.
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
     success = await order_service.cancel_order(
         order_id=order_id,
         reason=request.reason,
