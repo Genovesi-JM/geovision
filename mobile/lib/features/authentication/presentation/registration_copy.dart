@@ -54,8 +54,8 @@ class RegistrationCopy {
       pick('Os seus dados', 'Your details', 'Tus datos', 'Vos informations');
   String get stepSecurity =>
       pick('Segurança', 'Security', 'Seguridad', 'Sécurité');
-  String get stepProfile =>
-      pick('Tipo de conta', 'Account type', 'Tipo de cuenta', 'Type de compte');
+  String get stepProfile => pick(
+      'Primeiro objetivo', 'First goal', 'Primer objetivo', 'Premier objectif');
   String get fullName =>
       pick('Nome completo', 'Full name', 'Nombre completo', 'Nom complet');
   String get organisation => pick(
@@ -74,6 +74,52 @@ class RegistrationCopy {
       'How will you use GeoVision?',
       '¿Cómo usarás GeoVision ?',
       'Comment utiliserez-vous GeoVision ?');
+  String get chooseIntent => pick(
+      'O que quer fazer primeiro?',
+      'What do you want to do first?',
+      '¿Qué quieres hacer primero?',
+      'Que souhaitez-vous faire en premier ?');
+  String get noAccountTypeRequired => pick(
+      'Não precisa de escolher um tipo de conta. Prepararemos o espaço certo a partir deste objetivo.',
+      'You do not need to choose an account type. We will prepare the right workspace from this goal.',
+      'No necesitas elegir un tipo de cuenta. Prepararemos el espacio adecuado a partir de este objetivo.',
+      'Vous n’avez pas à choisir un type de compte. Nous préparerons l’espace adapté à cet objectif.');
+
+  String intent(String id) => switch (id) {
+        'request_service' => pick('Pedir um serviço', 'Request a service',
+            'Solicitar un servicio', 'Demander un service'),
+        'monitor_asset' => pick('Monitorizar um ativo', 'Monitor an asset',
+            'Supervisar un activo', 'Surveiller un actif'),
+        'buy_product' => pick('Comprar um produto', 'Buy a product',
+            'Comprar un producto', 'Acheter un produit'),
+        'view_invitation' => pick('Ver um convite', 'View an invitation',
+            'Ver una invitación', 'Voir une invitation'),
+        _ => id,
+      };
+
+  String intentDescription(String id) => switch (id) {
+        'request_service' => pick(
+            'Descreva uma aquisição, análise ou entrega.',
+            'Describe an acquisition, analysis, or delivery.',
+            'Describe una adquisición, análisis o entrega.',
+            'Décrivez une acquisition, une analyse ou une livraison.'),
+        'monitor_asset' => pick(
+            'Adicione um local ou ativo para acompanhar.',
+            'Add a site or asset to monitor.',
+            'Añade un sitio o activo para supervisar.',
+            'Ajoutez un site ou un actif à surveiller.'),
+        'buy_product' => pick(
+            'Abra o catálogo de equipamentos e serviços.',
+            'Open the equipment and services catalogue.',
+            'Abre el catálogo de equipos y servicios.',
+            'Ouvrez le catalogue d’équipements et de services.'),
+        'view_invitation' => pick(
+            'Entre numa organização com um link seguro.',
+            'Join an organization with a secure link.',
+            'Únete a una organización con un enlace seguro.',
+            'Rejoignez une organisation avec un lien sécurisé.'),
+        _ => id,
+      };
   String get chooseSectors => pick('Áreas a acompanhar', 'Areas to monitor',
       'Áreas a supervisar', 'Domaines à suivre');
   String get chooseGoals => pick(

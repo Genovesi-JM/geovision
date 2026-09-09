@@ -51,7 +51,9 @@ rows so legacy endpoints enforce the same result.
 
 Membership lifecycle values are `invited`, `active`, `suspended`, and
 `revoked`. Pending email invitations have no `user_id` and cannot authorize
-access. Phase 6 will attach signed invitation acceptance to this lifecycle.
+access. The Phase 6 invitation service stores only a one-time token digest and
+binds the membership to the matching authenticated identity at acceptance; see
+`docs/INVITATION_ONBOARDING_DEEP_LINKS.md`.
 
 ## Internal GeoVision roles
 

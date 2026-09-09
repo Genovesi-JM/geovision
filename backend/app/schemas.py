@@ -72,6 +72,9 @@ class RegisterRequest(BaseModel):
     customer_type: str = Field(default="farm")
     use_cases: Optional[List[str]] = None
     modules_enabled: Optional[List[str]] = None
+    # New clients choose an outcome, not a customer/account taxonomy. When
+    # omitted, the historical profile fields above remain fully compatible.
+    intent: Optional[str] = Field(default=None, max_length=40)
 
 
 class LoginRequest(BaseModel):

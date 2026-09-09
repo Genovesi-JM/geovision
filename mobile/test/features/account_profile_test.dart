@@ -35,6 +35,19 @@ void main() {
         containsPair('sector_focus', 'construction,environment'));
   });
 
+  test('service-first registration sends intent without requiring a profile',
+      () {
+    const request = RegistrationRequest(
+      email: 'invite@example.com',
+      password: 'strong-password',
+      fullName: 'Invite User',
+      intent: 'view_invitation',
+    );
+    expect(request.toJson(), containsPair('intent', 'view_invitation'));
+    expect(request.toJson()['sectors'], isEmpty);
+    expect(request.toJson()['use_cases'], isEmpty);
+  });
+
   test('auth profile keeps account type, sectors and goals from API response',
       () {
     final profile = UserProfile.fromJson({

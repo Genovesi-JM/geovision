@@ -49,6 +49,7 @@ from ..models import (
     AuthIdentity,
     Company,
     CompanyUser,
+    Invitation,
     OAuthState,
     RefreshTokenFamily,
     RefreshTokenModel,
@@ -82,6 +83,60 @@ ALLOWED_SECTORS = PUBLIC_SECTORS
 REFRESH_TOKEN_BYTES = 48
 OAUTH_STATE_TTL_MINUTES = 10
 OAUTH_BROWSER_NONCE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{43,128}$")
+
+SERVICE_FIRST_INTENT_PROFILES = {
+    "request_service": {
+        "customer_type": "business",
+        "sectors": ["environment"],
+        "use_cases": ["site_environment", "maintenance"],
+    },
+    "monitor_asset": {
+        "customer_type": "business",
+        "sectors": ["environment"],
+        "use_cases": ["site_environment", "maintenance"],
+    },
+    "buy_product": {
+        "customer_type": "device",
+        "sectors": ["environment"],
+        "use_cases": ["device_monitoring"],
+    },
+}
+
+
+def _service_first_profile(
+    intent: str | None,
+    *,
+    customer_type: str,
+    sectors: Optional[List[str]],
+    sector_focus: str | None,
+    use_cases: Optional[List[str]],
+) -> tuple[Optional[dict[str, object]], Optional[str]]:
+    """Resolve a service intent to internal defaults without exposing types."""
+
+    normalized_intent = (intent or "").strip().lower() or None
+    if normalized_intent == "view_invitation":
+        return None, normalized_intent
+    if normalized_intent is not None:
+        defaults = SERVICE_FIRST_INTENT_PROFILES.get(normalized_intent)
+        if defaults is None:
+            raise ValueError("Invalid onboarding intent")
+        return (
+            normalize_account_profile(
+                str(defaults["customer_type"]),
+                sectors=list(defaults["sectors"]),
+                use_cases=list(defaults["use_cases"]),
+            ),
+            normalized_intent,
+        )
+    return (
+        normalize_account_profile(
+            customer_type,
+            sectors=sectors,
+            sector_focus=sector_focus,
+            use_cases=use_cases,
+        ),
+        None,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -420,7 +475,32 @@ def _build_auth_response(
     issue_refresh_token: bool,
 ) -> dict:
     profile = _ensure_profile(db, user, commit=False)
-    account = _ensure_default_account(db, user, commit=False)
+    # An invite recipient must join the pre-provisioned organization instead
+    # of silently receiving an unrelated starter workspace on sign-in.
+    has_workspace_membership = (
+        db.query(AccountMember)
+        .filter(
+            AccountMember.user_id == user.id,
+            AccountMember.status == "active",
+        )
+        .first()
+        is not None
+    )
+    has_pending_invitation = (
+        db.query(Invitation)
+        .filter(
+            Invitation.target_email == (user.email or "").strip().lower(),
+            Invitation.status == "pending",
+            Invitation.expires_at > utc_now(),
+        )
+        .first()
+        is not None
+    )
+    account = (
+        None
+        if has_pending_invitation and not has_workspace_membership
+        else _ensure_default_account(db, user, commit=False)
+    )
 
     # Bind issuance to the exact credential snapshot that was verified. This
     # remains safe even when SQLite ignores SELECT ... FOR UPDATE.
@@ -478,8 +558,9 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     email = (payload.email or "").strip().lower()
 
     try:
-        account_profile = normalize_account_profile(
-            payload.customer_type,
+        account_profile, _onboarding_intent = _service_first_profile(
+            payload.intent,
+            customer_type=payload.customer_type,
             sectors=payload.sectors,
             sector_focus=payload.sector_focus,
             use_cases=payload.use_cases,
@@ -504,38 +585,44 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         user_id=user.id,
         full_name=payload.full_name,
         company=payload.org_name,
-        entity_type=account_profile["entity_type"],
+        entity_type=(
+            str(account_profile["entity_type"])
+            if account_profile is not None
+            else "individual"
+        ),
         org_name=payload.org_name,
     )
     db.add(profile)
 
-    modules = payload.modules_enabled or DEFAULT_MODULES
-    account_name = payload.account_name or payload.org_name or ((payload.full_name or email.split("@")[0]) + " workspace")
-    company = _ensure_company(db, user, account_name, account_profile["sector_focus"])
-    onboarding_account_id = str(
-        uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
-    )
-    account = Account(
-        id=onboarding_account_id,
-        organization_id=company.id,
-        name=account_name, sector_focus=account_profile["sector_focus"],
-        entity_type=account_profile["entity_type"],
-        customer_type=account_profile["customer_type"],
-        dashboard_profile=account_profile["dashboard_profile"],
-        use_cases=json.dumps(account_profile["use_cases"]),
-        org_name=payload.org_name,
-        modules_enabled=json.dumps(modules),
-        onboarding_user_id=user.id,
-    )
-    db.add(account)
-    membership = AccountMember(
-        account_id=onboarding_account_id,
-        user_id=user.id,
-        role="owner",
-        status="active",
-        joined_at=utc_now(),
-    )
-    db.add(membership)
+    account = None
+    if account_profile is not None:
+        modules = payload.modules_enabled or DEFAULT_MODULES
+        account_name = payload.account_name or payload.org_name or ((payload.full_name or email.split("@")[0]) + " workspace")
+        company = _ensure_company(db, user, account_name, str(account_profile["sector_focus"]))
+        onboarding_account_id = str(
+            uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
+        )
+        account = Account(
+            id=onboarding_account_id,
+            organization_id=company.id,
+            name=account_name, sector_focus=str(account_profile["sector_focus"]),
+            entity_type=str(account_profile["entity_type"]),
+            customer_type=str(account_profile["customer_type"]),
+            dashboard_profile=str(account_profile["dashboard_profile"]),
+            use_cases=json.dumps(account_profile["use_cases"]),
+            org_name=payload.org_name,
+            modules_enabled=json.dumps(modules),
+            onboarding_user_id=user.id,
+        )
+        db.add(account)
+        membership = AccountMember(
+            account_id=onboarding_account_id,
+            user_id=user.id,
+            role="owner",
+            status="active",
+            joined_at=utc_now(),
+        )
+        db.add(membership)
     try:
         access_token = issue_session_access_token(user)
         issue_refresh_token = request.headers.get("X-GeoVision-Client") != "web"
@@ -554,7 +641,8 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         db.rollback()
         raise HTTPException(status_code=409, detail="Email already registered") from exc
     db.refresh(user)
-    db.refresh(account)
+    if account is not None:
+        db.refresh(account)
 
     log_audit(db, "register", user_id=user.id, user_email=user.email,
               resource_type="user", resource_id=user.id, request=request)
@@ -1495,6 +1583,7 @@ class OnboardingRequest(BaseModel):
     account_name: Optional[str] = None
     org_name: Optional[str] = None
     modules_enabled: Optional[List[str]] = None
+    intent: Optional[str] = Field(default=None, max_length=40)
 
 
 @router.post("/onboarding", response_model=AuthResponse)
@@ -1551,8 +1640,9 @@ def complete_onboarding(
         return AuthResponse(access_token=current_access_token, user=user, account=account)
 
     try:
-        account_profile = normalize_account_profile(
-            payload.customer_type,
+        account_profile, onboarding_intent = _service_first_profile(
+            payload.intent,
+            customer_type=payload.customer_type,
             sectors=payload.sectors,
             sector_focus=payload.sector_focus,
             use_cases=payload.use_cases,
@@ -1560,9 +1650,15 @@ def complete_onboarding(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
+    if account_profile is None or onboarding_intent == "view_invitation":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invitation onboarding must use /invitations/accept",
+        )
+
     modules = payload.modules_enabled or DEFAULT_MODULES
     account_name = payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
-    company = _ensure_company(db, user, account_name, account_profile["sector_focus"])
+    company = _ensure_company(db, user, account_name, str(account_profile["sector_focus"]))
 
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
@@ -1570,10 +1666,10 @@ def complete_onboarding(
     account = Account(
         id=onboarding_account_id,
         organization_id=company.id,
-        name=account_name, sector_focus=account_profile["sector_focus"],
-        entity_type=account_profile["entity_type"],
-        customer_type=account_profile["customer_type"],
-        dashboard_profile=account_profile["dashboard_profile"],
+        name=account_name, sector_focus=str(account_profile["sector_focus"]),
+        entity_type=str(account_profile["entity_type"]),
+        customer_type=str(account_profile["customer_type"]),
+        dashboard_profile=str(account_profile["dashboard_profile"]),
         use_cases=json.dumps(account_profile["use_cases"]),
         org_name=payload.org_name,
         modules_enabled=json.dumps(modules),

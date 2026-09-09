@@ -92,6 +92,11 @@
 
     function redirectAfterAuth(role) {
       const r = String(role || '').toLowerCase();
+      const pendingInvitation = sessionStorage.getItem('gv_pending_invitation');
+      if (pendingInvitation) {
+        window.location.href = `onboarding.html#invitation=${encodeURIComponent(pendingInvitation)}`;
+        return;
+      }
       const params = new URLSearchParams(window.location.search);
       const returnTo = params.get('return');
       // Strict validation: only allow relative paths starting with a
@@ -154,29 +159,6 @@
     let wizardStep = 1;
     const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-    const PROFILE_CONFIG = window.GV_ACCOUNT_PROFILE_CONFIG;
-    const SECTOR_LABELS = PROFILE_CONFIG.sectorLabels;
-    const USE_CASE_LABELS = PROFILE_CONFIG.useCaseLabels;
-    const ACCOUNT_PROFILES = PROFILE_CONFIG.profiles;
-    function renderChoices(containerId, name, values, defaults, labels) {
-      const host = document.getElementById(containerId);
-      if (!host) return;
-      host.innerHTML = '';
-      values.forEach((value) => {
-        const label = document.createElement('label'); label.className = 'choice-item';
-        const input = document.createElement('input'); input.type = 'checkbox'; input.name = name; input.value = value; input.checked = defaults.includes(value);
-        const span = document.createElement('span'); span.textContent = labels[value] || value;
-        label.append(input, span); host.appendChild(label);
-      });
-    }
-    function renderProfileChoices() {
-      const persona = document.getElementById('create-persona')?.value || 'farm';
-      const config = ACCOUNT_PROFILES[persona] || ACCOUNT_PROFILES.farm;
-      renderChoices('create-sectors', 'create-sector', config.sectors, config.defaults, SECTOR_LABELS);
-      renderChoices('create-use-cases', 'create-use-case', config.uses, config.defaultUses, USE_CASE_LABELS);
-      const hint = document.getElementById('create-dashboard-hint'); if (hint) hint.textContent = config.dashboard;
-    }
-
     function showWizardStep(n) {
       if (!createForm) return;
       wizardStep = Math.min(Math.max(n, 1), WIZ_TOTAL);
@@ -193,7 +175,6 @@
       if (wizardBack) wizardBack.style.display = wizardStep > 1 ? '' : 'none';
       if (wizardNext) wizardNext.style.display = wizardStep < WIZ_TOTAL ? '' : 'none';
       if (createSubmit) createSubmit.style.display = wizardStep < WIZ_TOTAL ? 'none' : '';
-      if (wizardStep === WIZ_TOTAL) renderProfileChoices();
       const first = createForm.querySelector(`.wizard-step[data-step="${wizardStep}"] input, .wizard-step[data-step="${wizardStep}"] select`);
       if (first) setTimeout(() => first.focus(), 30);
     }
@@ -233,11 +214,6 @@
       wizardNext.addEventListener('click', advanceWizard);
       wizardNext.dataset.gvBound = '1';
     }
-    const createPersona = document.getElementById('create-persona');
-    if (createPersona && !createPersona.dataset.gvBound) {
-      createPersona.addEventListener('change', renderProfileChoices);
-      createPersona.dataset.gvBound = '1';
-    }
     if (wizardBack && !wizardBack.dataset.gvBound) {
       wizardBack.addEventListener('click', () => { hide(errorBox); showWizardStep(wizardStep - 1); });
       wizardBack.dataset.gvBound = '1';
@@ -262,15 +238,10 @@
 
         const email = (document.getElementById('create-email')?.value || '').trim().toLowerCase();
         const password = document.getElementById('create-password')?.value || '';
-        const persona = document.getElementById('create-persona')?.value || 'farm';
-        const sectors = [...document.querySelectorAll('input[name="create-sector"]:checked')].map((el) => el.value);
-        const use_cases = [...document.querySelectorAll('input[name="create-use-case"]:checked')].map((el) => el.value);
+        const intent = document.getElementById('create-intent')?.value || 'request_service';
 
         if (!validateWizardStep(1)) { showWizardStep(1); return; }
         if (!validateWizardStep(2)) { showWizardStep(2); return; }
-        if (!sectors.length) { show(errorBox, 'Selecione pelo menos uma área de atuação.'); return; }
-        if (!use_cases.length) { show(errorBox, 'Selecione pelo menos um objetivo de monitorização.'); return; }
-
         if (createSubmit) createSubmit.disabled = true;
         try {
           const res = await fetch(`${apiBase()}/auth/register`, {
@@ -279,13 +250,14 @@
               'Content-Type': 'application/json',
               'X-GeoVision-Client': 'web',
             },
-            body: JSON.stringify({ email, password, customer_type: persona, sectors, sector_focus: sectors[0], use_cases }),
+            body: JSON.stringify({ email, password, intent }),
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(() => ({}));
           persistSession(data, email);
           setToast('Conta criada com sucesso.', 'success');
-          redirectAfterAuth((data.user && data.user.role) || 'cliente');
+          if (intent === 'view_invitation') window.location.href = 'onboarding.html';
+          else redirectAfterAuth((data.user && data.user.role) || 'cliente');
         } catch (err) {
           show(errorBox, err && err.message ? err.message : 'Erro ao criar conta.');
         } finally {

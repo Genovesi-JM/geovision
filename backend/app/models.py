@@ -713,6 +713,94 @@ class CompanyUser(Base):
     )
 
 
+class Invitation(Base):
+    """One-time organization invitation bound to an authenticated identity.
+
+    Only a SHA-256 digest of the bearer token is persisted. The clear token is
+    returned once by the creation API and is expected to travel in a frontend
+    URL fragment so it is not recorded in ordinary HTTP access logs.
+    """
+
+    __tablename__ = "invitations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    token_prefix: Mapped[str] = mapped_column(String(12), nullable=False)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    membership_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("company_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    target_email: Mapped[str] = mapped_column(String, nullable=False)
+    # Non-null only while pending. A portable unique constraint on this key
+    # closes concurrent double-issue races without blocking later reissues.
+    pending_email_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    identity_hint: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    intended_role: Mapped[str] = mapped_column(String(30), nullable=False)
+    target_type: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="workspace", server_default="workspace"
+    )
+    target_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending", server_default="pending"
+    )
+    invited_by_user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    accepted_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'revoked', 'expired')",
+            name="ck_invitation_status",
+        ),
+        CheckConstraint(
+            "intended_role IN ('admin', 'manager', 'member', 'viewer', 'finance')",
+            name="ck_invitation_customer_role",
+        ),
+        CheckConstraint(
+            "target_type IN ('workspace', 'asset', 'report', 'service_result', 'order')",
+            name="ck_invitation_target_type",
+        ),
+        Index("ix_invitations_token_hash", token_hash, unique=True),
+        Index("ix_invitations_status_expires", status, expires_at),
+        UniqueConstraint(
+            "organization_id",
+            "pending_email_key",
+            name="uq_invitations_pending_org_email",
+        ),
+    )
+
+
 # Canonical Phase 4 vocabulary. The underlying table names intentionally stay
 # stable so existing deployments and downstream foreign keys migrate without a
 # destructive rename.

@@ -19,7 +19,10 @@ tenancy, role permissions, compatibility names, and migration steps are in the
 [organization/workspace RBAC guide](docs/ORGANIZATION_WORKSPACE_RBAC.md). The
 cross-sector hierarchy, GeoJSON contract, PostGIS projection, permissions, and
 legacy Site/IoT mapping are documented in the
-[generic Asset/PostGIS guide](docs/ASSET_POSTGIS_FOUNDATION.md). Run
+[generic Asset/PostGIS guide](docs/ASSET_POSTGIS_FOUNDATION.md).
+Secure invitation acceptance, service-first onboarding intents, and browser/
+mobile deep-link behavior are defined in the
+[invitation onboarding guide](docs/INVITATION_ONBOARDING_DEEP_LINKS.md). Run
 the non-mutating baseline suite with:
 
 ```bash

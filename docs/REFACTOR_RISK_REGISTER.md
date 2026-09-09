@@ -15,7 +15,7 @@ instead of treating legacy structures as disposable.
 | R05 | Medium | Phase 5 adds a generic Asset hierarchy, validated GeoJSON, bbox fallback, and an optional generated PostGIS geometry/GiST projection; legacy Site and IoT tables remain compatibility facades and a database without the extension stays in portable-only mode | Operators could mistake fallback storage for production PostGIS readiness, or later remove a legacy table before all `site_id` consumers migrate | Gate deployment on `postgis_full_version()`, geometry/index verification and a restored-data count audit; retire legacy tables only after explicit consumer cutover |
 | R06 | High | Static web, Flutter and external/device clients depend on the current route and payload shapes | Moving routers during modularization can break working clients | Record current OpenAPI, preserve route prefixes, add contract tests and use compatibility facades before moving implementations |
 | R07 | Medium | Customer roles and internal GeoVision assignments are now separate, but `users.role = admin` remains a documented temporary bridge for old deployments/tests | A legacy staff record can retain platform access until the bridge is removed | Audit `ADMIN_EMAILS`, verify all admins have `GV_SUPER_ADMIN`, move staff grants to `internal_role_assignments`, then remove the legacy bridge after client/cutover validation |
-| R08 | High | There is no invitation-first path into an existing workspace/asset/result | Post-service customers must use generic onboarding and may create duplicate sites | Add expiring, single-use, tenant-scoped invitations and deep-link tests in Phase 6 |
+| R08 | Medium | Phase 6 provides expiring, single-use, tenant-scoped invitations into an existing workspace/asset/result, exact authenticated-email binding, and browser/native deep-link contracts; production HTTPS app-link association and durable invitation email delivery are not deployed yet | A deployment could fall back to browser/custom-scheme handling or fail to deliver an invitation even though acceptance itself is safe | Complete signed-domain association and notification delivery in the release/notification phases; monitor issue-to-accept conversion without recording tokens |
 | R09 | High | IoT MQTT and offline detection run inside each API process; Redis fan-out is not active | Multiple API replicas can duplicate work or fail to deliver consistent live events | Move durable work behind the event/outbox boundary and add distributed coordination before scaling replicas |
 | R10 | High | ERP outbox work is provider-pinned and has bounded due-time retries plus terminal failure state, but no independent scheduled worker or dead-letter/operator workflow; provider-side ERP deduplication is not yet proven | ERP records remain pending unless sync is invoked manually, terminal work lacks a dedicated recovery surface, and an uncertain provider write requires manual reconciliation | Add an asynchronous worker with concurrency control, terminal/dead-letter visibility and operator controls in Phase 13; permit uncertain-write retries only after provider-side uniqueness/idempotency is verified |
 | R11 | High | Typed configuration fails closed for signing/encryption in staging/production, but the JWT guard is syntactic rather than an entropy assessment and most provider validation occurs when a factory/adapter is used; local/development may still generate an ephemeral JWT key or explicit `plain:` connector compatibility values | Misclassified environments can invalidate sessions, weak-looking secrets can pass a length/placeholder check, or a dormant provider misconfiguration can remain undiscovered until use | Use high-entropy managed secrets, exercise every enabled provider in deployment checks, keep redacted diagnostics, require encryption anywhere real connector credentials are used, and track historical-row remediation under R24 |
@@ -195,3 +195,24 @@ without a compatibility plan.
   KPI provenance, IoT edge behavior, and customer navigation remain owned by
   their later phases; the common Asset table contains no sector-specific
   measurement columns.
+
+## Phase 6 outcome
+
+- **Reduced:** R08, because invitation tokens are random, stored only as
+  digests, expire, revoke, accept once, bind exclusively to the authenticated
+  internal identity, and open a server-validated existing destination.
+- **Contained:** Exact normalized-email matching fails closed without a client
+  override. Owner roles, cross-tenant targets, viewer issuance, secret-like
+  metadata, tampered tokens, and reuse by another identity are rejected.
+- **Reduced:** Duplicate onboarding risk, because `view_invitation`
+  registration intentionally creates no starter company/workspace and login
+  suppresses legacy auto-provisioning while a recipient has a live invitation.
+- **Contained:** Browser tokens remain in URL fragments and tab storage; native
+  custom-scheme routing preserves the destination through authentication.
+  Clear tokens are returned once and excluded from persistence and audit logs.
+- **Residual:** Production HTTPS universal/app links need domain association,
+  signed entitlement validation, and release testing. Durable email delivery is
+  owned by Phase 20; clients currently use the secure API/deep-link contract.
+- **Unchanged:** Existing legacy membership creation remains compatible.
+  Historical pending memberships receive no fabricated token and require an
+  explicit secure reissue.

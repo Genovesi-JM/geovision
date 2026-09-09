@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
-  <title>Configurar conta – GeoVision</title>
+  <title>Começar – GeoVision</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <link rel="stylesheet" href="assets/css/style.css" />
@@ -96,43 +96,66 @@
       accent-color: #38bdf8;
       cursor: pointer;
     }
+    .intent-grid { display: grid; gap: 0.7rem; }
+    .intent-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 0.75rem;
+      padding: 0.9rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.035);
+      cursor: pointer;
+    }
+    .intent-card:has(input:checked) {
+      border-color: #38bdf8;
+      background: rgba(56,189,248,0.1);
+    }
+    .intent-card input { width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; }
+    .intent-card strong, .intent-card small { display: block; }
+    .intent-card small { margin-top: 0.2rem; color: #9fb4d3; line-height: 1.35; }
+    .invitation-summary {
+      display: none;
+      padding: 0.9rem;
+      border-radius: 12px;
+      border: 1px solid rgba(56,189,248,0.35);
+      background: rgba(56,189,248,0.08);
+      color: #dceeff;
+    }
   </style>
 </head>
 <body>
   <div class="shell">
-    <h1 class="title" data-i18n="onboarding.title">Configurar tipo de conta</h1>
-    <p class="subtitle" id="welcome-text" data-i18n="onboarding.welcome">Bem-vindo ao GeoVision.</p>
+    <h1 class="title">O que quer fazer primeiro?</h1>
+    <p class="subtitle" id="welcome-text">Bem-vindo ao GeoVision. Escolha um objetivo; não precisa de escolher um tipo de conta.</p>
 
     <form id="onboarding-form" class="grid">
       <div>
-        <label data-i18n="onboarding.personaLabel">Que tipo de cliente é?</label>
-        <div class="checkbox-grid" id="persona-group">
-          <label class="checkbox-item"><input type="radio" name="persona" value="farm" checked /> <span data-i18n="onboarding.persona.farm">A minha exploração agrícola</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="construction" /> <span data-i18n="commercial.account.construction">Construção / infraestrutura</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="environment" /> <span data-i18n="commercial.account.environment">Ambiente</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="industry" /> <span data-i18n="commercial.account.industry">Indústria / mineração</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="device" /> <span data-i18n="onboarding.persona.device">Só comprei um dispositivo</span></label>
-          <label class="checkbox-item"><input type="radio" name="persona" value="enterprise" /> <span data-i18n="commercial.account.enterprise">Empresa / vários locais</span></label>
+        <label>Escolha o seu próximo passo</label>
+        <div class="intent-grid" id="intent-group">
+          <label class="intent-card"><input type="radio" name="intent" value="request_service" checked /><span><strong>Pedir um serviço</strong><small>Descreva a aquisição, análise ou entrega de que precisa.</small></span></label>
+          <label class="intent-card"><input type="radio" name="intent" value="monitor_asset" /><span><strong>Monitorizar um ativo</strong><small>Adicione um campo, instalação, corredor, mina, porto ou outro local.</small></span></label>
+          <label class="intent-card"><input type="radio" name="intent" value="buy_product" /><span><strong>Comprar um produto</strong><small>Veja equipamentos, sensores e serviços no catálogo.</small></span></label>
+          <label class="intent-card"><input type="radio" name="intent" value="view_invitation" /><span><strong>Ver um convite</strong><small>Entre numa organização e abra trabalho que já existe.</small></span></label>
         </div>
       </div>
-      <div>
-        <label data-i18n="onboarding.sectorsLabel">Setores de atuação (seleciona todos os que se aplicam)</label>
-        <div class="checkbox-grid" id="sectors-group"></div>
+      <div id="invitation-fields" style="display:none;">
+        <label for="invitation-token">Código seguro do convite</label>
+        <input id="invitation-token" type="password" autocomplete="off" placeholder="Abra o link recebido ou cole o código" />
+        <div id="invitation-summary" class="invitation-summary" aria-live="polite"></div>
       </div>
-      <div>
-        <label>O que pretende monitorizar?</label>
-        <div class="checkbox-grid" id="use-cases-group"></div>
-        <p class="subtitle" id="dashboard-profile-hint"></p>
+      <div id="starter-fields">
+        <div>
+          <label for="org-name">Nome da organização (opcional)</label>
+          <input id="org-name" type="text" placeholder="Nome da empresa ou projeto" />
+        </div>
+        <div style="margin-top:1rem;">
+          <label for="account-name">Nome do espaço de trabalho (opcional)</label>
+          <input id="account-name" type="text" placeholder="Ex.: Operações – Luanda" />
+        </div>
       </div>
-      <div>
-        <label for="org-name" data-i18n="onboarding.orgLabel">Nome da organização (opcional)</label>
-        <input id="org-name" type="text" placeholder="Nome da empresa / fazenda" data-i18n-placeholder="onboarding.orgPlaceholder" />
-      </div>
-      <div>
-        <label for="account-name" data-i18n="onboarding.workspaceLabel">Nome do espaço de trabalho (opcional)</label>
-        <input id="account-name" type="text" placeholder="Ex.: GeoVision – Operações Agro" data-i18n-placeholder="onboarding.workspacePlaceholder" />
-      </div>
-      <button type="submit" class="btn-primary" id="submit-btn" data-i18n="onboarding.submit">Guardar e continuar</button>
+      <button type="submit" class="btn-primary" id="submit-btn">Continuar</button>
     </form>
 
     <div id="success-box" class="feedback success" role="status" aria-live="polite" aria-hidden="true"></div>
@@ -140,7 +163,6 @@
   </div>
 
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/account-profiles.js?v=3"></script>
   <script>
     const API_BASE = window.API_BASE;
     const successBox = document.getElementById("success-box");
@@ -159,63 +181,99 @@
       box.setAttribute("aria-hidden", "true");
     }
 
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const linkToken = hashParams.get("invitation");
+    if (linkToken) {
+      sessionStorage.setItem("gv_pending_invitation", linkToken);
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+    const pendingInvitation = linkToken || sessionStorage.getItem("gv_pending_invitation") || "";
+
     const rawUser = localStorage.getItem("gv_user");
     try {
       const u = rawUser ? JSON.parse(rawUser) : null;
       if (u && u.email) {
-        document.getElementById("welcome-text").textContent = `Bem-vindo, ${u.email}. Escolhe como queres usar o GeoVision.`;
+        document.getElementById("welcome-text").textContent = `Bem-vindo, ${u.email}. Escolha o resultado que quer obter primeiro.`;
       }
     } catch (_) {}
 
     const token = localStorage.getItem("gv_token");
     if (!token) {
-      window.location.href = "login.html";
+      window.location.replace("login.html?return=%2Fonboarding.html");
     }
 
-    const profileConfig = window.GV_ACCOUNT_PROFILE_CONFIG;
-    function renderChoices(hostId, name, values, defaults, labels) {
-      const host = document.getElementById(hostId); host.innerHTML = "";
-      values.forEach((value) => {
-        const label = document.createElement("label"); label.className = "checkbox-item";
-        const input = document.createElement("input"); input.type = "checkbox"; input.name = name; input.value = value; input.checked = defaults.includes(value);
-        const span = document.createElement("span"); span.textContent = labels[value] || value;
-        label.append(input, span); host.appendChild(label);
+    const invitationFields = document.getElementById("invitation-fields");
+    const starterFields = document.getElementById("starter-fields");
+    const invitationInput = document.getElementById("invitation-token");
+    const invitationSummary = document.getElementById("invitation-summary");
+    if (pendingInvitation) invitationInput.value = pendingInvitation;
+
+    function selectedIntent() {
+      return (document.querySelector('input[name="intent"]:checked') || {}).value || "request_service";
+    }
+    function renderIntent() {
+      const invitation = selectedIntent() === "view_invitation";
+      invitationFields.style.display = invitation ? "block" : "none";
+      starterFields.style.display = invitation ? "none" : "block";
+    }
+    document.querySelectorAll('input[name="intent"]').forEach((r) => r.addEventListener("change", renderIntent));
+    if (pendingInvitation) document.querySelector('input[value="view_invitation"]').checked = true;
+    renderIntent();
+
+    async function previewInvitation() {
+      const invitationToken = invitationInput.value.trim();
+      if (!invitationToken) return;
+      const response = await fetch(API_BASE + "/invitations/preview", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({token: invitationToken}),
       });
+      if (!response.ok) throw new Error("Este convite já não está disponível.");
+      const preview = await response.json();
+      invitationSummary.textContent = `${preview.organization_name} · ${preview.workspace_name} · acesso ${preview.intended_role}`;
+      invitationSummary.style.display = "block";
     }
-    function renderProfileChoices() {
-      const customerType = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
-      const profile = profileConfig.profiles[customerType] || profileConfig.profiles.home;
-      renderChoices("sectors-group", "sector", profile.sectors, profile.defaults, profileConfig.sectorLabels);
-      renderChoices("use-cases-group", "use_case", profile.uses, profile.defaultUses, profileConfig.useCaseLabels);
-      document.getElementById("dashboard-profile-hint").textContent = profile.dashboard;
+    if (pendingInvitation && token) previewInvitation().catch((err) => show(errorBox, err.message));
+
+    function webDestination(destination) {
+      if (!destination) return "dashboard.html";
+      if (destination.kind === "order") return `minhas-compras.html?order=${encodeURIComponent(destination.target_id || "")}`;
+      if (destination.kind === "asset") return `dashboard.html?asset=${encodeURIComponent(destination.target_id || "")}`;
+      if (destination.kind === "report") return `dashboard.html?report=${encodeURIComponent(destination.target_id || "")}`;
+      if (destination.kind === "service_result") return `dashboard.html?request=${encodeURIComponent(destination.target_id || "")}`;
+      return "dashboard.html";
     }
-    document.querySelectorAll('input[name="persona"]').forEach((r) => r.addEventListener("change", renderProfileChoices));
-    renderProfileChoices();
 
     document.getElementById("onboarding-form").addEventListener("submit", async (e) => {
       e.preventDefault();
       hide(errorBox); hide(successBox);
 
-      const selectedSectors = [...document.querySelectorAll('input[name="sector"]:checked')].map(cb => cb.value);
-      const selectedUseCases = [...document.querySelectorAll('input[name="use_case"]:checked')].map(cb => cb.value);
       const orgName = document.getElementById("org-name").value.trim();
       const accountName = document.getElementById("account-name").value.trim();
-      // Customer type drives the dashboard experience (simple shell vs advanced console).
-      const persona = (document.querySelector('input[name="persona"]:checked') || {}).value || "farm";
-
-      if (selectedSectors.length === 0) {
-        show(errorBox, "Seleciona pelo menos um setor.");
-        return;
-      }
-      if (selectedUseCases.length === 0) {
-        show(errorBox, "Seleciona pelo menos um objetivo de monitorização.");
-        return;
-      }
+      const intent = selectedIntent();
 
       const btn = document.getElementById("submit-btn");
       btn.disabled = true;
 
       try {
+        if (intent === "view_invitation") {
+          const invitationToken = invitationInput.value.trim();
+          if (!invitationToken) throw new Error("Abra o link do convite ou cole o código seguro.");
+          const accepted = await fetch(API_BASE + "/invitations/accept", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "Authorization": "Bearer " + token},
+            body: JSON.stringify({token: invitationToken}),
+          });
+          if (!accepted.ok) {
+            const failure = await accepted.json().catch(() => ({}));
+            throw new Error((failure.detail && failure.detail.message) || "Não foi possível aceitar o convite.");
+          }
+          const result = await accepted.json();
+          sessionStorage.removeItem("gv_pending_invitation");
+          localStorage.setItem("gv_account_id", result.invitation.destination.workspace_id);
+          window.location.replace(webDestination(result.invitation.destination));
+          return;
+        }
         const res = await fetch(API_BASE + "/auth/onboarding", {
           method: "POST",
           headers: {
@@ -223,10 +281,7 @@
             "Authorization": "Bearer " + token,
           },
           body: JSON.stringify({
-            sectors: selectedSectors,
-            sector_focus: selectedSectors[0],
-            customer_type: persona,
-            use_cases: selectedUseCases,
+            intent,
             org_name: orgName || null,
             account_name: accountName || null,
           }),
@@ -255,8 +310,9 @@
           ts: Date.now(),
         }));
 
-        const isAdmin = data.user && data.user.role === "admin";
-        window.location.href = isAdmin ? "admin.html" : "dashboard.html";
+        if (data.user && data.user.role === "admin") window.location.href = "admin.html";
+        else if (intent === "buy_product") window.location.href = "loja.html";
+        else window.location.href = `dashboard.html?intent=${encodeURIComponent(intent)}`;
       } catch (err) {
         console.error("onboarding", err);
         show(errorBox, (err && err.message) ? err.message : "Erro ao guardar configuração.");

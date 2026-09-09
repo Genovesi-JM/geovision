@@ -36,7 +36,7 @@ test.describe('Login smoke + a11y', () => {
     }, null, { timeout: 5000 });
   });
 
-  test('adapts account setup to the selected customer profile', async ({ page }) => {
+  test('uses service-first account setup without an account-type choice', async ({ page }) => {
     await page.goto(`${BASE}/login.html`, { waitUntil: 'domcontentloaded' });
     await page.locator('#toggle-create').click();
     await page.fill('#create-email', 'profile-check@example.com');
@@ -46,11 +46,80 @@ test.describe('Login smoke + a11y', () => {
     await page.fill('#create-password-confirm', 'profile-check-123');
     await page.locator('#wizard-next').click();
 
-    await expect(page.locator('#create-persona option')).toHaveCount(6);
-    await page.locator('#create-persona').selectOption('industry');
-    await expect(page.locator('#create-sectors')).toContainText('Indústria & Mineração');
-    await expect(page.locator('#create-use-cases')).toContainText('Inventário visual');
-    await expect(page.locator('#create-dashboard-hint')).toHaveText('Console operacional para indústria ou mineração.');
+    await expect(page.locator('#create-intent option')).toHaveCount(4);
+    await expect(page.locator('#create-intent')).toContainText('Pedir um serviço');
+    await expect(page.locator('#create-intent')).toContainText('Monitorizar um ativo');
+    await expect(page.locator('#create-intent')).toContainText('Comprar um produto');
+    await expect(page.locator('#create-intent')).toContainText('Ver um convite');
+    await expect(page.locator('#create-form')).toContainText('Não precisa de escolher um tipo de conta');
+    await expect(page.locator('#create-persona')).toHaveCount(0);
+  });
+
+  test('invitation fragment survives authentication context and opens existing work', async ({ page }) => {
+    const invitationToken = 'phase6_secure_invitation_token_12345678901234567890';
+    let acceptedBody = null;
+    let acceptedAuthorization = null;
+    await page.addInitScript(() => {
+      localStorage.setItem('gv_token', 'recipient-access-token');
+      localStorage.setItem('gv_user', JSON.stringify({
+        id: 'recipient-1', email: 'recipient@example.test', role: 'cliente',
+      }));
+    });
+    await page.route('**/invitations/preview', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          invitation_id: 'invite-1',
+          organization_name: 'Existing Water Operations',
+          workspace_name: 'River Monitoring',
+          target_email_hint: 'r********@example.test',
+          intended_role: 'viewer',
+          status: 'pending',
+          expires_at: '2026-09-10T12:00:00',
+          destination: {
+            kind: 'asset', organization_id: 'org-1', workspace_id: 'workspace-1',
+            target_id: 'asset-existing-1', path: '/assets/asset-existing-1',
+          },
+        }),
+      });
+    });
+    await page.route('**/invitations/accept', async (route) => {
+      acceptedBody = route.request().postDataJSON();
+      acceptedAuthorization = await route.request().headerValue('authorization');
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          accepted: true,
+          idempotent: false,
+          invitation: {
+            destination: {
+              kind: 'asset', organization_id: 'org-1', workspace_id: 'workspace-1',
+              target_id: 'asset-existing-1', path: '/assets/asset-existing-1',
+            },
+          },
+        }),
+      });
+    });
+    await page.route('**/dashboard.html?asset=*', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Existing asset</title>' });
+    });
+
+    await page.goto(`${BASE}/onboarding.html#invitation=${invitationToken}`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(page).toHaveURL(`${BASE}/onboarding.html`);
+    await expect(page.locator('input[value="view_invitation"]')).toBeChecked();
+    await expect(page.locator('#starter-fields')).toBeHidden();
+    await expect(page.locator('#invitation-summary')).toContainText('Existing Water Operations');
+    await page.locator('#submit-btn').click();
+    await page.waitForURL(/dashboard\.html\?asset=asset-existing-1$/);
+
+    expect(acceptedBody).toEqual({ token: invitationToken });
+    expect(acceptedAuthorization).toBe('Bearer recipient-access-token');
+    expect(await page.evaluate(() => sessionStorage.getItem('gv_pending_invitation'))).toBeNull();
+    expect(await page.evaluate(() => localStorage.getItem('gv_account_id'))).toBe('workspace-1');
   });
 
   test('web password login requests an access-only session and clears stale refresh state', async ({ page }) => {

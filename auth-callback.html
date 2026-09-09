@@ -102,6 +102,11 @@
         '/dashboard.html': 'dashboard.html',
         '/onboarding.html': 'onboarding.html',
       };
+      const pendingInvitation = sessionStorage.getItem('gv_pending_invitation');
+      if (pendingInvitation) {
+        window.location.replace(new URL(`onboarding.html#invitation=${encodeURIComponent(pendingInvitation)}`, window.location.href).href);
+        return;
+      }
       const targetPage = allowedRedirects[redirect] || 'dashboard.html';
       window.location.replace(new URL(targetPage, window.location.href).href);
     })();

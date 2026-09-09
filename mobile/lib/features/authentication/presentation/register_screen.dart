@@ -5,13 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
-import '../../account/domain/account_profile.dart';
 import '../domain/registration_request.dart';
 import 'auth_controller.dart';
 import 'registration_copy.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({super.key, this.returnTo});
+
+  final String? returnTo;
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
@@ -30,15 +31,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _loading = false;
   bool _obscure = true;
   String? _error;
-  AccountProfileDefinition _profile = AccountProfiles.public[1];
-  late Set<String> _sectors;
-  late Set<String> _useCases;
+  String _intent = 'request_service';
 
   @override
   void initState() {
     super.initState();
-    _sectors = {_profile.defaultSector};
-    _useCases = {..._profile.defaultUseCases};
+    if (widget.returnTo?.startsWith('/invitation/accept') == true) {
+      _intent = 'view_invitation';
+    }
   }
 
   @override
@@ -226,77 +226,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
 
   Widget _profileStep(RegistrationCopy copy) => Column(
-        key: ValueKey(_profile.id),
+        key: ValueKey(_intent),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(copy.chooseProfile,
+          Text(copy.chooseIntent,
               style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: GvSpacing.sm),
-          DropdownButtonFormField<AccountProfileDefinition>(
-            initialValue: _profile,
-            isExpanded: true,
-            items: AccountProfiles.public
-                .map((profile) => DropdownMenuItem(
-                    value: profile, child: Text(copy.profile(profile.id))))
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _profile = value;
-                _sectors = {value.defaultSector};
-                _useCases = {...value.defaultUseCases};
-              });
-            },
+          ...[
+            'request_service',
+            'monitor_asset',
+            'buy_product',
+            'view_invitation',
+          ].map((intent) => Card(
+                color: _intent == intent
+                    ? GvColors.accentCyan.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: GvSpacing.sm),
+                  leading: Icon(
+                    _intent == intent
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
+                    color: _intent == intent
+                        ? GvColors.accentCyan
+                        : GvColors.textMuted,
+                  ),
+                  title: Text(copy.intent(intent)),
+                  subtitle: Text(copy.intentDescription(intent)),
+                  onTap: () => setState(() => _intent = intent),
+                ),
+              )),
+          const SizedBox(height: GvSpacing.md),
+          TextField(
+            controller: _organisation,
+            decoration: InputDecoration(
+                labelText: copy.organisation,
+                prefixIcon: const Icon(Icons.business_outlined)),
           ),
-          if (_profile.isCompany) ...[
-            const SizedBox(height: GvSpacing.md),
-            TextField(
-              controller: _organisation,
-              decoration: InputDecoration(
-                  labelText: copy.organisation,
-                  prefixIcon: const Icon(Icons.business_outlined)),
-            ),
-          ],
-          const SizedBox(height: GvSpacing.lg),
-          Text(copy.chooseSectors,
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: GvSpacing.xs),
-          Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: _profile.allowedSectors
-                  .map((id) => FilterChip(
-                        label: Text(copy.sector(id)),
-                        selected: _sectors.contains(id),
-                        onSelected: (selected) => setState(() {
-                          if (selected) {
-                            _sectors.add(id);
-                          } else if (_sectors.length > 1) {
-                            _sectors.remove(id);
-                          }
-                        }),
-                      ))
-                  .toList()),
-          const SizedBox(height: GvSpacing.lg),
-          Text(copy.chooseGoals,
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: GvSpacing.xs),
-          Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: _profile.allowedUseCases
-                  .map((id) => FilterChip(
-                        label: Text(copy.useCase(id)),
-                        selected: _useCases.contains(id),
-                        onSelected: (selected) => setState(() {
-                          if (selected) {
-                            _useCases.add(id);
-                          } else if (_useCases.length > 1) {
-                            _useCases.remove(id);
-                          }
-                        }),
-                      ))
-                  .toList()),
+          const SizedBox(height: GvSpacing.sm),
+          Text(copy.noAccountTypeRequired,
+              style: const TextStyle(color: GvColors.textSecondary)),
         ],
       );
 
@@ -319,16 +289,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             email: _email.text,
             password: _password.text,
             fullName: _name.text,
-            customerType: _profile.id,
-            sectors: _sectors.toList(),
-            useCases: _useCases.toList(),
+            intent: _intent,
             organisation: _organisation.text,
           ),
         );
     if (!mounted) return;
     setState(() => _loading = false);
     result.when(
-      ok: (_) => context.go('/portal'),
+      ok: (_) => context.go(widget.returnTo ??
+          (_intent == 'view_invitation' ? '/invitation/accept' : '/portal')),
       err: (failure) => setState(() => _error = failure.message),
     );
   }

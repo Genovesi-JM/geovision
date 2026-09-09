@@ -16,6 +16,7 @@ import '../../features/authentication/presentation/register_screen.dart';
 import '../../features/devices/presentation/devices_screen.dart';
 import '../../features/drones/presentation/drones_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/invitations/presentation/invitation_accept_screen.dart';
 import '../../features/guides/presentation/guides_screen.dart';
 import '../../features/maps/presentation/site_map_screen.dart';
 import '../../features/orders/presentation/orders_screen.dart';
@@ -33,24 +34,62 @@ import '../../app/app_shell.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authControllerProvider);
 
+  String? safeReturn(String? value) {
+    if (value == null || !value.startsWith('/') || value.startsWith('//')) {
+      return null;
+    }
+    final uri = Uri.tryParse(value);
+    if (uri == null || uri.hasScheme || uri.host.isNotEmpty) return null;
+    return value;
+  }
+
   return GoRouter(
     initialLocation: '/portal',
     redirect: (context, state) {
       final authRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
       if (auth.mode == AuthMode.unknown) return null;
-      if (!auth.isSignedIn) return authRoute ? null : '/login';
-      if (auth.isSignedIn && authRoute) return '/portal';
+      if (!auth.isSignedIn) {
+        if (authRoute) return null;
+        return Uri(
+          path: '/login',
+          queryParameters: {'return': state.uri.toString()},
+        ).toString();
+      }
+      if (auth.isSignedIn && authRoute) {
+        return safeReturn(state.uri.queryParameters['return']) ?? '/portal';
+      }
       return null;
     },
     routes: [
-      GoRoute(path: '/login', builder: (c, s) => const LoginScreen()),
-      GoRoute(path: '/register', builder: (c, s) => const RegisterScreen()),
+      GoRoute(
+        path: '/login',
+        builder: (c, s) => LoginScreen(
+          returnTo: safeReturn(s.uri.queryParameters['return']),
+        ),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (c, s) => RegisterScreen(
+          returnTo: safeReturn(s.uri.queryParameters['return']),
+        ),
+      ),
       GoRoute(
         path: '/reset-password',
         builder: (c, s) => ResetPasswordScreen(
           token: s.uri.queryParameters['token'] ?? '',
         ),
+      ),
+      GoRoute(
+        path: '/invitation/accept',
+        builder: (c, s) {
+          final fragment = Uri.splitQueryString(
+            s.uri.fragment.startsWith('token=') ? s.uri.fragment : '',
+          );
+          return InvitationAcceptScreen(
+            initialToken: s.uri.queryParameters['token'] ?? fragment['token'],
+          );
+        },
       ),
       ShellRoute(
         builder: (c, s, child) => AppShell(child: child),

@@ -10,7 +10,9 @@ import 'auth_controller.dart';
 import 'registration_copy.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.returnTo});
+
+  final String? returnTo;
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -42,7 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     res.when(
-      ok: (_) => context.go('/portal'),
+      ok: (_) => context.go(widget.returnTo ?? '/portal'),
       err: (f) => setState(() => _error = f.message),
     );
   }
@@ -144,8 +146,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: Text(l10n.forgotPassword),
                           ),
                           OutlinedButton(
-                            onPressed:
-                                _loading ? null : () => context.go('/register'),
+                            onPressed: _loading
+                                ? null
+                                : () => context.go(Uri(
+                                      path: '/register',
+                                      queryParameters: widget.returnTo == null
+                                          ? null
+                                          : {'return': widget.returnTo!},
+                                    ).toString()),
                             child: Text(registration.createAccount),
                           ),
                         ],

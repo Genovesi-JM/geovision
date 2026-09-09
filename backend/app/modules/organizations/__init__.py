@@ -13,6 +13,13 @@ definition = DomainModule(
             "app.routers.organizations",
             35,
         ),
+        RouterMount(
+            "organizations.invitations",
+            "organizations",
+            "app.routers.invitations",
+            37,
+            secondary_owners=("identity",),
+        ),
         RouterMount("organizations.accounts", "organizations", "app.routers.accounts", 40),
         RouterMount(
             "organizations.customer_accounts",
