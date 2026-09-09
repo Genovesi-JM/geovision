@@ -3,10 +3,11 @@ SHELL := /bin/bash
 MOBILE := mobile
 BACKEND := backend
 
-.PHONY: help autodev dev mobile-dev setup simulator test release-check logs stop analyze mobile-test l10n ios android backend-run backend-test format clean doctor
+.PHONY: help baseline autodev dev mobile-dev setup simulator test release-check logs stop analyze mobile-test l10n ios android backend-run backend-test format clean doctor
 
 help:
 	@echo "GeoVision make targets:"
+	@echo "  make baseline      Run non-mutating backend, web and Flutter baseline checks"
 	@echo "  make autodev       Run the full Mac build/verify loop (START_AUTODEV_MAC.command)"
 	@echo "  make setup         Prepare and start the local IoT stack"
 	@echo "  make dev           Start the GeoVision IoT Docker stack"
@@ -27,6 +28,9 @@ help:
 
 autodev:
 	./START_AUTODEV_MAC.command
+
+baseline:
+	bash scripts/verify_baseline.sh
 
 setup:
 	./start_geovision_iot.command

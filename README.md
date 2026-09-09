@@ -2,6 +2,20 @@
 
 Curto guia para correr a app localmente, executar testes e o smoke e2e.
 
+## Refactor baseline
+
+Before starting a playbook phase, read the verified
+[repository architecture baseline](docs/REPOSITORY_ARCHITECTURE_BASELINE.md) and
+[refactor risk register](docs/REFACTOR_RISK_REGISTER.md). Run the non-mutating
+baseline suite with:
+
+```bash
+make baseline
+```
+
+Set `GEOVISION_BASELINE_BUILDS=1` to include Android and iOS simulator debug
+builds. This check does not switch branches or rewrite project status files.
+
 Prerequisitos
 - macOS / Linux / Windows com WSL
 - Python 3.11+ and pip
