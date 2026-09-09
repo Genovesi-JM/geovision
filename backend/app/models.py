@@ -1446,6 +1446,161 @@ class DroneMission(Base):
     )
 
 
+class Acquisition(Base):
+    """Provider-neutral data-acquisition mission attached to a generic asset."""
+
+    __tablename__ = "acquisitions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    acquisition_number: Mapped[str] = mapped_column(
+        String(40), nullable=False, unique=True, index=True
+    )
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("assets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    order_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("fulfilment_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    acquisition_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    state: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="DRAFT", server_default="DRAFT", index=True
+    )
+    provider_code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    provenance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    output_refs_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    scheduled_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    scheduled_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    captured_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    legacy_source: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    legacy_source_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    updated_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "acquisition_type IN ('DRONE', 'SATELLITE', 'IOT', "
+            "'MANUAL_INSPECTION', 'THIRD_PARTY_DATA')",
+            name="ck_acquisition_type",
+        ),
+        CheckConstraint(
+            "state IN ('DRAFT', 'PLANNED', 'SCHEDULED', 'IN_PROGRESS', "
+            "'DATA_CAPTURED', 'PROCESSING', 'COMPLETED', 'CANCELLED', "
+            "'FAILED', 'NEEDS_REFLIGHT')",
+            name="ck_acquisition_state",
+        ),
+        CheckConstraint(
+            "scheduled_end IS NULL OR scheduled_start IS NULL OR scheduled_end > scheduled_start",
+            name="ck_acquisition_schedule_window",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_acquisition_version"),
+        UniqueConstraint(
+            "legacy_source", "legacy_source_id", name="uq_acquisition_legacy_source_id"
+        ),
+        Index("ix_acquisitions_asset_chronology", asset_id, created_at),
+    )
+
+
+class DroneAcquisitionDetail(Base):
+    """Nullable drone-only extension; non-drone acquisitions have no row."""
+
+    __tablename__ = "drone_acquisition_details"
+
+    acquisition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("acquisitions.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    aircraft_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("drone_aircraft.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    payload_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    operator_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    contractor_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("operations_contractors.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    mission_requirements_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    capture_area_geojson: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    flight_metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    reflight_of_acquisition_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("acquisitions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    reflight_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "NOT (operator_user_id IS NOT NULL AND contractor_id IS NOT NULL)",
+            name="ck_drone_acquisition_single_operator",
+        ),
+        CheckConstraint(
+            "reflight_of_acquisition_id IS NULL OR reflight_of_acquisition_id <> acquisition_id",
+            name="ck_drone_acquisition_not_own_reflight",
+        ),
+    )
+
+
 # â”€â”€ Connector â”€â”€
 
 class Connector(Base):

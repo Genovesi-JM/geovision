@@ -26,6 +26,10 @@ from app.models import (
 )
 from app.modules.organizations.services import get_user_company_id
 from app.modules.assets.services import synchronize_legacy_site
+from app.modules.missions.services import (
+    acquisition_for_legacy,
+    synchronize_legacy_drone_mission,
+)
 from app.modules.analytics.kpi_catalog import get_kpis_for_sectors
 
 _get_user_company_id = get_user_company_id
@@ -348,8 +352,10 @@ class MissionCreate(BaseModel):
     boundary: list[dict[str, float]] = Field(min_length=3, max_length=500)
 
 
-def _mission_payload(item: DroneMission) -> dict[str, Any]:
-    return {
+def _mission_payload(
+    item: DroneMission, acquisition_id: str | None = None
+) -> dict[str, Any]:
+    payload = {
         "id": item.id,
         "site_id": item.site_id,
         "aircraft_id": item.aircraft_id,
@@ -366,6 +372,9 @@ def _mission_payload(item: DroneMission) -> dict[str, Any]:
         "provider_reference": item.provider_reference,
         "updated_at": item.updated_at.isoformat(),
     }
+    if acquisition_id:
+        payload["acquisition_id"] = acquisition_id
+    return payload
 
 
 @router.get("/drone-missions")
@@ -379,7 +388,19 @@ def list_drone_missions(
         .order_by(DroneMission.updated_at.desc())
         .all()
     ) if company_id else []
-    return [_mission_payload(row) for row in rows]
+    return [
+        _mission_payload(
+            row,
+            (
+                linked.id
+                if (linked := acquisition_for_legacy(
+                    db, source="drone_mission", source_id=row.id
+                ))
+                else None
+            ),
+        )
+        for row in rows
+    ]
 
 
 @router.post("/drone-missions", status_code=status.HTTP_201_CREATED)
@@ -416,9 +437,11 @@ def create_drone_mission(
         route_json=json.dumps(payload.boundary),
     )
     db.add(item)
+    db.flush()
+    acquisition = synchronize_legacy_drone_mission(db, item, actor=user)
     db.commit()
     db.refresh(item)
-    return _mission_payload(item)
+    return _mission_payload(item, acquisition.id)
 
 
 class MissionApproval(BaseModel):
@@ -448,10 +471,11 @@ def approve_drone_mission(
         raise HTTPException(status_code=409, detail="Aircraft cannot execute automated missions")
     item.checklist_json = json.dumps(checklist)
     item.status = "approved_for_provider_handoff"
+    acquisition = synchronize_legacy_drone_mission(db, item, actor=user)
     db.commit()
     db.refresh(item)
     return {
-        **_mission_payload(item),
+        **_mission_payload(item, acquisition.id),
         "execution": "provider_handoff_required",
         "message": "Open the approved DJI provider to upload and supervise this mission.",
     }

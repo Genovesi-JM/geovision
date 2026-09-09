@@ -148,8 +148,8 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Assets | Generic organization/workspace-owned hierarchy, validated GeoJSON, portable bbox queries, optional PostGIS projection, and legacy Site/IoT mirroring are implemented |
 | Catalog | Canonical first-party products, services, plans, installations, inspections and analyses; legacy shop/product routes are compatibility projections |
 | Orders | Canonical customer/internal order APIs, catalogue pricing snapshots, separate fulfilment/settlement state machines, optimistic lifecycle guards, and legacy shop/order projections are implemented |
-| Operations | Private suppliers, generic contractors/capabilities, guarded assignments, and least-privilege contractor self-access are implemented; admin/mobile/inspection facades remain transitional and Phase 10 owns fulfilment jobs |
-| Missions | Drone mission contracts exist inside the mobile facade; Phase 11 owns acquisition abstraction |
+| Operations | Private suppliers, generic contractors/capabilities, guarded assignments, least-privilege contractor self-access, and canonical fulfilment jobs are implemented; admin/mobile/inspection facades remain transitional |
+| Missions | Provider-neutral drone, satellite, IoT, manual-inspection, and third-party acquisitions share one asset history; drone details and legacy mobile/inspection routes are compatibility extensions |
 | Datasets | Dataset/file CRUD and upload flows exist; Phase 12 owns storage/provider hardening |
 | Processing | Boundary only; Phase 14 owns processing jobs and photogrammetry providers |
 | Analytics | KPI catalogue, risk calculations and AI explanation endpoints exist; numeric truth remains structured |

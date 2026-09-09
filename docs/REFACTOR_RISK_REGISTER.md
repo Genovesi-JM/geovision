@@ -36,6 +36,7 @@ instead of treating legacy structures as disposable.
 | R26 | High | The enterprise prototype persisted raw provider callback payloads; Phase 8 preserves that table as `legacy_payment_webhook_events` while all new callbacks use a digest-only ledger | Historical payloads may contain personal or provider-sensitive data beyond the required retention period | Restrict table access now; inventory/classify rows, define legal retention, export only required evidence, then securely purge raw payloads with Phase 25 audit approval and a verified backup/restore plan |
 | R27 | High | Phase 9 stores private contractor/supplier contacts, qualifications, insurance, licences, quality notes and cost-bearing assignments in GeoVision | A broad customer/staff query, unsafe metadata field, or backup/export could expose personal data, internal margins, or another customer's operational details | Keep resource APIs internal, contractor views allowlisted and assignment-scoped, reject credentials in metadata, audit changes, restrict database/export access, define retention and document-access controls, and review live privacy/legal requirements before onboarding contractors |
 | R28 | High | Phase 10 derives executable job graphs from paid service lines and currently publishes operational events to a transactional local ledger | A bad dependency graph can deadlock or start processing before capture/upload completes; a multi-process deployment cannot yet distribute local events to workers | Keep planning idempotent, reject cross-order/self/cyclic edges, gate work on completed dependencies, audit/version every mutation, reconcile orders against jobs, and replace the local publisher behind its port with the Phase 13 durable broker/outbox before horizontal worker scaling |
+| R29 | High | Phase 11 maps legacy drone missions and manual inspections into a common acquisition history while preserving both source tables and APIs | A partial cutover or repeated backfill can duplicate history, lose flight detail, leak provider/assignee metadata, or let sector code depend on drone-only structures | Keep deterministic legacy identities and uniqueness constraints, dual-write through compatibility services, expose allowlisted customer projections, test rollback/re-upgrade parity, and retire legacy tables only after deployed clients and row-count checks confirm cutover |
 
 ## Controls that already reduce risk
 
@@ -311,3 +312,21 @@ without a compatibility plan.
 - **Introduced and controlled:** R28 records job-graph and local dispatch risk.
   The publisher is a replaceable domain port and its current implementation is
   an idempotent transactional ledger; distributed dispatch remains Phase 13.
+
+## Phase 11 outcome
+
+- **Resolved:** Drone, satellite, IoT, manual inspection, and third-party data
+  capture now share a provider-neutral Acquisition lifecycle linked to a generic
+  asset and, when appropriate, an order or fulfilment job.
+- **Contained:** Drone-only aircraft, payload, operator, capture-area, flight,
+  and reflight fields live in an optional extension; no non-drone acquisition
+  requires them. Sector consumers read common output references without knowing
+  which modality captured the data.
+- **Contained:** Customer projections omit provider references, provenance,
+  internal resource identities, raw storage keys, and credential-like metadata.
+  Internal mission routes retain the operational detail behind staff roles.
+- **Contained:** Legacy drone missions and asset inspections use deterministic,
+  idempotent mappings. Additive migration, rollback, and re-upgrade tests verify
+  source preservation and stable acquisition counts.
+- **Introduced and controlled:** R29 records the compatibility and privacy risk
+  during dual-write cutover. Legacy retirement remains explicitly deferred.

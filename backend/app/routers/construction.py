@@ -22,6 +22,10 @@ from app.core.database import get_db
 from app.deps import get_current_user
 from app.models import AssetInspection, AuditLog, Company, IotAsset, Site, User
 from app.modules.organizations.services import get_user_company_id
+from app.modules.missions.services import (
+    acquisition_for_legacy,
+    synchronize_legacy_inspection,
+)
 
 _get_user_company_id = get_user_company_id
 from app.core.time import utc_now
@@ -55,8 +59,10 @@ class InspectionCreate(BaseModel):
     longitude: float | None = Field(default=None, ge=-180, le=180)
 
 
-def _inspection_payload(row: AssetInspection) -> dict:
-    return {
+def _inspection_payload(
+    row: AssetInspection, acquisition_id: str | None = None
+) -> dict:
+    payload = {
         "id": row.id, "asset_id": row.asset_id, "site_id": row.site_id,
         "category": row.category, "result": row.result, "notes": row.notes,
         "inspector_name": row.inspector_name, "checklist": json.loads(row.checklist_json or "{}"),
@@ -64,6 +70,9 @@ def _inspection_payload(row: AssetInspection) -> dict:
         "latitude": row.latitude, "longitude": row.longitude,
         "created_at": row.created_at.isoformat() + "Z",
     }
+    if acquisition_id:
+        payload["acquisition_id"] = acquisition_id
+    return payload
 
 
 @router.post("/inspections", status_code=status.HTTP_201_CREATED)
@@ -83,8 +92,10 @@ def create_inspection(payload: InspectionCreate, user: User = Depends(get_curren
     db.add(AuditLog(user_id=user.id, user_email=user.email, action="construction.inspection_created",
                     resource_type="asset_inspection", resource_id=asset.id,
                     details=json.dumps({"result": payload.result, "category": payload.category})))
+    db.flush()
+    acquisition = synchronize_legacy_inspection(db, row, actor=user)
     db.commit(); db.refresh(row)
-    return _inspection_payload(row)
+    return _inspection_payload(row, acquisition.id)
 
 
 @router.get("/inspections")
@@ -93,7 +104,19 @@ def list_inspections(user: User = Depends(get_current_user), db: Session = Depen
     rows = (db.query(AssetInspection)
             .filter(AssetInspection.company_id == company_id)
             .order_by(AssetInspection.created_at.desc()).limit(500).all())
-    return [_inspection_payload(r) for r in rows]
+    return [
+        _inspection_payload(
+            row,
+            (
+                linked.id
+                if (linked := acquisition_for_legacy(
+                    db, source="asset_inspection", source_id=row.id
+                ))
+                else None
+            ),
+        )
+        for row in rows
+    ]
 
 
 @router.get("/assets/{asset_id}/inspections")
@@ -103,7 +126,19 @@ def asset_inspections(asset_id: str, user: User = Depends(get_current_user), db:
     rows = (db.query(AssetInspection)
             .filter(AssetInspection.company_id == company_id, AssetInspection.asset_id == asset_id)
             .order_by(AssetInspection.created_at.desc()).all())
-    return [_inspection_payload(r) for r in rows]
+    return [
+        _inspection_payload(
+            row,
+            (
+                linked.id
+                if (linked := acquisition_for_legacy(
+                    db, source="asset_inspection", source_id=row.id
+                ))
+                else None
+            ),
+        )
+        for row in rows
+    ]
 
 
 @router.get("/assets/{asset_id}/qr.svg")
