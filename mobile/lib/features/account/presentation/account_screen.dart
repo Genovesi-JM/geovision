@@ -165,7 +165,8 @@ class AccountScreen extends ConsumerWidget {
             _Tile(
                 icon: Icons.privacy_tip_outlined,
                 label: text.privacy,
-                onTap: () => _openUrl(context, _privacyUrl, text.linkOpenFailed)),
+                onTap: () =>
+                    _openUrl(context, _privacyUrl, text.linkOpenFailed)),
             _Tile(
                 icon: Icons.gavel_outlined,
                 label: text.terms,

@@ -130,7 +130,9 @@ class AuthRepository {
     try {
       await _api.raw.delete(
         '/auth/account',
-        data: (password == null || password.isEmpty) ? null : {'password': password},
+        data: (password == null || password.isEmpty)
+            ? null
+            : {'password': password},
       );
       await _tokens.clear();
       _log.info('Account deleted; session cleared.');

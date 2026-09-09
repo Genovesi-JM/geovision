@@ -3,7 +3,7 @@ SHELL := /bin/bash
 MOBILE := mobile
 BACKEND := backend
 
-.PHONY: help autodev dev mobile-dev setup simulator test logs stop analyze mobile-test l10n ios android backend-run backend-test format clean doctor
+.PHONY: help autodev dev mobile-dev setup simulator test release-check logs stop analyze mobile-test l10n ios android backend-run backend-test format clean doctor
 
 help:
 	@echo "GeoVision make targets:"
@@ -12,6 +12,7 @@ help:
 	@echo "  make dev           Start the GeoVision IoT Docker stack"
 	@echo "  make simulator     Start the real-protocol sensor simulator"
 	@echo "  make test          Run backend, frontend and firmware checks"
+	@echo "  make release-check Check production URLs, config and signing gates"
 	@echo "  make logs          Follow local stack logs"
 	@echo "  make stop          Stop the local stack (data is preserved)"
 	@echo "  make mobile-dev    Run the Flutter app on a simulator/emulator"
@@ -43,7 +44,10 @@ mobile-test:
 	cd $(MOBILE) && flutter test
 
 test: backend-test mobile-test
-	npm test --if-present
+	npm test
+
+release-check:
+	bash scripts/release_readiness.sh
 
 simulator:
 	docker compose --env-file .env.iot --profile simulator up -d --build simulator

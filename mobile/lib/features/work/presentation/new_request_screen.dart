@@ -137,8 +137,7 @@ class _NewRequestScreenState extends ConsumerState<NewRequestScreen> {
               TextField(
                 controller: _desc,
                 maxLines: 4,
-                decoration:
-                    InputDecoration(hintText: l10n.describeNeed),
+                decoration: InputDecoration(hintText: l10n.describeNeed),
               ),
               const SizedBox(height: GvSpacing.md),
               OutlinedButton.icon(

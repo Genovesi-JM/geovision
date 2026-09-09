@@ -8,7 +8,8 @@ abstract final class GvColors {
   static const bgDarker = Color(0xFF020408);
   static const bgDark = Color(0xFF050914);
   static const surface = Color(0xFF0F172A); // --bg-card base (slate-900)
-  static const surfaceRaised = Color(0xFF1E293B); // --bg-surface base (slate-800)
+  static const surfaceRaised =
+      Color(0xFF1E293B); // --bg-surface base (slate-800)
   static const surfaceDeep = Color(0xFF020617);
 
   // Accents

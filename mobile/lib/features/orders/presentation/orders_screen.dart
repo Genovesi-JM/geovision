@@ -24,7 +24,11 @@ class OrdersScreen extends ConsumerStatefulWidget {
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   static const _storeSectors = {
-    'agro', 'environment', 'construction', 'industry', 'infrastructure'
+    'agro',
+    'environment',
+    'construction',
+    'industry',
+    'infrastructure'
   };
   String category = 'all';
   String sector = 'all';
