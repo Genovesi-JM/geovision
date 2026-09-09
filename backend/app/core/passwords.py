@@ -6,6 +6,42 @@ import hashlib
 import hmac
 
 
+PASSWORD_MIN_CHARACTERS = 6
+ADMIN_PASSWORD_MIN_CHARACTERS = 12
+PASSWORD_MAX_BYTES = 72
+
+
+def validate_password_byte_length(password: str) -> str:
+    """Reject values bcrypt would otherwise silently truncate."""
+
+    if len(password.encode("utf-8")) > PASSWORD_MAX_BYTES:
+        raise ValueError(
+            f"password must not exceed {PASSWORD_MAX_BYTES} UTF-8 bytes"
+        )
+    return password
+
+
+def validate_new_password(password: str) -> str:
+    """Validate credentials before bcrypt can truncate their UTF-8 bytes."""
+
+    if len(password) < PASSWORD_MIN_CHARACTERS:
+        raise ValueError(
+            f"password must contain at least {PASSWORD_MIN_CHARACTERS} characters"
+        )
+    return validate_password_byte_length(password)
+
+
+def validate_admin_password(password: str) -> str:
+    """Apply the stronger bootstrap policy for privileged seed accounts."""
+
+    if len(password) < ADMIN_PASSWORD_MIN_CHARACTERS:
+        raise ValueError(
+            "admin password must contain at least "
+            f"{ADMIN_PASSWORD_MIN_CHARACTERS} characters"
+        )
+    return validate_password_byte_length(password)
+
+
 def _password_bytes(password: str | None) -> bytes:
     """Match bcrypt's historical 72-byte password handling."""
 

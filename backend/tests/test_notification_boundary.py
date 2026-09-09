@@ -171,6 +171,8 @@ def test_staging_without_smtp_fails_closed_instead_of_writing_a_file(tmp_path):
         env="staging",
         secret_key="s" * 40,
         encryption_key=encryption_key,
+        frontend_base="https://geovisionops.com",
+        backend_base="https://api.geovisionops.com",
     )
     log_path = tmp_path / "email.log"
     provider = create_notification_provider(config, log_path=log_path)
@@ -193,6 +195,8 @@ def test_staging_smtp_requires_starttls(tmp_path):
         env="staging",
         secret_key="s" * 40,
         encryption_key=encryption_key,
+        frontend_base="https://geovisionops.com",
+        backend_base="https://api.geovisionops.com",
         smtp_host="smtp.example.com",
         smtp_from="notifications@example.com",
         smtp_use_tls=False,

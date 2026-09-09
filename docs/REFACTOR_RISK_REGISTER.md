@@ -11,12 +11,10 @@ instead of treating legacy structures as disposable.
 | ID | Severity | Verified condition | Failure mode | Required control |
 |---|---|---|---|---|
 | R01 | Critical | Customer context is split across `Account` and `Company`, with separate membership models and additional legacy account tables | Tenant data can be orphaned, duplicated or exposed across organizations during consolidation | Define the canonical workspace identity and migrate through explicit mappings, compatibility reads and tenant-isolation tests |
-| R02 | Critical | `backend/start.py` catches an Alembic failure, attempts `stamp head`, then calls `create_all` | A failed or partial production migration can be marked current without applying data transformations | Remove fail-open stamping in a later migration-safety change; require backup, dry run and verified schema revision before production rollout |
 | R03 | High | Application startup runs broad legacy schema alterations and suppresses several failures | Schema drift can remain hidden and differ between SQLite and PostgreSQL | Inventory every compatibility alteration, replace it with idempotent Alembic migrations, then retire the runtime shim only after cutover |
-| R04 | High | `start.py` imports the database engine value before initializing it in `_ensure_schema_columns` | Startup emits a non-fatal inspection warning and skips intended checks | Add a regression test and reference the engine from the database module when the appropriate phase touches startup safety |
 | R05 | High | PostgreSQL is supported, but sites use numeric latitude/longitude and no PostGIS geometry types are active | Spatial queries, boundaries and cross-sector assets cannot safely scale from point coordinates | Introduce PostGIS and the generic Asset model through additive migrations and geometry backfill checks in Phase 5 |
 | R06 | High | Static web, Flutter and external/device clients depend on the current route and payload shapes | Moving routers during modularization can break working clients | Record current OpenAPI, preserve route prefixes, add contract tests and use compatibility facades before moving implementations |
-| R07 | High | Email/password, OAuth, global roles, account roles and company roles overlap | Authentication may succeed while authorization selects the wrong tenant or privilege | Create one identity boundary and one permission evaluation path; add multi-workspace and negative isolation tests before removing legacy checks |
+| R07 | High | Phase 3 separates immutable user identity from external issuer/subject and normalizes authorization context, but `ADMIN_EMAILS`, global roles, account roles and company roles still overlap | Authentication can succeed while transitional authorization selects the wrong tenant or privilege | Keep external claims out of authorization decisions; audit `ADMIN_EMAILS`; complete canonical organization/RBAC and negative multi-workspace tests in Phase 4 before removing compatibility checks |
 | R08 | High | There is no invitation-first path into an existing workspace/asset/result | Post-service customers must use generic onboarding and may create duplicate sites | Add expiring, single-use, tenant-scoped invitations and deep-link tests in Phase 6 |
 | R09 | High | IoT MQTT and offline detection run inside each API process; Redis fan-out is not active | Multiple API replicas can duplicate work or fail to deliver consistent live events | Move durable work behind the event/outbox boundary and add distributed coordination before scaling replicas |
 | R10 | High | ERP outbox work is provider-pinned and has bounded due-time retries plus terminal failure state, but no independent scheduled worker or dead-letter/operator workflow; provider-side ERP deduplication is not yet proven | ERP records remain pending unless sync is invoked manually, terminal work lacks a dedicated recovery surface, and an uncertain provider write requires manual reconciliation | Add an asynchronous worker with concurrency control, terminal/dead-letter visibility and operator controls in Phase 13; permit uncertain-write retries only after provider-side uniqueness/idempotency is verified |
@@ -80,7 +78,7 @@ without a compatibility plan.
 
 - **Reduced:** R04, because startup now references the live canonical database
   module after initialization instead of retaining an `engine = None` snapshot.
-- **Reduced:** R06, because all 205 application HTTP/WebSocket contracts and
+- **Reduced:** R06, because all 206 application HTTP/WebSocket contracts and
   the legacy router order now have automated compatibility checks.
 - **Contained:** R01, R07, R16, R18 and R19 now have explicit owning domain or
   sector boundaries, but their underlying product work remains unchanged.
@@ -136,3 +134,43 @@ without a compatibility plan.
   implementations; structural runtime checks, fake-provider tests, lazy SDK
   imports, and compatibility facades now guard the representative ERP and
   object-storage paths.
+
+## Phase 3 outcome
+
+- **Resolved:** R02 and R04. Startup exits on an Alembic timeout/failure and no
+  longer stamps the database or calls `create_all` as a migration substitute.
+  The remaining narrow compatibility repair references the initialized database
+  module; R03 tracks its eventual removal.
+
+- **Reduced:** R07, because GeoVision now resolves external issuer/subject to an
+  immutable internal user UUID and builds permissions from persisted local roles
+  and memberships. Automatic verified-email linking is disabled by default and
+  first external login provisions only a user, mapping, and minimal profile.
+  `ADMIN_EMAILS` and the overlapping Account/Company authorization models remain
+  explicit Phase 4 risks.
+- **Reduced:** R11, because version 2 GeoVision sessions require the configured
+  internal issuer/audience and carry the internal UUID as subject. Legacy access
+  tokens remain an explicit temporary switch and require a planned expiry or
+  forced-login event plus separate refresh-token revocation when appropriate.
+- **Contained:** Entra External ID validation accepts only delegated version 2
+  access tokens for the configured GeoVision API audience, tenant, issuer, scope,
+  and optional authorized party. ID tokens, application tokens, and Microsoft
+  Graph access tokens are outside this boundary and must fail closed.
+- **Contained:** Legacy Google identifiers can be safely issuer-qualified;
+  historical Microsoft Graph object IDs are not relabelled as Entra subjects.
+  Historical `raw_data` may contain personal data and remains subject to an
+  audited retention/deletion and backup policy.
+- **Unchanged:** R01 and the canonical organization/RBAC portion of R07 remain
+  owned by Phase 4. Phase 3 does not consolidate Account, Company, organization,
+  invitations, entitlements, or sector assets. No Firebase identity integration
+  exists or was introduced.
+- **Operational gate:** Follow `docs/ENTRA_CUTOVER_RUNBOOK.md` for staged
+  transition, mapping review, negative-token tests, session retirement,
+  monitoring, and rollback before enabling Entra as the external login/exchange
+  authority. Business APIs continue to authorize UUID-based internal sessions.
+- **Operational residual:** The identity migration must run with old writers and
+  registration paused after normalized-email, Google-subject, refresh-family,
+  and Company/User mapping review. The migration fails before DDL on detected
+  identity collisions. External revocation is bounded by the absolute family
+  deadline plus already-issued short access tokens; trusted proxies must also
+  sanitize `X-Forwarded-For` until the in-memory limiter is replaced.

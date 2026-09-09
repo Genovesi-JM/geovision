@@ -143,7 +143,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 
 | Module | Current home and transition state |
 |---|---|
-| Identity | Authentication, OAuth, sessions and profiles are implemented but transitional; Phase 3 owns provider identity separation |
+| Identity | Immutable internal user IDs, versioned sessions, issuer-qualified external mappings, and a strict Entra External ID API-token adapter are implemented; legacy browser logins remain transitional, while Phase 4 owns canonical organization/RBAC consolidation |
 | Organizations | Account, Company and legacy accounts work but overlap; Phase 4 owns canonical workspaces and RBAC |
 | Assets | Sites, devices, aircraft and inspected assets exist; Phase 5 owns the generic Asset/PostGIS model |
 | Catalog | Product, shop-product, kit and service catalogue behavior exists; Phase 7 owns consolidation |

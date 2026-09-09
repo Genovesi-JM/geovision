@@ -1,12 +1,13 @@
 # GeoVision — Production / Non‑Demo Launch Checklist
 
 This is the exact list of what is already real in code vs. what still needs
-**your credentials/infrastructure** to run fully live. Nothing here is
-mock‑by‑design; the gates are external accounts and secrets only.
+**your credentials/infrastructure or client cutover work** to run fully live.
 
 ## What is real in code (no demo data)
 - **Auth / accounts / Portal** — real `/auth/register`, `/auth/onboarding`,
-  login, session refresh against the FastAPI backend.
+  login, and backend refresh rotation. Flutter uses that rotation with secure
+  storage. The static web client intentionally uses access-token-only sessions
+  and asks the user to sign in again after the configured short expiry.
 - **Marketplace** — real catalogue, cart, currency conversion, checkout and
   orders. The web dashboard's old demo portfolio returns empty; KPIs, IoT,
   alerts, entitlement and geospatial come from the API.
@@ -39,7 +40,8 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 ## Gates that need YOU (external accounts / secrets)
 | Gate | What's needed | How to flip it on |
 |---|---|---|
-| **Production backend hosting** | A live server for `api.geovisionops.com` (the code is ready; the instance is offline / 503). | Deploy the FastAPI app; point DNS + TLS at it. |
+| **Production backend hosting** | A live, healthy server for `api.geovisionops.com`; verify readiness rather than assuming the saved deployment state. | Deploy the FastAPI app; point DNS + TLS at it. |
+| **Entra External ID** | An external tenant, GeoVision API registration and delegated API scope, approved client registrations, exact issuer/audience/tenant configuration, and the web/mobile MSAL client cutover. | Build the client exchange described below, then follow the [Entra cutover runbook](ENTRA_CUTOVER_RUNBOOK.md); prove Graph and invalid tokens are rejected before switching the external login/exchange provider. |
 | **Card payments (Stripe)** | Stripe account keys. | Set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`. Card auto‑appears in checkout. |
 | **Multicaixa Express** | Merchant credentials. | Set `MULTICAIXA_MERCHANT_ID`, `MULTICAIXA_API_KEY`, `MULTICAIXA_WEBHOOK_SECRET`. |
 | **PayPal** | REST app creds. | Set `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE=live`. |
@@ -51,8 +53,12 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **App Store / Play listings** | Store accounts + Privacy/Terms URLs. | Publish `privacy.html`/`terms.html`; complete store listings. |
 
 ## Still to build (code, not gated)
-- (Nothing outstanding on the code side of this checklist — remaining items
-  are the external gates in the table above.)
+- Web and Flutter MSAL sign-in that requests the GeoVision delegated API scope
+  and exchanges that access token through `POST /auth/identity/session`, plus a
+  real-tenant end-to-end login rehearsal. Phase 3 supplies and tests the secure
+  backend boundary; it deliberately does not claim the client cutover is live.
+- Phase 4 canonical organization and RBAC consolidation remains outstanding;
+  Phase 3 deliberately provisions only identity and profile state on first login.
 
 ## Recently landed (code, done)
 - **Android release signing** — `app/build.gradle.kts` now loads
@@ -65,10 +71,11 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
   `nav.privacy`/`nav.terms` i18n). Satisfies the store‑review Privacy/Terms URL
   requirement; essential‑only cookies noted in the policy.
 - **Account deletion (self‑service)** — real `DELETE /auth/account`
-  (token‑auth, optional password check, prunes tokens/identities/profile/
-  memberships and empty workspaces; 3 backend tests). Mobile *More → Delete
-  account* wired with a confirmation dialog; Privacy/Terms tiles open the
-  published pages. Matches the deletion path promised in `privacy.html`.
+  (token auth plus required current-password step-up for password accounts;
+  prunes tokens/identities/profile/memberships and empty workspaces). Mobile
+  *More → Delete account* collects the password in its confirmation dialog.
+  External-only deletion remains gated on a dedicated provider reauthentication
+  flow; Privacy/Terms tiles open the published pages.
 - `mobile/integration_test/app_test.dart` rewritten for the live
   Portal / My assets / Marketplace / Alerts / More navigation (was driving
   the removed Sites/Work tabs). Analyzes clean; runs on a booted device.

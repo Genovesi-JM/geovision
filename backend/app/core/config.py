@@ -8,9 +8,11 @@ process environment.
 from __future__ import annotations
 
 import base64
+import ipaddress
 import json
 import re
 import secrets
+import uuid
 import warnings
 from enum import Enum
 from pathlib import Path
@@ -19,6 +21,8 @@ from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from .passwords import validate_admin_password
 
 
 _INSECURE_DEFAULT = "CHANGE_ME"
@@ -31,9 +35,13 @@ _INSECURE_MARKERS = (
     "your-super-secret",
 )
 _PROVIDER_NAME = re.compile(r"^[a-z0-9][a-z0-9_]{0,62}$")
+_MICROSOFT_GRAPH_APP_ID = "00000003-0000-0000-c000-000000000000"
+_MICROSOFT_GRAPH_RESOURCE = "https://graph.microsoft.com"
 _URL_FIELDS = frozenset(
     {
         "backend_base",
+        "entra_external_id_discovery_url",
+        "entra_external_id_issuer",
         "erpnext_base_url",
         "frontend_base",
         "multicaixa_api_url",
@@ -97,6 +105,7 @@ class Settings(BaseSettings):
     frontend_base: str = Field(default="http://127.0.0.1:8001", repr=False)
     backend_base: str = Field(default="http://127.0.0.1:8010", repr=False)
     cors_origins: str = Field(default="", repr=False)
+    trusted_proxy_cidrs: str = Field(default="", repr=False)
 
     # JWT/authentication. Secret fields are excluded from Settings repr/str.
     secret_key: str = Field(default=_INSECURE_DEFAULT, repr=False)
@@ -104,14 +113,34 @@ class Settings(BaseSettings):
     access_token_expires_minutes: int = Field(default=60, ge=1)
     refresh_token_expires_days: int = Field(default=30, ge=1)
     admin_password: Optional[str] = Field(default=None, repr=False)
+    admin_emails: str = Field(default="", repr=False)
+    internal_token_issuer: str = "geovision"
+    internal_token_audience: str = "geovision-api"
+    accept_legacy_access_tokens: bool = True
+    external_identity_session_max_hours: int = Field(default=24, ge=1, le=720)
 
-    # OAuth providers. Phase 3 owns the complete identity adapter migration.
+    # Identity providers. Legacy Google/Microsoft browser callbacks continue to
+    # mint GeoVision sessions while Entra External ID is introduced behind a
+    # strict API access-token validation boundary.
     identity_provider: str = "internal"
+    identity_auto_link_verified_email: bool = False
     google_client_id: Optional[str] = None
     google_client_secret: Optional[str] = Field(default=None, repr=False)
     microsoft_client_id: Optional[str] = None
     microsoft_client_secret: Optional[str] = Field(default=None, repr=False)
     microsoft_tenant_id: str = "common"
+    entra_external_id_issuer: Optional[str] = Field(default=None, repr=False)
+    entra_external_id_audience: Optional[str] = Field(default=None, repr=False)
+    entra_external_id_tenant_id: Optional[str] = Field(default=None, repr=False)
+    entra_external_id_discovery_url: Optional[str] = Field(default=None, repr=False)
+    entra_external_id_required_scope: Optional[str] = "access_as_user"
+    entra_external_id_authorized_party: Optional[str] = Field(default=None, repr=False)
+    entra_external_id_clock_skew_seconds: int = Field(default=60, ge=0, le=300)
+    entra_external_id_jwks_cache_seconds: int = Field(
+        default=3600,
+        ge=60,
+        le=86400,
+    )
 
     # Encryption at rest for connector/provider credentials.
     encryption_key: Optional[str] = Field(default=None, repr=False)
@@ -252,8 +281,12 @@ class Settings(BaseSettings):
         {
             "secret_key",
             "admin_password",
+            "admin_emails",
             "google_client_secret",
             "microsoft_client_secret",
+            "entra_external_id_audience",
+            "entra_external_id_tenant_id",
+            "entra_external_id_authorized_party",
             "encryption_key",
             "database_url",
             "accounts_database_url",
@@ -331,6 +364,69 @@ class Settings(BaseSettings):
             raise ValueError("provider names must be stable lowercase identifiers")
         return normalized
 
+    @field_validator("admin_emails", mode="before")
+    @classmethod
+    def normalize_admin_emails(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (list, tuple, set)):
+            value = ",".join(str(item) for item in value)
+        emails = []
+        for raw_email in str(value).split(","):
+            email = raw_email.strip().lower()
+            if not email:
+                continue
+            if any(character in email for character in "\r\n") or "@" not in email:
+                raise ValueError("ADMIN_EMAILS must contain comma-separated email addresses")
+            emails.append(email)
+        return ",".join(dict.fromkeys(emails))
+
+    @field_validator("trusted_proxy_cidrs", mode="before")
+    @classmethod
+    def normalize_trusted_proxy_cidrs(cls, value: Any) -> str:
+        """Validate the network peers allowed to supply forwarding headers."""
+
+        if value is None:
+            return ""
+        if isinstance(value, (list, tuple, set)):
+            value = ",".join(str(item) for item in value)
+        networks: list[str] = []
+        for raw_network in str(value).split(","):
+            candidate = raw_network.strip()
+            if not candidate:
+                continue
+            try:
+                network = ipaddress.ip_network(candidate, strict=False)
+            except ValueError as exc:
+                raise ValueError(
+                    "TRUSTED_PROXY_CIDRS must contain comma-separated IP networks"
+                ) from exc
+            networks.append(str(network))
+        return ",".join(dict.fromkeys(networks))
+
+    @field_validator("microsoft_tenant_id", mode="before")
+    @classmethod
+    def normalize_legacy_microsoft_tenant(cls, value: Any) -> str:
+        return str(value or "common").strip().lower()
+
+    @field_validator(
+        "internal_token_issuer",
+        "internal_token_audience",
+        "entra_external_id_issuer",
+        "entra_external_id_audience",
+        "entra_external_id_tenant_id",
+        "entra_external_id_discovery_url",
+        "entra_external_id_required_scope",
+        "entra_external_id_authorized_party",
+        mode="before",
+    )
+    @classmethod
+    def normalize_identity_value(cls, value: Any) -> Optional[str]:
+        if value is None:
+            return None
+        normalized = str(value).strip()
+        return normalized or None
+
     @model_validator(mode="after")
     def validate_security_profile(self) -> "Settings":
         if (
@@ -346,12 +442,110 @@ class Settings(BaseSettings):
         )
         if self.paypal_mode not in {"sandbox", "live"}:
             raise ValueError("PAYPAL_MODE must be 'sandbox' or 'live'")
+        if self.identity_provider not in {
+            "internal",
+            "transition",
+            "entra_external_id",
+        }:
+            raise ValueError(
+                "IDENTITY_PROVIDER must be internal, transition, or entra_external_id"
+            )
+        if not self.internal_token_issuer.strip() or not self.internal_token_audience.strip():
+            raise ValueError("internal token issuer and audience must not be empty")
+
+        entra_required = (
+            self.entra_external_id_issuer,
+            self.entra_external_id_audience,
+            self.entra_external_id_tenant_id,
+        )
+        if any(entra_required) and not all(entra_required):
+            raise ValueError(
+                "Entra External ID issuer, audience, and tenant ID must be configured together"
+            )
+        if self.identity_provider in {"transition", "entra_external_id"} and not all(entra_required):
+            raise ValueError(
+                "external IDENTITY_PROVIDER requires Entra issuer, audience, and tenant ID"
+            )
+        if all(entra_required):
+            try:
+                self.entra_external_id_tenant_id = str(
+                    uuid.UUID(self.entra_external_id_tenant_id)
+                )
+            except (AttributeError, TypeError, ValueError) as exc:
+                raise ValueError("ENTRA_EXTERNAL_ID_TENANT_ID must be a UUID") from exc
+            if not self.entra_external_id_required_scope:
+                raise ValueError(
+                    "ENTRA_EXTERNAL_ID_REQUIRED_SCOPE must not be empty when Entra is configured"
+                )
+            audience = self.entra_external_id_audience.lower().rstrip("/")
+            audience_without_api_prefix = audience.removeprefix("api://")
+            if audience in {
+                _MICROSOFT_GRAPH_APP_ID,
+                _MICROSOFT_GRAPH_RESOURCE,
+            } or audience_without_api_prefix == _MICROSOFT_GRAPH_APP_ID:
+                raise ValueError(
+                    "ENTRA_EXTERNAL_ID_AUDIENCE must identify the GeoVision API, "
+                    "not Microsoft Graph"
+                )
+            required_scope = self.entra_external_id_required_scope.lower().rstrip("/")
+            if required_scope == "user.read" or required_scope.startswith(
+                f"{_MICROSOFT_GRAPH_RESOURCE}/"
+            ):
+                raise ValueError(
+                    "ENTRA_EXTERNAL_ID_REQUIRED_SCOPE must be a GeoVision API scope, "
+                    "not a Microsoft Graph scope"
+                )
+        for field_name, configured_url in (
+            ("ENTRA_EXTERNAL_ID_ISSUER", self.entra_external_id_issuer),
+            ("ENTRA_EXTERNAL_ID_DISCOVERY_URL", self.entra_external_id_discovery_url),
+        ):
+            if not configured_url:
+                continue
+            parsed = urlsplit(configured_url)
+            if (
+                not parsed.scheme
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(
+                    f"{field_name} must be an absolute URL without userinfo, query, or fragment"
+                )
+            if parsed.scheme.lower() != "https":
+                raise ValueError(f"{field_name} must use HTTPS")
         if self.integration_retry_max_seconds < self.integration_retry_initial_seconds:
             raise ValueError(
                 "INTEGRATION_RETRY_MAX_SECONDS must be greater than or equal to "
                 "INTEGRATION_RETRY_INITIAL_SECONDS"
             )
         if self.is_deployed:
+            for field_name, configured_url in (
+                ("FRONTEND_BASE", self.frontend_base),
+                ("BACKEND_BASE", self.backend_base),
+            ):
+                parsed = urlsplit(configured_url)
+                if (
+                    parsed.scheme.lower() != "https"
+                    or not parsed.hostname
+                    or parsed.username
+                    or parsed.password
+                    or parsed.query
+                    or parsed.fragment
+                ):
+                    raise ValueError(
+                        f"{field_name} must be an absolute HTTPS URL without "
+                        "userinfo, query, or fragment in staging and production"
+                    )
+            if (
+                self.microsoft_client_id
+                and self.microsoft_client_secret
+                and self.microsoft_tenant_id in {"common", "organizations", "consumers"}
+            ):
+                raise ValueError(
+                    "MICROSOFT_TENANT_ID must pin the deployed legacy callback"
+                )
             if self.secret_key_is_insecure:
                 raise ValueError(
                     "SECRET_KEY must be a non-placeholder value of at least 32 characters "
@@ -361,6 +555,20 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "ENCRYPTION_KEY must be a valid Fernet key in staging and production"
                 )
+            has_admin_emails = bool(self.admin_email_list)
+            has_admin_password = bool((self.admin_password or "").strip())
+            if has_admin_emails != has_admin_password:
+                raise ValueError(
+                    "ADMIN_EMAILS and ADMIN_PASSWORD must be configured together "
+                    "in staging and production"
+                )
+            if has_admin_password:
+                try:
+                    validate_admin_password(self.admin_password or "")
+                except ValueError as exc:
+                    raise ValueError(
+                        "ADMIN_PASSWORD does not meet the privileged bootstrap policy"
+                    ) from exc
         return self
 
     @property
@@ -401,6 +609,40 @@ class Settings(BaseSettings):
             origin.strip().rstrip("/")
             for origin in self.cors_origins.split(",")
             if origin.strip()
+        )
+
+    @property
+    def trusted_proxy_networks(
+        self,
+    ) -> tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]:
+        return tuple(
+            ipaddress.ip_network(network, strict=False)
+            for network in self.trusted_proxy_cidrs.split(",")
+            if network
+        )
+
+    @property
+    def admin_email_list(self) -> tuple[str, ...]:
+        return tuple(email for email in self.admin_emails.split(",") if email)
+
+    @property
+    def entra_external_id_configuration_complete(self) -> bool:
+        return bool(
+            self.entra_external_id_issuer
+            and self.entra_external_id_audience
+            and self.entra_external_id_tenant_id
+            and self.entra_external_id_required_scope
+        )
+
+    @property
+    def effective_entra_external_id_discovery_url(self) -> Optional[str]:
+        if self.entra_external_id_discovery_url:
+            return self.entra_external_id_discovery_url
+        if not self.entra_external_id_issuer:
+            return None
+        return (
+            self.entra_external_id_issuer.rstrip("/")
+            + "/.well-known/openid-configuration"
         )
 
     @property
@@ -483,6 +725,7 @@ class Settings(BaseSettings):
                 "microsoft_oauth": bool(
                     self.microsoft_client_id and self.microsoft_client_secret
                 ),
+                "entra_external_id": self.entra_external_id_configuration_complete,
                 "openai": bool(self.openai_api_key),
                 "smtp": bool(
                     self.smtp_configuration_complete

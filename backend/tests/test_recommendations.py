@@ -17,9 +17,12 @@ def _fresh_tenant(client, db_session):
         "customer_type": "farm", "sectors": ["agro"],
     })
     assert reg.status_code == 201, reg.text
-    company = Company(name=f"Rec {email}", email=email)
-    db_session.add(company); db_session.flush()
-    db_session.add(CompanyUser(company_id=company.id, email=email, name="Rec", role="owner", is_active=True))
+    membership = (
+        db_session.query(CompanyUser)
+        .filter(CompanyUser.user_id == reg.json()["user"]["id"])
+        .one()
+    )
+    company = db_session.query(Company).filter(Company.id == membership.company_id).one()
     site = Site(company_id=company.id, name="Rec Field", country="Angola", sector="agro")
     db_session.add(site); db_session.commit()
     headers = {"Authorization": f"Bearer {reg.json()['access_token']}"}

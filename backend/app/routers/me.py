@@ -34,7 +34,12 @@ def _parse_list(value: str):
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     prof = db.get(UserProfile, user.id)
 
-    memberships = db.query(AccountMember).filter(AccountMember.user_id == user.id).all()
+    memberships = (
+        db.query(AccountMember)
+        .filter(AccountMember.user_id == user.id)
+        .order_by(AccountMember.created_at.asc())
+        .all()
+    )
     account_ids = [m.account_id for m in memberships]
 
     accounts = []
@@ -57,8 +62,7 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
                     role=member.role if member else None,
                 )
             )
-        owner = next((m for m in memberships if m.role == "owner"), memberships[0])
-        default_account_id = owner.account_id if owner else None
+        default_account_id = memberships[0].account_id
 
     return MeResponse(
         user=UserSummary(id=user.id, email=user.email, role=user.role, full_name=prof.full_name if prof else None),

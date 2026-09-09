@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -110,10 +111,12 @@ class CompanyOut(BaseModel):
 
 class UserInCompany(BaseModel):
     id: str
+    user_id: Optional[str] = None
     email: str
     name: Optional[str] = None
     role: str
     is_active: bool
+    binding_status: str = "bound"
     last_login: Optional[datetime] = None
     created_at: datetime
 
@@ -263,28 +266,110 @@ async def list_company_users(company_id: str, db: Session = Depends(get_db)):
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
     users = db.query(CompanyUser).filter(CompanyUser.company_id == company_id).all()
-    return [UserInCompany(id=u.id, email=u.email, name=u.name, role=u.role,
-            is_active=u.is_active, last_login=None, created_at=u.created_at) for u in users]
+    return [UserInCompany(
+        id=u.id,
+        user_id=u.user_id,
+        email=u.email,
+        name=u.name,
+        role=u.role,
+        is_active=bool(u.is_active and u.user_id),
+        binding_status="bound" if u.user_id else "pending_migration",
+        last_login=None,
+        created_at=u.created_at,
+    ) for u in users]
 
 
 @router.post("/companies/{company_id}/users")
 async def add_user_to_company(
     company_id: str,
     email: str = Query(...),
+    user_id: Optional[str] = Query(
+        None,
+        description="Immutable GeoVision user ID; email-only is a transition adapter",
+    ),
     name: Optional[str] = Query(None),
     role: str = Query("viewer"),
     db: Session = Depends(get_db),
 ):
-    from app.models import Company, CompanyUser
+    from app.models import Company, CompanyUser, User
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
-    current = db.query(CompanyUser).filter(CompanyUser.company_id == company_id).count()
+    current = db.query(CompanyUser).filter(
+        CompanyUser.company_id == company_id,
+        CompanyUser.user_id.is_not(None),
+        CompanyUser.is_active.is_(True),
+    ).count()
     if current >= c.max_users:
         raise HTTPException(400, f"User limit reached ({c.max_users}). Upgrade subscription.")
-    u = CompanyUser(id=str(uuid.uuid4()), company_id=company_id, email=email, name=name, role=role)
-    db.add(u); c.current_users = current + 1; db.commit(); db.refresh(u)
-    return UserInCompany(id=u.id, email=u.email, name=u.name, role=u.role,
-                         is_active=u.is_active, last_login=None, created_at=u.created_at)
+    canonical_email = email.strip().lower()
+    if user_id:
+        bound_user = db.get(User, user_id)
+    else:
+        # Compatibility for existing admin clients. Resolution happens once at
+        # this boundary; the authorization record always stores the immutable
+        # internal ID and never performs runtime email authorization.
+        candidates = (
+            db.query(User)
+            .filter(func.lower(func.trim(User.email)) == canonical_email)
+            .limit(2)
+            .all()
+        )
+        if len(candidates) > 1:
+            raise HTTPException(409, "Email matches multiple GeoVision users")
+        bound_user = candidates[0] if candidates else None
+    if bound_user is None:
+        raise HTTPException(404, "GeoVision user not found")
+    if not bound_user.is_active:
+        raise HTTPException(409, "GeoVision user is inactive")
+    if bound_user and bound_user.email.strip().lower() != canonical_email:
+        raise HTTPException(400, "Email does not match the selected GeoVision user")
+    existing = db.query(CompanyUser).filter(
+        CompanyUser.company_id == company_id,
+        CompanyUser.user_id == bound_user.id,
+    ).first()
+    if existing:
+        raise HTTPException(409, "GeoVision user is already assigned to this company")
+    u = CompanyUser(
+        id=str(uuid.uuid4()),
+        company_id=company_id,
+        # Authorization is persisted only against the explicitly selected
+        # immutable internal user ID. Email is display/contact metadata.
+        user_id=bound_user.id,
+        email=canonical_email,
+        name=name,
+        role=role,
+    )
+    db.add(u)
+    c.current_users = current + 1
+    _log_audit(
+        db,
+        company_id,
+        "company_user_added",
+        "company_user",
+        u.id,
+        user_id=bound_user.id,
+        details={"role": role},
+    )
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            409,
+            "GeoVision user is already assigned to this company",
+        ) from exc
+    db.refresh(u)
+    return UserInCompany(
+        id=u.id,
+        user_id=u.user_id,
+        email=u.email,
+        name=u.name,
+        role=u.role,
+        is_active=u.is_active,
+        binding_status="bound",
+        last_login=None,
+        created_at=u.created_at,
+    )
 
 
 # ============ CONNECTOR MANAGEMENT ============

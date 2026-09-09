@@ -27,43 +27,12 @@ def main() -> None:
         raise SystemExit(1)
     except subprocess.CalledProcessError as exc:
         print(
-            f"[start] WARNING: Alembic upgrade failed (exit code {exc.returncode}). "
-            "Attempting to stamp head and ensure tables exist...",
+            f"[start] ERROR: Alembic upgrade failed (exit code {exc.returncode}). "
+            "Refusing to start with an unverified database schema.",
             file=sys.stderr,
             flush=True,
         )
-        # Tables may already exist from a previous deployment.
-        # Stamp alembic to head so it knows the DB is current.
-        try:
-            subprocess.run(
-                [sys.executable, "-m", "alembic", "stamp", "head"],
-                check=True,
-                timeout=30,
-            )
-            print("[start] Stamped DB to head.", flush=True)
-        except Exception as stamp_err:
-            print(
-                f"[start] WARNING: alembic stamp also failed: "
-                f"{sanitize_integration_message(stamp_err)}",
-                file=sys.stderr,
-                flush=True,
-            )
-
-        # Ensure all tables exist (create any missing ones)
-        try:
-            from app.core import database
-            from app import models  # noqa: F401 — registers all models
-            database.init_db_engine()
-            database.Base.metadata.create_all(bind=database.engine)
-            print("[start] Ensured all tables exist via create_all.", flush=True)
-        except Exception as create_err:
-            print(
-                f"[start] ERROR: create_all failed: "
-                f"{sanitize_integration_message(create_err)}",
-                file=sys.stderr,
-                flush=True,
-            )
-            raise SystemExit(1)
+        raise SystemExit(1) from exc
 
     # ── Ensure critical columns exist (handles schema drift) ──
     _ensure_schema_columns()
@@ -76,11 +45,7 @@ def main() -> None:
 
 
 def _ensure_schema_columns():
-    """Add any columns that are in the model but missing from the DB.
-
-    This handles the case where Alembic was stamped to head without actually
-    running migrations (e.g. after a failed deploy).
-    """
+    """Apply narrowly scoped compatibility repairs after migrations succeed."""
     from sqlalchemy import inspect as sa_inspect, text
     from app.core import database
 

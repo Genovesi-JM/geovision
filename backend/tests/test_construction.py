@@ -6,9 +6,10 @@ from app.utils import hash_password
 
 def _setup(client, db_session):
     email = f"insp-{uuid.uuid4().hex[:8]}@example.com"
-    db_session.add(User(email=email, password_hash=hash_password("long-password-123"), role="cliente", is_active=True)); db_session.commit()
+    user = User(email=email, password_hash=hash_password("long-password-123"), role="cliente", is_active=True)
+    db_session.add(user); db_session.commit()
     company = Company(name="Insp Co", email=f"c-{uuid.uuid4().hex[:6]}@example.test"); db_session.add(company); db_session.flush()
-    db_session.add(CompanyUser(company_id=company.id, email=email, name="Insp", role="owner", is_active=True))
+    db_session.add(CompanyUser(company_id=company.id, user_id=user.id, email=email, name="Insp", role="owner", is_active=True))
     site = Site(company_id=company.id, name="Build Site", country="Angola", sector="infrastructure"); db_session.add(site); db_session.commit()
     token = client.post("/auth/login", json={"email": email, "password": "long-password-123"}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}, site

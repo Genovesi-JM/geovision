@@ -116,7 +116,7 @@ backfill can be considered after those ownership boundaries are established.
 | Payments | `PaymentProvider` | Existing bank, Stripe, Multicaixa, and PayPal adapters have a normalized facade and lazy factory; the orchestrator accepts injected adapters; Phase 8 still owns lifecycle consolidation |
 | ERP | `ERPProvider` | Existing mock and ERPNext adapters implement the boundary; mock is limited to local/dev/test; no Odoo adapter yet |
 | Notifications | `NotificationProvider` | SMTP adapter and metadata-only local fallback are behind a lazy factory; deployed environments require SMTP with verified STARTTLS; durable delivery remains Phase 20 work |
-| Identity | `IdentityProvider` | Port declared; existing Google and Microsoft OAuth routes remain compatibility implementations pending Phase 3 |
+| Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
 | GIS and asset management | `GISProvider`, `AssetManagementProvider` | Placeholder ports only |
 | Construction systems | `ConstructionProvider` | Placeholder port only |
@@ -181,10 +181,10 @@ reference constraints.
 
 ### Notifications and identity
 
-These domains now own provider protocols, but their full legacy implementation
-migrations are intentionally deferred to their owning phases. Phase 2
-centralizes their configuration and creates injectable seams without changing
-the public API. Notification delivery now selects SMTP or the local
+Notifications and identity own their provider protocols. Identity now separates
+the immutable GeoVision user UUID from issuer/subject external identities and
+normalizes authorization context; canonical organization ownership remains
+Phase 4 work. Notification delivery selects SMTP or the local
 metadata-only fallback behind an adapter and fails closed when a deployed
 environment lacks SMTP or verified STARTTLS. It does not implement implicit
 SMTPS. The local fallback records recipient and subject in
@@ -215,6 +215,7 @@ complete identity-provider implementation.
 
 Phase 2 does not implement cloud infrastructure, durable messaging, processing
 jobs, satellite/weather ingestion, the Odoo cutover, a generic external-ID
-table, payment lifecycle redesign, identity migration, or durable notification
-delivery. Credential-key rotation and notification-log lifecycle management are
-also not provided. Those changes remain assigned to their later playbook phases.
+table, payment lifecycle redesign, full legacy identity/session retirement, or
+durable notification delivery. Credential-key rotation and notification-log
+lifecycle management are also not provided. Those changes remain assigned to
+their later playbook phases.

@@ -2,6 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8" />
+  <meta name="referrer" content="no-referrer" />
   <title>GeoVision - A ligar...</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
@@ -18,30 +19,25 @@
     <div id="msg">A ligar à sua conta...</div>
   </div>
 
+  <script src="assets/js/config.js?v=5"></script>
   <script>
-    (function(){
+    (async function(){
       function getParams() {
-        // Read from URL fragment (#) to avoid token leaking in server
-        // logs, Referer headers, and browser history.  Falls back to
-        // query params (?) for backward compatibility.
-        var raw = window.location.hash
-          ? window.location.hash.substring(1)
-          : window.location.search.substring(1);
+        // Backend callbacks place credentials only in the fragment so they
+        // never reach HTTP logs, Referer headers, or server-side history.
+        var raw = window.location.hash ? window.location.hash.substring(1) : '';
         const p = new URLSearchParams(raw);
         return {
           token: p.get('token'),
           refresh_token: p.get('refresh_token') || '',
-          email: p.get('email'),
-          name: p.get('name') || '',
-          role: p.get('role') || 'cliente',
-          accountId: p.get('account_id') || '',
-          accountName: p.get('account_name') || '',
+          provider: p.get('provider') || '',
+          browser_nonce: p.get('browser_nonce') || '',
           redirect: p.get('redirect') || '/dashboard.html',
         };
       }
-      const { token, refresh_token, email, name, role, accountId, accountName, redirect } = getParams();
-      // Clear the fragment so the token doesn't linger in the URL bar
-      if (window.location.hash) {
+      const { token, refresh_token, provider, browser_nonce, redirect } = getParams();
+      // Clear fragments and obsolete query credentials immediately.
+      if (window.location.hash || window.location.search) {
         try { history.replaceState(null, '', window.location.pathname); } catch(_){}
       }
       if (!token) {
@@ -49,27 +45,65 @@
         setTimeout(() => window.location.replace('login.html'), 1200);
         return;
       }
+
+      const nonceKey = (provider === 'google' || provider === 'microsoft')
+        ? `gv_oauth_nonce_${provider}`
+        : '';
+      let expectedNonce = '';
       try {
+        expectedNonce = nonceKey ? (sessionStorage.getItem(nonceKey) || '') : '';
+        if (nonceKey) sessionStorage.removeItem(nonceKey);
+      } catch (_) {}
+      if (!expectedNonce || !browser_nonce || expectedNonce !== browser_nonce) {
+        document.getElementById('msg').textContent = 'A sessão não pertence a este pedido de login. Volta ao login.';
+        setTimeout(() => window.location.replace('login.html'), 1200);
+        return;
+      }
+
+      let profile;
+      try {
+        const response = await fetch(`${window.API_BASE}/auth/me`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store',
+          redirect: 'error',
+        });
+        if (!response.ok) throw new Error('invalid callback token');
+        profile = await response.json();
+        if (!profile || !profile.id || !profile.email || !profile.role) {
+          throw new Error('invalid callback profile');
+        }
+
         localStorage.setItem('gv_token', token);
         if (refresh_token) localStorage.setItem('gv_refresh_token', refresh_token);
-        localStorage.setItem('gv_user', JSON.stringify({ email: email || '', name: name || '', role }));
-        if (email) localStorage.setItem('gv_email', email);
-        if (name) localStorage.setItem('gv_name', name);
-        if (role) localStorage.setItem('gv_role', role);
-        if (accountId) localStorage.setItem('gv_account_id', accountId);
-        if (accountName) localStorage.setItem('gv_account_name', accountName);
+        else localStorage.removeItem('gv_refresh_token');
+        localStorage.setItem('gv_user', JSON.stringify({
+          id: profile.id,
+          email: profile.email,
+          name: profile.name || profile.full_name || '',
+          role: profile.role,
+        }));
+        localStorage.setItem('gv_email', profile.email);
+        localStorage.setItem('gv_role', profile.role);
+        if (profile.name || profile.full_name) {
+          localStorage.setItem('gv_name', profile.name || profile.full_name);
+        }
+        if (profile.account_id) localStorage.setItem('gv_account_id', profile.account_id);
+        if (profile.account_name) localStorage.setItem('gv_account_name', profile.account_name);
         localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Login concluído com sucesso', type: 'success', ts: Date.now() }));
-      } catch (e) { /* ignore */ }
-      // Handle redirect - if it starts with /, make it relative to current directory
-      let finalRedirect = redirect;
-      if (redirect.startsWith('/')) {
-        // Get the base path (e.g., /geovision/) from current URL
-        const pathParts = window.location.pathname.split('/');
-        pathParts.pop(); // remove current file (auth-callback.html)
-        const basePath = pathParts.join('/');
-        finalRedirect = basePath + redirect;
+      } catch (e) {
+        document.getElementById('msg').textContent = 'Não foi possível validar a sessão. Volta ao login.';
+        setTimeout(() => window.location.replace('login.html'), 1200);
+        return;
       }
-      window.location.replace(finalRedirect);
+
+      const allowedRedirects = {
+        '/admin.html': 'admin.html',
+        '/dashboard.html': 'dashboard.html',
+        '/onboarding.html': 'onboarding.html',
+      };
+      const targetPage = allowedRedirects[redirect] || 'dashboard.html';
+      window.location.replace(new URL(targetPage, window.location.href).href);
     })();
   </script>
 </body>

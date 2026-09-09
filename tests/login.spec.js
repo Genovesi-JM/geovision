@@ -52,4 +52,104 @@ test.describe('Login smoke + a11y', () => {
     await expect(page.locator('#create-use-cases')).toContainText('Inventário visual');
     await expect(page.locator('#create-dashboard-hint')).toHaveText('Console operacional para indústria ou mineração.');
   });
+
+  test('web password login requests an access-only session and clears stale refresh state', async ({ page }) => {
+    let clientHeader = '';
+    await page.route('**/auth/login', async (route) => {
+      clientHeader = await route.request().headerValue('x-geovision-client') || '';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          access_token: 'web-access-token',
+          refresh_token: 'must-not-be-persisted',
+          user: { email: 'web@example.test', role: 'cliente', name: 'Web User' },
+          account: { id: 'web-account', name: 'Web Account' },
+        }),
+      });
+    });
+    await page.route('**/dashboard.html', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Dashboard</title>' });
+    });
+
+    await page.goto(`${BASE}/login.html`, { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => localStorage.setItem('gv_refresh_token', 'stale-family'));
+    await page.fill('#login-email', 'web@example.test');
+    await page.fill('#login-password', 'password-123');
+    await page.locator('#login-submit').click();
+    await page.waitForURL(/\/dashboard\.html$/, { timeout: 3000 });
+
+    expect(clientHeader).toBe('web');
+    expect(await page.evaluate(() => localStorage.getItem('gv_token'))).toBe('web-access-token');
+    expect(await page.evaluate(() => localStorage.getItem('gv_refresh_token'))).toBeNull();
+  });
+
+  test('OAuth callback rejects query credentials and external redirects', async ({ page }) => {
+    await page.goto(
+      `${BASE}/auth-callback.html?token=forged&redirect=https://example.org`,
+      { waitUntil: 'domcontentloaded' },
+    );
+
+    await page.waitForURL(/\/login\.html$/, { timeout: 3000 });
+    expect(new URL(page.url()).origin).toBe(new URL(BASE).origin);
+    expect(await page.evaluate(() => localStorage.getItem('gv_token'))).toBeNull();
+  });
+
+  test('OAuth callback validates the token and trusts server profile data only', async ({ page }) => {
+    const browserNonce = 'b'.repeat(64);
+    await page.route('**/dashboard.html', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Dashboard</title>' });
+    });
+    await page.route('**/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: '30000000-0000-4000-8000-000000000001',
+          email: 'verified@example.test',
+          name: 'Verified User',
+          role: 'cliente',
+          account_id: 'workspace-1',
+          account_name: 'Verified Workspace',
+        }),
+      });
+    });
+
+    await page.goto(`${BASE}/login.html`, { waitUntil: 'domcontentloaded' });
+    await page.evaluate((nonce) => {
+      sessionStorage.setItem('gv_oauth_nonce_google', nonce);
+    }, browserNonce);
+    await page.goto(
+      `${BASE}/auth-callback.html#token=verified-token&provider=google&browser_nonce=${browserNonce}&email=forged@example.test&role=admin&redirect=https://example.org`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    await page.waitForURL(/\/dashboard\.html$/, { timeout: 3000 });
+
+    expect(new URL(page.url()).origin).toBe(new URL(BASE).origin);
+    const stored = await page.evaluate(() => ({
+      token: localStorage.getItem('gv_token'),
+      email: localStorage.getItem('gv_email'),
+      role: localStorage.getItem('gv_role'),
+    }));
+    expect(stored).toEqual({
+      token: 'verified-token',
+      email: 'verified@example.test',
+      role: 'cliente',
+    });
+  });
+
+  test('Password reset reads only a fragment secret and clears the address bar', async ({ page }) => {
+    await page.goto(`${BASE}/reset-password.html#token=fragment-secret`, {
+      waitUntil: 'domcontentloaded',
+    });
+
+    await expect(page.locator('#reset-token')).toHaveValue('fragment-secret');
+    expect(page.url()).toBe(`${BASE}/reset-password.html`);
+
+    await page.goto(`${BASE}/reset-password.html?token=query-secret`, {
+      waitUntil: 'domcontentloaded',
+    });
+    await expect(page.locator('#reset-token')).toHaveValue('');
+    expect(page.url()).toBe(`${BASE}/reset-password.html`);
+  });
 });

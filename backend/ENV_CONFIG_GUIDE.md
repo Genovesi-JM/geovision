@@ -21,7 +21,7 @@ accepted compatibility alias.
 | `dev` | Shared development | Same startup tolerance as local; use stable secrets when sessions must survive restarts |
 | `test` | Automated tests | Isolated databases and injected fake providers are expected |
 | `staging` | Production-like verification | Startup requires a 32+ character `SECRET_KEY` that does not match a known placeholder and a valid Fernet `ENCRYPTION_KEY`; mock ERP is refused when the ERP adapter is resolved |
-| `prod` | Live deployment | Same signing/encryption startup requirements as staging; provider readiness is checked lazily when each provider is used |
+| `prod` | Live deployment | Same signing/encryption startup requirements as staging; structural identity configuration is checked at startup, while most other provider readiness is checked when used |
 
 The aliases `development`, `testing`, `stage`, and `production` normalize to
 their corresponding canonical values. Any other value fails validation. If
@@ -40,6 +40,7 @@ MIGRATE_TIMEOUT_SECONDS=120
 BACKEND_BASE=http://127.0.0.1:8010
 FRONTEND_BASE=http://127.0.0.1:8001
 CORS_ORIGINS=http://127.0.0.1:8001,http://localhost:8001
+TRUSTED_PROXY_CIDRS=
 
 DATABASE_URL=sqlite:///./geovision.db
 ACCOUNTS_DATABASE_URL=sqlite:///./accounts.db
@@ -48,6 +49,17 @@ ACCOUNTS_DATABASE_URL=sqlite:///./accounts.db
 `MIGRATE_TIMEOUT` remains an alias for `MIGRATE_TIMEOUT_SECONDS`. Legacy
 `postgres://` database URLs are normalized to SQLAlchemy's `postgresql://`
 scheme. Database URLs are treated as sensitive in configuration diagnostics.
+In staging and production, `BACKEND_BASE` and `FRONTEND_BASE` must be absolute
+HTTPS URLs with a host and no userinfo, query string, or fragment. Use the
+dedicated GeoVision origin rather than a shared static-host origin for the
+authenticated portal.
+
+`TRUSTED_PROXY_CIDRS` is a comma-separated list of exact ingress IP networks
+that are allowed to supply `X-Forwarded-For`. It defaults to empty, so a direct
+caller cannot forge a new rate-limit identity with that header. Configure only
+verified platform ingress networks and keep the application unreachable around
+that edge. The built-in limiter is bounded but per process; multiple workers or
+instances require a shared production limiter such as Redis.
 
 ## Secrets and authentication
 
@@ -58,21 +70,60 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRES_MINUTES=60
 REFRESH_TOKEN_EXPIRES_DAYS=30
 ADMIN_PASSWORD=
+ADMIN_EMAILS=
 
 IDENTITY_PROVIDER=internal
+IDENTITY_AUTO_LINK_VERIFIED_EMAIL=false
+INTERNAL_TOKEN_ISSUER=geovision
+INTERNAL_TOKEN_AUDIENCE=geovision-api
+ACCEPT_LEGACY_ACCESS_TOKENS=true
+EXTERNAL_IDENTITY_SESSION_MAX_HOURS=24
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 MICROSOFT_CLIENT_ID=
 MICROSOFT_CLIENT_SECRET=
 MICROSOFT_TENANT_ID=common
+ENTRA_EXTERNAL_ID_ISSUER=
+ENTRA_EXTERNAL_ID_AUDIENCE=
+ENTRA_EXTERNAL_ID_TENANT_ID=
+ENTRA_EXTERNAL_ID_DISCOVERY_URL=
+ENTRA_EXTERNAL_ID_REQUIRED_SCOPE=access_as_user
+ENTRA_EXTERNAL_ID_AUTHORIZED_PARTY=
+ENTRA_EXTERNAL_ID_CLOCK_SKEW_SECONDS=60
+ENTRA_EXTERNAL_ID_JWKS_CACHE_SECONDS=3600
 ```
 
 `ENCRYPTION_KEY` must be a URL-safe base64 Fernet key when `ENV` is `staging`
-or `prod`. Google and Microsoft OAuth continue to work through the current
-compatibility routes when configured. The `IdentityProvider` port is now
-declared, but moving the OAuth flows behind concrete identity adapters belongs
-to Phase 3. OAuth callback URLs are derived from `BACKEND_BASE`; the older
-`GOOGLE_REDIRECT_URI` variable is not consumed by the backend.
+or `prod`. `IDENTITY_PROVIDER` accepts `internal`, `transition`, or
+`entra_external_id`. Google and Microsoft OAuth continue through compatibility
+browser routes when configured; their settings do not configure the strict Entra
+External ID API access-token adapter. OAuth callback URLs are derived from
+`BACKEND_BASE`; the older `GOOGLE_REDIRECT_URI` variable is not consumed.
+When legacy Microsoft browser credentials remain enabled in any deployed
+profile, `MICROSOFT_TENANT_ID` must be the approved tenant UUID; generic
+`common`, `organizations`, and `consumers` selectors are rejected.
+`ENTRA_EXTERNAL_ID_TENANT_ID` does not constrain that legacy Microsoft Graph
+callback.
+
+In deployed profiles, `ADMIN_EMAILS` and `ADMIN_PASSWORD` are an all-or-nothing
+bootstrap pair. The password must contain at least 12 characters and at most 72
+UTF-8 bytes; the seed path enforces the same rule before hashing.
+
+`EXTERNAL_IDENTITY_SESSION_MAX_HOURS` is the absolute refresh-family lifetime
+for sessions originating at an external provider. Rotation never extends it,
+and refreshed access tokens are clamped to the same deadline. The default is 24
+hours; lower it only with a tested client reauthentication experience.
+
+Entra issuer, audience, and tenant ID must be configured together, and all are
+required when Entra is selected. The adapter accepts delegated version 2 access
+tokens for the GeoVision API only, never ID tokens or Microsoft Graph tokens.
+Startup rejects known Microsoft Graph audiences and Graph scopes such as
+`User.Read`; the adapter then requires the configured GeoVision scope and, when
+set, exact authorized party. Keep
+verified-email auto-linking disabled unless a separately approved linking policy
+exists. `ADMIN_EMAILS` is a legacy local authorization list, not an Entra role
+mapping. See [`docs/IDENTITY_PROVIDER_ARCHITECTURE.md`](../docs/IDENTITY_PROVIDER_ARCHITECTURE.md)
+and [`docs/ENTRA_CUTOVER_RUNBOOK.md`](../docs/ENTRA_CUTOVER_RUNBOOK.md).
 
 The deployed `SECRET_KEY` guard checks minimum length and known placeholder
 markers; it does not measure entropy. Generate a random high-entropy value and
@@ -137,21 +188,25 @@ ASSET_MANAGEMENT_PROVIDER=none
 MARITIME_PROVIDER=none
 ```
 
-`OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, and `NOTIFICATION_PROVIDER` currently
-drive provider factories. Payment methods use their own per-method factory rather
-than one selector. `IDENTITY_PROVIDER` and the queue, processing, weather,
-satellite, GIS, construction, asset-management, and maritime declarations are
-reserved seams/configuration metadata in Phase 2; changing them does not wire,
-enable, or disable an implementation. `none` and `null` therefore mean only that
-the boundary exists with no live adapter. Do not set these declarations to an
-Azure or third-party name until a matching adapter has been implemented and
-tested.
+`OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`, and
+`IDENTITY_PROVIDER` drive provider factories. Identity accepts `internal`,
+`transition`, or `entra_external_id`; the latter two require a complete, valid
+Entra configuration at startup and control the external-token exchange boundary.
+Business API routes still accept only GeoVision internal sessions. Payment
+methods use their own per-method factory rather than one selector. The queue,
+processing, weather, satellite, GIS, construction, asset-management, and
+maritime declarations remain reserved seams/configuration metadata; changing
+them does not wire, enable, or disable an implementation. `none` and `null`
+therefore mean only that the boundary exists with no live adapter. Do not set
+these declarations to an Azure or third-party name until a matching adapter has
+been implemented and tested.
 
-Except for the signing and encryption guards described above, provider names
-and credential completeness are generally validated when a factory or provider
+In addition to the signing and encryption guards, identity selector and Entra
+configuration structure are validated when settings load. Most other provider
+names and credential completeness are validated when a factory or provider
 operation is invoked, not when FastAPI starts. Health/readiness therefore does
-not prove that ERP, storage, notifications, payments, or another external account
-can complete a live request.
+not prove that discovery/JWKS, ERP, storage, notifications, payments, or another
+external account can complete a live request.
 
 ## Object storage
 

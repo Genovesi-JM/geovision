@@ -32,8 +32,10 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_1_OPENAPI_SHA256 = "0a354300dd31caad1c776d5b6d22fdfb327d45fd873e74c078e8276be5477860"
+PHASE_3_OPENAPI_SHA256 = "caf0aba5b96267313cf983c16d42fcbbd5f39d8d23f6729a617c5abcccdbe9c5"
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
+DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
+DEPLOYED_BACKEND_BASE = "https://api.geovisionops.com"
 
 
 class FakeObjectStorageProvider:
@@ -200,12 +202,16 @@ def test_environment_profiles_and_deployed_secret_guards(monkeypatch):
         env="production",
         secret_key="phase-two-production-secret-key-value",
         encryption_key=TEST_FERNET_KEY,
+        frontend_base=DEPLOYED_FRONTEND_BASE,
+        backend_base=DEPLOYED_BACKEND_BASE,
     )
     staging = Settings(
         _env_file=None,
         env="stage",
         secret_key="phase-two-staging-secret-key-value",
         encryption_key=TEST_FERNET_KEY,
+        frontend_base=DEPLOYED_FRONTEND_BASE,
+        backend_base=DEPLOYED_BACKEND_BASE,
     )
 
     assert production.env is RuntimeEnvironment.PRODUCTION
@@ -218,6 +224,8 @@ def test_environment_profiles_and_deployed_secret_guards(monkeypatch):
         _env_file=None,
         secret_key="phase-two-production-secret-key-value",
         encryption_key=TEST_FERNET_KEY,
+        frontend_base=DEPLOYED_FRONTEND_BASE,
+        backend_base=DEPLOYED_BACKEND_BASE,
     )
     assert legacy_alias.env is RuntimeEnvironment.PRODUCTION
 
@@ -238,6 +246,8 @@ def test_environment_profiles_and_deployed_secret_guards(monkeypatch):
             env="prod",
             secret_key="CHANGE_ME",
             encryption_key=TEST_FERNET_KEY,
+            frontend_base=DEPLOYED_FRONTEND_BASE,
+            backend_base=DEPLOYED_BACKEND_BASE,
         )
     with pytest.raises(ValidationError, match="ENCRYPTION_KEY"):
         Settings(
@@ -245,7 +255,49 @@ def test_environment_profiles_and_deployed_secret_guards(monkeypatch):
             env="staging",
             secret_key="phase-two-staging-secret-key-value",
             encryption_key="not-a-fernet-key",
+            frontend_base=DEPLOYED_FRONTEND_BASE,
+            backend_base=DEPLOYED_BACKEND_BASE,
         )
+
+
+def test_deployed_public_origins_accept_dedicated_https_hosts():
+    config = Settings(
+        _env_file=None,
+        env="prod",
+        secret_key="phase-three-production-signing-secret-value",
+        encryption_key=TEST_FERNET_KEY,
+        frontend_base=DEPLOYED_FRONTEND_BASE,
+        backend_base=DEPLOYED_BACKEND_BASE,
+    )
+
+    assert config.frontend_base == DEPLOYED_FRONTEND_BASE
+    assert config.backend_base == DEPLOYED_BACKEND_BASE
+
+
+@pytest.mark.parametrize("field_name", ("frontend_base", "backend_base"))
+@pytest.mark.parametrize(
+    "invalid_url",
+    (
+        "http://geovisionops.com",
+        "https://user:password@geovisionops.com",
+        "https://geovisionops.com?token=private",
+        "https://geovisionops.com#private",
+    ),
+    ids=("http", "userinfo", "query", "fragment"),
+)
+def test_deployed_public_origins_reject_unsafe_urls(field_name, invalid_url):
+    values = {
+        "_env_file": None,
+        "env": "prod",
+        "secret_key": "phase-three-production-signing-secret-value",
+        "encryption_key": TEST_FERNET_KEY,
+        "frontend_base": DEPLOYED_FRONTEND_BASE,
+        "backend_base": DEPLOYED_BACKEND_BASE,
+    }
+    values[field_name] = invalid_url
+
+    with pytest.raises(ValidationError, match=field_name.upper()):
+        Settings(**values)
 
 
 def test_config_debugging_redacts_credentials_and_connection_urls():
@@ -285,6 +337,8 @@ def test_invalid_deployed_config_errors_do_not_echo_secret_inputs():
             env="prod",
             secret_key="phase-two-production-secret-key-value",
             encryption_key="invalid-fernet-key",
+            frontend_base=DEPLOYED_FRONTEND_BASE,
+            backend_base=DEPLOYED_BACKEND_BASE,
             smtp_password=sentinels[0],
             openai_api_key=sentinels[1],
         )
@@ -1301,4 +1355,4 @@ def test_openapi_contract_is_byte_stable(client):
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_1_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_3_OPENAPI_SHA256

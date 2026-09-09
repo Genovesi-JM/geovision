@@ -124,8 +124,8 @@ class AuthRepository {
   }
 
   /// Permanently deletes the signed-in account server-side, then clears the
-  /// local session. [password] is optional but, when supplied, the backend
-  /// verifies it for password-based accounts before deleting.
+  /// local session. Password accounts must provide [password]; external-only
+  /// accounts require the provider reauthentication flow before deletion.
   Future<Result<void>> deleteAccount({String? password}) async {
     try {
       await _api.raw.delete(

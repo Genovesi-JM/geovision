@@ -14,9 +14,10 @@ def _auth(client, email="teste@admin.com", password="123456"):
 
 def _tenant(db_session, email="teste@admin.com"):
     suffix = uuid.uuid4().hex[:8]
+    user = db_session.query(User).filter(User.email == email).one()
     company = Company(name=f"IoT Test {suffix}", email=f"iot-{suffix}@example.test")
     db_session.add(company); db_session.flush()
-    db_session.add(CompanyUser(company_id=company.id, email=email, name="IoT Admin", role="owner", is_active=True))
+    db_session.add(CompanyUser(company_id=company.id, user_id=user.id, email=email, name="IoT Admin", role="owner", is_active=True))
     site = Site(company_id=company.id, name="Test Pump Room", country="Angola", sector="infrastructure")
     db_session.add(site); db_session.commit()
     return company, site
@@ -135,11 +136,34 @@ def test_device_auth_validation_and_tenant_isolation(client, db_session):
     db_session.add(user); db_session.flush()
     other_company = Company(name="Other tenant", email=email)
     db_session.add(other_company); db_session.flush()
-    db_session.add(CompanyUser(company_id=other_company.id, email=email, name="Other", role="owner", is_active=True))
+    db_session.add(CompanyUser(company_id=other_company.id, user_id=user.id, email=email, name="Other", role="owner", is_active=True))
     db_session.commit()
     other_headers = _auth(client, email, "long-password-123")
     hidden = client.get(f"/iot/devices/{device['id']}", headers=other_headers)
     assert hidden.status_code == 404
+
+
+def test_websocket_accepts_a_valid_internal_identity(client, db_session):
+    owner_email = f"ws-owner-{uuid.uuid4().hex[:8]}@example.com"
+    owner = User(
+        email=owner_email,
+        password_hash=hash_password("long-password-123"),
+        role="cliente",
+        is_active=True,
+    )
+    db_session.add(owner)
+    db_session.commit()
+    _, site = _tenant(db_session, owner_email)
+    headers = _auth(client, owner_email, "long-password-123")
+    device, _ = _provision(client, headers, site.id)
+    token = headers["Authorization"].removeprefix("Bearer ")
+
+    with client.websocket_connect("/iot/ws") as websocket:
+        websocket.send_json({"token": token, "device_id": device["id"]})
+        assert websocket.receive_json() == {
+            "type": "ready",
+            "device_id": device["id"],
+        }
 
 
 def test_signed_mqtt_ingestion_path(client, db_session):

@@ -1,3 +1,6 @@
+import uuid
+
+
 def _customer_headers(client):
     response = client.post(
         "/auth/login",
@@ -120,6 +123,28 @@ def test_cart_currency_checkout_and_owned_order_contract(client):
     history = client.get("/shop/orders", headers=headers)
     assert history.status_code == 200, history.text
     assert any(order["id"] == result["order_id"] for order in history.json())
+
+
+def test_authenticated_checkout_never_downgrades_workspace_denial_to_guest(client):
+    headers = _customer_headers(client)
+    headers["X-Account-ID"] = str(uuid.uuid4())
+
+    response = client.post(
+        "/shop/checkout/nonexistent-cart",
+        headers=headers,
+        json={
+            "currency": "AOA",
+            "payment_method": "iban_angola",
+            "billing_info": {
+                "name": "Cliente GeoVision",
+                "email": "teste@clientes.com",
+                "country": "AO",
+            },
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Workspace access denied"
 
 
 def test_payment_methods_only_advertise_real_settlement(client):

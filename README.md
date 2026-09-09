@@ -12,7 +12,9 @@ dependency rules are documented in the
 provider ports, adapters, normalized outcomes, and external-reference rules in
 the [provider integration architecture](docs/PROVIDER_INTEGRATION_ARCHITECTURE.md).
 Backend variables and environment profiles are listed in the
-[configuration guide](backend/ENV_CONFIG_GUIDE.md). Run the non-mutating
+[configuration guide](backend/ENV_CONFIG_GUIDE.md). Phase 3 identity behavior is
+documented in the [identity-provider architecture](docs/IDENTITY_PROVIDER_ARCHITECTURE.md)
+and [Entra cutover runbook](docs/ENTRA_CUTOVER_RUNBOOK.md). Run the non-mutating
 baseline suite with:
 
 ```bash

@@ -6,35 +6,26 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import Company, CompanyUser, User
+from app.models import CompanyUser, User
 
 
 def get_user_company_id(user: User, db: Session) -> Optional[str]:
-    """Resolve a user's legacy company and repair a missing membership link.
+    """Resolve a legacy company by immutable GeoVision user ID.
 
-    The fallback write is existing behavior retained for compatibility. Phase 4
-    will replace this split identity with the canonical workspace/RBAC model.
+    Email-only rows remain non-authoritative until an audited migration or the
+    canonical Phase 4 membership flow binds them to a user ID.
     """
 
-    email = (user.email or "").strip().lower()
-    company_user = db.query(CompanyUser).filter(CompanyUser.email == email).first()
-    if company_user:
-        return company_user.company_id
-
-    company = db.query(Company).filter(Company.email == email).first()
-    if company:
-        db.add(
-            CompanyUser(
-                company_id=company.id,
-                email=email,
-                name=getattr(user, "full_name", None) or email,
-                role="owner",
-                is_active=True,
-            )
+    company_user = (
+        db.query(CompanyUser)
+        .filter(
+            CompanyUser.user_id == user.id,
+            CompanyUser.is_active.is_(True),
         )
-        db.commit()
-        return company.id
-    return None
+        .order_by(CompanyUser.created_at.asc())
+        .first()
+    )
+    return company_user.company_id if company_user else None
 
 
 __all__ = ["get_user_company_id"]

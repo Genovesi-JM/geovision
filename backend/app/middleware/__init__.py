@@ -9,9 +9,9 @@ Includes:
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import time
-from collections import defaultdict
 from datetime import datetime
 from typing import Callable, Dict, Optional, Tuple
 
@@ -46,7 +46,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
         "img-src 'self' data: https: blob:",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-        "connect-src 'self' https://api.geovisionops.com https://geovisionops-sqknb.ondigitalocean.app https://accounts.google.com https://login.microsoftonline.com https://graph.microsoft.com https://wa.me",
+        "connect-src 'self' https://api.geovisionops.com https://accounts.google.com https://login.microsoftonline.com https://graph.microsoft.com https://wa.me",
         "frame-src 'self' https://accounts.google.com https://login.microsoftonline.com https://www.youtube.com https://youtube.com",
         "media-src 'self' https: blob:",
         "object-src 'none'",
@@ -68,6 +68,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self), payment=(self)"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
 
+        # Authentication responses can contain access/refresh tokens or
+        # token-bearing redirects and must not be stored by browsers/proxies.
+        if request.url.path.rstrip("/").startswith("/auth"):
+            response.headers["Cache-Control"] = "no-store"
+            response.headers["Pragma"] = "no-cache"
+
         if is_deployed:
             # HSTS: 1 year, include subdomains (preload when ready)
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -84,39 +90,86 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 class RateLimiter:
     """In-memory sliding-window rate limiter.
 
-    For production at scale, replace with Redis-based implementation.
+    Storage is bounded to prevent attacker-controlled client keys from growing
+    process memory without limit. For production at scale, replace this
+    per-process implementation with a shared Redis-backed limiter.
     """
+
+    MAX_KEYS = 10_000
+    MAX_RETENTION_SECONDS = 300
+    SWEEP_INTERVAL = 100
 
     def __init__(self):
         # key → list of timestamps
-        self._requests: Dict[str, list] = defaultdict(list)
+        self._requests: Dict[str, list[float]] = {}
+        self._operations = 0
 
-    def _cleanup(self, key: str, window_seconds: int):
-        cutoff = time.time() - window_seconds
-        self._requests[key] = [t for t in self._requests[key] if t > cutoff]
+    def _cleanup(self, key: str, window_seconds: int, *, now: float) -> None:
+        timestamps = self._requests.get(key)
+        if not timestamps:
+            self._requests.pop(key, None)
+            return
+        cutoff = now - window_seconds
+        active = [timestamp for timestamp in timestamps if timestamp > cutoff]
+        if active:
+            self._requests[key] = active
+        else:
+            self._requests.pop(key, None)
+
+    def _sweep(self, *, now: float, reserve_slot: bool = False) -> None:
+        """Drop inactive keys and evict the oldest if the hard cap is reached."""
+
+        cutoff = now - self.MAX_RETENTION_SECONDS
+        for key, timestamps in list(self._requests.items()):
+            if not timestamps or timestamps[-1] <= cutoff:
+                self._requests.pop(key, None)
+        capacity = self.MAX_KEYS - (1 if reserve_slot else 0)
+        overflow = len(self._requests) - capacity
+        if overflow > 0:
+            oldest = sorted(
+                self._requests,
+                key=lambda key: self._requests[key][-1],
+            )[:overflow]
+            for key in oldest:
+                self._requests.pop(key, None)
 
     def is_rate_limited(self, key: str, max_requests: int, window_seconds: int) -> Tuple[bool, int]:
         """Check if key is rate limited. Returns (is_limited, remaining)."""
-        self._cleanup(key, window_seconds)
-        count = len(self._requests[key])
+        now = time.time()
+        self._operations += 1
+        if (
+            self._operations % self.SWEEP_INTERVAL == 0
+            or len(self._requests) >= self.MAX_KEYS
+        ):
+            self._sweep(now=now)
+        self._cleanup(key, window_seconds, now=now)
+        count = len(self._requests.get(key, ()))
         if count >= max_requests:
             return True, 0
         return False, max_requests - count
 
     def record(self, key: str):
-        self._requests[key].append(time.time())
+        now = time.time()
+        if key not in self._requests and len(self._requests) >= self.MAX_KEYS:
+            self._sweep(now=now, reserve_slot=True)
+        self._requests.setdefault(key, []).append(now)
 
 
 # Global rate limiter instance
 _limiter = RateLimiter()
 
-# Rate limit configs: path_prefix → (max_requests, window_seconds)
-RATE_LIMIT_RULES: Dict[str, Tuple[int, int]] = {
-    "/auth/login": (10, 60),           # 10 attempts per minute
-    "/auth/register": (5, 60),         # 5 registrations per minute
-    "/auth/forgot-password": (3, 300), # 3 resets per 5 minutes
-    "/auth/reset-password": (5, 300),  # 5 attempts per 5 minutes
-    "/payments/webhook": (60, 60),     # 60 webhook calls per minute
+# Rate limit configs: (method, path_prefix) → (max_requests, window_seconds)
+RATE_LIMIT_RULES: Dict[Tuple[str, str], Tuple[int, int]] = {
+    ("POST", "/auth/login"): (10, 60),
+    ("GET", "/auth/google/login"): (10, 300),
+    ("GET", "/auth/microsoft/login"): (10, 300),
+    ("POST", "/auth/register"): (5, 60),
+    ("POST", "/auth/identity/session"): (20, 60),
+    ("POST", "/auth/forgot-password"): (3, 300),
+    ("POST", "/auth/reset-password"): (5, 300),
+    ("DELETE", "/auth/account"): (5, 300),
+    ("POST", "/auth/account/delete"): (5, 300),
+    ("POST", "/payments/webhook"): (60, 60),
 }
 
 
@@ -127,13 +180,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         path = request.url.path.rstrip("/")
         method = request.method.upper()
 
-        # Only rate limit POST requests on sensitive paths
-        if method != "POST":
-            return await call_next(request)
-
         rule = None
-        for prefix, limits in RATE_LIMIT_RULES.items():
-            if path == prefix or path.startswith(prefix + "/"):
+        for (rule_method, prefix), limits in RATE_LIMIT_RULES.items():
+            if method == rule_method and (
+                path == prefix or path.startswith(prefix + "/")
+            ):
                 rule = limits
                 break
 
@@ -166,13 +217,34 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 
 def _get_client_ip(request: Request) -> str:
-    """Extract client IP, respecting X-Forwarded-For from reverse proxies."""
+    """Resolve a client IP without trusting caller-controlled proxy headers."""
+
+    peer = request.client.host if request.client else "unknown"
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    if request.client:
-        return request.client.host
-    return "unknown"
+    if not forwarded or len(forwarded) > 1024:
+        return peer
+    try:
+        peer_address = ipaddress.ip_address(peer)
+        trusted_networks = settings.trusted_proxy_networks
+    except ValueError:
+        return peer
+    if not any(peer_address in network for network in trusted_networks):
+        return peer
+
+    raw_chain = [part.strip() for part in forwarded.split(",")]
+    if not raw_chain or len(raw_chain) > 16 or any(not part for part in raw_chain):
+        return peer
+    try:
+        forwarded_chain = [ipaddress.ip_address(part) for part in raw_chain]
+    except ValueError:
+        return peer
+
+    # Walk from the trusted peer toward the client. This resists a caller that
+    # prepends a forged address when a well-behaved edge appends its own value.
+    for candidate in reversed(forwarded_chain):
+        if not any(candidate in network for network in trusted_networks):
+            return str(candidate)
+    return str(forwarded_chain[0])
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -188,8 +260,9 @@ def log_audit(
     resource_id: Optional[str] = None,
     details: Optional[dict] = None,
     request: Optional[Request] = None,
+    commit: bool = True,
 ):
-    """Write an audit log entry to the database."""
+    """Write an audit entry, optionally joining the caller's transaction."""
     from ..models import AuditLog
 
     ip = None
@@ -210,9 +283,14 @@ def log_audit(
     )
     try:
         db.add(entry)
-        db.commit()
+        if commit:
+            db.commit()
     except Exception:
-        db.rollback()
+        if commit:
+            db.rollback()
+            return None
+        raise
+    return entry
 
 
 # ═══════════════════════════════════════════════════════════════

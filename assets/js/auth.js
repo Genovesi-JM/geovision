@@ -45,6 +45,9 @@
     if (!token) throw new Error('Token não recebido do servidor.');
 
     localStorage.setItem('gv_token', token);
+    // Browser sessions intentionally use the short-lived access token only;
+    // mobile/native clients keep rotating refresh tokens in secure storage.
+    localStorage.removeItem('gv_refresh_token');
     if (data && data.user) {
       localStorage.setItem('gv_user', JSON.stringify(data.user));
       if (data.user.email) localStorage.setItem('gv_email', String(data.user.email));
@@ -59,6 +62,14 @@
       if (data && data.account && data.account.id) localStorage.setItem('gv_account_id', String(data.account.id));
       if (data && data.account && data.account.name) localStorage.setItem('gv_account_name', String(data.account.name));
     } catch (_) {}
+  }
+
+  function beginOAuth(provider) {
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    const nonce = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+    sessionStorage.setItem(`gv_oauth_nonce_${provider}`, nonce);
+    window.location.href = `${apiBase()}/auth/${provider}/login?browser_nonce=${encodeURIComponent(nonce)}`;
   }
 
   document.addEventListener('DOMContentLoaded', () => {
@@ -98,7 +109,7 @@
 
     if (googleBtn && !googleBtn.dataset.gvBound) {
       googleBtn.addEventListener('click', () => {
-        window.location.href = `${apiBase()}/auth/google/login`;
+        beginOAuth('google');
       });
       googleBtn.dataset.gvBound = '1';
     }
@@ -106,7 +117,7 @@
     const microsoftBtn = document.getElementById('microsoft-btn');
     if (microsoftBtn && !microsoftBtn.dataset.gvBound) {
       microsoftBtn.addEventListener('click', () => {
-        window.location.href = `${apiBase()}/auth/microsoft/login`;
+        beginOAuth('microsoft');
       });
       microsoftBtn.dataset.gvBound = '1';
     }
@@ -264,7 +275,10 @@
         try {
           const res = await fetch(`${apiBase()}/auth/register`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-GeoVision-Client': 'web',
+            },
             body: JSON.stringify({ email, password, customer_type: persona, sectors, sector_focus: sectors[0], use_cases }),
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
@@ -298,7 +312,10 @@
         try {
           const res = await fetch(`${apiBase()}/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'X-GeoVision-Client': 'web',
+            },
             body: JSON.stringify({ email, password }),
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));

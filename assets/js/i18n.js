@@ -6,7 +6,7 @@
 const translations = {
   // Pre-existing gap: login.html references these but they were never defined.
   "login.forgotEmail.title": { pt: "Esqueceu o seu email?", en: "Forgot your email?", es: "¿Olvidó su correo?" },
-  "login.forgotEmail.desc": { pt: "Se não se lembra do email utilizado no registo, tente iniciar sessão com Google ou Microsoft — a sua conta será encontrada automaticamente. Caso contrário, contacte a nossa equipa de suporte:", en: "If you don't remember the email you registered with, try signing in with Google or Microsoft — your account will be found automatically. Otherwise, contact our support team:", es: "Si no recuerda el correo con el que se registró, intente iniciar sesión con Google o Microsoft — su cuenta se encontrará automáticamente. De lo contrario, contacte a nuestro equipo de soporte:" },
+  "login.forgotEmail.desc": { pt: "Se já associou Google ou Microsoft à sua conta, tente iniciar sessão com o mesmo método. Caso contrário, contacte a nossa equipa de suporte:", en: "If you already linked Google or Microsoft to your account, try signing in with the same method. Otherwise, contact our support team:", es: "Si ya vinculó Google o Microsoft a su cuenta, intente iniciar sesión con el mismo método. De lo contrario, contacte a nuestro equipo de soporte:" },
   "login.forgotEmail.hint": { pt: "A equipa irá verificar a sua identidade e fornecer o email associado à sua conta.", en: "The team will verify your identity and provide the email associated with your account.", es: "El equipo verificará su identidad y le proporcionará el correo asociado a su cuenta." },
   "login.forgotEmail.close": { pt: "Fechar", en: "Close", es: "Cerrar" },
   // ============ IOT KITS / MAP / REPORTS (dynamic + static) ============
@@ -602,7 +602,7 @@ const translations = {
   "login.password": { pt: "Senha", en: "Password", es: "Contraseña" },
   "login.signin": { pt: "Entrar", en: "Sign In", es: "Iniciar Sesión" },
   "login.google": { pt: "Entrar com Google", en: "Sign in with Google", es: "Iniciar sesión con Google" },
-  "login.microsoft": { pt: "Entrar com Microsoft", en: "Sign in with Microsoft", es: "Iniciar sesión con Microsoft" },
+  "login.microsoft": { pt: "Entrar com Microsoft (conta já associada)", en: "Sign in with Microsoft (linked account)", es: "Iniciar sesión con Microsoft (cuenta vinculada)" },
   "login.forgot": { pt: "Esqueci a senha", en: "Forgot password", es: "Olvidé mi contraseña" },
   "login.createAccount": { pt: "Criar conta", en: "Create account", es: "Crear cuenta" },
   "login.confirmPassword": { pt: "Confirmar senha", en: "Confirm password", es: "Confirmar contraseña" },

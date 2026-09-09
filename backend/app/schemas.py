@@ -5,6 +5,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from .core.passwords import validate_new_password
+
 
 def _json_list(value):
     if isinstance(value, list):
@@ -57,6 +59,8 @@ class AccountSummary(BaseModel):
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
+
+    _validate_password = field_validator("password")(validate_new_password)
 
     full_name: Optional[str] = None
     entity_type: str = Field(default="individual")

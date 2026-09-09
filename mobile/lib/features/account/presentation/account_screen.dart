@@ -223,29 +223,49 @@ class AccountScreen extends ConsumerWidget {
 
   Future<void> _confirmAndDelete(
       BuildContext context, WidgetRef ref, AppLocalizations text) async {
-    final confirmed = await showDialog<bool>(
+    final passwordController = TextEditingController();
+    final password = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(text.deleteAccount),
-        content: Text(text.deleteAccountWarning),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(text.deleteAccountWarning),
+            const SizedBox(height: GvSpacing.md),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              decoration: InputDecoration(labelText: text.password),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(text.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(dialogContext).colorScheme.error),
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () {
+              if (passwordController.text.isNotEmpty) {
+                Navigator.pop(dialogContext, passwordController.text);
+              }
+            },
             child: Text(text.deleteAccountConfirm),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    passwordController.dispose();
+    if (password == null || password.isEmpty) return;
 
-    final result =
-        await ref.read(authControllerProvider.notifier).deleteAccount();
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .deleteAccount(password: password);
     if (!context.mounted) return;
     if (result is Ok<void>) {
       context.go('/login');

@@ -12,21 +12,28 @@ class ApiClient {
     required AppConfig config,
     required SecureTokenStore tokenStore,
     Dio? dio,
-  })  : _config = config,
-        _tokenStore = tokenStore,
-        _dio = dio ?? Dio() {
+    Dio? refreshDio,
+  })  : _tokenStore = tokenStore,
+        _dio = dio ?? Dio(),
+        _refreshDio = refreshDio ?? Dio() {
     _dio.options
       ..baseUrl = config.apiBaseUrl
       ..connectTimeout = config.connectTimeout
       ..receiveTimeout = config.receiveTimeout
       ..headers['Content-Type'] = 'application/json';
     _dio.interceptors.add(_authInterceptor());
+    _refreshDio.options
+      ..baseUrl = config.apiBaseUrl
+      ..connectTimeout = config.connectTimeout
+      ..receiveTimeout = config.receiveTimeout
+      ..headers['Content-Type'] = 'application/json';
   }
 
-  final AppConfig _config;
   final SecureTokenStore _tokenStore;
   final Dio _dio;
+  final Dio _refreshDio;
   final _log = const AppLogger('ApiClient');
+  Future<bool>? _refreshInFlight;
 
   Dio get raw => _dio;
 
@@ -40,7 +47,9 @@ class ApiClient {
         },
         onError: (err, handler) async {
           // Attempt one transparent refresh on 401, then replay the request.
-          if (err.response?.statusCode == 401) {
+          if (err.response?.statusCode == 401 &&
+              err.requestOptions.extra['gvRefreshAttempted'] != true) {
+            err.requestOptions.extra['gvRefreshAttempted'] = true;
             final refreshed = await _tryRefresh();
             if (refreshed) {
               try {
@@ -53,11 +62,25 @@ class ApiClient {
         },
       );
 
-  Future<bool> _tryRefresh() async {
+  Future<bool> _tryRefresh() {
+    final active = _refreshInFlight;
+    if (active != null) return active;
+
+    late final Future<bool> operation;
+    operation = _performRefresh().whenComplete(() {
+      if (identical(_refreshInFlight, operation)) {
+        _refreshInFlight = null;
+      }
+    });
+    _refreshInFlight = operation;
+    return operation;
+  }
+
+  Future<bool> _performRefresh() async {
     final refresh = await _tokenStore.readRefresh();
     if (refresh == null) return false;
     try {
-      final res = await Dio(BaseOptions(baseUrl: _config.apiBaseUrl))
+      final res = await _refreshDio
           .post('/auth/refresh', data: {'refresh_token': refresh});
       final access = res.data['access_token'] as String?;
       final newRefresh = res.data['refresh_token'] as String?;

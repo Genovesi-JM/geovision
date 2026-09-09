@@ -80,7 +80,7 @@ uses PostgreSQL. The Compose stack selects TimescaleDB, but the application does
 not currently depend on PostGIS geometry types or GeoAlchemy. Sites store
 latitude and longitude as numeric columns.
 
-Alembic has a single current head, `account_profiles_v1`. A complete migration
+Alembic has a single current head, `identity_boundary_v1`. A complete migration
 from an empty SQLite database reaches that head successfully. The history
 includes authentication hardening, platform tables, mobile requests, ERP
 outbox, drone missions, IoT, construction inspections, entitlements and account
@@ -101,11 +101,14 @@ compatibility migrations rather than destructive replacement.
 
 ## Identity and authorization
 
-The backend supports email/password login, bcrypt password hashes, signed JWT
-access tokens, rotating hashed refresh tokens, password reset tokens, Google
-OAuth and Microsoft OAuth/Entra endpoints with state validation. A user can have
-multiple `AccountMember` memberships, and requests can select a workspace using
-`X-Account-ID`.
+The backend supports email/password login, bcrypt password hashes, versioned
+GeoVision JWT sessions, rotating hashed refresh tokens, password reset tokens,
+and legacy Google/Microsoft browser callbacks. Phase 3 also provides a strict
+Microsoft Entra External ID adapter for GeoVision API access tokens. It validates
+issuer, audience, tenant, signature, lifetime, and delegated scope; it does not
+accept ID tokens or Microsoft Graph access tokens. External issuer/subject maps
+to an immutable internal user UUID. A user can have multiple `AccountMember`
+memberships, and requests can select a workspace using `X-Account-ID`.
 
 Authorization is not yet one unified RBAC model. It combines a global user role,
 account membership roles, company membership roles and route-specific admin or
@@ -159,7 +162,7 @@ describes the GeoVision-controlled shop.
 |---|---|---|
 | Cloud deployment | DigitalOcean App Platform and GitHub-hosted static frontend | Azure-first infrastructure is not present |
 | Object storage | S3-compatible provider | Azure Blob adapter required |
-| Enterprise identity | Google and Microsoft OAuth endpoints | Entra boundary exists only at OAuth route level |
+| Enterprise identity | Issuer-qualified mappings, internal sessions, strict Entra External ID API-token validation, and transitional Google/Microsoft callbacks | Production cutover, legacy-session retirement, and canonical organization/RBAC remain gated |
 | ERP | ERPNext adapter plus mock and outbox | Playbook names Odoo as the intended internal ERP/CRM |
 | Maps | OpenStreetMap/demo working; Mapbox adapter prepared | Azure-independent provider boundary still needs consolidation |
 | Payments | Bank transfer and provider abstractions; Stripe, Multicaixa and PayPal credential-gated | Provider behavior and mock fallbacks need explicit production policies |
@@ -185,13 +188,14 @@ Executed on 9 September 2026 before Phase 0 changes:
 | Flutter tests | 38 passed |
 | Android debug APK | Built successfully; future Kotlin plugin migration warning |
 | iOS simulator debug app | Built successfully; future Swift Package Manager warning for `flutter_secure_storage` |
-| Fresh Alembic migration | Reached the single `account_profiles_v1` head |
+| Pre-Phase-3 fresh Alembic migration | Reached the then-current `account_profiles_v1` head |
 | Backend startup | `start.py` started; `/health` and `/ready` returned 200 |
 | Compose validation | Not runnable on this Mac because the Docker CLI has no Compose plugin |
 
-The backend startup also emits a non-fatal schema-column inspection warning in
-`start.py`. The server becomes ready, but the warning reflects a real defect in
-the compatibility inspection path and is recorded in the risk register.
+Phase 3 subsequently made Alembic failure fatal at startup; the service no
+longer stamps a failed migration as current or substitutes `create_all` for data
+migrations. The narrow legacy column compatibility check still remains until
+its behavior is replaced by an explicit later migration.
 
 ## Reproducible local verification
 

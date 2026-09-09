@@ -28,8 +28,34 @@ def main():
         company = db.query(Company).filter(Company.email == email).first()
         if not company:
             company = Company(name="GeoVision IoT Demonstration", email=email, status="active", subscription_plan="demo"); db.add(company); db.flush()
-        member = db.query(CompanyUser).filter(CompanyUser.company_id == company.id, CompanyUser.email == email).first()
-        if not member: db.add(CompanyUser(company_id=company.id, email=email, name="IoT Demo", role="owner", is_active=True))
+        member = db.query(CompanyUser).filter(
+            CompanyUser.company_id == company.id,
+            CompanyUser.user_id == user.id,
+        ).first()
+        if not member:
+            legacy_member = db.query(CompanyUser).filter(
+                CompanyUser.company_id == company.id,
+                CompanyUser.email == email,
+            ).first()
+            if legacy_member and legacy_member.user_id not in {None, user.id}:
+                raise RuntimeError("IoT demo company is linked to a different user")
+            if legacy_member:
+                legacy_member.user_id = user.id
+                legacy_member.is_active = True
+                member = legacy_member
+            else:
+                member = CompanyUser(
+                    company_id=company.id,
+                    user_id=user.id,
+                    email=email,
+                    name="IoT Demo",
+                    role="owner",
+                    is_active=True,
+                )
+                db.add(member)
+        db.flush()
+        if member.user_id != user.id:
+            raise RuntimeError("IoT demo user was not bound to its immutable user ID")
         site = db.query(Site).filter(Site.company_id == company.id, Site.name == "Live Sensor Lab").first()
         if not site:
             site = Site(company_id=company.id, name="Live Sensor Lab", country="Angola", province="Luanda", municipality="Talatona", sector="infrastructure", latitude=-8.918, longitude=13.184); db.add(site); db.flush()

@@ -32,19 +32,64 @@ services:
     value: "8080"
   - key: CORS_ORIGINS
     scope: RUN_TIME
-    value: https://genovesi-jm.github.io,https://geovisionops.com,https://www.geovisionops.com
+    value: https://geovisionops.com,https://www.geovisionops.com
   - key: FRONTEND_BASE
     scope: RUN_TIME
-    value: https://genovesi-jm.github.io/geovision
+    value: https://geovisionops.com
   - key: BACKEND_BASE
     scope: RUN_TIME
-    value: https://geovisionops-sqknb.ondigitalocean.app
+    value: https://api.geovisionops.com
   - key: SECRET_KEY
     scope: RUN_TIME
     type: SECRET
   - key: ADMIN_PASSWORD
     scope: RUN_TIME
     type: SECRET
+  - key: ADMIN_EMAILS
+    scope: RUN_TIME
+    type: SECRET
+  - key: IDENTITY_PROVIDER
+    scope: RUN_TIME
+    value: internal
+  - key: INTERNAL_TOKEN_ISSUER
+    scope: RUN_TIME
+    value: geovision
+  - key: INTERNAL_TOKEN_AUDIENCE
+    scope: RUN_TIME
+    value: geovision-api
+  - key: ACCEPT_LEGACY_ACCESS_TOKENS
+    scope: RUN_TIME
+    value: "true"
+  - key: EXTERNAL_IDENTITY_SESSION_MAX_HOURS
+    scope: RUN_TIME
+    value: "24"
+  - key: IDENTITY_AUTO_LINK_VERIFIED_EMAIL
+    scope: RUN_TIME
+    value: "false"
+  - key: ENTRA_EXTERNAL_ID_ISSUER
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENTRA_EXTERNAL_ID_AUDIENCE
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENTRA_EXTERNAL_ID_TENANT_ID
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENTRA_EXTERNAL_ID_DISCOVERY_URL
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENTRA_EXTERNAL_ID_REQUIRED_SCOPE
+    scope: RUN_TIME
+    value: access_as_user
+  - key: ENTRA_EXTERNAL_ID_AUTHORIZED_PARTY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENTRA_EXTERNAL_ID_CLOCK_SKEW_SECONDS
+    scope: RUN_TIME
+    value: "60"
+  - key: ENTRA_EXTERNAL_ID_JWKS_CACHE_SECONDS
+    scope: RUN_TIME
+    value: "3600"
   - key: ENCRYPTION_KEY
     scope: RUN_TIME
     type: SECRET
@@ -58,6 +103,9 @@ services:
     scope: RUN_TIME
     type: SECRET
   - key: MICROSOFT_CLIENT_SECRET
+    scope: RUN_TIME
+    type: SECRET
+  - key: MICROSOFT_TENANT_ID
     scope: RUN_TIME
     type: SECRET
   - key: OPENAI_API_KEY

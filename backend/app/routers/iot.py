@@ -13,8 +13,10 @@ from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.deps import get_current_user
+from app.integrations.identity.internal import InternalIdentityProvider
 from app.iot.events import event_hub
 from app.iot.registry import valid_unit
 from app.core.time import utc_now
@@ -55,7 +57,8 @@ from app.models import (
     User,
     Company,
 )
-from app.core.tokens import verify_access_token
+from app.modules.identity.domain import TokenUse
+from app.modules.identity.services import IdentityService
 from app.modules.organizations.services import get_user_company_id
 
 _get_user_company_id = get_user_company_id
@@ -672,7 +675,7 @@ def dismiss_recommendation(recommendation_id: str, user: User = Depends(get_curr
 
 def _can_command(db: Session, user: User, company_id: str) -> bool:
     if user.role == "admin": return True
-    membership = db.query(CompanyUser).filter(CompanyUser.company_id == company_id, CompanyUser.email == user.email, CompanyUser.is_active.is_(True)).first()
+    membership = db.query(CompanyUser).filter(CompanyUser.company_id == company_id, CompanyUser.user_id == user.id, CompanyUser.is_active.is_(True)).first()
     return bool(membership and membership.role in {"owner", "admin", "manager", "operator"})
 
 
@@ -820,11 +823,20 @@ async def websocket_events(websocket: WebSocket):
     await websocket.accept(); queue = None; device_id = None
     try:
         auth = await asyncio.wait_for(websocket.receive_json(), timeout=10)
-        claims = verify_access_token(str(auth.get("token") or "")); user_id = claims.get("uid"); device_id = str(auth.get("device_id") or "")
+        validation = InternalIdentityProvider(
+            issuer=settings.internal_token_issuer,
+        ).validate_token(
+            str(auth.get("token") or ""),
+            token_use=TokenUse.INTERNAL_SESSION,
+        )
+        if not validation.ok or validation.value is None:
+            raise ValueError("invalid websocket identity")
+        device_id = str(auth.get("device_id") or "")
         from app.core import database
         db = database.SessionLocal()
         try:
-            user = db.get(User, user_id); company_id = _company_id(user, db) if user else None
+            user = IdentityService(db).resolve_internal_principal(validation.value).user
+            company_id = _company_id(user, db)
             device_for_company(db, device_id, company_id)
         finally: db.close()
         queue = event_hub.subscribe(device_id); await websocket.send_json({"type": "ready", "device_id": device_id})

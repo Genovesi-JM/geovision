@@ -17,6 +17,7 @@ from sqlalchemy import (
     Float,
     UniqueConstraint,
     Index,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,6 +36,14 @@ class User(Base):
     password_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[str] = mapped_column(String, nullable=False, default="client")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Incremented after credential-changing security events. Every GeoVision
+    # access/refresh session is bound to the generation it was issued from.
+    auth_generation: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
@@ -43,6 +52,14 @@ class User(Base):
     orders = relationship("Order", back_populates="user")
     account_members = relationship("AccountMember", back_populates="user", cascade="all, delete-orphan", overlaps="accounts,users")
     accounts = relationship("Account", secondary="account_members", back_populates="users", overlaps="account_members,members")
+
+    __table_args__ = (
+        Index(
+            "ix_users_email_normalized",
+            func.lower(func.trim(email)),
+            unique=True,
+        ),
+    )
 
     @property
     def memberships(self):
@@ -98,11 +115,23 @@ class Account(Base):
     use_cases: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     org_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     modules_enabled: Mapped[str] = mapped_column(Text, nullable=False, default='["kpi","projects","store","alerts"]')
+    # Set only on the one starter workspace created by onboarding. The unique
+    # internal-user marker makes that operation durable and idempotent even on
+    # databases (notably SQLite) where SELECT ... FOR UPDATE is ineffective.
+    onboarding_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     members = relationship("AccountMember", back_populates="account", cascade="all, delete-orphan", overlaps="accounts,users")
     users = relationship("User", secondary="account_members", back_populates="accounts", overlaps="account_members,members")
+
+    __table_args__ = (
+        Index("ix_accounts_onboarding_user_id", onboarding_user_id, unique=True),
+    )
 
 
 class AccountMember(Base):
@@ -256,8 +285,25 @@ class ResetToken(Base):
     __tablename__ = "reset_tokens"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    token: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    # Historical column name remains ``token`` for a no-DDL transition, but
+    # new rows store only a SHA-256 digest of the bearer secret.
+    token_hash: Mapped[str] = mapped_column(
+        "token",
+        String,
+        unique=True,
+        index=True,
+        nullable=False,
+    )
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    # A reset link is valid only for the credential generation at which it was
+    # issued. An atomic generation advance makes concurrent sibling links
+    # mutually exclusive without relying on reset-token row lock ordering.
+    auth_generation: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
@@ -270,6 +316,8 @@ class OAuthState(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     state: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    provider: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    code_verifier: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     used: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
@@ -284,18 +332,76 @@ class AuthIdentity(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     provider: Mapped[str] = mapped_column(String(50), nullable=False)          # google, microsoft
-    provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)  # sub from OIDC
+    # Compatibility key retained for legacy Google and Microsoft Graph rows.
+    provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    issuer: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    subject: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    email_verified: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     display_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     avatar_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     raw_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)       # JSON dump of userinfo
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     user = relationship("User", backref="auth_identities")
 
     __table_args__ = (
-        # One identity per provider per user
-        # UniqueConstraint handled by index below
+        Index(
+            "ix_auth_identities_provider_sub",
+            "provider",
+            "provider_user_id",
+            unique=True,
+        ),
+        Index(
+            "ix_auth_identities_issuer_subject",
+            "issuer",
+            "subject",
+            unique=True,
+        ),
+    )
+
+
+class RefreshTokenFamily(Base):
+    """Authoritative state and identity provenance for one rotated session."""
+
+    __tablename__ = "refresh_token_families"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    auth_identity_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("auth_identities.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    identity_provider: Mapped[str] = mapped_column(String(50), nullable=False)
+    # Legacy families cannot prove which configurable issuer minted them.
+    identity_issuer: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    identity_subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    auth_generation: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    compromised_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    user = relationship("User")
+    auth_identity = relationship("AuthIdentity")
+    tokens = relationship(
+        "RefreshTokenModel",
+        back_populates="family",
+        cascade="all, delete-orphan",
     )
 
 
@@ -306,12 +412,18 @@ class RefreshTokenModel(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     token_hash: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    family_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)  # for rotation detection
+    family_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("refresh_token_families.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     user = relationship("User")
+    family = relationship("RefreshTokenFamily", back_populates="tokens")
 
 
 # â”€â”€ Contact Methods (WhatsApp, Instagram, Email, etc.) â”€â”€
@@ -423,6 +535,14 @@ class CompanyUser(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    # Nullable only for pending/legacy email invitations. Authorization must
+    # use this immutable GeoVision user ID, never infer membership from email.
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     email: Mapped[str] = mapped_column(String, nullable=False)
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[str] = mapped_column(String(30), nullable=False, default="viewer")
@@ -431,6 +551,15 @@ class CompanyUser(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     company = relationship("Company", back_populates="company_users")
+    user = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "company_id",
+            "user_id",
+            name="uq_company_users_company_user",
+        ),
+    )
 
 
 # â”€â”€ Site / Project Location â”€â”€

@@ -37,7 +37,13 @@ def test_google_flow_monkeypatch(monkeypatch, tmp_path):
     client = TestClient(app)
 
     # 1) Call /auth/google/login and ensure redirect contains state
-    resp = client.get('/auth/google/login', follow_redirects=False)
+    assert client.get('/auth/google/login', follow_redirects=False).status_code == 422
+    browser_nonce = 'a' * 64
+    resp = client.get(
+        '/auth/google/login',
+        params={'browser_nonce': browser_nonce},
+        follow_redirects=False,
+    )
     assert resp.status_code in (302, 307)
     loc = resp.headers.get('location')
     assert 'accounts.google.com' in loc
@@ -49,22 +55,48 @@ def test_google_flow_monkeypatch(monkeypatch, tmp_path):
     params = dict(up.parse_qsl(qs))
     state = params.get('state')
     assert state
+    assert params.get('code_challenge_method') == 'S256'
+    assert params.get('code_challenge')
 
     # ensure DB has OAuthState
     db = SessionLocal()
     st = db.query(OAuthState).filter(OAuthState.state == state).first()
     assert st is not None
     assert not st.used
+    assert st.provider == 'google'
+    assert st.code_verifier
 
     # 2) Mock token exchange and userinfo
-    def fake_post(url, data=None, timeout=None):
+    token_requests = []
+
+    def fake_post(url, data=None, timeout=None, allow_redirects=None):
+        assert allow_redirects is False
+        token_requests.append((url, data))
         return DummyResp({"access_token": "FAKE_GOOGLE_ACCESS"})
 
-    def fake_get(url, params=None, timeout=None):
-        return DummyResp({"email": "test-google@example.com", "name": "Test User"})
+    def fake_get(url, headers=None, timeout=None, allow_redirects=None):
+        assert allow_redirects is False
+        assert headers == {"Authorization": "Bearer FAKE_GOOGLE_ACCESS"}
+        return DummyResp({
+            "id": "google-subject-test-user",
+            "email": "test-google@example.com",
+            "verified_email": True,
+            "name": "Test User",
+        })
 
     monkeypatch.setattr('requests.post', fake_post)
     monkeypatch.setattr('requests.get', fake_get)
+
+    # A transferred callback URL is not enough: the initiating browser's
+    # HttpOnly state cookie is also required, before any token exchange occurs.
+    victim = TestClient(app)
+    rejected = victim.get(
+        '/auth/google/callback',
+        params={'code': 'attacker-code', 'state': state},
+        follow_redirects=False,
+    )
+    assert rejected.status_code == 400
+    assert token_requests == []
 
     # Call callback with code and state
     cb = client.get(
@@ -73,9 +105,12 @@ def test_google_flow_monkeypatch(monkeypatch, tmp_path):
         follow_redirects=False,
     )
     assert cb.status_code in (302, 307)
+    assert token_requests[0][1]['code_verifier'] == st.code_verifier
     callback_location = cb.headers['location']
     assert '/auth-callback.html' in callback_location
     assert '#token=' in callback_location
+    assert 'provider=google' in callback_location
+    assert f'browser_nonce={browser_nonce}' in callback_location
 
     # Verify user created in DB using a fresh SessionLocal (engine is
     # initialized by conftest so visibility should be consistent).
