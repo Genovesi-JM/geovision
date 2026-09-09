@@ -6,8 +6,9 @@ from contextlib import asynccontextmanager, suppress
 import os
 from urllib.parse import urlparse
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .config import settings
 from .database import init_db_engine
@@ -163,6 +164,21 @@ def create_application() -> FastAPI:
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:
         return {"status": "ok"}
+
+    @application.get("/ready", tags=["system"])
+    def readinesscheck() -> dict:
+        """Report readiness only when the application can reach its database."""
+
+        from . import database
+
+        try:
+            if database.engine is None:
+                raise RuntimeError("database engine is not initialized")
+            with database.engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="service unavailable") from exc
+        return {"status": "ready"}
 
     return application
 

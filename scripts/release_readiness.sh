@@ -28,7 +28,7 @@ printf 'GeoVision production readiness\n\n'
 check_url "Public website" "https://geovisionops.com/" "200"
 check_url "Privacy page" "https://geovisionops.com/privacy.html" "200"
 check_url "Terms page" "https://geovisionops.com/terms.html" "200"
-check_url "Production API health" "https://api.geovisionops.com/health" "200"
+check_url "Production API readiness" "https://api.geovisionops.com/ready" "200"
 
 if grep -q '"GV_DEMO_MODE": "false"' "$MOBILE_DIR/dart_defines/production.json" && \
    grep -q '"GV_API_BASE_URL": "https://api.geovisionops.com"' "$MOBILE_DIR/dart_defines/production.json"; then
