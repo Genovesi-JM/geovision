@@ -685,10 +685,14 @@ async def create_site(company_id: str, data: SiteCreate, db: Session = Depends(g
     if current >= c.max_sites:
         raise HTTPException(400, f"Site limit reached ({c.max_sites}). Upgrade subscription.")
     site = Site(id=str(uuid.uuid4()), company_id=company_id, name=data.name,
-                country=data.country, province=data.province,
+                description=data.description, country=data.country, province=data.province,
+                municipality=data.municipality,
                 latitude=data.latitude, longitude=data.longitude,
                 area_hectares=data.area_hectares, sector=data.sector)
-    db.add(site); c.current_sites = current + 1
+    db.add(site); db.flush()
+    from app.modules.assets.services import synchronize_legacy_site
+    synchronize_legacy_site(db, site)
+    c.current_sites = current + 1
     _log_audit(db, company_id, "site_created", "site", site.id,
                details={"name": data.name, "sector": data.sector})
     db.commit(); db.refresh(site)
@@ -740,6 +744,8 @@ async def delete_site(site_id: str, db: Session = Depends(get_db)):
     if not site: raise HTTPException(404, "Site not found")
     c = db.get(Company, site.company_id)
     if c and c.current_sites: c.current_sites = max(0, c.current_sites - 1)
+    from app.modules.assets.services import archive_legacy_asset
+    archive_legacy_asset(db, source="site", source_id=site.id)
     db.delete(site); db.commit()
     return {"message": "Site deleted", "site_id": site_id}
 

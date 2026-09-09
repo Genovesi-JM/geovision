@@ -25,6 +25,7 @@ from app.models import (
     User,
 )
 from app.modules.organizations.services import get_user_company_id
+from app.modules.assets.services import synchronize_legacy_site
 from app.modules.analytics.kpi_catalog import get_kpis_for_sectors
 
 _get_user_company_id = get_user_company_id
@@ -159,6 +160,8 @@ def create_site(
         is_active=True,
     )
     db.add(site)
+    db.flush()
+    synchronize_legacy_site(db, site, actor_user_id=user.id)
     company.current_sites = current + 1
     publish_account_event(
         db,

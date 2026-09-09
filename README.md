@@ -16,7 +16,10 @@ Backend variables and environment profiles are listed in the
 documented in the [identity-provider architecture](docs/IDENTITY_PROVIDER_ARCHITECTURE.md)
 and [Entra cutover runbook](docs/ENTRA_CUTOVER_RUNBOOK.md). Canonical customer
 tenancy, role permissions, compatibility names, and migration steps are in the
-[organization/workspace RBAC guide](docs/ORGANIZATION_WORKSPACE_RBAC.md). Run
+[organization/workspace RBAC guide](docs/ORGANIZATION_WORKSPACE_RBAC.md). The
+cross-sector hierarchy, GeoJSON contract, PostGIS projection, permissions, and
+legacy Site/IoT mapping are documented in the
+[generic Asset/PostGIS guide](docs/ASSET_POSTGIS_FOUNDATION.md). Run
 the non-mutating baseline suite with:
 
 ```bash

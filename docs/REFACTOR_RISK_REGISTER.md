@@ -12,7 +12,7 @@ instead of treating legacy structures as disposable.
 |---|---|---|---|---|
 | R01 | High | `Company` and `Account` table names remain for compatibility, but Phase 4 now links every workspace to a canonical organization and synchronizes membership authorization | A legacy client or unreviewed migration fallback can still use confusing vocabulary or attach an account to the wrong reviewed organization | Review deterministic backfills before live cutover, use canonical `/organizations` APIs and `X-Workspace-ID`, and retire aliases only after deployed clients migrate |
 | R03 | High | Application startup runs broad legacy schema alterations and suppresses several failures | Schema drift can remain hidden and differ between SQLite and PostgreSQL | Inventory every compatibility alteration, replace it with idempotent Alembic migrations, then retire the runtime shim only after cutover |
-| R05 | High | PostgreSQL is supported, but sites use numeric latitude/longitude and no PostGIS geometry types are active | Spatial queries, boundaries and cross-sector assets cannot safely scale from point coordinates | Introduce PostGIS and the generic Asset model through additive migrations and geometry backfill checks in Phase 5 |
+| R05 | Medium | Phase 5 adds a generic Asset hierarchy, validated GeoJSON, bbox fallback, and an optional generated PostGIS geometry/GiST projection; legacy Site and IoT tables remain compatibility facades and a database without the extension stays in portable-only mode | Operators could mistake fallback storage for production PostGIS readiness, or later remove a legacy table before all `site_id` consumers migrate | Gate deployment on `postgis_full_version()`, geometry/index verification and a restored-data count audit; retire legacy tables only after explicit consumer cutover |
 | R06 | High | Static web, Flutter and external/device clients depend on the current route and payload shapes | Moving routers during modularization can break working clients | Record current OpenAPI, preserve route prefixes, add contract tests and use compatibility facades before moving implementations |
 | R07 | Medium | Customer roles and internal GeoVision assignments are now separate, but `users.role = admin` remains a documented temporary bridge for old deployments/tests | A legacy staff record can retain platform access until the bridge is removed | Audit `ADMIN_EMAILS`, verify all admins have `GV_SUPER_ADMIN`, move staff grants to `internal_role_assignments`, then remove the legacy bridge after client/cutover validation |
 | R08 | High | There is no invitation-first path into an existing workspace/asset/result | Post-service customers must use generic onboarding and may create duplicate sites | Add expiring, single-use, tenant-scoped invitations and deep-link tests in Phase 6 |
@@ -174,3 +174,24 @@ without a compatibility plan.
   identity collisions. External revocation is bounded by the absolute family
   deadline plus already-issued short access tokens; trusted proxies must also
   sanitize `X-Forwarded-For` until the in-memory limiter is replaced.
+
+## Phase 5 outcome
+
+- **Reduced:** R05, because all verticals can now use one organization/workspace
+  Asset hierarchy with stable sectors, extensible types, validated EPSG:4326
+  GeoJSON, portable bounding-box filters, and a PostgreSQL PostGIS/GiST
+  projection when the extension is available.
+- **Contained:** Existing `Site` and IoT/construction asset rows are copied and
+  linked through non-destructive legacy identifiers. Current mobile, admin, and
+  IoT creation paths mirror new writes; the source tables remain operational.
+- **Contained:** Customer asset reads and writes use the selected authorization
+  context. Viewer mutation, parent crossover, hierarchy cycles, and
+  cross-organization UUID access fail closed in automated tests.
+- **Residual:** A portable-only database is supported for CI and development but
+  is not production PostGIS evidence. A restored-data PostgreSQL rehearsal must
+  verify extension/version, generated geometry, GiST validity, row counts, and
+  rollback before live cutover under R23.
+- **Unchanged:** Sector-specific semantics, datasets, missions, observations,
+  KPI provenance, IoT edge behavior, and customer navigation remain owned by
+  their later phases; the common Asset table contains no sector-specific
+  measurement columns.

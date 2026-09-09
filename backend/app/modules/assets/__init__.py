@@ -1,11 +1,11 @@
-"""Cross-sector asset domain boundary; the generic model belongs to Phase 5."""
+"""Cross-sector spatial asset domain boundary."""
 
 from app.modules.contracts import DomainModule, RouterMount
 
 definition = DomainModule(
     name="assets",
     purpose="Sites, physical assets, asset hierarchy, and spatial identity.",
-    maturity="partial",
+    maturity="implemented",
     routes=(
         RouterMount(
             "assets.projects",
@@ -15,6 +15,12 @@ definition = DomainModule(
             prefix="/projects",
             tags=("projects",),
             secondary_owners=("operations",),
+        ),
+        RouterMount(
+            "assets.canonical",
+            "assets",
+            "app.routers.assets",
+            25,
         ),
     ),
 )

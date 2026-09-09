@@ -41,15 +41,23 @@ class WorkspaceStatus(str, Enum):
     ARCHIVED = "archived"
 
 
+ASSET_READ = frozenset({"asset:read"})
+ASSET_CONTRIBUTE = frozenset({"asset:read", "asset:create", "asset:update"})
+ASSET_MANAGE = frozenset(
+    {"asset:read", "asset:create", "asset:update", "asset:archive"}
+)
+
+
 CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
     CustomerRole.VIEWER: frozenset(
-        {"organization:read", "workspace:read"}
+        {"organization:read", "workspace:read", *ASSET_READ}
     ),
     CustomerRole.MEMBER: frozenset(
         {
             "organization:read",
             "workspace:read",
             "workspace:contribute",
+            *ASSET_CONTRIBUTE,
         }
     ),
     CustomerRole.FINANCE: frozenset(
@@ -58,6 +66,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "workspace:read",
             "billing:read",
             "billing:manage",
+            *ASSET_READ,
         }
     ),
     CustomerRole.MANAGER: frozenset(
@@ -67,6 +76,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "workspace:contribute",
             "workspace:operate",
             "workspace:manage",
+            *ASSET_MANAGE,
         }
     ),
     CustomerRole.ADMIN: frozenset(
@@ -80,6 +90,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "workspace:manage",
             "billing:read",
             "billing:manage",
+            *ASSET_MANAGE,
         }
     ),
     CustomerRole.OWNER: frozenset(
@@ -94,6 +105,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "workspace:manage",
             "billing:read",
             "billing:manage",
+            *ASSET_MANAGE,
         }
     ),
 }

@@ -145,7 +145,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 |---|---|
 | Identity | Immutable internal user IDs, versioned sessions, issuer-qualified external mappings, and a strict Entra External ID API-token adapter are implemented; legacy browser logins remain transitional, while Phase 4 owns canonical organization/RBAC consolidation |
 | Organizations | Canonical organizations/workspaces, membership lifecycle, separate staff roles, and server-enforced RBAC are implemented over compatibility table names; invitation-token acceptance remains Phase 6 |
-| Assets | Sites, devices, aircraft and inspected assets exist; Phase 5 owns the generic Asset/PostGIS model |
+| Assets | Generic organization/workspace-owned hierarchy, validated GeoJSON, portable bbox queries, optional PostGIS projection, and legacy Site/IoT mirroring are implemented |
 | Catalog | Product, shop-product, kit and service catalogue behavior exists; Phase 7 owns consolidation |
 | Orders | Legacy order routes and the richer shop lifecycle exist; Phase 8 owns the standard lifecycle |
 | Operations | Admin, internal resources, mobile operations and inspections are compatibility facades; Phases 9 and 10 own extraction |
@@ -162,7 +162,9 @@ cross-domain compatibility facade until its later phase extracts the service.
 
 `app/modules/organizations/services.py` owns organization/workspace context,
 customer membership policy and legacy company lookup without email-based
-authorization. `app/modules/analytics/kpi_catalog.py` owns KPI selection.
+authorization. `app/modules/assets/services.py` owns cross-sector hierarchy,
+spatial normalization, tenant filtering, archive policy, and legacy Site/IoT
+mirroring. `app/modules/analytics/kpi_catalog.py` owns KPI selection.
 Compatibility routers call these services instead of importing other routers.
 
 ## Sector boundaries

@@ -154,8 +154,11 @@ def create_asset(payload: AssetCreate, user: User = Depends(get_current_user), d
     company_id = _company_id(user, db); site = db.get(Site, payload.site_id)
     if not site or site.company_id != company_id: raise HTTPException(status_code=404, detail="Site not found")
     row = IotAsset(company_id=company_id, site_id=site.id, name=payload.name.strip(), asset_type=payload.asset_type, external_reference=payload.external_reference, latitude=payload.latitude, longitude=payload.longitude, metadata_json=json.dumps(payload.metadata))
-    db.add(row); db.flush(); _audit(db, user, "iot.asset_created", "iot_asset", row.id); db.commit()
-    return {"id": row.id, **payload.model_dump()}
+    db.add(row); db.flush()
+    from app.modules.assets.services import synchronize_legacy_iot_asset
+    core_asset = synchronize_legacy_iot_asset(db, row, actor_user_id=user.id)
+    _audit(db, user, "iot.asset_created", "iot_asset", row.id, {"core_asset_id": core_asset.id}); db.commit()
+    return {"id": row.id, "core_asset_id": core_asset.id, **payload.model_dump()}
 
 
 @router.get("/assets")

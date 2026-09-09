@@ -212,6 +212,11 @@ class Account(Base):
         overlaps="account_members,members",
     )
     organization = relationship("Company", back_populates="workspaces")
+    assets = relationship(
+        "Asset",
+        back_populates="workspace",
+        foreign_keys="Asset.workspace_id",
+    )
 
     __table_args__ = (
         Index("ix_accounts_onboarding_user_id", onboarding_user_id, unique=True),
@@ -648,6 +653,12 @@ class Company(Base):
     documents = relationship("Document", back_populates="company", cascade="all, delete-orphan")
     integrations = relationship("Integration", back_populates="company", cascade="all, delete-orphan")
     workspaces = relationship("Account", back_populates="organization")
+    assets = relationship(
+        "Asset",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        foreign_keys="Asset.organization_id",
+    )
 
 
 class CompanyUser(Base):
@@ -711,7 +722,178 @@ OrganizationMembership = CompanyUser
 WorkspaceMembership = AccountMember
 
 
-# â”€â”€ Site / Project Location â”€â”€
+# â”€â”€ Generic spatial assets and legacy site compatibility â”€â”€
+
+
+class Asset(Base):
+    """Cross-sector spatial asset owned by one customer organization.
+
+    ``geometry_geojson`` is the portable source of truth used by SQLite and
+    other lightweight test environments. The Phase 5 migration adds a
+    generated PostGIS geometry column and GiST index when the target
+    PostgreSQL server has PostGIS available.
+    """
+
+    __tablename__ = "assets"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    parent_asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("assets.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+    sector: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    asset_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="active",
+        server_default="active",
+        index=True,
+    )
+    external_reference: Mapped[Optional[str]] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+    location_label: Mapped[Optional[str]] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+    geometry_geojson: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    bbox_min_x: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    bbox_min_y: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    bbox_max_x: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    bbox_max_y: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    centroid_latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    centroid_longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    metadata_json: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default="{}",
+        server_default="{}",
+    )
+    legacy_source: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    legacy_source_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    archived_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now,
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now,
+        onupdate=utc_now,
+        nullable=False,
+    )
+
+    organization = relationship(
+        "Company",
+        back_populates="assets",
+        foreign_keys=[organization_id],
+    )
+    workspace = relationship(
+        "Account",
+        back_populates="assets",
+        foreign_keys=[workspace_id],
+    )
+    parent = relationship(
+        "Asset",
+        remote_side=[id],
+        foreign_keys=[parent_asset_id],
+        back_populates="children",
+    )
+    children = relationship(
+        "Asset",
+        foreign_keys=[parent_asset_id],
+        back_populates="parent",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "legacy_source",
+            "legacy_source_id",
+            name="uq_assets_legacy_source_id",
+        ),
+        CheckConstraint(
+            "status IN ('draft', 'active', 'inactive', 'archived')",
+            name="ck_assets_status",
+        ),
+        CheckConstraint(
+            "parent_asset_id IS NULL OR parent_asset_id <> id",
+            name="ck_assets_not_own_parent",
+        ),
+        CheckConstraint(
+            "bbox_min_x IS NULL OR (bbox_min_x >= -180 AND bbox_min_x <= 180)",
+            name="ck_assets_bbox_min_x",
+        ),
+        CheckConstraint(
+            "bbox_max_x IS NULL OR (bbox_max_x >= -180 AND bbox_max_x <= 180)",
+            name="ck_assets_bbox_max_x",
+        ),
+        CheckConstraint(
+            "bbox_min_y IS NULL OR (bbox_min_y >= -90 AND bbox_min_y <= 90)",
+            name="ck_assets_bbox_min_y",
+        ),
+        CheckConstraint(
+            "bbox_max_y IS NULL OR (bbox_max_y >= -90 AND bbox_max_y <= 90)",
+            name="ck_assets_bbox_max_y",
+        ),
+        Index(
+            "ix_assets_scope_type_status",
+            "organization_id",
+            "workspace_id",
+            "asset_type",
+            "status",
+        ),
+        Index(
+            "ix_assets_scope_parent",
+            "organization_id",
+            "workspace_id",
+            "parent_asset_id",
+        ),
+        Index(
+            "ix_assets_bbox",
+            "bbox_min_x",
+            "bbox_min_y",
+            "bbox_max_x",
+            "bbox_max_y",
+        ),
+    )
+
+
+# The Site table remains as a compatibility facade while consumers migrate to
+# Asset. New legacy Site writes are mirrored by the assets application service.
 
 class Site(Base):
     __tablename__ = "sites"

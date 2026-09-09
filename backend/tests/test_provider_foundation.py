@@ -32,7 +32,7 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_4_OPENAPI_SHA256 = "6fa000d1c029dbb21e9c685e47b023e60b6becc019967e4c1aeaccb11f14bec9"
+PHASE_5_OPENAPI_SHA256 = "bf5d737388b7a8d4f5b3b02a5e1913d1672247a0cfe214d897ef7d5492b52671"
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
 DEPLOYED_BACKEND_BASE = "https://api.geovisionops.com"
@@ -1355,4 +1355,4 @@ def test_openapi_contract_is_byte_stable(client):
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_4_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_5_OPENAPI_SHA256
