@@ -8,6 +8,7 @@ from ..deps import get_current_user, get_current_account
 from ..account_profiles import normalize_account_profile
 from ..core.database import get_db
 from ..models import Account, AccountMember, User
+from ..modules.organizations.services import create_organization_with_workspace
 from ..schemas import AccountCreate, AccountPublic, AccountSwitchRequest
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
@@ -33,12 +34,18 @@ def _parse_list(value: str) -> List[str]:
 
 @router.get("", response_model=List[AccountPublic])
 def list_accounts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    memberships = db.query(AccountMember).filter(AccountMember.user_id == user.id).all()
+    memberships = db.query(AccountMember).filter(
+        AccountMember.user_id == user.id,
+        AccountMember.status == "active",
+    ).all()
     account_ids = [m.account_id for m in memberships]
     if not account_ids:
         return []
 
-    accounts = db.query(Account).filter(Account.id.in_(account_ids)).order_by(Account.created_at.desc()).all()
+    accounts = db.query(Account).filter(
+        Account.id.in_(account_ids),
+        Account.status == "active",
+    ).order_by(Account.created_at.desc()).all()
     results: List[AccountPublic] = []
     for acct in accounts:
         member = next((m for m in memberships if m.account_id == acct.id), None)
@@ -72,21 +79,22 @@ def create_account(payload: AccountCreate, user: User = Depends(get_current_user
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    account = Account(
-        name=payload.name,
+    _, account, _, _ = create_organization_with_workspace(
+        db,
+        actor=user,
+        name=payload.org_name or payload.name,
+        organization_type="customer",
+        country="Angola",
+        timezone="UTC",
+        workspace_name=payload.name,
         sector_focus=account_profile["sector_focus"],
         entity_type=account_profile["entity_type"],
         customer_type=account_profile["customer_type"],
         dashboard_profile=account_profile["dashboard_profile"],
-        use_cases=json.dumps(account_profile["use_cases"]),
+        use_cases=account_profile["use_cases"],
+        modules_enabled=modules,
         org_name=payload.org_name,
-        modules_enabled=json.dumps(modules),
     )
-    db.add(account)
-    db.flush()
-
-    membership = AccountMember(account_id=account.id, user_id=user.id, role="owner")
-    db.add(membership)
 
     db.commit()
     db.refresh(account)
@@ -109,7 +117,11 @@ def create_account(payload: AccountCreate, user: User = Depends(get_current_user
 def switch_account(payload: AccountSwitchRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     membership = (
         db.query(AccountMember)
-        .filter(AccountMember.account_id == payload.account_id, AccountMember.user_id == user.id)
+        .filter(
+            AccountMember.account_id == payload.account_id,
+            AccountMember.user_id == user.id,
+            AccountMember.status == "active",
+        )
         .first()
     )
     if not membership:

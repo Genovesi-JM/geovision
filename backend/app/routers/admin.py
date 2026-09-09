@@ -24,7 +24,9 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.encryption import encrypt
+from app.core.time import utc_now
 from app.deps import require_admin, get_db
+from app.modules.organizations.domain import normalize_customer_role
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +118,7 @@ class UserInCompany(BaseModel):
     name: Optional[str] = None
     role: str
     is_active: bool
+    status: str = "active"
     binding_status: str = "bound"
     last_login: Optional[datetime] = None
     created_at: datetime
@@ -273,6 +276,7 @@ async def list_company_users(company_id: str, db: Session = Depends(get_db)):
         name=u.name,
         role=u.role,
         is_active=bool(u.is_active and u.user_id),
+        status=u.status,
         binding_status="bound" if u.user_id else "pending_migration",
         last_login=None,
         created_at=u.created_at,
@@ -302,6 +306,10 @@ async def add_user_to_company(
     if current >= c.max_users:
         raise HTTPException(400, f"User limit reached ({c.max_users}). Upgrade subscription.")
     canonical_email = email.strip().lower()
+    try:
+        canonical_role = normalize_customer_role(role).value
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
     if user_id:
         bound_user = db.get(User, user_id)
     else:
@@ -337,7 +345,10 @@ async def add_user_to_company(
         user_id=bound_user.id,
         email=canonical_email,
         name=name,
-        role=role,
+        role=canonical_role,
+        is_active=True,
+        status="active",
+        joined_at=utc_now(),
     )
     db.add(u)
     c.current_users = current + 1
@@ -348,7 +359,7 @@ async def add_user_to_company(
         "company_user",
         u.id,
         user_id=bound_user.id,
-        details={"role": role},
+        details={"role": canonical_role},
     )
     try:
         db.commit()
@@ -366,6 +377,7 @@ async def add_user_to_company(
         name=u.name,
         role=u.role,
         is_active=u.is_active,
+        status=u.status,
         binding_status="bound",
         last_login=None,
         created_at=u.created_at,

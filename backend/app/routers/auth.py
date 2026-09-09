@@ -127,7 +127,12 @@ def _ensure_profile(
     return profile
 
 
-def _ensure_company(db: Session, user: User, account_name: str, sector_focus: str | None = None) -> None:
+def _ensure_company(
+    db: Session,
+    user: User,
+    account_name: str,
+    sector_focus: str | None = None,
+) -> Company:
     """Auto-create a Company record so the user appears in the admin panel."""
     email = (user.email or "").strip().lower()
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
@@ -138,13 +143,18 @@ def _ensure_company(db: Session, user: User, account_name: str, sector_focus: st
         .first()
     )
     if existing_membership:
-        return
+        company = db.get(Company, existing_membership.company_id)
+        if company is None:
+            raise RuntimeError("Company membership points to a missing organization")
+        return company
 
     company = Company(
         id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:company:{user.id}")),
         name=account_name,
         email=email,
         phone=None,
+        organization_type="customer",
+        timezone="UTC",
         sectors=json.dumps([sector_focus or "agro"]),
         status="active",
         subscription_plan="trial",
@@ -154,7 +164,23 @@ def _ensure_company(db: Session, user: User, account_name: str, sector_focus: st
         current_users=1,
     )
     db.add(company)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # The deterministic starter organization can be inserted concurrently
+        # by two onboarding requests. Once the winning transaction commits,
+        # reuse its immutable membership instead of leaking a database error.
+        db.rollback()
+        winner = (
+            db.query(CompanyUser)
+            .filter(CompanyUser.user_id == user.id)
+            .order_by(CompanyUser.created_at.asc())
+            .first()
+        )
+        winner_company = db.get(Company, winner.company_id) if winner else None
+        if winner_company is None:
+            raise
+        return winner_company
 
     # Link user to company
     cu = CompanyUser(
@@ -164,8 +190,11 @@ def _ensure_company(db: Session, user: User, account_name: str, sector_focus: st
         name=getattr(profile, "full_name", None) if profile else None,
         role="owner",
         is_active=True,
+        status="active",
+        joined_at=utc_now(),
     )
     db.add(cu)
+    return company
 
 
 def _ensure_default_account(
@@ -180,7 +209,10 @@ def _ensure_default_account(
         account = db.query(Account).filter(Account.id == membership.account_id).first()
         if account:
             # Ensure company also exists
-            _ensure_company(db, user, account.name, account.sector_focus)
+            company = _ensure_company(db, user, account.name, account.sector_focus)
+            if account.organization_id != company.id:
+                account.organization_id = company.id
+                db.add(account)
             if commit:
                 db.commit()
             return account
@@ -197,8 +229,10 @@ def _ensure_default_account(
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
     )
+    company = _ensure_company(db, user, account_name, sector_focus)
     account = Account(
         id=onboarding_account_id,
+        organization_id=company.id,
         name=account_name,
         sector_focus=default_profile["sector_focus"],
         entity_type=default_profile["entity_type"],
@@ -212,11 +246,14 @@ def _ensure_default_account(
     db.add(account)
     db.flush()
 
-    membership = AccountMember(account_id=account.id, user_id=user.id, role="owner")
+    membership = AccountMember(
+        account_id=account.id,
+        user_id=user.id,
+        role="owner",
+        status="active",
+        joined_at=utc_now(),
+    )
     db.add(membership)
-
-    # Also create Company for admin panel
-    _ensure_company(db, user, account_name, sector_focus)
 
     if commit:
         db.commit()
@@ -474,11 +511,13 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
 
     modules = payload.modules_enabled or DEFAULT_MODULES
     account_name = payload.account_name or payload.org_name or ((payload.full_name or email.split("@")[0]) + " workspace")
+    company = _ensure_company(db, user, account_name, account_profile["sector_focus"])
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
     )
     account = Account(
         id=onboarding_account_id,
+        organization_id=company.id,
         name=account_name, sector_focus=account_profile["sector_focus"],
         entity_type=account_profile["entity_type"],
         customer_type=account_profile["customer_type"],
@@ -493,10 +532,11 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
         account_id=onboarding_account_id,
         user_id=user.id,
         role="owner",
+        status="active",
+        joined_at=utc_now(),
     )
     db.add(membership)
     try:
-        _ensure_company(db, user, account_name, account_profile["sector_focus"])
         access_token = issue_session_access_token(user)
         issue_refresh_token = request.headers.get("X-GeoVision-Client") != "web"
         refresh_token = (
@@ -736,18 +776,6 @@ def get_current_user(
         else None
     )
 
-    # Legacy CompanyUser rows are authoritative only after migration binds
-    # them to this immutable internal user ID.
-    company_row = (
-        db.query(CompanyUser)
-        .filter(
-            CompanyUser.user_id == user.id,
-            CompanyUser.is_active.is_(True),
-        )
-        .order_by(CompanyUser.created_at.asc())
-        .first()
-    )
-
     return {
         "id": user.id,
         "email": user.email,
@@ -771,12 +799,15 @@ def get_current_user(
             "sector_focus": getattr(account, "sector_focus", "agro"),
             "use_cases": json.loads(getattr(account, "use_cases", None) or "[]"),
         } if account else None),
-        "company_id": company_row.company_id if company_row else "",
+        "company_id": auth_context.active_organization_id or "",
         "authorization_context": {
             "user_id": auth_context.user_id,
             "identity_subject": auth_context.identity_subject,
             "active_workspace_id": auth_context.active_workspace_id,
             "active_organization_id": auth_context.active_organization_id,
+            "workspace_role": auth_context.workspace_role,
+            "organization_role": auth_context.organization_role,
+            "internal_roles": sorted(auth_context.internal_roles),
             "permissions": sorted(auth_context.permissions),
         },
     }
@@ -1531,12 +1562,14 @@ def complete_onboarding(
 
     modules = payload.modules_enabled or DEFAULT_MODULES
     account_name = payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
+    company = _ensure_company(db, user, account_name, account_profile["sector_focus"])
 
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
     )
     account = Account(
         id=onboarding_account_id,
+        organization_id=company.id,
         name=account_name, sector_focus=account_profile["sector_focus"],
         entity_type=account_profile["entity_type"],
         customer_type=account_profile["customer_type"],
@@ -1551,10 +1584,11 @@ def complete_onboarding(
         account_id=onboarding_account_id,
         user_id=user.id,
         role="owner",
+        status="active",
+        joined_at=utc_now(),
     )
     db.add(membership)
     try:
-        _ensure_company(db, user, account_name, account_profile["sector_focus"])
         db.commit()
     except IntegrityError as exc:
         # A concurrent request may have committed the deterministic starter

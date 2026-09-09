@@ -80,6 +80,9 @@ class AuthorizationContext:
     identity_subject: str
     active_workspace_id: Optional[str] = None
     active_organization_id: Optional[str] = None
+    workspace_role: Optional[str] = None
+    organization_role: Optional[str] = None
+    internal_roles: frozenset[str] = field(default_factory=frozenset)
     permissions: frozenset[str] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
@@ -89,6 +92,11 @@ class AuthorizationContext:
             raise ValueError("identity_subject must not be empty")
         object.__setattr__(self, "user_id", self.user_id.strip())
         object.__setattr__(self, "identity_subject", self.identity_subject.strip())
+        object.__setattr__(
+            self,
+            "internal_roles",
+            frozenset(role.strip() for role in self.internal_roles if role.strip()),
+        )
         object.__setattr__(
             self,
             "permissions",

@@ -42,13 +42,34 @@ def seed_admin_users() -> int:
                         "configured admin address belongs to a non-admin user; "
                         "use an audited identity grant instead of email promotion"
                     )
+                assignment = (
+                    db.query(models.InternalRoleAssignment)
+                    .filter(
+                        models.InternalRoleAssignment.user_id == exists.id,
+                        models.InternalRoleAssignment.role == "GV_SUPER_ADMIN",
+                    )
+                    .one_or_none()
+                )
+                if assignment is None:
+                    db.add(
+                        models.InternalRoleAssignment(
+                            user_id=exists.id,
+                            role="GV_SUPER_ADMIN",
+                        )
+                    )
                 continue
 
+            user = models.User(
+                email=email,
+                password_hash=hash_password(admin_password),
+                role="admin",
+            )
+            db.add(user)
+            db.flush()
             db.add(
-                models.User(
-                    email=email,
-                    password_hash=hash_password(admin_password),
-                    role="admin",
+                models.InternalRoleAssignment(
+                    user_id=user.id,
+                    role="GV_SUPER_ADMIN",
                 )
             )
             inserted += 1

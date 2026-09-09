@@ -15,8 +15,18 @@ from sqlalchemy.orm import Session
 from app.core.config import Settings, settings
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
-from app.models import AccountMember, AuthIdentity, User, UserProfile
+from app.models import AuthIdentity, User, UserProfile
 from app.modules.identity.domain import AuthorizationContext, ExternalPrincipal
+from app.modules.organizations.domain import (
+    InternalRole,
+    customer_permissions,
+    internal_permissions,
+)
+from app.modules.organizations.services import (
+    OrganizationAccessError,
+    active_internal_roles,
+    resolve_workspace_access,
+)
 
 
 _EMAIL_ADAPTER = TypeAdapter(EmailStr)
@@ -287,17 +297,11 @@ def permissions_for_roles(
     global_role: Optional[str],
     workspace_role: Optional[str],
 ) -> frozenset[str]:
-    """Translate current persisted roles into transitional permission names."""
+    """Compatibility wrapper around the canonical Phase 4 policy maps."""
 
-    permissions = {"profile:read"}
-    if global_role == "admin":
-        permissions.update({"platform:admin", "workspace:read", "workspace:manage"})
-    if workspace_role:
-        permissions.add("workspace:read")
-    if workspace_role in {"owner", "admin"}:
-        permissions.add("workspace:manage")
-    if workspace_role in {"owner", "admin", "manager", "operator"}:
-        permissions.add("workspace:operate")
+    permissions = {"profile:read", *customer_permissions(workspace_role)}
+    if (global_role or "").strip().lower() == "admin":
+        permissions.update(internal_permissions({InternalRole.SUPER_ADMIN.value}))
     return frozenset(permissions)
 
 
@@ -308,29 +312,37 @@ def build_authorization_context(
     *,
     requested_workspace_id: Optional[str] = None,
 ) -> AuthorizationContext:
-    query = db.query(AccountMember).filter(AccountMember.user_id == user.id)
-    membership = None
-    if requested_workspace_id:
-        membership = query.filter(
-            AccountMember.account_id == requested_workspace_id
-        ).first()
-        if membership is None:
+    try:
+        access = resolve_workspace_access(
+            db,
+            user,
+            requested_workspace_id=requested_workspace_id,
+        )
+    except OrganizationAccessError as exc:
+        if requested_workspace_id or exc.code == "workspace_access_denied":
             raise IdentityResolutionError(
                 "workspace_access_denied",
                 "Requested workspace is not accessible",
-            )
-    else:
-        membership = query.order_by(AccountMember.created_at.asc()).first()
+            ) from exc
+        staff_roles = active_internal_roles(db, user)
+        return AuthorizationContext(
+            user_id=user.id,
+            identity_subject=principal.identity_subject,
+            internal_roles=staff_roles,
+            permissions=frozenset(
+                {"profile:read", *internal_permissions(staff_roles)}
+            ),
+        )
 
-    workspace_id = membership.account_id if membership is not None else None
-    workspace_role = membership.role if membership is not None else None
     return AuthorizationContext(
         user_id=user.id,
         identity_subject=principal.identity_subject,
-        active_workspace_id=workspace_id,
-        # Account/Company are not yet a canonical Organization; Phase 4 owns it.
-        active_organization_id=None,
-        permissions=permissions_for_roles(user.role, workspace_role),
+        active_workspace_id=(access.workspace.id if access.workspace else None),
+        active_organization_id=access.organization.id,
+        workspace_role=access.workspace_role,
+        organization_role=access.organization_role,
+        internal_roles=access.internal_roles,
+        permissions=access.permissions,
     )
 
 

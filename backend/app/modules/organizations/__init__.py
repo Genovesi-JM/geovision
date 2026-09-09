@@ -5,8 +5,14 @@ from app.modules.contracts import DomainModule, RouterMount
 definition = DomainModule(
     name="organizations",
     purpose="Customer workspaces, organizations, memberships, and access context.",
-    maturity="implemented-transitional",
+    maturity="implemented",
     routes=(
+        RouterMount(
+            "organizations.canonical",
+            "organizations",
+            "app.routers.organizations",
+            35,
+        ),
         RouterMount("organizations.accounts", "organizations", "app.routers.accounts", 40),
         RouterMount(
             "organizations.customer_accounts",

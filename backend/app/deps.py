@@ -7,16 +7,33 @@ import json
 from app.core.database import get_db
 from app.core.config import settings
 from app.integrations.identity.internal import InternalIdentityProvider
-from app.models import User, AccountMember, Account
+from app.models import User, Account
 from app.modules.identity.domain import AuthorizationContext, ExternalPrincipal, TokenUse
 from app.modules.identity.services import (
     IdentityResolutionError,
     IdentityService,
     build_authorization_context,
 )
+from app.modules.organizations.domain import internal_permissions
+from app.modules.organizations.services import (
+    OrganizationAccessError,
+    active_internal_roles,
+    resolve_workspace_access,
+)
 
 bearer = HTTPBearer()
 optional_bearer = HTTPBearer(auto_error=False)
+
+
+def _requested_workspace_id(request: Request) -> Optional[str]:
+    canonical = (request.headers.get("X-Workspace-ID") or "").strip() or None
+    compatibility = (request.headers.get("X-Account-ID") or "").strip() or None
+    if canonical and compatibility and canonical != compatibility:
+        raise HTTPException(
+            status_code=400,
+            detail="X-Workspace-ID and X-Account-ID must identify the same workspace",
+        )
+    return canonical or compatibility
 
 
 def _resolve_current_user(
@@ -40,12 +57,14 @@ def _resolve_current_user(
 
     request.state.identity_principal = principal
     try:
-        request.state.authorization_context = build_authorization_context(
+        context = build_authorization_context(
             db,
             resolved.user,
             principal,
-            requested_workspace_id=request.headers.get("X-Account-ID"),
+            requested_workspace_id=_requested_workspace_id(request),
         )
+        request.state.authorization_context = context
+        resolved.user._authorization_context = context
     except IdentityResolutionError as exc:
         if exc.code == "workspace_access_denied":
             raise HTTPException(status_code=403, detail="Workspace access denied") from exc
@@ -107,18 +126,23 @@ def get_authorization_context(
             db,
             user,
             principal,
-            requested_workspace_id=request.headers.get("X-Account-ID"),
+            requested_workspace_id=_requested_workspace_id(request),
         )
     except IdentityResolutionError as exc:
         if exc.code == "workspace_access_denied":
             raise HTTPException(status_code=403, detail="Workspace access denied") from exc
         raise
     request.state.authorization_context = context
+    user._authorization_context = context
     return context
 
 
-def require_admin(user: User = Depends(get_current_user)) -> User:
-    if user.role != "admin":
+def require_admin(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    permissions = internal_permissions(active_internal_roles(db, user))
+    if "platform:admin" not in permissions:
         raise HTTPException(status_code=403, detail="Admin required")
     return user
 
@@ -137,22 +161,21 @@ def get_current_account(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Account:
-    if account_id is None:
-        account_id = request.headers.get("X-Account-ID")
-
-    q = db.query(AccountMember).filter(AccountMember.user_id == user.id)
-    if account_id:
-        membership = q.filter(AccountMember.account_id == account_id).first()
-        if not membership:
-            raise HTTPException(status_code=403, detail="Sem acesso Aÿ conta pedida.")
-    else:
-        membership = q.order_by(AccountMember.created_at.asc()).first()
-        if not membership:
-            raise HTTPException(status_code=403, detail="Sem acesso Aÿ conta pedida.")
-
-    account = db.get(Account, membership.account_id)
-    if not account:
-        raise HTTPException(status_code=403, detail="Conta inexistente ou inacessA­vel.")
+    requested_id = account_id or _requested_workspace_id(request)
+    try:
+        access = resolve_workspace_access(
+            db,
+            user,
+            requested_workspace_id=requested_id,
+        )
+    except OrganizationAccessError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail="Workspace inexistente ou inacessível.",
+        ) from exc
+    account = access.workspace
+    if account is None:
+        raise HTTPException(status_code=403, detail="Sem acesso ao workspace pedido.")
 
     try:
         request.state.account = account
@@ -165,6 +188,7 @@ def get_current_account(
                 principal,
                 requested_workspace_id=account.id,
             )
+            user._authorization_context = request.state.authorization_context
     except Exception:
         pass
     return account

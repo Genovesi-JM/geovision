@@ -36,7 +36,10 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 
     memberships = (
         db.query(AccountMember)
-        .filter(AccountMember.user_id == user.id)
+        .filter(
+            AccountMember.user_id == user.id,
+            AccountMember.status == "active",
+        )
         .order_by(AccountMember.created_at.asc())
         .all()
     )
@@ -45,7 +48,10 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     accounts = []
     default_account_id = None
     if account_ids:
-        rows = db.query(Account).filter(Account.id.in_(account_ids)).order_by(Account.created_at.desc()).all()
+        rows = db.query(Account).filter(
+            Account.id.in_(account_ids),
+            Account.status == "active",
+        ).order_by(Account.created_at.desc()).all()
         for acct in rows:
             member = next((m for m in memberships if m.account_id == acct.id), None)
             accounts.append(

@@ -39,7 +39,6 @@ from app.models import (
     AuditLog,
     CalibrationRecord,
     CommissioningRecord,
-    CompanyUser,
     DeviceCredential,
     DeviceProvisioningToken,
     IotAlert,
@@ -59,7 +58,11 @@ from app.models import (
 )
 from app.modules.identity.domain import TokenUse
 from app.modules.identity.services import IdentityService
-from app.modules.organizations.services import get_user_company_id
+from app.modules.organizations.services import (
+    OrganizationAccessError,
+    authorize_organization,
+    get_user_company_id,
+)
 
 _get_user_company_id = get_user_company_id
 
@@ -674,9 +677,11 @@ def dismiss_recommendation(recommendation_id: str, user: User = Depends(get_curr
 
 
 def _can_command(db: Session, user: User, company_id: str) -> bool:
-    if user.role == "admin": return True
-    membership = db.query(CompanyUser).filter(CompanyUser.company_id == company_id, CompanyUser.user_id == user.id, CompanyUser.is_active.is_(True)).first()
-    return bool(membership and membership.role in {"owner", "admin", "manager", "operator"})
+    try:
+        authorize_organization(db, user, company_id, "workspace:operate")
+    except OrganizationAccessError:
+        return False
+    return True
 
 
 @router.post("/devices/{device_id}/commands", status_code=202)

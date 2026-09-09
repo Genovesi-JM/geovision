@@ -185,6 +185,9 @@ def test_external_session_provisions_profile_only_and_preserves_identity_context
         "identity_subject": principal.identity_subject,
         "active_workspace_id": None,
         "active_organization_id": None,
+        "workspace_role": None,
+        "organization_role": None,
+        "internal_roles": [],
         "permissions": ["profile:read"],
     }
     denied_workspace = client.get(

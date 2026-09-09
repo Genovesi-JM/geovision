@@ -318,7 +318,14 @@ def test_versioned_sessions_reject_mismatched_ids_and_unknown_versions():
 
 def test_authorization_uses_database_roles_not_token_role(db_session):
     user = _create_user(db_session, role="cliente")
+    organization = Company(
+        name=f"Identity organization {uuid.uuid4().hex}",
+        email=user.email,
+    )
+    db_session.add(organization)
+    db_session.flush()
     account = Account(
+        organization_id=organization.id,
         name=f"Identity workspace {uuid.uuid4().hex}",
         sector_focus="agro",
         entity_type="individual",

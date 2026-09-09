@@ -14,8 +14,10 @@ the [provider integration architecture](docs/PROVIDER_INTEGRATION_ARCHITECTURE.m
 Backend variables and environment profiles are listed in the
 [configuration guide](backend/ENV_CONFIG_GUIDE.md). Phase 3 identity behavior is
 documented in the [identity-provider architecture](docs/IDENTITY_PROVIDER_ARCHITECTURE.md)
-and [Entra cutover runbook](docs/ENTRA_CUTOVER_RUNBOOK.md). Run the non-mutating
-baseline suite with:
+and [Entra cutover runbook](docs/ENTRA_CUTOVER_RUNBOOK.md). Canonical customer
+tenancy, role permissions, compatibility names, and migration steps are in the
+[organization/workspace RBAC guide](docs/ORGANIZATION_WORKSPACE_RBAC.md). Run
+the non-mutating baseline suite with:
 
 ```bash
 make baseline

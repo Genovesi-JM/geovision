@@ -50,8 +50,26 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     addresses = relationship("UserAddress", back_populates="user", cascade="all, delete-orphan")
     orders = relationship("Order", back_populates="user")
-    account_members = relationship("AccountMember", back_populates="user", cascade="all, delete-orphan", overlaps="accounts,users")
-    accounts = relationship("Account", secondary="account_members", back_populates="users", overlaps="account_members,members")
+    account_members = relationship(
+        "AccountMember",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="AccountMember.user_id",
+        overlaps="accounts,users",
+    )
+    accounts = relationship(
+        "Account",
+        secondary="account_members",
+        primaryjoin="User.id == AccountMember.user_id",
+        secondaryjoin="Account.id == AccountMember.account_id",
+        back_populates="users",
+        overlaps="account_members,members",
+    )
+    internal_role_assignments = relationship(
+        "InternalRoleAssignment",
+        foreign_keys="InternalRoleAssignment.user_id",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index(
@@ -64,6 +82,52 @@ class User(Base):
     @property
     def memberships(self):
         return self.account_members
+
+
+class InternalRoleAssignment(Base):
+    """A GeoVision staff role kept separate from customer memberships."""
+
+    __tablename__ = "internal_role_assignments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role: Mapped[str] = mapped_column(String(40), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="1",
+    )
+    assigned_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now,
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now,
+        onupdate=utc_now,
+        nullable=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "role", name="uq_internal_role_user_role"),
+        CheckConstraint(
+            "role IN ('GV_SUPER_ADMIN', 'GV_OPERATIONS', 'GV_ANALYST', "
+            "'GV_SUPPORT', 'GV_FINANCE', 'GV_INVENTORY', 'GV_SALES')",
+            name="ck_internal_role_name",
+        ),
+    )
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -107,6 +171,12 @@ class Account(Base):
     # Alembic: `alembic revision --autogenerate -m "add accounts tables"` then `alembic upgrade head`
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String, nullable=False)
     sector_focus: Mapped[str] = mapped_column(String, nullable=False)
     entity_type: Mapped[str] = mapped_column(String, nullable=False)
@@ -115,6 +185,12 @@ class Account(Base):
     use_cases: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     org_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     modules_enabled: Mapped[str] = mapped_column(Text, nullable=False, default='["kpi","projects","store","alerts"]')
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
     # Set only on the one starter workspace created by onboarding. The unique
     # internal-user marker makes that operation durable and idempotent even on
     # databases (notably SQLite) where SELECT ... FOR UPDATE is ineffective.
@@ -127,7 +203,15 @@ class Account(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
 
     members = relationship("AccountMember", back_populates="account", cascade="all, delete-orphan", overlaps="accounts,users")
-    users = relationship("User", secondary="account_members", back_populates="accounts", overlaps="account_members,members")
+    users = relationship(
+        "User",
+        secondary="account_members",
+        primaryjoin="Account.id == AccountMember.account_id",
+        secondaryjoin="User.id == AccountMember.user_id",
+        back_populates="accounts",
+        overlaps="account_members,members",
+    )
+    organization = relationship("Company", back_populates="workspaces")
 
     __table_args__ = (
         Index("ix_accounts_onboarding_user_id", onboarding_user_id, unique=True),
@@ -140,10 +224,34 @@ class AccountMember(Base):
     account_id: Mapped[str] = mapped_column(String(36), ForeignKey("accounts.id", ondelete="CASCADE"), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     role: Mapped[str] = mapped_column(String, nullable=False, default="member")
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
+    invited_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    invited_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    joined_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now,
+        onupdate=utc_now,
+        nullable=False,
+    )
 
     account = relationship("Account", back_populates="members", overlaps="accounts,users")
-    user = relationship("User", back_populates="account_members", overlaps="accounts,users")
+    user = relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="account_members",
+        overlaps="accounts,users",
+    )
 
 class Category(Base):
     __tablename__ = "categories"
@@ -308,7 +416,7 @@ class ResetToken(Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
 
 
 class OAuthState(Base):
@@ -510,6 +618,18 @@ class Company(Base):
     # Present in the production Alembic schema and required by migrated
     # databases.  Keep it mapped so ORM inserts do not fail outside tests.
     country: Mapped[str] = mapped_column(String(100), nullable=False, default="Angola")
+    organization_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="customer",
+        server_default="customer",
+    )
+    timezone: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="UTC",
+        server_default="UTC",
+    )
     sectors: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="[]")  # JSON list
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
     subscription_plan: Mapped[str] = mapped_column(String(20), nullable=False, default="trial")
@@ -527,6 +647,7 @@ class Company(Base):
     company_users = relationship("CompanyUser", back_populates="company", cascade="all, delete-orphan")
     documents = relationship("Document", back_populates="company", cascade="all, delete-orphan")
     integrations = relationship("Integration", back_populates="company", cascade="all, delete-orphan")
+    workspaces = relationship("Account", back_populates="organization")
 
 
 class CompanyUser(Base):
@@ -547,11 +668,30 @@ class CompanyUser(Base):
     name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[str] = mapped_column(String(30), nullable=False, default="viewer")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
+    invited_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    invited_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    joined_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=utc_now,
+        onupdate=utc_now,
+        nullable=False,
+    )
 
     company = relationship("Company", back_populates="company_users")
-    user = relationship("User")
+    user = relationship("User", foreign_keys=[user_id])
 
     __table_args__ = (
         UniqueConstraint(
@@ -560,6 +700,15 @@ class CompanyUser(Base):
             name="uq_company_users_company_user",
         ),
     )
+
+
+# Canonical Phase 4 vocabulary. The underlying table names intentionally stay
+# stable so existing deployments and downstream foreign keys migrate without a
+# destructive rename.
+Organization = Company
+Workspace = Account
+OrganizationMembership = CompanyUser
+WorkspaceMembership = AccountMember
 
 
 # â”€â”€ Site / Project Location â”€â”€
