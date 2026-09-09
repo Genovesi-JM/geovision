@@ -14,7 +14,7 @@ module.exports = defineConfig({
       timeout: 60 * 1000,
     },
     {
-      command: 'python3 -m http.server 8001',
+      command: 'python3 -m http.server 8001 --bind 127.0.0.1',
       url: 'http://127.0.0.1:8001/index.html',
       reuseExistingServer: true,
       timeout: 30 * 1000,

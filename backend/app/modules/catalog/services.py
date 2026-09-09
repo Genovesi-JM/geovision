@@ -477,6 +477,19 @@ def supplier_internal(supplier: ProcurementSupplier) -> dict[str, Any]:
         "status": supplier.status,
         "contact_email": supplier.contact_email,
         "contact_phone": supplier.contact_phone,
+        "country_code": supplier.country_code,
+        "region": supplier.region,
+        "service_area": _json_list(supplier.service_area_json),
+        "capabilities": _json_list(supplier.capabilities_json),
+        "certifications": _json_list(supplier.certifications_json),
+        "insurance": _json_dict(supplier.insurance_json),
+        "document_refs": _json_list(supplier.document_refs_json),
+        "quality_score": (
+            float(supplier.quality_score) if supplier.quality_score is not None else None
+        ),
+        "last_reviewed_at": (
+            supplier.last_reviewed_at.isoformat() if supplier.last_reviewed_at else None
+        ),
         "notes": supplier.notes,
         "metadata": _json_dict(supplier.metadata_json),
         "created_at": supplier.created_at.isoformat(),
@@ -498,6 +511,15 @@ def create_supplier(
         status=data.status,
         contact_email=data.contact_email,
         contact_phone=data.contact_phone,
+        country_code=data.country_code,
+        region=data.region,
+        service_area_json=_json(data.service_area),
+        capabilities_json=_json(data.capabilities),
+        certifications_json=_json(data.certifications),
+        insurance_json=_json(data.insurance),
+        document_refs_json=_json(data.document_refs),
+        quality_score=data.quality_score,
+        last_reviewed_at=data.last_reviewed_at,
         notes=data.notes,
         metadata_json=_json(data.metadata),
         created_at=now,
@@ -524,9 +546,19 @@ def update_supplier(
     data: SupplierUpdate,
 ) -> ProcurementSupplier:
     changes = data.model_dump(exclude_unset=True)
+    json_fields = {
+        "service_area": "service_area_json",
+        "capabilities": "capabilities_json",
+        "certifications": "certifications_json",
+        "insurance": "insurance_json",
+        "document_refs": "document_refs_json",
+    }
     for field, value in changes.items():
         if field == "metadata":
             supplier.metadata_json = _json(value if value is not None else {})
+        elif field in json_fields:
+            fallback = {} if field == "insurance" else []
+            setattr(supplier, json_fields[field], _json(value if value is not None else fallback))
         else:
             setattr(supplier, field, value)
     supplier.updated_at = utc_now()
@@ -537,6 +569,63 @@ def update_supplier(
         resource_type="procurement_supplier",
         resource_id=supplier.id,
         details={"fields": sorted(changes), "status": supplier.status},
+    )
+    return supplier
+
+
+def list_suppliers(
+    db: Session,
+    *,
+    search: str | None = None,
+    status: str | None = None,
+    country_code: str | None = None,
+    region: str | None = None,
+    capability: str | None = None,
+    limit: int = 200,
+) -> list[ProcurementSupplier]:
+    query = db.query(ProcurementSupplier)
+    if search:
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            or_(
+                ProcurementSupplier.code.ilike(term),
+                ProcurementSupplier.legal_name.ilike(term),
+            )
+        )
+    if status:
+        query = query.filter(ProcurementSupplier.status == status.upper())
+    if country_code:
+        query = query.filter(ProcurementSupplier.country_code == country_code.upper())
+    if region:
+        query = query.filter(ProcurementSupplier.region.ilike(f"%{region.strip()}%"))
+    candidate_limit = min(2_000, max(limit, 500)) if capability else limit
+    rows = (
+        query.order_by(ProcurementSupplier.legal_name, ProcurementSupplier.id)
+        .limit(candidate_limit)
+        .all()
+    )
+    if capability:
+        target = _identifier(capability, "")
+        rows = [
+            row
+            for row in rows
+            if target in {_identifier(value, "") for value in _json_list(row.capabilities_json)}
+        ]
+    return rows[:limit]
+
+
+def deactivate_supplier(
+    db: Session, *, actor: User, supplier: ProcurementSupplier
+) -> ProcurementSupplier:
+    supplier.status = "INACTIVE"
+    supplier.updated_at = utc_now()
+    _audit(
+        db,
+        actor=actor,
+        action="catalog.supplier.deactivated",
+        resource_type="procurement_supplier",
+        resource_id=supplier.id,
+        details={"code": supplier.code},
     )
     return supplier
 
@@ -792,11 +881,13 @@ __all__ = [
     "CatalogError",
     "create_item",
     "create_supplier",
+    "deactivate_supplier",
     "get_public_item",
     "internal_item",
     "legacy_product",
     "list_internal_items",
     "list_public_items",
+    "list_suppliers",
     "mirror_catalog_item",
     "normalize_asset_type",
     "normalize_sector",

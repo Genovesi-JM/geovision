@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -23,10 +23,12 @@ from app.modules.catalog.services import (
     CatalogError,
     create_item,
     create_supplier,
+    deactivate_supplier,
     get_public_item,
     internal_item,
     list_internal_items,
     list_public_items,
+    list_suppliers,
     public_item,
     supplier_internal,
     update_item,
@@ -171,9 +173,26 @@ def staff_update_catalog_item(
 
 
 @router.get("/internal/suppliers", response_model=list[SupplierInternal])
-def staff_suppliers(actor: CatalogStaff, db: Session = Depends(get_db)):
+def staff_suppliers(
+    actor: CatalogStaff,
+    search: str | None = Query(default=None, max_length=200),
+    supplier_status: str | None = Query(default=None, alias="status", max_length=20),
+    country_code: str | None = Query(default=None, min_length=2, max_length=2),
+    region: str | None = Query(default=None, max_length=120),
+    capability: str | None = Query(default=None, max_length=80),
+    limit: int = Query(default=200, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
     del actor
-    suppliers = db.query(ProcurementSupplier).order_by(ProcurementSupplier.legal_name).all()
+    suppliers = list_suppliers(
+        db,
+        search=search,
+        status=supplier_status,
+        country_code=country_code,
+        region=region,
+        capability=capability,
+        limit=limit,
+    )
     return [supplier_internal(supplier) for supplier in suppliers]
 
 
@@ -200,6 +219,19 @@ def staff_create_supplier(
         raise HTTPException(status_code=409, detail="Internal supplier code already exists") from exc
 
 
+@router.get("/internal/suppliers/{supplier_id}", response_model=SupplierInternal)
+def staff_supplier(
+    supplier_id: str,
+    actor: CatalogStaff,
+    db: Session = Depends(get_db),
+):
+    del actor
+    supplier = db.get(ProcurementSupplier, supplier_id)
+    if supplier is None:
+        raise HTTPException(status_code=404, detail="Internal supplier not found")
+    return supplier_internal(supplier)
+
+
 @router.patch("/internal/suppliers/{supplier_id}", response_model=SupplierInternal)
 def staff_update_supplier(
     supplier_id: str,
@@ -221,6 +253,22 @@ def staff_update_supplier(
     except IntegrityError as exc:
         db.rollback()
         raise HTTPException(status_code=409, detail="Supplier update conflicts with existing data") from exc
+
+
+@router.delete(
+    "/internal/suppliers/{supplier_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+def staff_deactivate_supplier(
+    supplier_id: str,
+    actor: CatalogStaff,
+    db: Session = Depends(get_db),
+):
+    supplier = db.get(ProcurementSupplier, supplier_id)
+    if supplier is None:
+        raise HTTPException(status_code=404, detail="Internal supplier not found")
+    deactivate_supplier(db, actor=actor, supplier=supplier)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 __all__ = ["router"]

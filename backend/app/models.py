@@ -1674,6 +1674,25 @@ class ProcurementSupplier(Base):
     )
     contact_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
     contact_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    country_code: Mapped[Optional[str]] = mapped_column(String(2), nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    service_area_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    capabilities_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    certifications_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    insurance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    document_refs_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    quality_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
@@ -1687,6 +1706,213 @@ class ProcurementSupplier(Base):
         CheckConstraint(
             "status IN ('ACTIVE', 'ON_HOLD', 'INACTIVE')",
             name="ck_procurement_supplier_status",
+        ),
+        CheckConstraint(
+            "quality_score IS NULL OR (quality_score >= 0 AND quality_score <= 100)",
+            name="ck_procurement_supplier_quality_score",
+        ),
+    )
+
+
+class OperationalCapability(Base):
+    """Extensible qualification taxonomy for flight and non-flight resources."""
+
+    __tablename__ = "operational_capabilities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1", index=True
+    )
+    metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+
+class OperationsContractor(Base):
+    """Private GeoVision operational resource, never a marketplace seller."""
+
+    __tablename__ = "operations_contractors"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+    display_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    legal_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="ACTIVE", server_default="ACTIVE", index=True
+    )
+    availability: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="AVAILABLE",
+        server_default="AVAILABLE",
+        index=True,
+    )
+    contact_email: Mapped[Optional[str]] = mapped_column(String(320), nullable=True)
+    contact_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    country_code: Mapped[Optional[str]] = mapped_column(String(2), nullable=True, index=True)
+    region: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    service_area_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    certifications_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    insurance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    equipment_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    document_refs_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    quality_score: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    internal_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    capability_links = relationship(
+        "ContractorCapability",
+        back_populates="contractor",
+        cascade="all, delete-orphan",
+    )
+    assignments = relationship(
+        "ContractorAssignment",
+        back_populates="contractor",
+        cascade="all, delete-orphan",
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('ACTIVE', 'ON_HOLD', 'INACTIVE', 'BLOCKED')",
+            name="ck_operations_contractor_status",
+        ),
+        CheckConstraint(
+            "availability IN ('AVAILABLE', 'LIMITED', 'UNAVAILABLE')",
+            name="ck_operations_contractor_availability",
+        ),
+        CheckConstraint(
+            "quality_score IS NULL OR (quality_score >= 0 AND quality_score <= 100)",
+            name="ck_operations_contractor_quality_score",
+        ),
+    )
+
+
+class ContractorCapability(Base):
+    __tablename__ = "contractor_capabilities"
+
+    contractor_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("operations_contractors.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    capability_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("operational_capabilities.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    proficiency: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="QUALIFIED", server_default="QUALIFIED"
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    contractor = relationship("OperationsContractor", back_populates="capability_links")
+    capability = relationship("OperationalCapability")
+
+    __table_args__ = (
+        CheckConstraint(
+            "proficiency IN ('BASIC', 'QUALIFIED', 'EXPERT')",
+            name="ck_contractor_capability_proficiency",
+        ),
+    )
+
+
+class ContractorAssignment(Base):
+    """Phase-9 assignment shell; Phase 10 may attach a fulfilment job."""
+
+    __tablename__ = "contractor_assignments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    assignment_number: Mapped[str] = mapped_column(
+        String(40), nullable=False, unique=True, index=True
+    )
+    contractor_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("operations_contractors.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    order_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="OFFERED", server_default="OFFERED", index=True
+    )
+    location_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    window_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    window_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    requirements_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    upload_area_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    required_documents_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    agreed_cost_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    cost_currency: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    internal_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assigned_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    contractor = relationship("OperationsContractor", back_populates="assignments")
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('OFFERED', 'ACCEPTED', 'DECLINED', 'ACTIVE', 'COMPLETED', 'CANCELLED')",
+            name="ck_contractor_assignment_status",
+        ),
+        CheckConstraint(
+            "agreed_cost_amount IS NULL OR agreed_cost_amount >= 0",
+            name="ck_contractor_assignment_cost_nonnegative",
+        ),
+        CheckConstraint(
+            "lifecycle_version > 0", name="ck_contractor_assignment_lifecycle_version"
         ),
     )
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -228,12 +229,33 @@ class SupplierCreate(BaseModel):
     status: str = Field(default="ACTIVE", pattern="^(ACTIVE|ON_HOLD|INACTIVE)$")
     contact_email: str | None = Field(default=None, max_length=320)
     contact_phone: str | None = Field(default=None, max_length=50)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    region: str | None = Field(default=None, max_length=120)
+    service_area: list[str | dict[str, Any]] = Field(default_factory=list, max_length=100)
+    capabilities: list[str] = Field(default_factory=list, max_length=100)
+    certifications: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
+    insurance: dict[str, Any] = Field(default_factory=dict)
+    document_refs: list[dict[str, Any]] = Field(default_factory=list, max_length=200)
+    quality_score: float | None = Field(default=None, ge=0, le=100)
+    last_reviewed_at: datetime | None = None
     notes: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-    @field_validator("metadata")
+    @field_validator("country_code")
     @classmethod
-    def reject_credentials(cls, value: dict[str, Any]) -> dict[str, Any]:
+    def normalize_country(cls, value: str | None) -> str | None:
+        return value.strip().upper() if value else value
+
+    @field_validator("capabilities")
+    @classmethod
+    def normalize_capabilities(cls, values: list[str]) -> list[str]:
+        return list(dict.fromkeys(value.strip().upper() for value in values if value.strip()))
+
+    @field_validator(
+        "service_area", "certifications", "insurance", "document_refs", "metadata"
+    )
+    @classmethod
+    def reject_credentials(cls, value: Any) -> Any:
         return _reject_sensitive_keys(value)
 
 
@@ -244,12 +266,35 @@ class SupplierUpdate(BaseModel):
     status: str | None = Field(default=None, pattern="^(ACTIVE|ON_HOLD|INACTIVE)$")
     contact_email: str | None = Field(default=None, max_length=320)
     contact_phone: str | None = Field(default=None, max_length=50)
+    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    region: str | None = Field(default=None, max_length=120)
+    service_area: list[str | dict[str, Any]] | None = Field(default=None, max_length=100)
+    capabilities: list[str] | None = Field(default=None, max_length=100)
+    certifications: list[dict[str, Any]] | None = Field(default=None, max_length=100)
+    insurance: dict[str, Any] | None = None
+    document_refs: list[dict[str, Any]] | None = Field(default=None, max_length=200)
+    quality_score: float | None = Field(default=None, ge=0, le=100)
+    last_reviewed_at: datetime | None = None
     notes: str | None = None
     metadata: dict[str, Any] | None = None
 
-    @field_validator("metadata")
+    @field_validator("country_code")
     @classmethod
-    def reject_credentials(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+    def normalize_country(cls, value: str | None) -> str | None:
+        return value.strip().upper() if value else value
+
+    @field_validator("capabilities")
+    @classmethod
+    def normalize_capabilities(cls, values: list[str] | None) -> list[str] | None:
+        if values is None:
+            return None
+        return list(dict.fromkeys(value.strip().upper() for value in values if value.strip()))
+
+    @field_validator(
+        "service_area", "certifications", "insurance", "document_refs", "metadata"
+    )
+    @classmethod
+    def reject_credentials(cls, value: Any) -> Any:
         return _reject_sensitive_keys(value) if value is not None else value
 
 
@@ -260,6 +305,15 @@ class SupplierInternal(BaseModel):
     status: str
     contact_email: str | None
     contact_phone: str | None
+    country_code: str | None
+    region: str | None
+    service_area: list[Any]
+    capabilities: list[str]
+    certifications: list[dict[str, Any]]
+    insurance: dict[str, Any]
+    document_refs: list[dict[str, Any]]
+    quality_score: float | None
+    last_reviewed_at: str | None
     notes: str | None
     metadata: dict[str, Any]
     created_at: str

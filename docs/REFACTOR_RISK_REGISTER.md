@@ -34,6 +34,7 @@ instead of treating legacy structures as disposable.
 | R24 | High | Connector and integration credential fields now use the canonical encryption helper and deployed profiles require a valid Fernet key, but free-form metadata and endpoint/base/webhook URLs remain plaintext, historical rows may contain plaintext, local/dev can retain explicit `plain:` values, and only one active encryption key is supported | Secrets embedded in unrestricted fields remain exposed; operators can assume every legacy value is encrypted; replacing or losing the key can make encrypted credentials unavailable | Forbid secrets in metadata/URLs, inventory and migrate confirmed plaintext under backup and verification, protect and back up the active key, design an audited rotation/re-encryption procedure, and consolidate overlapping persistence models before activating enterprise connectors |
 | R25 | Medium | Phase 7 makes `catalog_items` authoritative and Phase 8 snapshots canonical catalogue lines into orders, while `shop_products` and `products` remain cart/client compatibility data | A legacy writer or failed projection could still make pre-checkout price, publication, or stock fields inconsistent | Route staff changes through `/catalog/internal`, monitor projection parity, compare prices again at checkout, retain immutable order snapshots, and retire old write/cart projections only after deployed clients migrate |
 | R26 | High | The enterprise prototype persisted raw provider callback payloads; Phase 8 preserves that table as `legacy_payment_webhook_events` while all new callbacks use a digest-only ledger | Historical payloads may contain personal or provider-sensitive data beyond the required retention period | Restrict table access now; inventory/classify rows, define legal retention, export only required evidence, then securely purge raw payloads with Phase 25 audit approval and a verified backup/restore plan |
+| R27 | High | Phase 9 stores private contractor/supplier contacts, qualifications, insurance, licences, quality notes and cost-bearing assignments in GeoVision | A broad customer/staff query, unsafe metadata field, or backup/export could expose personal data, internal margins, or another customer's operational details | Keep resource APIs internal, contractor views allowlisted and assignment-scoped, reject credentials in metadata, audit changes, restrict database/export access, define retention and document-access controls, and review live privacy/legal requirements before onboarding contractors |
 
 ## Controls that already reduce risk
 
@@ -265,3 +266,27 @@ without a compatibility plan.
 - **Unchanged:** Supplier/resource qualification, fulfilment jobs, event-bus
   dispatch, PayPal provider gaps, and production backup/restore sign-off remain
   owned by later phases.
+
+## Phase 9 outcome
+
+- **Reduced:** The supplier/contractor gap, because private procurement sources
+  and generic operational resources now carry region, service area,
+  qualification, insurance, equipment, document, availability, quality, and
+  capability data without a drone-only or public-seller model.
+- **Reduced:** Resource matching risk, because GeoVision Operations can combine
+  country/region, capability or sector, resource type, status, and availability
+  filters against a normalized, extensible capability taxonomy.
+- **Contained:** Contractor access, because an optional linked internal user can
+  read only its own allowlisted profile and assignment necessities. Cross-profile
+  IDs return not found and internal costs, margins, order/customer identifiers,
+  notes, staff identities, supplier data, and unrelated assets are omitted.
+- **Contained:** Destructive history loss, because supplier/contractor delete
+  operations deactivate records; guarded assignment states and optimistic
+  versions prevent reopening or stale decisions.
+- **Introduced and controlled:** R27 tracks the personal, qualification, and
+  commercial sensitivity of private resource records. Structured fields reject
+  credential-like keys and changes are audited, but production retention,
+  document authorization, and legal onboarding review remain required.
+- **Unchanged:** Phase 10 still owns canonical fulfilment jobs and will attach
+  the reserved assignment job reference. Customer-facing marketplace sellers,
+  provider bidding, contractor payouts, and public profiles remain absent.
