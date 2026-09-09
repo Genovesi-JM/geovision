@@ -22,36 +22,6 @@ class KpiDefinition {
 }
 
 abstract final class KpiCatalogue {
-  static const home = <KpiDefinition>[
-    KpiDefinition(
-        id: 'comfort_index',
-        label: 'Indoor comfort',
-        unit: '%',
-        sector: Sector.home,
-        description:
-            'Time with indoor temperature and humidity inside the comfort range.'),
-    KpiDefinition(
-        id: 'air_quality',
-        label: 'Air quality',
-        unit: '',
-        sector: Sector.home,
-        description: 'Indoor air-quality index derived from CO2 and PM2.5.',
-        higherIsBetter: false),
-    KpiDefinition(
-        id: 'tank_level',
-        label: 'Water level',
-        unit: '%',
-        sector: Sector.home,
-        description: 'Current level of the monitored water tank.'),
-    KpiDefinition(
-        id: 'leak_events',
-        label: 'Leaks detected',
-        unit: '',
-        sector: Sector.home,
-        description: 'Water-leak events that need attention.',
-        higherIsBetter: false),
-  ];
-
   static const agriculture = <KpiDefinition>[
     KpiDefinition(
         id: 'ndvi_avg',
@@ -118,8 +88,6 @@ abstract final class KpiCatalogue {
 
   static List<KpiDefinition> forSector(Sector s) {
     switch (s) {
-      case Sector.home:
-        return home;
       case Sector.agro:
         return agriculture;
       case Sector.environment:

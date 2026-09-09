@@ -5,14 +5,8 @@ import '../../../l10n/app_localizations.dart';
 String localizedKpiLabel(
     AppLocalizations l10n, String definitionId, String fallback) {
   switch (definitionId) {
-    case 'comfort_index':
-      return l10n.kpiIndoorComfort;
     case 'air_quality':
       return l10n.kpiAirQuality;
-    case 'tank_level':
-      return l10n.kpiTankLevel;
-    case 'leak_events':
-      return l10n.kpiLeakEvents;
     case 'ndvi_avg':
       return l10n.kpiNdviAvg;
     case 'ndre':

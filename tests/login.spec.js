@@ -46,7 +46,7 @@ test.describe('Login smoke + a11y', () => {
     await page.fill('#create-password-confirm', 'profile-check-123');
     await page.locator('#wizard-next').click();
 
-    await expect(page.locator('#create-persona option')).toHaveCount(7);
+    await expect(page.locator('#create-persona option')).toHaveCount(6);
     await page.locator('#create-persona').selectOption('industry');
     await expect(page.locator('#create-sectors')).toContainText('Indústria & Mineração');
     await expect(page.locator('#create-use-cases')).toContainText('Inventário visual');

@@ -1,0 +1,10 @@
+{
+  "GV_FLAVOR": "production",
+  "GV_DEMO_MODE": "false",
+  "GV_API_BASE_URL": "https://api.geovisionops.com",
+  "GV_IOT_PROVIDER": "backend",
+  "GV_PAYMENT_PROVIDER": "bank_transfer",
+  "GV_PUSH_PROVIDER": "mock",
+  "GV_MAP_PROVIDER": "demo",
+  "GV_BIOMETRIC": "true"
+}

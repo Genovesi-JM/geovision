@@ -36,7 +36,7 @@ class AppConfig {
   final bool enableBiometricUnlock;
 
   static const _localApi = 'http://127.0.0.1:8010';
-  static const _prodApi = 'https://geovisionops-sqknb.ondigitalocean.app';
+  static const _prodApi = 'https://api.geovisionops.com';
 
   /// Build the configuration from compile-time environment values.
   factory AppConfig.fromEnvironment() {

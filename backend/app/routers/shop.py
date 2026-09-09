@@ -832,16 +832,6 @@ async def clear_cart(cart_id: str, db: Session = Depends(get_db)):
 
 # ============ CHECKOUT ENDPOINTS ============
 
-@router.get("/payment-methods")
-def get_payment_methods():
-    """Return available payment methods per currency."""
-    from app.services.orders import CURRENCY_PAYMENT_METHODS
-    return {
-        currency: [{"value": m.value, "label": m.value} for m in methods]
-        for currency, methods in CURRENCY_PAYMENT_METHODS.items()
-    }
-
-
 @router.get("/stripe-config")
 def get_stripe_config():
     """Return Stripe publishable key for frontend initialization."""
@@ -851,6 +841,29 @@ def get_stripe_config():
         "publishable_key": pk,
         "enabled": bool(pk),
     }
+
+
+@router.get("/payment-methods")
+def get_payment_methods():
+    """Which payment methods actually settle in this deployment.
+
+    Bank/IBAN transfer always works (manual confirmation, no gateway). The
+    gateway methods are only advertised when their credentials are configured,
+    so the storefront never offers a method that would silently return a mock
+    payment. ``settles`` marks a fully real path.
+    """
+    import os
+    stripe_ready = bool(os.getenv("STRIPE_SECRET_KEY"))
+    multicaixa_ready = bool(os.getenv("MULTICAIXA_MERCHANT_ID") and os.getenv("MULTICAIXA_API_KEY"))
+    paypal_ready = bool(os.getenv("PAYPAL_CLIENT_ID") and os.getenv("PAYPAL_SECRET"))
+    methods = [
+        {"method": "iban_angola", "enabled": True, "settles": True, "gateway": False},
+        {"method": "iban_international", "enabled": True, "settles": True, "gateway": False},
+        {"method": "multicaixa_express", "enabled": multicaixa_ready, "settles": multicaixa_ready, "gateway": True},
+        {"method": "visa_mastercard", "enabled": stripe_ready, "settles": stripe_ready, "gateway": True},
+        {"method": "paypal", "enabled": paypal_ready, "settles": paypal_ready, "gateway": True},
+    ]
+    return {"methods": methods, "any_gateway_live": stripe_ready or multicaixa_ready or paypal_ready}
 
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)

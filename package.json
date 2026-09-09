@@ -3,16 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "devDependencies": {
-    "pa11y": "^6.0.0",
-    "@playwright/test": "^1.43.0",
-    "@axe-core/playwright": "^4.0.1"
+    "pa11y": "^10.0.0",
+    "@playwright/test": "^1.63.0",
+    "@axe-core/playwright": "^4.13.0"
   },
   "overrides": {
     "semver": "^7.8.5"
   },
   "scripts": {
+    "test": "playwright test",
     "test:pa11y-login": "pa11y http://127.0.0.1:8001/login.html --reporter cli",
     "test:e2e": "playwright test",
+    "test:e2e:ci": "playwright test --workers=1 --reporter=line,html",
     "test:e2e:login": "playwright test tests/login.spec.js --project=chromium --reporter=list"
   }
 }

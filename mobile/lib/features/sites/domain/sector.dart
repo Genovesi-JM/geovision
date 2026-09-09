@@ -1,11 +1,9 @@
 /// Canonical public sectors shared by account onboarding, sites and the store.
 /// Older API values are normalized in [sectorFromString].
-enum Sector { home, agro, environment, construction, industry, infrastructure }
+enum Sector { agro, environment, construction, industry, infrastructure }
 
 Sector sectorFromString(String v) {
   switch (v.toLowerCase()) {
-    case 'home':
-      return Sector.home;
     case 'agro':
     case 'agriculture':
     case 'livestock':
@@ -29,8 +27,6 @@ extension SectorX on Sector {
   String get id => name;
   String get label {
     switch (this) {
-      case Sector.home:
-        return 'Home';
       case Sector.agro:
         return 'Agriculture & livestock';
       case Sector.environment:

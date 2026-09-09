@@ -12,11 +12,12 @@ test.describe('Controlled marketplace', () => {
   });
 
   test('renders only the active catalogue and localizes dynamic product copy', async ({ page }) => {
-    await expect(page.locator('.loja-card')).toHaveCount(17);
-    await expect(page.getByText('Energy & Power Monitor')).toHaveCount(0);
+    await expect(page.locator('.loja-card')).toHaveCount(18);
+    // Energy & Power Monitor is a supported Home product (shown as "GV Power").
     await expect(page.getByText('Pulverização de Precisão')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'EN', exact: true }).click();
+    await expect(page.getByRole('heading', { name: /GV Power/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Essential Aerial Mapping' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Add');
     await expect(page.locator('.deliverables-preview').first())

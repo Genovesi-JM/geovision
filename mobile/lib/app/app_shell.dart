@@ -60,7 +60,7 @@ class AppShell extends ConsumerWidget {
         currentIndex: index,
         selectedFontSize: 9,
         unselectedFontSize: 9,
-        selectedItemColor: const Color(0xFF06B6D4),
+        selectedItemColor: const Color(0xFF22C55E), // brand green (--accent)
         unselectedItemColor: const Color(0xFF64748B),
         backgroundColor: const Color(0xFF020617),
         onTap: (i) => context.go(_tabs[i]),

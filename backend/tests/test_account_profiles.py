@@ -10,7 +10,6 @@ from app.oauth2 import create_access_token
 @pytest.mark.parametrize(
     "customer_type,sector,entity,dashboard",
     [
-        ("home", "home", "individual", "home"),
         ("farm", "agro", "individual", "farm"),
         ("site", "environment", "individual", "site"),
         ("construction", "construction", "company", "construction"),

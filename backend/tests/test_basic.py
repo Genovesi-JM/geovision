@@ -23,6 +23,12 @@ def test_health():
     assert r.json().get("status") == "ok"
 
 
+def test_readiness_checks_database():
+    r = client.get("/ready")
+    assert r.status_code == 200
+    assert r.json().get("status") == "ready"
+
+
 def test_demo_login():
     # demo seeded credentials used by the project
     payload = {"email": "teste@admin.com", "password": "123456"}

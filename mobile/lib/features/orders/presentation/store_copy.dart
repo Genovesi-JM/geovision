@@ -141,7 +141,6 @@ class StoreCopy {
       'Carte de démonstration · prête pour Google Maps et une API logistique');
 
   String sector(String id) => switch (id) {
-        'home' => pick('Casa', 'Home', 'Hogar', 'Maison'),
         'agro' => pick('Agro e pecuária', 'Agriculture & livestock',
             'Agro y ganadería', 'Agriculture et élevage'),
         'environment' =>

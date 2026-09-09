@@ -75,17 +75,17 @@ def test_mobile_sites_and_service_request_contract(client):
     assert listed.json()[0]["id"] == created.json()["id"]
 
 
-def test_mobile_home_site_returns_home_kpis(client):
+def test_mobile_environment_site_returns_environment_kpis(client):
     headers = _login_headers(client)
-    site_id = _create_customer_site(sector="home", name="Mobile Test Home")
+    site_id = _create_customer_site(sector="environment", name="Mobile Test Site")
     response = client.get("/mobile/sites", headers=headers)
     assert response.status_code == 200, response.text
-    home = next(item for item in response.json() if item["id"] == site_id)
-    assert {item["id"] for item in home["kpis"]} == {
-        "comfort_index",
+    site = next(item for item in response.json() if item["id"] == site_id)
+    assert {item["id"] for item in site["kpis"]} == {
         "air_quality",
-        "tank_level",
+        "water_level",
         "leak_events",
+        "data_completeness",
     }
 
 

@@ -181,7 +181,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 4250000,
       priceEurCents: 4600,
       currency: 'USD',
-      sectors: ['agro', 'home'],
+      sectors: ['agro'],
       image: 'assets/images/store/soil-iot-kit.jpg',
       description:
           'Válvula de baixa tensão, sensor de caudal e ligações para um protótipo de irrigação monitorizada.',
@@ -213,7 +213,7 @@ abstract final class DemoStoreCatalog {
       priceEurCents: 12000,
       currency: 'USD',
       featured: true,
-      sectors: ['home', 'infrastructure'],
+      sectors: ['infrastructure'],
       image: 'assets/images/store/environmental-monitoring.jpg',
       description:
           'Acompanhe nível do depósito, caudal e funcionamento da bomba com alertas configuráveis.',
@@ -248,7 +248,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 11900000,
       priceEurCents: 12900,
       currency: 'USD',
-      sectors: ['home', 'environment'],
+      sectors: ['environment'],
       image: 'assets/images/store/environmental-monitoring.jpg',
       description:
           'CO₂, partículas, temperatura, humidade e ruído para espaços interiores ou exteriores.',

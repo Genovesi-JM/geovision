@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
+import '../../authentication/presentation/auth_controller.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
@@ -22,10 +23,28 @@ class OrdersScreen extends ConsumerStatefulWidget {
 }
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
+  static const _storeSectors = {
+    'agro',
+    'environment',
+    'construction',
+    'industry',
+    'infrastructure'
+  };
   String category = 'all';
   String sector = 'all';
   String query = '';
   bool showOrders = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Recommend the account's own sector first; fall back to all sectors when
+    // unknown.
+    final profile = ref.read(authControllerProvider).profile;
+    sector = (profile?.sectors ?? const <String>[])
+        .map((e) => e.toLowerCase())
+        .firstWhere(_storeSectors.contains, orElse: () => 'all');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +149,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 scrollDirection: Axis.horizontal,
                 children: {
                   'all': copy.allSectors,
-                  'home': copy.sector('home'),
                   'agro': copy.sector('agro'),
                   'environment': copy.sector('environment'),
                   'construction': copy.sector('construction'),

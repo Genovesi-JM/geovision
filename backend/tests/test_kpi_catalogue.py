@@ -1,20 +1,24 @@
-from app.routers.kpi import get_kpis_for_sectors
+from app.routers.kpi import get_kpis_for_sectors, get_generic_kpis
 
 
-def test_home_kpis_are_distinct_and_not_duplicated():
+def test_agro_sector_kpis_are_distinct_and_not_duplicated():
+    items = get_kpis_for_sectors(["agro"])
+    ids = [item.id for item in items]
+    assert ids  # non-empty
+    assert len(ids) == len(set(ids))  # no duplicates
+    assert "soil_moisture" in ids
+
+
+def test_multiple_sector_kpis_are_appended():
+    agro = get_kpis_for_sectors(["agro"])
+    environment = get_kpis_for_sectors(["environment"])
+    combined = get_kpis_for_sectors(["agro", "environment"])
+    # Each sector contributes its KPIs to the combined list.
+    assert len(combined) == len(agro) + len(environment)
+
+
+def test_removed_home_sector_falls_back_to_generic():
+    # "home" is no longer a GeoVision sector; it must not resolve to a dedicated
+    # KPI set. Unknown sectors fall back to the generic KPIs.
     items = get_kpis_for_sectors(["home"])
-    assert [item.id for item in items] == [
-        "comfort_index",
-        "air_quality",
-        "tank_level",
-        "leak_events",
-    ]
-    assert not {"ndvi_avg", "water_stress", "yield_estimate"}.intersection(
-        item.id for item in items
-    )
-
-
-def test_multiple_sector_kpis_are_appended_once():
-    items = get_kpis_for_sectors(["agro", "home"])
-    assert len(items) == 8
-    assert len({item.id for item in items}) == 8
+    assert [i.id for i in items] == [i.id for i in get_generic_kpis()]

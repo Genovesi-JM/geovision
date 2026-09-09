@@ -64,9 +64,11 @@ class SiteDetailScreen extends ConsumerWidget {
                             label: l10n.area,
                             value:
                                 '${site.totalHectares.toStringAsFixed(0)} ha'),
-                        _Stat(label: l10n.fields, value: '${site.areas.length}'),
                         _Stat(
-                            label: l10n.openAlerts, value: '${site.openAlerts}'),
+                            label: l10n.fields, value: '${site.areas.length}'),
+                        _Stat(
+                            label: l10n.openAlerts,
+                            value: '${site.openAlerts}'),
                       ],
                     ),
                   ],
@@ -83,7 +85,8 @@ class SiteDetailScreen extends ConsumerWidget {
                 childAspectRatio: 1.45,
                 children: site.kpis
                     .map((k) => KpiCard(
-                          label: localizedKpiLabel(l10n, k.definitionId, k.label),
+                          label:
+                              localizedKpiLabel(l10n, k.definitionId, k.label),
                           value: k.value.toString(),
                           unit: k.unit,
                           status: kpiStatusFromString(k.status),
@@ -123,7 +126,8 @@ class SiteDetailScreen extends ConsumerWidget {
                               runSpacing: 4,
                               children: a.kpis
                                   .map((k) => _MiniKpi(
-                                      label: localizedKpiLabel(l10n, k.definitionId, k.label),
+                                      label: localizedKpiLabel(
+                                          l10n, k.definitionId, k.label),
                                       value: '${k.value}${k.unit ?? ''}',
                                       status: k.status))
                                   .toList(),

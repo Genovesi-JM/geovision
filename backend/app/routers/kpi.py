@@ -150,27 +150,9 @@ def get_generic_kpis() -> List[KPIItem]:
     ]
 
 
-def get_home_kpis() -> List[KPIItem]:
-    return [
-        KPIItem(id="comfort_index", label="Conforto Interior", value=0, unit="%", status="ok", trend="stable",
-                updated_at=_now_minus(10), sector="home",
-                description="Percentagem do tempo com temperatura e humidade dentro da faixa de conforto."),
-        KPIItem(id="air_quality", label="Qualidade do Ar", value=0, unit="", status="ok", trend="stable",
-                updated_at=_now_minus(15), sector="home",
-                description="Indice de qualidade do ar interior (CO2 e particulas). Valores mais baixos sao melhores."),
-        KPIItem(id="tank_level", label="Nivel de Agua", value=0, unit="%", status="ok", trend="stable",
-                updated_at=_now_minus(10), sector="home",
-                description="Nivel atual do deposito de agua monitorizado."),
-        KPIItem(id="leak_events", label="Fugas Detetadas", value=0, unit="", status="ok", trend="stable",
-                updated_at=_now_minus(5), sector="home",
-                description="Fugas de agua detetadas que requerem verificacao."),
-    ]
-
-
 SECTOR_KPI_FUNCTIONS = {
     "agro": get_agro_kpis,
     "environment": get_environment_kpis,
-    "home": get_home_kpis,
     "mining": get_mining_kpis,
     "construction": get_construction_kpis,
     "infrastructure": get_infrastructure_kpis,
@@ -290,7 +272,6 @@ def dashboard_context(
     sector_names = {
         "agro": "Agricultura e Pecuaria",
         "environment": "Monitorizacao Ambiental",
-        "home": "Casa",
         "mining": "Mineracao",
         "construction": "Construcao",
         "infrastructure": "Infraestruturas",

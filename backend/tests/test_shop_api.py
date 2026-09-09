@@ -43,20 +43,17 @@ def test_diy_kits_appear_in_marketplace(client):
     assert water["translations"]["pt"]["name"].startswith("GV Level")
     assert water["translations"]["en"]["description"]
 
-    home_products = client.get("/shop/products", params={"sector": "home"}).json()
-    home_kit_ids = {p["id"] for p in home_products if p["id"].startswith("prod_kit_")}
-    assert home_kit_ids == {
-        "prod_kit_facility_guard",
-        "prod_kit_environment_air",
-        "prod_kit_water_tank_starter",
-    }
-    assert "home" in water["sectors"]
+    # "home" is no longer a GeoVision sector — no product may carry it.
+    assert all("home" not in product["sectors"] for product in products)
     environment_products = client.get(
         "/shop/products", params={"sector": "ambiental"}
     ).json()
     assert environment_products
     assert all("environment" in product["sectors"] for product in environment_products)
-    assert not any(p["id"] == "prod_kit_energy_meter_starter" for p in products)
+    # The former Home kits remain in the catalogue under their professional
+    # sectors (infrastructure / environment), just not recommended for "home".
+    energy = next((p for p in products if p["id"] == "prod_kit_energy_meter_starter"), None)
+    assert energy is not None and "infrastructure" in energy["sectors"]
 
 
 def test_catalogue_exposes_explicit_multi_currency_contract(client):
@@ -123,3 +120,17 @@ def test_cart_currency_checkout_and_owned_order_contract(client):
     history = client.get("/shop/orders", headers=headers)
     assert history.status_code == 200, history.text
     assert any(order["id"] == result["order_id"] for order in history.json())
+
+
+def test_payment_methods_only_advertise_real_settlement(client):
+    """Without gateway credentials, only IBAN/bank transfer should be enabled."""
+    data = client.get("/shop/payment-methods").json()
+    by_method = {m["method"]: m for m in data["methods"]}
+    # IBAN always settles (manual confirmation, no gateway).
+    assert by_method["iban_angola"]["enabled"] is True and by_method["iban_angola"]["settles"] is True
+    assert by_method["iban_international"]["enabled"] is True
+    # Gateways are disabled until their credentials are configured (else they mock).
+    assert by_method["visa_mastercard"]["enabled"] is False
+    assert by_method["multicaixa_express"]["enabled"] is False
+    assert by_method["paypal"]["enabled"] is False
+    assert data["any_gateway_live"] is False

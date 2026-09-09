@@ -7,8 +7,11 @@ import 'app_spacing.dart';
 /// reserved for a future accessibility toggle.
 abstract final class GvTheme {
   static ThemeData dark() {
+    // Primary = website --accent (green #22c55e); secondary = --accent-blue.
+    // This mirrors the site's green-led CTA system (green→blue gradient),
+    // with cyan/blue kept as secondary detail accents in widgets.
     const scheme = ColorScheme.dark(
-      primary: GvColors.accentCyan,
+      primary: GvColors.accentGreen,
       secondary: GvColors.accentBlue,
       surface: GvColors.surface,
       error: GvColors.critical,
@@ -48,7 +51,7 @@ abstract final class GvTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: GvColors.surfaceDeep,
-        indicatorColor: GvColors.accentCyan.withValues(alpha: 0.16),
+        indicatorColor: GvColors.accentGreen.withValues(alpha: 0.16),
         labelTextStyle: WidgetStateProperty.all(
           const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         ),
@@ -69,12 +72,12 @@ abstract final class GvTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(GvSpacing.radiusMd),
-          borderSide: const BorderSide(color: GvColors.accentCyan),
+          borderSide: const BorderSide(color: GvColors.accentGreen),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: GvColors.accentCyan,
+          backgroundColor: GvColors.accentGreen,
           foregroundColor: GvColors.bgDarker,
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
           padding: const EdgeInsets.symmetric(

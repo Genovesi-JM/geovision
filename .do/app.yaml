@@ -79,9 +79,25 @@ services:
     branch: main
     deploy_on_push: true
     repo: Genovesi-JM/geovision
+  health_check:
+    failure_threshold: 5
+    http_path: /ready
+    initial_delay_seconds: 30
+    period_seconds: 10
+    port: 8080
+    success_threshold: 1
+    timeout_seconds: 5
   http_port: 8080
   instance_count: 1
   instance_size_slug: apps-s-1vcpu-2gb
+  liveness_health_check:
+    failure_threshold: 6
+    http_path: /health
+    initial_delay_seconds: 30
+    period_seconds: 10
+    port: 8080
+    success_threshold: 1
+    timeout_seconds: 5
   name: geovision
   run_command: python start.py
   source_dir: /backend
