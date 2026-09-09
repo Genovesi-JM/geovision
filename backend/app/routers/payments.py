@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Header, Request
 from pydantic import BaseModel, Field
 
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
 from app.deps import get_current_user, require_admin
 from app.models import User
@@ -447,24 +448,22 @@ async def list_providers():
     """
     List available payment providers and configuration status.
     """
-    import os
-    
     providers = [
         ProviderConfigResponse(
             provider="multicaixa_express",
-            configured=bool(os.getenv("MULTICAIXA_API_KEY")),
-            test_mode=not bool(os.getenv("MULTICAIXA_API_KEY")),
+            configured=settings.multicaixa_configuration_complete,
+            test_mode=not settings.multicaixa_configuration_complete,
             supported_currencies=["AOA"],
         ),
         ProviderConfigResponse(
             provider="visa_mastercard",
-            configured=bool(os.getenv("STRIPE_SECRET_KEY")),
-            test_mode="test" in (os.getenv("STRIPE_SECRET_KEY") or "test"),
+            configured=bool(settings.stripe_secret_key),
+            test_mode="test" in (settings.stripe_secret_key or "test"),
             supported_currencies=["USD", "EUR", "AOA"],
         ),
         ProviderConfigResponse(
             provider="iban_transfer",
-            configured=bool(os.getenv("COMPANY_IBAN")),
+            configured=bool(settings.company_iban),
             test_mode=False,  # Always production
             supported_currencies=["AOA", "USD", "EUR"],
         ),

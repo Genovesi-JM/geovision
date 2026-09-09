@@ -1,10 +1,12 @@
 # GeoVision modular monolith architecture
 
-This document defines the backend module boundaries established in Phase 1 of
-the GeoVision refactor. The application remains one FastAPI deployable with one
-primary database and separately runnable workers as they are introduced. The
-purpose of these boundaries is to make ownership and dependency direction
-explicit without breaking the working API or duplicating persisted models.
+This document defines the backend module boundaries established in Phases 1
+and 2 of the GeoVision refactor. The application remains one FastAPI deployable
+with one primary database and separately runnable workers as they are
+introduced. The purpose of these boundaries is to make ownership, provider
+isolation, and dependency direction explicit without breaking the working API
+or duplicating persisted models. Provider contract details are documented in
+[the provider integration architecture](PROVIDER_INTEGRATION_ARCHITECTURE.md).
 
 ## Runtime and composition
 
@@ -56,6 +58,10 @@ The following rules apply to new code:
   depend on a sector package.
 - Integrations implement ports owned by common modules. Domain code must not
   initialize vendor clients or read provider credentials directly.
+- Provider factories import concrete adapters lazily. Importing a domain port
+  or testing it with a fake must not require the real vendor SDK.
+- External provider values remain opaque references associated with an
+  authoritative GeoVision UUID; they never become domain primary keys.
 - Workers orchestrate public module services and integrations. They must not
   call FastAPI route handlers as business functions.
 - Routers translate HTTP requests and responses. A router must not import
@@ -82,6 +88,8 @@ The canonical shared primitives live in `backend/app/core`:
 | `security.py` | Stable facade for shared password/token primitives |
 | `time.py` | UTC conversion at the current naive-datetime persistence boundary |
 | `events.py` | Provider-neutral event envelope and publisher protocol |
+| `integration.py` | Normalized provider results, safe errors, and timeout/retry conventions |
+| `references.py` | Provider-independent external-reference value object tied to an existing GeoVision UUID |
 | `observability.py` | Standard logger entry point without process-wide configuration |
 | `routing.py` | Lazy router mount descriptors used by the composition root |
 
@@ -93,6 +101,39 @@ new code should use `app.core`.
 The device-specific `DeviceEventHub` stays in `app/iot/events.py`. It is an
 in-process monitoring transport, not the durable platform event publisher.
 Durable outbox and queue behavior remains owned by Phase 13.
+
+## Provider boundaries
+
+Provider protocols live with their owning domains rather than with vendor
+code. Phase 2 declares ports for object storage, payments, ERP, notifications,
+identity, text generation, processing, weather, satellite, GIS, construction
+systems, asset management, and maritime context. `app/core/events.py` provides
+the shared event and queue publisher contracts.
+
+Concrete implementations live under `app/integrations`. The current storage
+factory lazily selects the S3-compatible adapter, and the ERP factory selects
+the local mock or existing ERPNext adapter. No Azure Blob, Service Bus, Event
+Grid, Odoo, processing, weather, satellite, GIS, construction,
+asset-management, or maritime adapter is activated by this foundation work.
+
+`app/core/config.py` is the single typed source for environment and provider
+configuration. It recognizes local, development, test, staging, and production
+profiles; staging and production fail closed when the JWT signing key or Fernet
+encryption key is unsafe. Its supported diagnostic views redact secret values.
+The complete variable and compatibility-alias list is in
+[`backend/ENV_CONFIG_GUIDE.md`](../backend/ENV_CONFIG_GUIDE.md).
+
+The provider result model distinguishes successful, accepted, simulated,
+pending, retrying, unconfigured, and failed outcomes. Retry policy is bounded
+and permits side-effecting operations only when they have an idempotency key.
+Provider exceptions must be converted into safe failure details without raw
+credentials, headers, or unbounded response bodies.
+
+Existing dedicated external-ID fields remain unchanged. The
+`ExternalReference` utility associates such an opaque value with an existing
+GeoVision UUID and provider/resource namespaces. A generic persisted mapping is
+deferred until workspace and generic Asset ownership are stable, so Phase 2
+requires no schema or customer-data migration.
 
 ## Common domain modules
 
@@ -187,10 +228,13 @@ For a new capability:
 1. Choose the owning common module.
 2. Put business rules in that module's service/domain layer, not in a router.
 3. Define any provider need as a module-owned interface.
-4. Implement vendor behavior in `app/integrations` and inject it at the
-   composition root.
-5. Have HTTP and worker transports call the same public service.
-6. Add negative tenant/permission tests when data is workspace-scoped.
-7. Add an Alembic migration for every persisted schema change.
-8. Update route-contract expectations only when a later phase intentionally
+4. Add only secret-redacted, typed provider configuration to `app/core/config.py`.
+5. Implement vendor behavior in `app/integrations` and inject it at the
+   composition root or a compatibility service.
+6. Normalize provider results, failures, timeouts, retries, and external
+   references through the shared core contracts.
+7. Have HTTP and worker transports call the same public service.
+8. Add negative tenant/permission tests when data is workspace-scoped.
+9. Add an Alembic migration for every persisted schema change.
+10. Update route-contract expectations only when a later phase intentionally
    adds, deprecates or removes a public route.

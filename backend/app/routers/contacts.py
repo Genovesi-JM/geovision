@@ -94,7 +94,7 @@ def _seed_defaults(db: Session):
     count = db.query(ContactMethod).count()
     if count == 0:
         # Fresh seed
-        env = settings.env or "prod"
+        env = settings.environment_name or "prod"
         for c in DEFAULT_CONTACTS:
             cm = ContactMethod(
                 channel=c["channel"],
@@ -147,7 +147,7 @@ def list_contacts(
     """
     _seed_defaults(db)
 
-    env = settings.env or "prod"
+    env = settings.environment_name or "prod"
     contacts = (
         db.query(ContactMethod)
         .filter(ContactMethod.is_public == True, ContactMethod.environment == env)

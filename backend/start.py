@@ -1,10 +1,12 @@
-import os
 import sys
 import subprocess
 
+from app.core.config import settings
+from app.core.integration import sanitize_integration_message
+
 
 def main() -> None:
-    migrate_timeout_s = int(os.environ.get("MIGRATE_TIMEOUT", "120"))
+    migrate_timeout_s = settings.migrate_timeout_seconds
 
     # Run DB migrations for the main database.
     try:
@@ -40,7 +42,12 @@ def main() -> None:
             )
             print("[start] Stamped DB to head.", flush=True)
         except Exception as stamp_err:
-            print(f"[start] WARNING: alembic stamp also failed: {stamp_err}", file=sys.stderr, flush=True)
+            print(
+                f"[start] WARNING: alembic stamp also failed: "
+                f"{sanitize_integration_message(stamp_err)}",
+                file=sys.stderr,
+                flush=True,
+            )
 
         # Ensure all tables exist (create any missing ones)
         try:
@@ -50,7 +57,12 @@ def main() -> None:
             database.Base.metadata.create_all(bind=database.engine)
             print("[start] Ensured all tables exist via create_all.", flush=True)
         except Exception as create_err:
-            print(f"[start] ERROR: create_all failed: {create_err}", file=sys.stderr, flush=True)
+            print(
+                f"[start] ERROR: create_all failed: "
+                f"{sanitize_integration_message(create_err)}",
+                file=sys.stderr,
+                flush=True,
+            )
             raise SystemExit(1)
 
     # ── Ensure critical columns exist (handles schema drift) ──
@@ -58,7 +70,7 @@ def main() -> None:
 
     import uvicorn
 
-    port = int(os.environ.get("PORT", "8010"))
+    port = settings.port
     print(f"[start] Starting server on 0.0.0.0:{port}...", flush=True)
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)
 
@@ -109,8 +121,13 @@ def _ensure_schema_columns():
                     if col_name in existing_cols and existing_cols[col_name].get("nullable") is False:
                         conn.execute(text(f'ALTER TABLE {table} ALTER COLUMN {col_name} DROP NOT NULL'))
                         print(f"[start] Made {table}.{col_name} nullable", flush=True)
-    except Exception as e:
-        print(f"[start] WARNING: schema column check failed: {e}", file=sys.stderr, flush=True)
+    except Exception as exc:
+        print(
+            f"[start] WARNING: schema column check failed: "
+            f"{sanitize_integration_message(exc)}",
+            file=sys.stderr,
+            flush=True,
+        )
 
 
 if __name__ == "__main__":

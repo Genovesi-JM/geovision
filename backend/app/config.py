@@ -11,6 +11,7 @@ from .core.config import (
     JWT_EXPIRE_MIN,
     JWT_SECRET,
     OPENAI_API_KEY,
+    RuntimeEnvironment,
     Settings,
     settings,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "JWT_EXPIRE_MIN",
     "JWT_SECRET",
     "OPENAI_API_KEY",
+    "RuntimeEnvironment",
     "Settings",
     "settings",
 ]

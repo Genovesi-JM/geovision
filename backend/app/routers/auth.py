@@ -10,8 +10,8 @@ Production-grade implementation with:
 
 import hashlib
 import json
+import logging
 import secrets
-import traceback
 from datetime import datetime, timedelta
 from typing import List, Optional, Set
 from urllib.parse import urlencode
@@ -48,6 +48,9 @@ from ..models import (
     UserProfile,
 )
 from ..schemas import AuthResponse, LoginRequest, RegisterRequest
+
+
+logger = logging.getLogger(__name__)
 
 get_db = database.get_db
 
@@ -687,7 +690,8 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
         with database.engine.begin() as conn:
             conn.execute(text("UPDATE users SET password_hash=:h WHERE id=:uid"), {"h": new_hash, "uid": rt.user_id})
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.error("Password reset persistence failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=500, detail="Não foi possível atualizar a password") from exc
 
     rt.used = True
     db.add(rt)
@@ -750,10 +754,20 @@ def google_callback(code: str | None = None, state: str | None = None,
             "client_secret": settings.google_client_secret,
             "redirect_uri": redirect_uri,
             "grant_type": "authorization_code",
-        }, timeout=10)
+        }, timeout=(
+            settings.integration_connect_timeout_seconds,
+            settings.integration_read_timeout_seconds,
+        ))
 
         if tokres.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Erro a trocar o código: {tokres.text}")
+            logger.warning(
+                "Google OAuth token exchange rejected (status=%s)",
+                tokres.status_code,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Não foi possível concluir a autenticação Google",
+            )
 
         access_token = tokres.json().get("access_token")
 
@@ -772,7 +786,11 @@ def google_callback(code: str | None = None, state: str | None = None,
         db.commit()
 
         ures = requests.get("https://www.googleapis.com/oauth2/v2/userinfo",
-                            params={"access_token": access_token}, timeout=10)
+                            params={"access_token": access_token},
+                            timeout=(
+                                settings.integration_connect_timeout_seconds,
+                                settings.integration_read_timeout_seconds,
+                            ))
         ures.raise_for_status()
         userinfo = ures.json()
         email = userinfo.get("email")
@@ -816,9 +834,11 @@ def google_callback(code: str | None = None, state: str | None = None,
     except HTTPException:
         raise
     except Exception as exc:
-        print("[GeoVision] Unhandled error in google_callback")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Erro interno: {type(exc).__name__}: {exc}")
+        logger.error("Google OAuth callback failed (%s)", type(exc).__name__)
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao concluir autenticação",
+        ) from exc
 
 
 class OnboardingRequest(BaseModel):
@@ -964,11 +984,21 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
                 "grant_type": "authorization_code",
                 "scope": "openid email profile User.Read",
             },
-            timeout=10,
+            timeout=(
+                settings.integration_connect_timeout_seconds,
+                settings.integration_read_timeout_seconds,
+            ),
         )
 
         if tokres.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Erro a trocar o código Microsoft: {tokres.text}")
+            logger.warning(
+                "Microsoft OAuth token exchange rejected (status=%s)",
+                tokres.status_code,
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Não foi possível concluir a autenticação Microsoft",
+            )
 
         ms_access_token = tokres.json().get("access_token")
 
@@ -989,7 +1019,10 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
         ures = requests.get(
             "https://graph.microsoft.com/v1.0/me",
             headers={"Authorization": f"Bearer {ms_access_token}"},
-            timeout=10,
+            timeout=(
+                settings.integration_connect_timeout_seconds,
+                settings.integration_read_timeout_seconds,
+            ),
         )
         ures.raise_for_status()
         userinfo = ures.json()
@@ -1033,6 +1066,8 @@ def microsoft_callback(code: str | None = None, state: str | None = None,
     except HTTPException:
         raise
     except Exception as exc:
-        print("[GeoVision] Unhandled error in microsoft_callback")
-        print(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Erro interno: {type(exc).__name__}: {exc}")
+        logger.error("Microsoft OAuth callback failed (%s)", type(exc).__name__)
+        raise HTTPException(
+            status_code=500,
+            detail="Erro interno ao concluir autenticação",
+        ) from exc

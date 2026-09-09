@@ -1,4 +1,4 @@
-"""Mail service for GeoVision — Microsoft 365 SMTP (Office 365).
+"""Backward-compatible email templates and sending helpers for GeoVision.
 
 Supports:
 - Password reset emails
@@ -7,18 +7,19 @@ Supports:
 - Order status updates
 - Critical alerts
 
-Uses smtp.office365.com:587 with TLS.
-Falls back to file logging when SMTP is not configured.
+Delivery is delegated to the notifications provider boundary. Local and
+development environments retain the historical file fallback.
 """
 from __future__ import annotations
-import smtplib
-from email.message import EmailMessage
-from datetime import datetime
-from pathlib import Path
 from typing import Tuple
 
-from .core.config import settings
 from .core.time import utc_now
+from .integrations.notifications import (
+    create_notification_provider,
+    default_email_log_path,
+)
+from .modules.notifications.ports import NotificationProvider
+from .modules.notifications.services import NotificationService
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -142,38 +143,47 @@ def _critical_alert_html(title: str, description: str, location: str, severity: 
 # Send functions
 # ═══════════════════════════════════════════════════════════════
 
-def _send_email(to_email: str, subject: str, plain_text: str, html: str | None = None) -> Tuple[bool, str]:
-    """Core email sender using Microsoft 365 SMTP or file fallback."""
-    if not settings.smtp_host or not settings.smtp_from:
-        try:
-            path = Path(__file__).resolve().parent.parent / "email_log.txt"
-            with open(path, "a", encoding="utf-8") as fh:
-                fh.write(f"[{utc_now().isoformat()}] to={to_email} subject={subject}\n")
-            return True, f"SMTP não configurado – log escrito em {path}"
-        except Exception as exc:
-            return False, f"Falha a escrever log: {exc}"
-
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = settings.smtp_from
-    msg["To"] = to_email
-    msg.set_content(plain_text)
-
-    if html:
-        msg.add_alternative(html, subtype="html")
-
+def _send_email(
+    to_email: str,
+    subject: str,
+    plain_text: str,
+    html: str | None = None,
+    provider: NotificationProvider | None = None,
+) -> Tuple[bool, str]:
+    """Send through the notification boundary and preserve the legacy result."""
     try:
-        with smtplib.SMTP(host=settings.smtp_host, port=settings.smtp_port, timeout=15) as s:
-            s.ehlo()
-            if settings.smtp_use_tls:
-                s.starttls()
-                s.ehlo()
-            if settings.smtp_user and settings.smtp_password:
-                s.login(settings.smtp_user, settings.smtp_password)
-            s.send_message(msg)
+        selected_provider = (
+            provider if provider is not None else create_notification_provider()
+        )
+        result = NotificationService(selected_provider).send_email(
+            recipient=to_email,
+            subject=subject,
+            plain_text=plain_text,
+            html=html,
+        )
+    except Exception:
+        # Configuration and provider details must never reach API responses.
+        return False, "Falha ao enviar email"
+
+    if result.ok:
+        if result.provider == "file":
+            path = getattr(selected_provider, "log_path", default_email_log_path())
+            return True, f"SMTP não configurado – log escrito em {path}"
         return True, "Email enviado"
-    except Exception as exc:
-        return False, f"Falha ao enviar email: {exc}"
+
+    failure_code = result.failure.code if result.failure else ""
+    if failure_code == "notification_log_failed":
+        return False, "Falha a escrever log"
+    if failure_code in {
+        "notification_provider_disabled",
+        "notification_provider_not_allowed",
+        "smtp_auth_not_configured",
+        "smtp_not_configured",
+        "smtp_tls_required",
+        "unsupported_notification_provider",
+    }:
+        return False, "SMTP não configurado"
+    return False, "Falha ao enviar email"
 
 
 def send_reset_email(to_email: str, reset_link: str) -> Tuple[bool, str]:

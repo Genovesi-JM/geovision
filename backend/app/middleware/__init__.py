@@ -58,8 +58,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
 
-        # Only add security headers on production or when explicitly enabled
-        is_prod = settings.env == "prod"
+        # Production-like profiles use the complete browser security policy.
+        is_deployed = settings.is_deployed
 
         # Always add these headers (safe for dev too)
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -68,7 +68,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self), payment=(self)"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
 
-        if is_prod:
+        if is_deployed:
             # HSTS: 1 year, include subdomains (preload when ready)
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
             response.headers["Content-Security-Policy"] = self.CSP_POLICY
@@ -220,14 +220,14 @@ def log_audit(
 # ═══════════════════════════════════════════════════════════════
 
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
-    """Redirect HTTP to HTTPS in production.
+    """Redirect HTTP to HTTPS in staging and production.
 
     Render handles this at the load balancer level, but this is a
     safety net for other deployments.
     """
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        if settings.env != "prod":
+        if not settings.is_deployed:
             return await call_next(request)
 
         # Check X-Forwarded-Proto (set by Render/Heroku/AWS ALB)

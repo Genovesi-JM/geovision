@@ -2,7 +2,7 @@
 
 from contextlib import asynccontextmanager
 
-import os
+import json
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
@@ -12,6 +12,7 @@ from sqlalchemy import text
 from .bootstrap import register_application_routes
 from .core import database
 from .core.config import settings
+from .core.integration import sanitize_integration_message
 from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRedirectMiddleware
 from .seed_data import (
     seed_admin_users,
@@ -34,17 +35,7 @@ def create_application() -> FastAPI:
 
     # Safe startup diagnostics (no secrets)
     try:
-        print(
-            "[GeoVision] Config: "
-            f"env={settings.env} "
-            f"backend_base={settings.backend_base} "
-            f"frontend_base={settings.frontend_base} "
-            f"google_client_id_set={bool(settings.google_client_id)} "
-            f"google_client_secret_set={bool(settings.google_client_secret)}"
-        )
-        cors_env = os.getenv("CORS_ORIGINS", "")
-        if cors_env.strip():
-            print(f"[GeoVision] CORS_ORIGINS(env)={cors_env}")
+        print(f"[GeoVision] Config: {json.dumps(settings.safe_summary(), sort_keys=True)}")
     except Exception:
         pass
 
@@ -63,9 +54,8 @@ def create_application() -> FastAPI:
     except Exception:
         pass
 
-    env_origins = os.getenv("CORS_ORIGINS", "")
-    if env_origins.strip():
-        allow_origins = [o.strip() for o in env_origins.split(",") if o.strip()]
+    if settings.cors_origin_list:
+        allow_origins = list(settings.cors_origin_list)
     else:
         allow_origins = sorted(default_origins)
 
@@ -89,7 +79,10 @@ def create_application() -> FastAPI:
         database.ensure_legacy_schema()
         print("[GeoVision] Schema drift check completed.")
     except Exception as exc:
-        print(f"[GeoVision] Schema drift check failed (non-fatal): {exc}")
+        print(
+            "[GeoVision] Schema drift check failed (non-fatal): "
+            f"{sanitize_integration_message(exc)}"
+        )
 
     try:
         db = database.SessionLocal()
@@ -102,7 +95,7 @@ def create_application() -> FastAPI:
         finally:
             db.close()
     except Exception as exc:
-        print(f"[GeoVision] Falha ao semear dados: {exc}")
+        print(f"[GeoVision] Falha ao semear dados: {sanitize_integration_message(exc)}")
 
     # Composition is explicit, ordered, and compatibility-preserving. Router
     # implementations remain in place until their owning phases migrate them.

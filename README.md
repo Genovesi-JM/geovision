@@ -8,8 +8,12 @@ Before starting a playbook phase, read the verified
 [repository architecture baseline](docs/REPOSITORY_ARCHITECTURE_BASELINE.md) and
 [refactor risk register](docs/REFACTOR_RISK_REGISTER.md). The active backend
 dependency rules are documented in the
-[modular monolith architecture](docs/MODULAR_MONOLITH_ARCHITECTURE.md). Run the
-non-mutating baseline suite with:
+[modular monolith architecture](docs/MODULAR_MONOLITH_ARCHITECTURE.md), with
+provider ports, adapters, normalized outcomes, and external-reference rules in
+the [provider integration architecture](docs/PROVIDER_INTEGRATION_ARCHITECTURE.md).
+Backend variables and environment profiles are listed in the
+[configuration guide](backend/ENV_CONFIG_GUIDE.md). Run the non-mutating
+baseline suite with:
 
 ```bash
 make baseline

@@ -1,124 +1,534 @@
+"""Typed, provider-neutral runtime configuration for GeoVision.
+
+Every application setting is loaded here. Domain code receives providers or
+safe configuration values; it must not read credentials directly from the
+process environment.
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import re
 import secrets
 import warnings
+from enum import Enum
 from pathlib import Path
-from pydantic_settings import BaseSettings
-from pydantic import field_validator
-from typing import Optional
+from typing import Any, Optional
+from urllib.parse import urlsplit
+
+from pydantic import AliasChoices, Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 _INSECURE_DEFAULT = "CHANGE_ME"
+_INSECURE_MARKERS = (
+    "change_me",
+    "change-this",
+    "change_this",
+    "your-secret",
+    "your_super_secret",
+    "your-super-secret",
+)
+_PROVIDER_NAME = re.compile(r"^[a-z0-9][a-z0-9_]{0,62}$")
+_URL_FIELDS = frozenset(
+    {
+        "backend_base",
+        "erpnext_base_url",
+        "frontend_base",
+        "multicaixa_api_url",
+        "multicaixa_callback_url",
+        "paypal_cancel_url",
+        "paypal_return_url",
+        "s3_endpoint_url",
+    }
+)
+
+
+def _safe_origin(value: str) -> str:
+    """Return an origin-only URL that cannot expose userinfo, paths, or queries."""
+
+    parsed = urlsplit(value)
+    if not parsed.scheme or not parsed.hostname:
+        return "[configured]" if value else ""
+    host = parsed.hostname
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    try:
+        port = f":{parsed.port}" if parsed.port else ""
+    except ValueError:
+        port = ""
+    return f"{parsed.scheme}://{host}{port}"
+
+
+class RuntimeEnvironment(str, Enum):
+    """Supported deployment profiles, independent of the hosting vendor."""
+
+    LOCAL = "local"
+    DEVELOPMENT = "dev"
+    TEST = "test"
+    STAGING = "staging"
+    PRODUCTION = "prod"
+
+    def __str__(self) -> str:
+        return self.value
+
 
 class Settings(BaseSettings):
+    """Single source of truth for environment and provider configuration."""
+
     app_name: str = "GeoVision Backend"
-    env: str = "dev"
+    app_version: str = "1.0.0"
+    env: Optional[RuntimeEnvironment] = Field(default=None, validation_alias="ENV")
+    legacy_environment: Optional[RuntimeEnvironment] = Field(
+        default=None,
+        validation_alias="ENVIRONMENT",
+        exclude=True,
+        repr=False,
+    )
+    port: int = Field(default=8010, ge=1, le=65535)
+    migrate_timeout_seconds: int = Field(
+        default=120,
+        ge=1,
+        validation_alias=AliasChoices("MIGRATE_TIMEOUT_SECONDS", "MIGRATE_TIMEOUT"),
+    )
 
-    # JWT / Auth — MUST be set via SECRET_KEY env var in production
-    secret_key: str = _INSECURE_DEFAULT
+    # Public application URLs and browser access.
+    frontend_base: str = Field(default="http://127.0.0.1:8001", repr=False)
+    backend_base: str = Field(default="http://127.0.0.1:8010", repr=False)
+    cors_origins: str = Field(default="", repr=False)
+
+    # JWT/authentication. Secret fields are excluded from Settings repr/str.
+    secret_key: str = Field(default=_INSECURE_DEFAULT, repr=False)
     algorithm: str = "HS256"
-    access_token_expires_minutes: int = 60
+    access_token_expires_minutes: int = Field(default=60, ge=1)
+    refresh_token_expires_days: int = Field(default=30, ge=1)
+    admin_password: Optional[str] = Field(default=None, repr=False)
 
-    # Frontend URL used to build password-reset links (no trailing slash)
-    frontend_base: str = "http://127.0.0.1:8001"
-
-    # Optional SMTP settings for sending password reset emails
-    smtp_host: Optional[str] = None
-    smtp_port: int = 25
-    smtp_user: Optional[str] = None
-    smtp_password: Optional[str] = None
-    smtp_from: Optional[str] = None
-    smtp_use_tls: bool = True
-
-    # Backend base URL used for OAuth callbacks (no trailing slash)
-    backend_base: str = "http://127.0.0.1:8010"
-
-    # Google OAuth settings (optional)
+    # OAuth providers. Phase 3 owns the complete identity adapter migration.
+    identity_provider: str = "internal"
     google_client_id: Optional[str] = None
-    google_client_secret: Optional[str] = None
-
-    # Microsoft OAuth / Entra ID settings (optional)
+    google_client_secret: Optional[str] = Field(default=None, repr=False)
     microsoft_client_id: Optional[str] = None
-    microsoft_client_secret: Optional[str] = None
-    microsoft_tenant_id: str = "common"  # "common" for multi-tenant, or specific tenant ID
+    microsoft_client_secret: Optional[str] = Field(default=None, repr=False)
+    microsoft_tenant_id: str = "common"
 
-    # Refresh token settings
-    refresh_token_expires_days: int = 30
+    # Encryption at rest for connector/provider credentials.
+    encryption_key: Optional[str] = Field(default=None, repr=False)
 
-    # Encryption key for sensitive data at rest (API keys, connector tokens)
-    encryption_key: Optional[str] = None  # Fernet key, generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Primary and compatibility databases.
+    database_url: str = Field(default="sqlite:///./geovision.db", repr=False)
+    accounts_database_url: str = Field(default="sqlite:///./accounts.db", repr=False)
 
-    # Bases de dados
-    database_url: str = "sqlite:///./geovision.db"
-    accounts_database_url: str = "sqlite:///./accounts.db"
-
-    @field_validator("database_url", mode="before")
-    @classmethod
-    def fix_postgres_url(cls, v: str) -> str:
-        """Some providers use postgres:// but SQLAlchemy 2.0 requires postgresql://"""
-        if v and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
-        return v
-
-    # OpenAI (opcional – para o chatbot AI)
-    openai_api_key: Optional[str] = None
+    # AI configuration. Structured GeoVision data remains numerical truth.
+    openai_api_key: Optional[str] = Field(default=None, repr=False)
     openai_model: str = "gpt-4o-mini"
 
-    # ERP integration. GeoVision remains the customer-facing source of truth;
-    # ERPNext receives commercial/accounting documents through an outbox.
-    erp_provider: str = "mock"
-    erpnext_base_url: Optional[str] = None
-    erpnext_api_key: Optional[str] = None
-    erpnext_api_secret: Optional[str] = None
-    erpnext_webhook_secret: Optional[str] = None
+    # Provider-neutral selections for capabilities implemented in later phases.
+    queue_provider: str = "null"
+    processing_provider: str = "none"
+    weather_provider: str = "none"
+    satellite_provider: str = "none"
+    gis_provider: str = "none"
+    construction_provider: str = "none"
+    asset_management_provider: str = "none"
+    maritime_provider: str = "none"
 
-    # IoT bridge. MQTT is opt-in so tests and ordinary web development do not
-    # require a broker. REST ingestion and simulators remain available.
+    # Shared integration timeout/retry conventions.
+    integration_connect_timeout_seconds: float = Field(default=5.0, gt=0)
+    integration_read_timeout_seconds: float = Field(default=30.0, gt=0)
+    integration_retry_attempts: int = Field(default=3, ge=1, le=10)
+    integration_retry_initial_seconds: float = Field(default=0.5, ge=0)
+    integration_retry_max_seconds: float = Field(default=8.0, ge=0)
+
+    # Object storage. The first implementation is S3-compatible, but consumers
+    # depend only on ObjectStorageProvider.
+    object_storage_provider: str = "s3"
+    s3_bucket: Optional[str] = None
+    s3_endpoint_url: Optional[str] = Field(default=None, repr=False)
+    s3_region: str = "eu-west-1"
+    s3_access_key_id: Optional[str] = Field(
+        default=None,
+        repr=False,
+        validation_alias=AliasChoices("S3_ACCESS_KEY_ID", "AWS_ACCESS_KEY_ID"),
+    )
+    s3_secret_access_key: Optional[str] = Field(
+        default=None,
+        repr=False,
+        validation_alias=AliasChoices("S3_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY"),
+    )
+
+    # ERP integration. GeoVision remains the system of record.
+    erp_provider: str = "mock"
+    erpnext_base_url: Optional[str] = Field(default=None, repr=False)
+    erpnext_api_key: Optional[str] = Field(default=None, repr=False)
+    erpnext_api_secret: Optional[str] = Field(default=None, repr=False)
+    erpnext_webhook_secret: Optional[str] = Field(default=None, repr=False)
+
+    # Notifications. MAIL_* aliases preserve the older deployment guide.
+    notification_provider: str = "auto"
+    smtp_host: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("SMTP_HOST", "MAIL_HOST"),
+    )
+    smtp_port: int = Field(
+        default=25,
+        ge=1,
+        le=65535,
+        validation_alias=AliasChoices("SMTP_PORT", "MAIL_PORT"),
+    )
+    smtp_user: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("SMTP_USER", "MAIL_USERNAME"),
+    )
+    smtp_password: Optional[str] = Field(
+        default=None,
+        repr=False,
+        validation_alias=AliasChoices("SMTP_PASSWORD", "MAIL_PASSWORD"),
+    )
+    smtp_from: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("SMTP_FROM", "MAIL_FROM"),
+    )
+    smtp_use_tls: bool = True
+    smtp_timeout_seconds: float = Field(default=15.0, gt=0)
+
+    # Payments. Phase 8 owns lifecycle consolidation; these fields remove raw
+    # environment access from the existing adapters today.
+    multicaixa_api_url: str = Field(
+        default="https://api.multicaixa.co.ao/v1",
+        repr=False,
+    )
+    multicaixa_merchant_id: Optional[str] = None
+    multicaixa_api_key: Optional[str] = Field(default=None, repr=False)
+    multicaixa_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    multicaixa_callback_url: Optional[str] = Field(default=None, repr=False)
+    stripe_secret_key: Optional[str] = Field(default=None, repr=False)
+    stripe_publishable_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    company_iban: str = Field(default="AO06004400005506300102101", repr=False)
+    company_bic: str = "BFAOAOAO"
+    company_bank_name: str = "Banco de Fomento Angola"
+    company_iban_intl: str = Field(default="PT50003600559910003085730", repr=False)
+    company_bic_intl: str = "MPIOPTPL"
+    company_bank_intl: str = "Banco Millennium BCP"
+    paypal_client_id: Optional[str] = None
+    paypal_secret: Optional[str] = Field(default=None, repr=False)
+    paypal_mode: str = "sandbox"
+    paypal_return_url: str = Field(
+        default="https://geovisionops.com/loja.html?paypal=success",
+        repr=False,
+    )
+    paypal_cancel_url: str = Field(
+        default="https://geovisionops.com/loja.html?paypal=cancel",
+        repr=False,
+    )
+
+    # IoT bridge. MQTT is opt-in so ordinary development needs no broker.
     mqtt_enabled: bool = False
     mqtt_host: str = "127.0.0.1"
-    mqtt_port: int = 1883
+    mqtt_port: int = Field(default=1883, ge=1, le=65535)
     mqtt_username: Optional[str] = None
-    mqtt_password: Optional[str] = None
+    mqtt_password: Optional[str] = Field(default=None, repr=False)
     mqtt_tls: bool = False
     mqtt_topic_prefix: str = "geovision"
     mqtt_client_id: str = "geovision-backend"
-    iot_message_max_age_seconds: int = 300
-    iot_offline_after_seconds: int = 120
-    iot_command_ttl_seconds: int = 300
-    iot_max_messages_per_minute: int = 120
-    iot_raw_retention_days: int = 30
-    iot_aggregate_retention_days: int = 730
+    iot_message_max_age_seconds: int = Field(default=300, ge=1)
+    iot_offline_after_seconds: int = Field(default=120, ge=1)
+    iot_command_ttl_seconds: int = Field(default=300, ge=1)
+    iot_max_messages_per_minute: int = Field(default=120, ge=1)
+    iot_raw_retention_days: int = Field(default=30, ge=1)
+    iot_aggregate_retention_days: int = Field(default=730, ge=1)
 
-    # Pydantic v2 settings: accept extra env vars (ignore unknown variables)
-    model_config = {
-        "env_file": Path(__file__).resolve().parents[2] / ".env",
-        "extra": "ignore",
-    }
+    model_config = SettingsConfigDict(
+        env_file=Path(__file__).resolve().parents[2] / ".env",
+        extra="ignore",
+        case_sensitive=False,
+        populate_by_name=True,
+        hide_input_in_errors=True,
+    )
+
+    _SECRET_FIELDS = frozenset(
+        {
+            "secret_key",
+            "admin_password",
+            "google_client_secret",
+            "microsoft_client_secret",
+            "encryption_key",
+            "database_url",
+            "accounts_database_url",
+            "openai_api_key",
+            "s3_access_key_id",
+            "s3_secret_access_key",
+            "erpnext_api_key",
+            "erpnext_api_secret",
+            "erpnext_webhook_secret",
+            "smtp_password",
+            "multicaixa_api_key",
+            "multicaixa_webhook_secret",
+            "stripe_secret_key",
+            "stripe_webhook_secret",
+            "company_iban",
+            "company_iban_intl",
+            "paypal_secret",
+            "mqtt_password",
+        }
+    )
+
+    @field_validator("env", "legacy_environment", mode="before")
+    @classmethod
+    def normalize_environment(cls, value: Any) -> Optional[RuntimeEnvironment]:
+        if value is None or not str(value).strip():
+            return None
+        if isinstance(value, RuntimeEnvironment):
+            return value
+        aliases = {
+            "local": RuntimeEnvironment.LOCAL,
+            "dev": RuntimeEnvironment.DEVELOPMENT,
+            "development": RuntimeEnvironment.DEVELOPMENT,
+            "test": RuntimeEnvironment.TEST,
+            "testing": RuntimeEnvironment.TEST,
+            "stage": RuntimeEnvironment.STAGING,
+            "staging": RuntimeEnvironment.STAGING,
+            "prod": RuntimeEnvironment.PRODUCTION,
+            "production": RuntimeEnvironment.PRODUCTION,
+        }
+        normalized = str(value).strip().lower()
+        if normalized not in aliases:
+            allowed = "local, dev/development, test, staging, prod/production"
+            raise ValueError(f"ENV/ENVIRONMENT must be one of: {allowed}")
+        return aliases[normalized]
+
+    @field_validator("database_url", "accounts_database_url", mode="before")
+    @classmethod
+    def fix_postgres_url(cls, value: str) -> str:
+        """Normalize legacy provider URLs for SQLAlchemy 2."""
+
+        if value and value.startswith("postgres://"):
+            return value.replace("postgres://", "postgresql://", 1)
+        return value
+
+    @field_validator(
+        "identity_provider",
+        "queue_provider",
+        "processing_provider",
+        "weather_provider",
+        "satellite_provider",
+        "gis_provider",
+        "construction_provider",
+        "asset_management_provider",
+        "maritime_provider",
+        "object_storage_provider",
+        "erp_provider",
+        "notification_provider",
+        "paypal_mode",
+        mode="before",
+    )
+    @classmethod
+    def normalize_provider_name(cls, value: Any) -> str:
+        normalized = str(value or "").strip().lower().replace("-", "_")
+        if not _PROVIDER_NAME.fullmatch(normalized):
+            raise ValueError("provider names must be stable lowercase identifiers")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_security_profile(self) -> "Settings":
+        if (
+            self.env is not None
+            and self.legacy_environment is not None
+            and self.env is not self.legacy_environment
+        ):
+            raise ValueError("ENV and ENVIRONMENT must not select different profiles")
+        self.env = (
+            self.env
+            or self.legacy_environment
+            or RuntimeEnvironment.DEVELOPMENT
+        )
+        if self.paypal_mode not in {"sandbox", "live"}:
+            raise ValueError("PAYPAL_MODE must be 'sandbox' or 'live'")
+        if self.integration_retry_max_seconds < self.integration_retry_initial_seconds:
+            raise ValueError(
+                "INTEGRATION_RETRY_MAX_SECONDS must be greater than or equal to "
+                "INTEGRATION_RETRY_INITIAL_SECONDS"
+            )
+        if self.is_deployed:
+            if self.secret_key_is_insecure:
+                raise ValueError(
+                    "SECRET_KEY must be a non-placeholder value of at least 32 characters "
+                    "in staging and production"
+                )
+            if not self.encryption_key_is_valid:
+                raise ValueError(
+                    "ENCRYPTION_KEY must be a valid Fernet key in staging and production"
+                )
+        return self
+
+    @property
+    def environment_name(self) -> str:
+        return self.env.value if isinstance(self.env, RuntimeEnvironment) else str(self.env)
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment_name.lower() in {"prod", "production"}
+
+    @property
+    def is_staging(self) -> bool:
+        return self.environment_name.lower() in {"stage", "staging"}
+
+    @property
+    def is_deployed(self) -> bool:
+        return self.is_staging or self.is_production
+
+    @property
+    def secret_key_is_insecure(self) -> bool:
+        normalized = (self.secret_key or "").strip().lower()
+        return len(normalized) < 32 or any(marker in normalized for marker in _INSECURE_MARKERS)
+
+    @property
+    def encryption_key_is_valid(self) -> bool:
+        key = (self.encryption_key or "").strip()
+        if not key:
+            return False
+        try:
+            decoded = base64.b64decode(key.encode(), altchars=b"-_", validate=True)
+            return len(decoded) == 32
+        except (ValueError, TypeError):
+            return False
+
+    @property
+    def cors_origin_list(self) -> tuple[str, ...]:
+        return tuple(
+            origin.strip().rstrip("/")
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        )
+
+    @property
+    def effective_s3_bucket(self) -> str:
+        return self.s3_bucket or "geovision-datasets"
+
+    @property
+    def smtp_configuration_complete(self) -> bool:
+        username_configured = bool(self.smtp_user and self.smtp_user.strip())
+        password_configured = bool(self.smtp_password)
+        return bool(
+            self.smtp_host
+            and self.smtp_host.strip()
+            and self.smtp_from
+            and self.smtp_from.strip()
+            and username_configured == password_configured
+        )
+
+    @property
+    def multicaixa_configuration_complete(self) -> bool:
+        return bool(self.multicaixa_merchant_id and self.multicaixa_api_key)
+
+    @property
+    def database_driver(self) -> str:
+        scheme = urlsplit(self.database_url).scheme
+        return scheme.split("+", 1)[0] if scheme else "unknown"
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Return a redacted dump safe for diagnostics and support output."""
+
+        data = super().model_dump(*args, **kwargs)
+        for field_name in self._SECRET_FIELDS:
+            if field_name in data and data[field_name] not in (None, ""):
+                data[field_name] = "[REDACTED]"
+        for field_name in _URL_FIELDS:
+            if field_name in data and data[field_name]:
+                data[field_name] = _safe_origin(str(data[field_name]))
+        if data.get("cors_origins"):
+            data["cors_origins"] = ",".join(
+                _safe_origin(origin) for origin in self.cors_origin_list
+            )
+        return data
+
+    def model_dump_json(self, *, indent: int | None = None, **kwargs: Any) -> str:
+        """Serialize the same redacted representation used by ``model_dump``."""
+
+        return json.dumps(
+            self.model_dump(**kwargs),
+            default=str,
+            indent=indent,
+        )
+
+    def safe_summary(self) -> dict[str, Any]:
+        """Return diagnostics that cannot contain credentials or database URLs."""
+
+        return {
+            "app_name": self.app_name,
+            "app_version": self.app_version,
+            "environment": self.environment_name,
+            "backend_base": _safe_origin(self.backend_base),
+            "frontend_base": _safe_origin(self.frontend_base),
+            "cors_origins": [_safe_origin(origin) for origin in self.cors_origin_list],
+            "database_driver": self.database_driver,
+            "providers": {
+                "identity": self.identity_provider,
+                "object_storage": self.object_storage_provider,
+                "queue": self.queue_provider,
+                "processing": self.processing_provider,
+                "weather": self.weather_provider,
+                "satellite": self.satellite_provider,
+                "gis": self.gis_provider,
+                "construction": self.construction_provider,
+                "asset_management": self.asset_management_provider,
+                "maritime": self.maritime_provider,
+                "erp": self.erp_provider,
+                "notifications": self.notification_provider,
+            },
+            "configured": {
+                "google_oauth": bool(self.google_client_id and self.google_client_secret),
+                "microsoft_oauth": bool(
+                    self.microsoft_client_id and self.microsoft_client_secret
+                ),
+                "openai": bool(self.openai_api_key),
+                "smtp": bool(
+                    self.smtp_configuration_complete
+                    and (not self.is_deployed or self.smtp_use_tls)
+                ),
+                "s3": bool(self.s3_bucket),
+                "erpnext": bool(
+                    self.erpnext_base_url
+                    and self.erpnext_api_key
+                    and self.erpnext_api_secret
+                ),
+                "multicaixa": self.multicaixa_configuration_complete,
+                "stripe": bool(self.stripe_secret_key),
+                "paypal": bool(self.paypal_client_id and self.paypal_secret),
+                "mqtt": self.mqtt_enabled,
+            },
+        }
+
 
 settings = Settings()
 
-# ── Secret key safety check ──────────────────────────────────────
-if settings.secret_key == _INSECURE_DEFAULT:
-    if settings.env in ("production", "prod"):
-        raise RuntimeError(
-            "FATAL: SECRET_KEY env var is not set. "
-            "Refusing to start in production with the insecure default."
-        )
-    # Dev / test: auto-generate a random key so tokens still work
-    _generated = secrets.token_urlsafe(48)
+# Local/development/test can use an ephemeral JWT key. Production is rejected
+# by Settings validation before this point.
+if settings.secret_key_is_insecure:
     warnings.warn(
-        "SECRET_KEY not set — using a random ephemeral key. "
-        "Set SECRET_KEY env var before deploying to production.",
+        "SECRET_KEY not set or insecure — using a random ephemeral key. "
+        "Set a stable 32+ character SECRET_KEY before deploying.",
         stacklevel=1,
     )
-    settings.secret_key = _generated
+    settings.secret_key = secrets.token_urlsafe(48)
 
-if settings.env in ("production", "prod") and settings.mqtt_enabled and not settings.encryption_key:
-    raise RuntimeError("FATAL: ENCRYPTION_KEY is required when MQTT is enabled in production")
-
-# Backwards-compatible names expected elsewhere in the codebase
+# Backward-compatible names expected by scripts and Alembic.
 JWT_SECRET = settings.secret_key
 JWT_ALG = settings.algorithm
 JWT_EXPIRE_MIN = settings.access_token_expires_minutes
-
-# Expose OpenAI key alias for modules that look for OPENAI_API_KEY
 OPENAI_API_KEY = settings.openai_api_key
-# Backwards-compatible DB URL constant for alembic/env.py
 DATABASE_URL = settings.database_url
+
+
+__all__ = [
+    "DATABASE_URL",
+    "JWT_ALG",
+    "JWT_EXPIRE_MIN",
+    "JWT_SECRET",
+    "OPENAI_API_KEY",
+    "RuntimeEnvironment",
+    "Settings",
+    "settings",
+]

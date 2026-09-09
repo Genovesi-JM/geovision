@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 from typing import List
 
 from sqlalchemy.orm import Session
 
 from app import models
 from app.core import database
+from app.core.config import settings
 from app.core.passwords import hash_password
 
 
@@ -27,7 +27,7 @@ def seed_admin_users() -> int:
     The admin password MUST be set via the ADMIN_PASSWORD environment
     variable.  If it is not set, admin seeding is skipped with a warning.
     """
-    admin_password = os.environ.get("ADMIN_PASSWORD", "").strip()
+    admin_password = (settings.admin_password or "").strip()
     if not admin_password:
         print("[GeoVision] WARNING: ADMIN_PASSWORD env var not set — skipping admin seed.")
         return 0

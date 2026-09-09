@@ -21,6 +21,8 @@ from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.encryption import encrypt
 from app.deps import require_admin, get_db
 
 logger = logging.getLogger(__name__)
@@ -290,12 +292,16 @@ async def add_user_to_company(
 @router.post("/companies/{company_id}/connectors", response_model=ConnectorOut)
 async def create_connector(company_id: str, data: ConnectorConfig, db: Session = Depends(get_db)):
     from app.models import Company, Connector
-    from app.crypto import encrypt
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
     conn = Connector(id=str(uuid.uuid4()), company_id=company_id,
                      connector_type=data.connector_type.value, name=data.name,
-                     api_key=encrypt(data.api_key), enabled=data.enabled)
+                     api_key=encrypt(data.api_key),
+                     api_secret=encrypt(data.api_secret),
+                     base_url=data.base_url,
+                     webhook_secret=encrypt(data.webhook_secret),
+                     config_json=json.dumps(data.metadata or {}),
+                     enabled=data.enabled)
     db.add(conn); db.commit(); db.refresh(conn)
     logger.info(f"Created connector {conn.id} for company {company_id}")
     return ConnectorOut(id=conn.id, company_id=company_id, connector_type=conn.connector_type,
@@ -317,12 +323,17 @@ async def list_connectors(company_id: str, db: Session = Depends(get_db)):
 @router.patch("/companies/{company_id}/connectors/{connector_id}")
 async def update_connector(company_id: str, connector_id: str, data: ConnectorConfig, db: Session = Depends(get_db)):
     from app.models import Connector
-    from app.crypto import encrypt
     conn = db.get(Connector, connector_id)
     if not conn: raise HTTPException(404, "Connector not found")
     if conn.company_id != company_id: raise HTTPException(403, "Connector belongs to different company")
     conn.name = data.name; conn.enabled = data.enabled
     if data.api_key: conn.api_key = encrypt(data.api_key)
+    if data.api_secret: conn.api_secret = encrypt(data.api_secret)
+    if data.webhook_secret: conn.webhook_secret = encrypt(data.webhook_secret)
+    if "base_url" in data.model_fields_set:
+        conn.base_url = data.base_url
+    if "metadata" in data.model_fields_set:
+        conn.config_json = json.dumps(data.metadata or {})
     db.commit(); db.refresh(conn)
     return ConnectorOut(id=conn.id, company_id=conn.company_id, connector_type=conn.connector_type,
                         name=conn.name, enabled=conn.enabled, last_sync=None,
@@ -424,16 +435,19 @@ async def get_system_stats(db: Session = Depends(get_db)):
 
 @router.get("/health")
 async def health_check():
-    import os
     return {
         "status": "healthy", "timestamp": _utcnow().isoformat(),
-        "version": os.getenv("APP_VERSION", "1.0.0"),
-        "environment": os.getenv("ENVIRONMENT", "development"),
+        "version": settings.app_version,
+        "environment": settings.environment_name,
         "services": {
             "database": "ok",
-            "storage": "ok" if os.getenv("S3_BUCKET") else "not_configured",
-            "payments_multicaixa": "ok" if os.getenv("MULTICAIXA_API_KEY") else "not_configured",
-            "payments_stripe": "ok" if os.getenv("STRIPE_SECRET_KEY") else "not_configured",
+            "storage": "ok" if settings.s3_bucket else "not_configured",
+            "payments_multicaixa": (
+                "ok"
+                if settings.multicaixa_configuration_complete
+                else "not_configured"
+            ),
+            "payments_stripe": "ok" if settings.stripe_secret_key else "not_configured",
         }
     }
 
@@ -835,7 +849,10 @@ async def create_integration(company_id: str, data: IntegrationCreate, db: Sessi
     if not c: raise HTTPException(404, "Company not found")
     integ = IntModel(id=str(uuid.uuid4()), company_id=company_id,
                      connector_type=data.connector_type, name=data.name,
-                     api_key_encrypted=data.api_key, base_url=data.base_url,
+                     api_key_encrypted=encrypt(data.api_key),
+                     api_secret_encrypted=encrypt(data.api_secret),
+                     base_url=data.base_url,
+                     webhook_url=data.webhook_url,
                      auto_sync_enabled=data.auto_sync_enabled,
                      sync_interval_hours=data.sync_interval_hours)
     db.add(integ); db.commit(); db.refresh(integ)

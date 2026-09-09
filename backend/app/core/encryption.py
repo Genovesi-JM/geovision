@@ -36,7 +36,10 @@ def _get_fernet():
         _fernet = Fernet(key.encode() if isinstance(key, str) else key)
         return _fernet
     except Exception as exc:
-        logger.error("Failed to initialise Fernet with ENCRYPTION_KEY: %s", exc)
+        logger.error(
+            "Failed to initialise Fernet with ENCRYPTION_KEY (%s)",
+            type(exc).__name__,
+        )
         return None
 
 
@@ -52,6 +55,12 @@ def encrypt(plaintext: Optional[str]) -> Optional[str]:
 
     f = _get_fernet()
     if f is None:
+        from .config import settings
+
+        if settings.is_deployed:
+            raise RuntimeError(
+                "credential encryption is unavailable in the deployed environment"
+            )
         warnings.warn(
             "ENCRYPTION_KEY not set — storing sensitive value WITHOUT encryption.",
             stacklevel=2,

@@ -11,7 +11,11 @@ class MockErpAdapter(ErpAdapter):
 
     def upsert(self, document_type: str, payload: dict[str, Any], idempotency_key: str) -> ErpResult:
         digest = hashlib.sha256(idempotency_key.encode()).hexdigest()[:12]
-        return ErpResult(external_id=f"MOCK-{document_type.upper()}-{digest}")
+        return ErpResult(
+            external_id=f"MOCK-{document_type.upper()}-{digest}",
+            status="simulated",
+            provider=self.id,
+        )
 
     def health(self) -> dict[str, Any]:
         return {"provider": self.id, "configured": True, "mode": "simulation"}

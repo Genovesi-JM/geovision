@@ -16,6 +16,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from pydantic import BaseModel, Field
 
 from app.deps import get_current_user, get_optional_user, require_admin
+from app.core.config import settings
 from app.models import Order, User
 from sqlalchemy.orm import Session
 from app.deps import get_db
@@ -835,8 +836,7 @@ async def clear_cart(cart_id: str, db: Session = Depends(get_db)):
 @router.get("/stripe-config")
 def get_stripe_config():
     """Return Stripe publishable key for frontend initialization."""
-    import os
-    pk = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
+    pk = settings.stripe_publishable_key or ""
     return {
         "publishable_key": pk,
         "enabled": bool(pk),
@@ -852,10 +852,9 @@ def get_payment_methods():
     so the storefront never offers a method that would silently return a mock
     payment. ``settles`` marks a fully real path.
     """
-    import os
-    stripe_ready = bool(os.getenv("STRIPE_SECRET_KEY"))
-    multicaixa_ready = bool(os.getenv("MULTICAIXA_MERCHANT_ID") and os.getenv("MULTICAIXA_API_KEY"))
-    paypal_ready = bool(os.getenv("PAYPAL_CLIENT_ID") and os.getenv("PAYPAL_SECRET"))
+    stripe_ready = bool(settings.stripe_secret_key)
+    multicaixa_ready = settings.multicaixa_configuration_complete
+    paypal_ready = bool(settings.paypal_client_id and settings.paypal_secret)
     methods = [
         {"method": "iban_angola", "enabled": True, "settles": True, "gateway": False},
         {"method": "iban_international", "enabled": True, "settles": True, "gateway": False},

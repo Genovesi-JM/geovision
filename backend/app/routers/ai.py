@@ -1,7 +1,6 @@
 # backend/app/routers/ai.py
 
 import logging
-import os
 import asyncio
 import unicodedata
 from typing import List, Optional, Literal
@@ -181,7 +180,7 @@ async def call_openai(
     page_text: Optional[str],
     page_title: Optional[str],
 ) -> str:
-    api_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
+    api_key = settings.openai_api_key
     model = settings.openai_model or "gpt-4.1-mini"
 
     # Modo DEMO (sem API key)
@@ -225,14 +224,22 @@ async def call_openai(
     max_attempts = 3
     for attempt in range(1, max_attempts + 1):
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            timeout = httpx.Timeout(
+                settings.integration_read_timeout_seconds,
+                connect=settings.integration_connect_timeout_seconds,
+            )
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 res = await client.post(
                     "https://api.openai.com/v1/chat/completions",
                     headers=headers,
                     json=payload,
                 )
         except httpx.RequestError as exc:
-            logger.error("Falha a contactar a API da OpenAI (attempt %s): %s", attempt, exc)
+            logger.error(
+                "Falha a contactar a API da OpenAI (attempt %s, %s)",
+                attempt,
+                type(exc).__name__,
+            )
             if attempt < max_attempts:
                 await asyncio.sleep(2**attempt)
                 continue
@@ -246,9 +253,10 @@ async def call_openai(
             )
 
         if res.status_code != 200:
-            snippet = res.text[:500]
             logger.error(
-                "Erro da API da OpenAI (HTTP %s) on attempt %s: %s", res.status_code, attempt, snippet
+                "Erro da API da OpenAI (HTTP %s) on attempt %s",
+                res.status_code,
+                attempt,
             )
             if attempt < max_attempts:
                 await asyncio.sleep(2**attempt)
@@ -266,7 +274,10 @@ async def call_openai(
             data = res.json()
             return data["choices"][0]["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError) as exc:
-            logger.error("Erro a interpretar a resposta da OpenAI: %s", exc)
+            logger.error(
+                "Erro a interpretar a resposta da OpenAI (%s)",
+                type(exc).__name__,
+            )
             if attempt < max_attempts:
                 await asyncio.sleep(2**attempt)
                 continue
@@ -316,6 +327,6 @@ async def chat(request: ChatRequest) -> ChatResponse:
 @router.get("/status", response_model=AIStatusResponse)
 def ai_status() -> AIStatusResponse:
     """Returns AI configuration status without exposing secrets."""
-    api_key = settings.openai_api_key or os.getenv("OPENAI_API_KEY")
+    api_key = settings.openai_api_key
     model = settings.openai_model or "gpt-4.1-mini"
     return AIStatusResponse(openai_configured=bool(api_key), openai_model=model)
