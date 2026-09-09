@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 from app.services.risk_engine import (
     get_risk_engine,

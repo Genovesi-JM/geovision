@@ -1,7 +1,6 @@
 # backend/app/main.py
 
-import asyncio
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 
 import os
 from urllib.parse import urlparse
@@ -10,43 +9,23 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from .config import settings
-from .database import init_db_engine
+from .bootstrap import register_application_routes
+from .core import database
+from .core.config import settings
 from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRedirectMiddleware
-from .routers import auth, projects, ai, accounts, me, kpi
-from .routers import products, orders, customer_accounts, employees
-from .routers import datasets, risk, payments, admin, mobile
-from .routers import shop, contacts, integrations, iot, construction
 from .seed_data import (
     seed_admin_users,
 )
 from .services.cart import seed_shop_products, seed_kit_products
+from .workers import application_workers
 
 
 @asynccontextmanager
 async def application_lifespan(application: FastAPI):
     """Start and stop background IoT services with the FastAPI application."""
 
-    from .iot.mqtt import mqtt_bridge
-    from .iot.watchdog import device_watchdog
-
-    stop_event = asyncio.Event()
-    watchdog_task = asyncio.create_task(device_watchdog(stop_event))
-    application.state.iot_watchdog_stop = stop_event
-    application.state.iot_watchdog_task = watchdog_task
-    mqtt_bridge.start(asyncio.get_running_loop())
-
-    try:
+    async with application_workers(application):
         yield
-    finally:
-        stop_event.set()
-        mqtt_bridge.stop()
-        try:
-            await asyncio.wait_for(watchdog_task, timeout=2)
-        except TimeoutError:
-            watchdog_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await watchdog_task
 
 
 def create_application() -> FastAPI:
@@ -103,19 +82,17 @@ def create_application() -> FastAPI:
     application.add_middleware(RateLimitMiddleware)
     application.add_middleware(HTTPSRedirectMiddleware)
 
-    init_db_engine()
+    database.init_db_engine()
 
     # Ensure DB schema is up-to-date (add missing columns)
     try:
-        from .database import ensure_legacy_schema
-        ensure_legacy_schema()
+        database.ensure_legacy_schema()
         print("[GeoVision] Schema drift check completed.")
     except Exception as exc:
         print(f"[GeoVision] Schema drift check failed (non-fatal): {exc}")
 
     try:
-        from .database import SessionLocal
-        db = SessionLocal()
+        db = database.SessionLocal()
         try:
             seed_shop_products(db)
             seed_kit_products(db)
@@ -127,39 +104,9 @@ def create_application() -> FastAPI:
     except Exception as exc:
         print(f"[GeoVision] Falha ao semear dados: {exc}")
 
-    # Routers principais existentes
-    # The `auth` router already sets its own prefix (prefix="/auth"), so
-    # include it without adding another prefix to avoid routes like
-    # "/auth/auth/login".
-    application.include_router(auth.router)
-    application.include_router(projects.router, prefix="/projects", tags=["projects"])
-    application.include_router(ai.router, prefix="/ai", tags=["ai"])
-    application.include_router(accounts.router)
-    application.include_router(me.router)
-    application.include_router(kpi.router)
-
-    # Novos routers da loja
-    application.include_router(products.router, prefix="/products", tags=["products"])
-    application.include_router(orders.router, prefix="/orders", tags=["orders"])
-    application.include_router(
-        customer_accounts.router, prefix="/accounts/customers", tags=["accounts"]
-    )
-    application.include_router(
-        employees.router, prefix="/accounts/employees", tags=["accounts"]
-    )
-
-    # Multi-tenant platform routers
-    application.include_router(datasets.router)  # /datasets
-    application.include_router(risk.router)      # /risk
-    application.include_router(payments.router)  # /payments
-    application.include_router(admin.router)     # /admin
-    application.include_router(shop.router)      # /shop (e-commerce)
-    application.include_router(contacts.router)  # /contacts
-    application.include_router(mobile.router)    # /mobile (Flutter contracts)
-    application.include_router(integrations.router)
-    application.include_router(iot.router)
-    application.include_router(iot.mobile_router)
-    application.include_router(construction.router)
+    # Composition is explicit, ordered, and compatibility-preserving. Router
+    # implementations remain in place until their owning phases migrate them.
+    register_application_routes(application)
 
     @application.get("/health", tags=["system"])
     def healthcheck() -> dict:
@@ -168,8 +115,6 @@ def create_application() -> FastAPI:
     @application.get("/ready", tags=["system"])
     def readinesscheck() -> dict:
         """Report readiness only when the application can reach its database."""
-
-        from . import database
 
         try:
             if database.engine is None:

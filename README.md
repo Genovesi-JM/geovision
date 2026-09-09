@@ -6,8 +6,10 @@ Curto guia para correr a app localmente, executar testes e o smoke e2e.
 
 Before starting a playbook phase, read the verified
 [repository architecture baseline](docs/REPOSITORY_ARCHITECTURE_BASELINE.md) and
-[refactor risk register](docs/REFACTOR_RISK_REGISTER.md). Run the non-mutating
-baseline suite with:
+[refactor risk register](docs/REFACTOR_RISK_REGISTER.md). The active backend
+dependency rules are documented in the
+[modular monolith architecture](docs/MODULAR_MONOLITH_ARCHITECTURE.md). Run the
+non-mutating baseline suite with:
 
 ```bash
 make baseline

@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.core.database import get_db
 from app.deps import require_admin
 from app.models import Product, ProductImage, Inventory, Category
 

@@ -13,7 +13,7 @@ from app.iot.notifications import notification_adapters
 from app.iot.registry import valid_unit
 from app.iot.schemas import MeasurementValue, TelemetryEnvelope
 from app.iot.security import secret_matches, timestamp_is_fresh
-from app.config import settings
+from app.core.config import settings
 from app.models import (
     DeviceCredential,
     IotAlert,
@@ -24,7 +24,7 @@ from app.models import (
     Site,
     TelemetryReading,
 )
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 # On-device firmware also enforces these locally; the backend rule is the
 # "decide" layer of detect → decide → act → confirm.

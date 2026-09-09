@@ -29,7 +29,7 @@ instead of treating legacy structures as disposable.
 | R17 | Medium | Flutter top-level navigation is Portal, Assets, Store, Alerts and More rather than Home, Assets, Actions, Services and More | Early backend work could accidentally couple to a UI structure scheduled for replacement | Keep navigation changes in Phase 22 and expose backend capabilities independent of tab names |
 | R18 | Medium | Agriculture has dedicated KPI definitions; other mobile sectors reuse a minimal infrastructure list | Sector dashboards can present generic or misleading metrics | Add validated KPI definitions only with provenance and source requirements in sector activation phases |
 | R19 | Medium | RAG, Mapbox/Google delivery, Stripe mobile, push and several drone/processing providers are placeholders or credential-gated | Documentation or UI can imply production readiness that code does not provide | Keep explicit capability states, fake adapters and feature flags; never report credentials-gated behavior as live |
-| R20 | Medium | The local Docker installation lacks the Compose plugin | The documented IoT stack cannot be reproduced on this host today | Install/repair Docker Compose, then validate the full stack without deleting existing volumes |
+| R20 | Medium | The local Docker installation lacks the Compose plugin and its daemon is not running | The backend image and documented IoT stack cannot be reproduced on this host today | Start/repair Docker, install Compose, then validate the image and full stack without deleting existing volumes |
 | R21 | Medium | The default local `.venv` is stale and the shell does not expose Flutter even though Flutter is installed | Advertised commands fail before tests begin | Use `make baseline`, recreate the backend virtual environment, and keep tool discovery in the verification script |
 | R22 | Medium | Android and iOS builds pass with future plugin migration warnings | A future Flutter upgrade can turn warnings into build failures | Track `package_info_plus` Kotlin and `flutter_secure_storage` Swift Package Manager compatibility before the next SDK upgrade |
 | R23 | Critical | No production backup-restore drill or migration rollback rehearsal is recorded | A structurally correct migration can still cause unrecoverable downtime or data loss | Require a production-like restore, migration dry run, rollback decision and owner sign-off before any live schema cutover |
@@ -57,3 +57,18 @@ tenant, invitation and integration changes require negative isolation tests.
 No phase may mark itself complete by deleting customer data, stamping around a
 failed migration, embedding provider secrets, or weakening an existing route
 without a compatibility plan.
+
+## Phase 1 outcome
+
+- **Reduced:** R04, because startup now references the live canonical database
+  module after initialization instead of retaining an `engine = None` snapshot.
+- **Reduced:** R06, because all 205 application HTTP/WebSocket contracts and
+  the legacy router order now have automated compatibility checks.
+- **Contained:** R01, R07, R16, R18 and R19 now have explicit owning domain or
+  sector boundaries, but their underlying product work remains unchanged.
+- **Unchanged:** R02, R03, R05 and R08-R23 remain active and belong to later
+  phases. Phase 1 did not alter persisted schema, providers, deployment, public
+  sector activation, or customer navigation.
+- **Introduced and controlled:** Registry metadata could drift from real route
+  ownership; import-time validation and architecture tests fail when module
+  names, dependencies, orders, or router targets conflict.

@@ -6,9 +6,9 @@ import json
 import secrets
 from datetime import datetime, timezone
 
-from app.config import settings
+from app.core.config import settings
 from app.crypto import decrypt, encrypt
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 
 def new_secret() -> str:

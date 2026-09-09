@@ -20,8 +20,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .database import Base
-from .time_utils import utc_now
+from .core.database import Base
+from .core.time import utc_now
 
 
 def _uuid():

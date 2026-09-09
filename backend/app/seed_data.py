@@ -8,8 +8,8 @@ from typing import List
 from sqlalchemy.orm import Session
 
 from app import models
-from app.database import SessionLocal
-from app.utils import hash_password
+from app.core import database
+from app.core.passwords import hash_password
 
 
 # Admin accounts — password read from ADMIN_PASSWORD env var (never hardcoded)
@@ -32,7 +32,7 @@ def seed_admin_users() -> int:
         print("[GeoVision] WARNING: ADMIN_PASSWORD env var not set — skipping admin seed.")
         return 0
 
-    db: Session = SessionLocal()
+    db: Session = database.SessionLocal()
     inserted = 0
     try:
         for user_data in ADMIN_USERS:

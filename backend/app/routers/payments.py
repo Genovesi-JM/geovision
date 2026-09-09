@@ -19,10 +19,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Header, Request
 from pydantic import BaseModel, Field
 
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.core.database import get_db
 from app.deps import get_current_user, require_admin
 from app.models import User
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 from app.services.payments import (
     get_payment_orchestrator,

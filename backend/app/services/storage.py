@@ -14,8 +14,8 @@ import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from app.config import settings
-from app.time_utils import utc_now
+from app.core.config import settings
+from app.core.time import utc_now
 
 
 class StorageService:

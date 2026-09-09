@@ -13,8 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..config import settings
-from ..database import get_db
+from ..core.config import settings
+from ..core.database import get_db
 from ..deps import require_admin
 from ..models import ContactMethod, User
 

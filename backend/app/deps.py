@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import json
 
-from app.database import get_db
-from app.oauth2 import verify_access_token
+from app.core.database import get_db
+from app.core.tokens import verify_access_token
 from app.models import User, AccountMember, Account
 
 bearer = HTTPBearer()

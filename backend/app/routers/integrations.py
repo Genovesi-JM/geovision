@@ -3,11 +3,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.core.database import get_db
 from app.deps import get_current_user
 from app.integrations.erp import get_erp_adapter
 from app.models import IntegrationOutbox, User
-from app.routers.me import _get_user_company_id
+from app.modules.organizations.services import get_user_company_id
+
+_get_user_company_id = get_user_company_id
 from app.services.erp_sync import process_pending
 
 router = APIRouter(prefix="/integrations/erp", tags=["integrations"])

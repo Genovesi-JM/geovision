@@ -6,13 +6,13 @@ import logging
 import ssl
 from datetime import datetime
 
-from app.config import settings
+from app.core.config import settings
 from app.iot.events import event_hub
 from app.iot.schemas import MqttEnvelope, TelemetryEnvelope
 from app.iot.security import parse_utc, reveal_secret, timestamp_is_fresh, verify_mqtt_signature
 from app.iot.service import active_credential, ingest_telemetry
 from app.models import IotCommand, IotDevice, IotMessageNonce
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -74,8 +74,8 @@ class MqttBridge:
             logger.warning("Rejected MQTT message on %s: %s", message.topic, exc)
 
     def _process(self, tenant_id: str, site_id: str, device_uid: str, kind: str, payload: dict) -> None:
-        from app.database import SessionLocal
-        db = SessionLocal()
+        from app.core import database
+        db = database.SessionLocal()
         try:
             device = db.query(IotDevice).filter(IotDevice.public_id == device_uid).first()
             if not device or device.company_id != tenant_id or device.site_id != site_id or device.status in {"disabled", "quarantined"}:

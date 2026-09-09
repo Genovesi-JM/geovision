@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from ..database import SessionLocal
+from ..core import database
 from ..models import User, Product, Order
 
 router = APIRouter()
 
 def get_db():
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         yield db
     finally:

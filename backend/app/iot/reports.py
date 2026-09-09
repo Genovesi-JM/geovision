@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import datetime
 from io import BytesIO
 
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 # ── Shared PDF scaffolding (used by device reports and construction inspections) ──
 # reportlab is imported lazily inside the helpers so importing this module stays cheap

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..deps import get_current_user, get_current_account
 from ..account_profiles import normalize_account_profile
-from ..database import get_db
+from ..core.database import get_db
 from ..models import Account, AccountMember, User
 from ..schemas import AccountCreate, AccountPublic, AccountSwitchRequest
 

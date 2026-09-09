@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.integrations.erp import get_erp_adapter
 from app.models import AccountEvent, IntegrationOutbox
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 
 ERP_DOCTYPE = {

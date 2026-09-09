@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 
-from ..database import get_db
+from ..core.database import get_db
 from .. import models
 from ..deps import get_current_user
 from ..schemas import ProjectCreate, ProjectOut
@@ -28,4 +28,3 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db), user=D
     db.commit()
     db.refresh(project)
     return project
-

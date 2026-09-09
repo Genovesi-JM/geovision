@@ -3,12 +3,13 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import json
 
-from app.database import get_db
+from app.core.database import get_db
 from app.deps import get_current_user
-from app.models import User, UserProfile, AccountMember, Account, CompanyUser, Company
+from app.models import User, UserProfile, AccountMember, Account, Company
+from app.modules.organizations.services import get_user_company_id
 from app.schemas import AccountPublic, MeResponse, ProfileOut, UserSummary
 from app.services.storage import get_storage_service, is_s3_key
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -69,26 +70,8 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 
 # ============ CLIENT DOCUMENTS ============
 
-def _get_user_company_id(user: User, db: Session) -> Optional[str]:
-    """Find the company this user belongs to via company_users table, with Company fallback."""
-    email = (user.email or "").strip().lower()
-    cu = db.query(CompanyUser).filter(CompanyUser.email == email).first()
-    if cu:
-        return cu.company_id
-    # Fallback: check Company table directly (for users registered before CompanyUser was added)
-    company = db.query(Company).filter(Company.email == email).first()
-    if company:
-        # Auto-create the missing CompanyUser link
-        db.add(CompanyUser(
-            company_id=company.id,
-            email=email,
-            name=getattr(user, "full_name", None) or email,
-            role="owner",
-            is_active=True,
-        ))
-        db.commit()
-        return company.id
-    return None
+# Kept for callers that imported this private helper before the module split.
+_get_user_company_id = get_user_company_id
 
 
 _PLAN_ALLOWANCE = {"trial": 5, "demo": 10, "starter": 10, "growth": 25, "scale": 60, "enterprise": 200}
@@ -106,7 +89,7 @@ def my_entitlement(user: User = Depends(get_current_user), db: Session = Depends
     from datetime import datetime, timedelta
     from app.models import CompanyEntitlement, IotDevice, SensorChannel
 
-    company_id = _get_user_company_id(user, db)
+    company_id = get_user_company_id(user, db)
     if not company_id:
         return {"has_company": False}
     company = db.get(Company, company_id)
@@ -169,7 +152,7 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
     """List documents for the current user's company."""
     from app.models import Document as DocModel
     from sqlalchemy import or_
-    company_id = _get_user_company_id(user, db)
+    company_id = get_user_company_id(user, db)
     if not company_id:
         return []
     docs = db.query(DocModel).filter(
@@ -200,7 +183,7 @@ def my_documents(user: User = Depends(get_current_user), db: Session = Depends(g
 def download_my_document(document_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Download a document file — only if it belongs to the user's company."""
     from app.models import Document as DocModel
-    company_id = _get_user_company_id(user, db)
+    company_id = get_user_company_id(user, db)
     if not company_id:
         raise HTTPException(status_code=403, detail="No company linked")
     doc = db.get(DocModel, document_id)
@@ -243,7 +226,7 @@ def view_my_document(document_id: str, user: User = Depends(get_current_user), d
     """View/preview a document inline in the browser."""
     from app.models import Document as DocModel
     from starlette.responses import Response
-    company_id = _get_user_company_id(user, db)
+    company_id = get_user_company_id(user, db)
     if not company_id:
         raise HTTPException(status_code=403, detail="No company linked")
     doc = db.get(DocModel, document_id)

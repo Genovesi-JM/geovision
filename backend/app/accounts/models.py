@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 from .database import AccountsBase
 

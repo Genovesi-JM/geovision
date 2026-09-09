@@ -13,11 +13,11 @@ from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
-from app.database import get_db
+from app.core.database import get_db
 from app.deps import get_current_user
 from app.iot.events import event_hub
 from app.iot.registry import valid_unit
-from app.time_utils import utc_now
+from app.core.time import utc_now
 from app.iot.schemas import (
     AlertRuleCreate,
     AlertAssignment,
@@ -55,8 +55,10 @@ from app.models import (
     User,
     Company,
 )
-from app.oauth2 import verify_access_token
-from app.routers.me import _get_user_company_id
+from app.core.tokens import verify_access_token
+from app.modules.organizations.services import get_user_company_id
+
+_get_user_company_id = get_user_company_id
 
 router = APIRouter(prefix="/iot", tags=["iot"])
 mobile_router = APIRouter(prefix="/mobile", tags=["mobile", "iot"])
@@ -819,8 +821,8 @@ async def websocket_events(websocket: WebSocket):
     try:
         auth = await asyncio.wait_for(websocket.receive_json(), timeout=10)
         claims = verify_access_token(str(auth.get("token") or "")); user_id = claims.get("uid"); device_id = str(auth.get("device_id") or "")
-        from app.database import SessionLocal
-        db = SessionLocal()
+        from app.core import database
+        db = database.SessionLocal()
         try:
             user = db.get(User, user_id); company_id = _company_id(user, db) if user else None
             device_for_company(db, device_id, company_id)

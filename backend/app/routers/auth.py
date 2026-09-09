@@ -23,10 +23,16 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from ..config import settings
 from ..account_profiles import PUBLIC_SECTORS, normalize_account_profile
-from ..database import SessionLocal, engine, get_db
-from ..time_utils import utc_now
+from ..core import database
+from ..core.config import settings
+from ..core.security import (
+    create_access_token,
+    hash_password,
+    verify_access_token,
+    verify_password,
+)
+from ..core.time import utc_now
 from ..mail import send_reset_email
 from ..middleware import log_audit
 from ..models import (
@@ -41,9 +47,9 @@ from ..models import (
     User,
     UserProfile,
 )
-from ..oauth2 import create_access_token, verify_access_token
 from ..schemas import AuthResponse, LoginRequest, RegisterRequest
-from ..utils import hash_password, verify_password
+
+get_db = database.get_db
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -678,7 +684,7 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
 
     new_hash = hash_password(payload.new_password)
     try:
-        with engine.begin() as conn:
+        with database.engine.begin() as conn:
             conn.execute(text("UPDATE users SET password_hash=:h WHERE id=:uid"), {"h": new_hash, "uid": rt.user_id})
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

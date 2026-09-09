@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.core.config import settings
 from app.models import TelemetryAggregate, TelemetryReading
-from app.time_utils import utc_from_timestamp, utc_now
+from app.core.time import utc_from_timestamp, utc_now
 
 
 BUCKET_SECONDS = 300

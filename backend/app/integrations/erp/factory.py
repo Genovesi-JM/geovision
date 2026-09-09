@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from app.config import settings
+from app.core.config import settings
 
 from .base import ErpAdapter
 from .erpnext import ErpNextAdapter

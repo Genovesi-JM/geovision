@@ -17,8 +17,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple
 
-from .config import settings
-from .time_utils import utc_now
+from .core.config import settings
+from .core.time import utc_now
 
 
 # ═══════════════════════════════════════════════════════════════

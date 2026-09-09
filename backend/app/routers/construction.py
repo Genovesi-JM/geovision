@@ -17,12 +17,14 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import get_db
+from app.core.config import settings
+from app.core.database import get_db
 from app.deps import get_current_user
 from app.models import AssetInspection, AuditLog, Company, IotAsset, Site, User
-from app.routers.me import _get_user_company_id
-from app.time_utils import utc_now
+from app.modules.organizations.services import get_user_company_id
+
+_get_user_company_id = get_user_company_id
+from app.core.time import utc_now
 
 router = APIRouter(prefix="/construction", tags=["construction"])
 

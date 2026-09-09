@@ -44,9 +44,10 @@ def main() -> None:
 
         # Ensure all tables exist (create any missing ones)
         try:
-            from app.database import engine, Base
+            from app.core import database
             from app import models  # noqa: F401 — registers all models
-            Base.metadata.create_all(bind=engine)
+            database.init_db_engine()
+            database.Base.metadata.create_all(bind=database.engine)
             print("[start] Ensured all tables exist via create_all.", flush=True)
         except Exception as create_err:
             print(f"[start] ERROR: create_all failed: {create_err}", file=sys.stderr, flush=True)
@@ -69,9 +70,9 @@ def _ensure_schema_columns():
     running migrations (e.g. after a failed deploy).
     """
     from sqlalchemy import inspect as sa_inspect, text
-    from app.database import init_db_engine, engine
+    from app.core import database
 
-    init_db_engine()
+    database.init_db_engine()
 
     # Map of table -> [(column_name, sql_type, default)]
     required_columns = {
@@ -86,8 +87,8 @@ def _ensure_schema_columns():
     }
 
     try:
-        inspector = sa_inspect(engine)
-        with engine.begin() as conn:
+        inspector = sa_inspect(database.engine)
+        with database.engine.begin() as conn:
             for table, columns in required_columns.items():
                 if table not in inspector.get_table_names():
                     continue

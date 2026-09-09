@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta
 
-from app.config import settings
+from app.core.config import settings
 from app.iot.events import event_hub
 from app.models import IotDevice
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 
 async def device_watchdog(stop: asyncio.Event) -> None:
@@ -25,8 +25,8 @@ async def device_watchdog(stop: asyncio.Event) -> None:
 
 
 def _mark_offline() -> list[str]:
-    from app.database import SessionLocal
-    db = SessionLocal()
+    from app.core import database
+    db = database.SessionLocal()
     try:
         cutoff = utc_now() - timedelta(seconds=settings.iot_offline_after_seconds)
         rows = db.query(IotDevice).filter(IotDevice.last_seen_at.is_not(None), IotDevice.last_seen_at < cutoff, IotDevice.status == "online").all()
@@ -39,9 +39,9 @@ def _mark_offline() -> list[str]:
 
 
 def _maintain_telemetry() -> None:
-    from app.database import SessionLocal
+    from app.core import database
     from app.iot.maintenance import aggregate_and_retain
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         aggregate_and_retain(db)
     finally:

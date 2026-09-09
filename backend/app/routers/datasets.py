@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_db, get_current_user
 from app.services.storage import get_storage_service, detect_file_type, detect_mime_type
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 logger = logging.getLogger(__name__)
 

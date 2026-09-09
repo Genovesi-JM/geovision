@@ -22,7 +22,7 @@ from enum import Enum
 from dataclasses import dataclass, field
 from pydantic import BaseModel
 
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 logger = logging.getLogger(__name__)
 

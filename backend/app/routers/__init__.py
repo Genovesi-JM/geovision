@@ -1,5 +1,6 @@
 """Routers package for the backend."""
-# Note: avoid importing routers that rely on missing/optional models during
-# early startup. Services router references ServiceRequest which isn't defined
-# in `app.models` in this branch, so omit it to allow the app to start.
-from . import auth, projects, ai  # noqa: F401
+
+# Keep package import side-effect free. The composition root loads only the
+# registered router modules after database initialization.
+
+__all__: list[str] = []

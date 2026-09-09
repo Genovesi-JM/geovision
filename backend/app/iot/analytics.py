@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from statistics import median
 
-from app.time_utils import utc_now
+from app.core.time import utc_now
 
 
 def _num(row) -> float | None:
