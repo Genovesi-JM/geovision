@@ -14,6 +14,7 @@ from app.models import (
     AuditLog,
     ContractorAssignment,
     ContractorCapability,
+    FulfilmentJob,
     OperationalCapability,
     OperationsContractor,
     Order,
@@ -466,8 +467,22 @@ def create_assignment(
         raise OperationsResourceError(
             "contractor_unavailable", "Contractor is not available for assignment"
         )
-    if data.order_id and db.get(Order, data.order_id) is None:
+    assignment_order_id = data.order_id
+    if assignment_order_id and db.get(Order, assignment_order_id) is None:
         raise OperationsResourceError("order_not_found", "Order was not found")
+    if data.fulfilment_job_id:
+        job = db.get(FulfilmentJob, data.fulfilment_job_id)
+        if job is None:
+            raise OperationsResourceError("job_not_found", "Fulfilment job was not found")
+        if assignment_order_id and job.order_id != assignment_order_id:
+            raise OperationsResourceError(
+                "assignment_job_mismatch", "Assignment order does not match the fulfilment job"
+            )
+        if job.assigned_contractor_id and job.assigned_contractor_id != contractor.id:
+            raise OperationsResourceError(
+                "assignment_job_mismatch", "Fulfilment job belongs to another contractor"
+            )
+        assignment_order_id = job.order_id
     now = utc_now()
     assignment_id = str(uuid.uuid4())
     upload_area = data.upload_area or {
@@ -478,7 +493,7 @@ def create_assignment(
         id=assignment_id,
         assignment_number=f"GVA-{now.year}-{assignment_id.split('-')[0].upper()}",
         contractor_id=contractor.id,
-        order_id=data.order_id,
+        order_id=assignment_order_id,
         fulfilment_job_id=data.fulfilment_job_id,
         title=data.title.strip(),
         status=AssignmentStatus.OFFERED.value,

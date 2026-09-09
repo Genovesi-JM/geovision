@@ -29,6 +29,107 @@ class AssignmentStatus(str, Enum):
     CANCELLED = "CANCELLED"
 
 
+class JobPriority(str, Enum):
+    LOW = "LOW"
+    NORMAL = "NORMAL"
+    HIGH = "HIGH"
+    URGENT = "URGENT"
+
+
+class JobState(str, Enum):
+    PLANNED = "PLANNED"
+    READY = "READY"
+    BLOCKED = "BLOCKED"
+    ASSIGNED = "ASSIGNED"
+    SCHEDULED = "SCHEDULED"
+    IN_PROGRESS = "IN_PROGRESS"
+    WAITING_INPUT = "WAITING_INPUT"
+    QA_REVIEW = "QA_REVIEW"
+    COMPLETED = "COMPLETED"
+    CANCELLED = "CANCELLED"
+    FAILED = "FAILED"
+
+
+STANDARD_JOB_TYPES = frozenset(
+    {
+        "FLIGHT_CAPTURE",
+        "SATELLITE_ACQUISITION",
+        "SENSOR_INSTALLATION",
+        "PROCESS_DATA",
+        "ANALYST_REVIEW",
+        "SPECIALIST_REVIEW",
+        "DELIVER_PRODUCT",
+        "PUBLISH_REPORT",
+    }
+)
+
+
+_JOB_TRANSITIONS = {
+    JobState.PLANNED: frozenset(
+        {JobState.READY, JobState.BLOCKED, JobState.CANCELLED}
+    ),
+    JobState.READY: frozenset(
+        {
+            JobState.ASSIGNED,
+            JobState.SCHEDULED,
+            JobState.IN_PROGRESS,
+            JobState.BLOCKED,
+            JobState.CANCELLED,
+        }
+    ),
+    JobState.ASSIGNED: frozenset(
+        {
+            JobState.SCHEDULED,
+            JobState.IN_PROGRESS,
+            JobState.BLOCKED,
+            JobState.CANCELLED,
+        }
+    ),
+    JobState.SCHEDULED: frozenset(
+        {JobState.IN_PROGRESS, JobState.BLOCKED, JobState.CANCELLED}
+    ),
+    JobState.IN_PROGRESS: frozenset(
+        {
+            JobState.WAITING_INPUT,
+            JobState.QA_REVIEW,
+            JobState.COMPLETED,
+            JobState.BLOCKED,
+            JobState.FAILED,
+            JobState.CANCELLED,
+        }
+    ),
+    JobState.WAITING_INPUT: frozenset(
+        {
+            JobState.READY,
+            JobState.IN_PROGRESS,
+            JobState.BLOCKED,
+            JobState.CANCELLED,
+        }
+    ),
+    JobState.QA_REVIEW: frozenset(
+        {
+            JobState.IN_PROGRESS,
+            JobState.COMPLETED,
+            JobState.BLOCKED,
+            JobState.FAILED,
+        }
+    ),
+    JobState.BLOCKED: frozenset(
+        {
+            JobState.READY,
+            JobState.ASSIGNED,
+            JobState.SCHEDULED,
+            JobState.IN_PROGRESS,
+            JobState.CANCELLED,
+            JobState.FAILED,
+        }
+    ),
+    JobState.COMPLETED: frozenset(),
+    JobState.CANCELLED: frozenset(),
+    JobState.FAILED: frozenset(),
+}
+
+
 _ASSIGNMENT_TRANSITIONS = {
     AssignmentStatus.OFFERED: frozenset(
         {AssignmentStatus.ACCEPTED, AssignmentStatus.DECLINED, AssignmentStatus.CANCELLED}
@@ -73,6 +174,23 @@ def require_assignment_transition(current: str, target: str) -> None:
         )
 
 
+def require_job_transition(current: str, target: str) -> None:
+    try:
+        current_state = JobState(current)
+        target_state = JobState(target)
+    except ValueError as exc:
+        raise OperationsResourceError(
+            "invalid_job_state", "Fulfilment job state is not supported"
+        ) from exc
+    if target_state == current_state:
+        return
+    if target_state not in _JOB_TRANSITIONS[current_state]:
+        raise OperationsResourceError(
+            "invalid_job_transition",
+            f"Fulfilment job cannot move from {current_state.value} to {target_state.value}",
+        )
+
+
 _SENSITIVE_KEY_PARTS = (
     "password",
     "passwd",
@@ -106,8 +224,12 @@ __all__ = [
     "AssignmentStatus",
     "ContractorAvailability",
     "ContractorStatus",
+    "JobPriority",
+    "JobState",
     "OperationsResourceError",
+    "STANDARD_JOB_TYPES",
     "normalize_code",
     "reject_sensitive_keys",
     "require_assignment_transition",
+    "require_job_transition",
 ]

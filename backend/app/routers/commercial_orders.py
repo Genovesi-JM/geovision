@@ -27,6 +27,8 @@ from app.modules.orders.services import (
     order_summary,
     transition_order,
 )
+from app.modules.operations.job_schemas import CustomerOrderProgressOut
+from app.modules.operations.job_services import customer_order_progress
 from app.modules.organizations.domain import internal_permissions
 from app.modules.organizations.services import active_internal_roles
 from app.services.orders import PaymentMethod, get_order_service
@@ -198,6 +200,18 @@ def list_my_orders(
     db: Session = Depends(get_db),
 ):
     return [order_summary(row) for row in customer_orders(db, user, limit=limit)]
+
+
+@router.get("/{order_id}/progress", response_model=CustomerOrderProgressOut)
+def get_my_order_progress(
+    order_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order = db.get(Order, order_id)
+    if order is None or not customer_can_view(order, user):
+        raise HTTPException(status_code=404, detail="Order not found")
+    return customer_order_progress(db, order)
 
 
 @router.post("/{order_id}/cancel", response_model=OrderDetailOut)

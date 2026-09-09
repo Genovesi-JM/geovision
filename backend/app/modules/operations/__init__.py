@@ -15,6 +15,13 @@ definition = DomainModule(
             secondary_owners=("catalog", "orders", "audit"),
         ),
         RouterMount(
+            "operations.fulfilment_jobs",
+            "operations",
+            "app.routers.fulfilment_jobs",
+            87,
+            secondary_owners=("orders", "assets", "audit"),
+        ),
+        RouterMount(
             "operations.employees",
             "operations",
             "app.routers.employees",

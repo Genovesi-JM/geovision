@@ -1847,6 +1847,165 @@ class ContractorCapability(Base):
     )
 
 
+class FulfilmentJob(Base):
+    """Executable unit of work derived from, but independent of, a sale."""
+
+    __tablename__ = "fulfilment_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    job_number: Mapped[str] = mapped_column(
+        String(40), nullable=False, unique=True, index=True
+    )
+    order_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("orders.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    order_item_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("order_items.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    job_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    priority: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="NORMAL", server_default="NORMAL", index=True
+    )
+    state: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="PLANNED", server_default="PLANNED", index=True
+    )
+    resume_state: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    assigned_contractor_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("operations_contractors.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    assigned_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    scheduled_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    scheduled_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    actual_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    requirements_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    direct_cost_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    cost_currency: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    cost_reference: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    plan_key: Mapped[Optional[str]] = mapped_column(
+        String(180), nullable=True, unique=True, index=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    dependencies = relationship(
+        "FulfilmentJobDependency",
+        foreign_keys="FulfilmentJobDependency.job_id",
+        cascade="all, delete-orphan",
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')",
+            name="ck_fulfilment_job_priority",
+        ),
+        CheckConstraint(
+            "state IN ('PLANNED', 'READY', 'BLOCKED', 'ASSIGNED', 'SCHEDULED', "
+            "'IN_PROGRESS', 'WAITING_INPUT', 'QA_REVIEW', 'COMPLETED', "
+            "'CANCELLED', 'FAILED')",
+            name="ck_fulfilment_job_state",
+        ),
+        CheckConstraint(
+            "NOT (assigned_contractor_id IS NOT NULL AND assigned_user_id IS NOT NULL)",
+            name="ck_fulfilment_job_single_assignee",
+        ),
+        CheckConstraint(
+            "scheduled_end IS NULL OR scheduled_start IS NULL OR scheduled_end > scheduled_start",
+            name="ck_fulfilment_job_schedule_window",
+        ),
+        CheckConstraint(
+            "direct_cost_amount IS NULL OR direct_cost_amount >= 0",
+            name="ck_fulfilment_job_cost_nonnegative",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_fulfilment_job_version"),
+    )
+
+
+class FulfilmentJobDependency(Base):
+    """Explicit directed dependency edge between jobs on the same order."""
+
+    __tablename__ = "fulfilment_job_dependencies"
+
+    job_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("fulfilment_jobs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    depends_on_job_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("fulfilment_jobs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("job_id <> depends_on_job_id", name="ck_fulfilment_job_no_self_dependency"),
+        Index("ix_fulfilment_job_dependencies_upstream", depends_on_job_id),
+    )
+
+
+class OperationalDomainEvent(Base):
+    """Transactional local event ledger behind the replaceable publisher port."""
+
+    __tablename__ = "operational_domain_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    aggregate_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    payload_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    idempotency_key: Mapped[str] = mapped_column(
+        String(200), nullable=False, unique=True, index=True
+    )
+    publish_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "publish_attempts >= 0", name="ck_operational_domain_event_attempts"
+        ),
+    )
+
+
 class ContractorAssignment(Base):
     """Phase-9 assignment shell; Phase 10 may attach a fulfilment job."""
 
@@ -1865,7 +2024,12 @@ class ContractorAssignment(Base):
     order_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("fulfilment_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="OFFERED", server_default="OFFERED", index=True

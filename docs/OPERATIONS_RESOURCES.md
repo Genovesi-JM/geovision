@@ -46,9 +46,9 @@ status, and free text.
 
 ## Assignment and least-privilege access
 
-`contractor_assignments` is a provider-independent Phase 9 assignment shell.
-It can reference a GeoVision order now and a Phase 10 fulfilment job later. Its
-guarded lifecycle is:
+`contractor_assignments` is a provider-independent assignment record. It can
+reference both a GeoVision order and the canonical Phase 10 fulfilment job; the
+database now enforces that job reference. Its guarded lifecycle is:
 
 `OFFERED -> ACCEPTED -> ACTIVE -> COMPLETED`
 

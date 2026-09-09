@@ -35,6 +35,7 @@ instead of treating legacy structures as disposable.
 | R25 | Medium | Phase 7 makes `catalog_items` authoritative and Phase 8 snapshots canonical catalogue lines into orders, while `shop_products` and `products` remain cart/client compatibility data | A legacy writer or failed projection could still make pre-checkout price, publication, or stock fields inconsistent | Route staff changes through `/catalog/internal`, monitor projection parity, compare prices again at checkout, retain immutable order snapshots, and retire old write/cart projections only after deployed clients migrate |
 | R26 | High | The enterprise prototype persisted raw provider callback payloads; Phase 8 preserves that table as `legacy_payment_webhook_events` while all new callbacks use a digest-only ledger | Historical payloads may contain personal or provider-sensitive data beyond the required retention period | Restrict table access now; inventory/classify rows, define legal retention, export only required evidence, then securely purge raw payloads with Phase 25 audit approval and a verified backup/restore plan |
 | R27 | High | Phase 9 stores private contractor/supplier contacts, qualifications, insurance, licences, quality notes and cost-bearing assignments in GeoVision | A broad customer/staff query, unsafe metadata field, or backup/export could expose personal data, internal margins, or another customer's operational details | Keep resource APIs internal, contractor views allowlisted and assignment-scoped, reject credentials in metadata, audit changes, restrict database/export access, define retention and document-access controls, and review live privacy/legal requirements before onboarding contractors |
+| R28 | High | Phase 10 derives executable job graphs from paid service lines and currently publishes operational events to a transactional local ledger | A bad dependency graph can deadlock or start processing before capture/upload completes; a multi-process deployment cannot yet distribute local events to workers | Keep planning idempotent, reject cross-order/self/cyclic edges, gate work on completed dependencies, audit/version every mutation, reconcile orders against jobs, and replace the local publisher behind its port with the Phase 13 durable broker/outbox before horizontal worker scaling |
 
 ## Controls that already reduce risk
 
@@ -290,3 +291,23 @@ without a compatibility plan.
 - **Unchanged:** Phase 10 still owns canonical fulfilment jobs and will attach
   the reserved assignment job reference. Customer-facing marketplace sellers,
   provider bidding, contractor payouts, and public profiles remain absent.
+
+## Phase 10 outcome
+
+- **Resolved:** A commercial order is no longer treated as its own work queue.
+  An idempotent planner expands each purchased line into explicit capture,
+  acquisition, installation, processing, review, delivery, and publication jobs.
+- **Contained:** Dependency risk, because edges are same-order, non-self,
+  duplicate-safe and cycle-checked. Readiness, assignment, scheduling, and work
+  start are gated on completed upstream work; `PROCESS_DATA` cannot start
+  without an explicit completed input dependency.
+- **Contained:** Operational privacy, because internal job projections alone
+  expose direct costs, cost references, order links, and assignee identities.
+  Contractor views are own-assignment allowlists; customer progress is derived
+  only from safe stage/status aggregates.
+- **Contained:** Stale or invalid updates, because a guarded state machine,
+  optimistic lifecycle versions, schedule/assignee validation, audit records,
+  and transactional domain events cover every material mutation.
+- **Introduced and controlled:** R28 records job-graph and local dispatch risk.
+  The publisher is a replaceable domain port and its current implementation is
+  an idempotent transactional ledger; distributed dispatch remains Phase 13.

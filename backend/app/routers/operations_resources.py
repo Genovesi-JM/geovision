@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Annotated
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -11,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_current_user, get_db
 from app.models import ContractorAssignment, OperationalCapability, OperationsContractor, User
 from app.modules.operations.domain import OperationsResourceError
+from app.modules.operations.auth import OperationsStaff
 from app.modules.operations.schemas import (
     AssignmentCreate,
     AssignmentDecision,
@@ -42,24 +41,7 @@ from app.modules.operations.services import (
     update_capability,
     update_contractor,
 )
-from app.modules.organizations.domain import internal_permissions
-from app.modules.organizations.services import active_internal_roles
-
-
 router = APIRouter(prefix="/operations", tags=["operations-resources"])
-
-
-def require_operations_staff(
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> User:
-    permissions = internal_permissions(active_internal_roles(db, user))
-    if not permissions.intersection({"platform:admin", "operations:access"}):
-        raise HTTPException(status_code=403, detail="GeoVision Operations permission required")
-    return user
-
-
-OperationsStaff = Annotated[User, Depends(require_operations_staff)]
 
 
 def _raise_resource_error(exc: OperationsResourceError) -> None:
@@ -68,6 +50,7 @@ def _raise_resource_error(exc: OperationsResourceError) -> None:
         "contractor_not_found": status.HTTP_404_NOT_FOUND,
         "order_not_found": status.HTTP_404_NOT_FOUND,
         "assignment_not_found": status.HTTP_404_NOT_FOUND,
+        "job_not_found": status.HTTP_404_NOT_FOUND,
         "contractor_access_denied": status.HTTP_403_FORBIDDEN,
         "capability_exists": status.HTTP_409_CONFLICT,
         "contractor_exists": status.HTTP_409_CONFLICT,
