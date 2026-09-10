@@ -18,6 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Index,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -1090,13 +1091,32 @@ class IotDevice(Base):
     """
 
     __tablename__ = "iot_devices"
+    __table_args__ = (
+        Index(
+            "uq_iot_devices_provider_identity",
+            "provider_code",
+            "provider_device_id",
+            unique=True,
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     public_id: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
     company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
     site_id: Mapped[str] = mapped_column(String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True)
     asset_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    core_asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     gateway_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    provider_code: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="geovision", server_default="geovision", index=True
+    )
+    provider_device_id: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    protocol_version: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="geovision.telemetry.v1",
+        server_default="geovision.telemetry.v1",
+    )
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     device_type: Mapped[str] = mapped_column(String(60), nullable=False, default="multi_sensor")
     transport: Mapped[str] = mapped_column(String(30), nullable=False, default="mqtt")
@@ -1108,6 +1128,17 @@ class IotDevice(Base):
     capabilities_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     configuration_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
     allow_remote_control: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    connectivity_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="unknown", server_default="unknown", index=True
+    )
+    battery_percent: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    health_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="unknown", server_default="unknown", index=True
+    )
+    last_latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    last_stream_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    last_sequence: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
     last_ip: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     created_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
@@ -1161,6 +1192,58 @@ class IotGateway(Base):
     gateway_type: Mapped[str] = mapped_column(String(40), nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="provisioned")
     configuration_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+
+class DeviceAssignment(Base):
+    """Auditable assignment history between an IoT device and canonical asset."""
+
+    __tablename__ = "iot_device_assignments"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'ended')",
+            name="ck_iot_device_assignment_status",
+        ),
+        CheckConstraint(
+            "(status = 'active' AND ended_at IS NULL) OR "
+            "(status = 'ended' AND ended_at IS NOT NULL)",
+            name="ck_iot_device_assignment_end_state",
+        ),
+        Index("ix_iot_device_assignments_device_time", "device_id", "assigned_at"),
+        Index(
+            "uq_iot_device_assignments_active",
+            "device_id",
+            unique=True,
+            sqlite_where=text("status = 'active'"),
+            postgresql_where=text("status = 'active'"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    device_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    legacy_iot_asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("iot_assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    gateway_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("iot_gateways.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="active", server_default="active", index=True
+    )
+    reason: Mapped[str] = mapped_column(String(500), nullable=False, default="initial assignment")
+    assigned_by: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    assigned_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
 
@@ -1247,10 +1330,19 @@ class TelemetryReading(Base):
     )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    receipt_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("iot_telemetry_receipts.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     device_id: Mapped[str] = mapped_column(String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True)
     company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     site_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    core_asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     message_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    sequence: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    protocol_version: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
+    source: Mapped[Optional[str]] = mapped_column(String(40), nullable=True, index=True)
     channel: Mapped[str] = mapped_column(String(100), nullable=False)
     numeric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     text_value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -1260,6 +1352,66 @@ class TelemetryReading(Base):
     recorded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     received_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     metadata_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}")
+
+
+class TelemetryReceipt(Base):
+    """One durable receipt per telemetry envelope, independent of its channels."""
+
+    __tablename__ = "iot_telemetry_receipts"
+    __table_args__ = (
+        CheckConstraint(
+            "measurement_count > 0",
+            name="ck_iot_telemetry_receipt_measurements",
+        ),
+        CheckConstraint(
+            "(stream_id IS NULL AND sequence IS NULL) OR "
+            "(stream_id IS NOT NULL AND sequence IS NOT NULL AND sequence >= 0)",
+            name="ck_iot_telemetry_receipt_sequence",
+        ),
+        CheckConstraint(
+            "NOT replayed_from_edge OR queued_at IS NOT NULL",
+            name="ck_iot_telemetry_receipt_replay_queue",
+        ),
+        UniqueConstraint("device_id", "message_id", name="uq_iot_receipt_device_message"),
+        UniqueConstraint(
+            "device_id", "stream_id", "sequence", name="uq_iot_receipt_device_stream_sequence"
+        ),
+        UniqueConstraint(
+            "provider_code", "provider_message_id", name="uq_iot_receipt_provider_message"
+        ),
+        Index("ix_iot_receipts_device_recorded", "device_id", "recorded_at"),
+        Index("ix_iot_receipts_asset_recorded", "core_asset_id", "recorded_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    device_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("iot_devices.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    company_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    site_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("sites.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    core_asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    message_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider_code: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    protocol_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    firmware_version: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    stream_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    sequence: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False, index=True)
+    out_of_order: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    replayed_from_edge: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    queued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    measurement_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    context_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
 
 
 class TelemetryAggregate(Base):

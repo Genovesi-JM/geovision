@@ -1,9 +1,37 @@
 from __future__ import annotations
 
 from datetime import datetime
+import json
+import re
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+TELEMETRY_PROTOCOL_VERSION = "geovision.telemetry.v1"
+_SENSITIVE_KEY = re.compile(
+    r"(^|_)(password|passwd|secret|token|api_key|authorization|credential|private_key)($|_)",
+    re.IGNORECASE,
+)
+
+
+def _validate_context(value: Any, *, path: str) -> Any:
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            normalized = re.sub(r"[^A-Za-z0-9]+", "_", str(key)).strip("_")
+            if _SENSITIVE_KEY.search(normalized):
+                raise ValueError(f"{path} must not contain credentials or secrets")
+            _validate_context(nested, path=f"{path}.{key}")
+    elif isinstance(value, list):
+        for nested in value:
+            _validate_context(nested, path=path)
+    try:
+        encoded = json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{path} must be JSON-compatible") from exc
+    if len(encoded.encode("utf-8")) > 65_536:
+        raise ValueError(f"{path} must not exceed 64 KiB")
+    return value
 
 
 class ChannelDefinition(BaseModel):
@@ -25,11 +53,24 @@ class DeviceCreate(BaseModel):
     asset_id: str | None = None
     gateway_id: str | None = None
     device_type: str = Field(default="multi_sensor", min_length=2, max_length=60)
-    transport: Literal["mqtt", "rest", "lorawan", "modbus_gateway", "ble_sync"] = "mqtt"
+    transport: Literal[
+        "mqtt", "rest", "lorawan", "modbus_gateway", "ble_sync", "azure_iot_hub"
+    ] = "mqtt"
+    provider_code: Literal["geovision", "fieldbox", "azure_iot_hub"] = "geovision"
+    provider_device_id: str | None = Field(default=None, min_length=1, max_length=160)
+    protocol_version: Literal[TELEMETRY_PROTOCOL_VERSION] = TELEMETRY_PROTOCOL_VERSION
     hardware_model: str | None = Field(default=None, max_length=120)
     capabilities: list[str] = Field(default_factory=list, max_length=60)
     channels: list[ChannelDefinition] = Field(default_factory=list, max_length=80)
     allow_remote_control: bool = False
+
+    @model_validator(mode="after")
+    def validate_provider_identity(self):
+        if self.provider_code == "azure_iot_hub" and not self.provider_device_id:
+            raise ValueError("provider_device_id is required for Azure IoT Hub devices")
+        if self.transport == "azure_iot_hub" and self.provider_code != "azure_iot_hub":
+            raise ValueError("azure_iot_hub transport requires the Azure IoT Hub provider")
+        return self
 
 
 class ProvisionExchange(BaseModel):
@@ -46,21 +87,58 @@ class MeasurementValue(BaseModel):
     quality: Literal["good", "uncertain", "bad", "sensor_error"] = "good"
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    @field_validator("metadata")
+    @classmethod
+    def validate_metadata(cls, value):
+        return _validate_context(value, path="measurement metadata")
+
+
+class TelemetryLocation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    accuracy_meters: float | None = Field(default=None, ge=0, le=100_000)
+
 
 class TelemetryEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    protocol_version: Literal[TELEMETRY_PROTOCOL_VERSION] = TELEMETRY_PROTOCOL_VERSION
+    device_id: str | None = Field(default=None, min_length=1, max_length=160)
     message_id: str = Field(min_length=1, max_length=100)
     timestamp: datetime
+    stream_id: str | None = Field(
+        default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$"
+    )
+    sequence: int | None = Field(default=None, ge=0)
+    firmware_version: str | None = Field(default=None, min_length=1, max_length=80)
+    replayed_from_edge: bool = False
+    queued_at: datetime | None = None
+    location: TelemetryLocation | None = None
+    context: dict[str, Any] = Field(default_factory=dict)
     measurements: dict[str, MeasurementValue | float | int | bool | str] = Field(min_length=1, max_length=100)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("measurements")
     @classmethod
     def validate_keys(cls, value):
-        import re
         if any(not re.fullmatch(r"[a-z][a-z0-9_]{0,99}", key) for key in value):
             raise ValueError("measurement keys must be lowercase snake_case")
         return value
+
+    @field_validator("context", "metadata")
+    @classmethod
+    def validate_context_fields(cls, value, info):
+        return _validate_context(value, path=info.field_name)
+
+    @model_validator(mode="after")
+    def validate_delivery_contract(self):
+        if (self.stream_id is None) != (self.sequence is None):
+            raise ValueError("stream_id and sequence must be supplied together")
+        if self.replayed_from_edge and (self.stream_id is None or self.queued_at is None):
+            raise ValueError(
+                "store-and-forward telemetry requires stream_id, sequence, and queued_at"
+            )
+        return self
 
 
 class MqttEnvelope(TelemetryEnvelope):
@@ -86,6 +164,12 @@ class AlertRuleCreate(BaseModel):
 class AlertAssignment(BaseModel):
     model_config = ConfigDict(extra="forbid")
     assignee_id: str = Field(min_length=1, max_length=80)
+
+
+class DeviceAssignmentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    asset_id: str = Field(min_length=1, max_length=36)
+    reason: str = Field(min_length=4, max_length=500)
 
 
 class CommandCreate(BaseModel):

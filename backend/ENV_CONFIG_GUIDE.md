@@ -177,6 +177,7 @@ credentials to domain modules:
 IDENTITY_PROVIDER=internal
 OBJECT_STORAGE_PROVIDER=local
 QUEUE_PROVIDER=database
+IOT_CLOUD_PROVIDER=none
 PROCESSING_PROVIDER=none
 WEATHER_PROVIDER=none
 SATELLITE_PROVIDER=none
@@ -190,7 +191,8 @@ MARITIME_PROVIDER=none
 
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
 `IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, `PROCESSING_PROVIDER`,
-`WEATHER_PROVIDER`, and `SATELLITE_PROVIDER` drive provider factories. Queue
+`WEATHER_PROVIDER`, `SATELLITE_PROVIDER`, and `IOT_CLOUD_PROVIDER` drive
+provider boundaries. Queue
 delivery accepts `database`, test-only `in_memory`, `azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
@@ -486,11 +488,37 @@ MQTT_PASSWORD=
 MQTT_TLS=false
 MQTT_TOPIC_PREFIX=geovision
 MQTT_CLIENT_ID=geovision-backend
+IOT_WATCHDOG_IN_PROCESS=false
+IOT_WATCHDOG_INTERVAL_SECONDS=30
+IOT_MESSAGE_MAX_AGE_SECONDS=300
+IOT_OFFLINE_AFTER_SECONDS=120
+IOT_COMMAND_TTL_SECONDS=300
+IOT_MAX_MESSAGES_PER_MINUTE=120
+IOT_RAW_RETENTION_DAYS=30
+IOT_AGGREGATE_RETENTION_DAYS=730
+IOT_STORE_FORWARD_MAX_AGE_DAYS=30
+
+# Optional Azure IoT Hub -> Event Grid ingress
+IOT_CLOUD_PROVIDER=none
+AZURE_IOT_HUB_ENABLED=false
+AZURE_IOT_HUB_WEBHOOK_SECRET=
+AZURE_IOT_HUB_NAME=
 ```
 
-Retention, message-age, command-TTL, and rate-limit settings are listed in
-`.env.example`. The repository-level `.env.iot.example` documents the local IoT
-stack.
+REST, signed MQTT, FieldBox replay, and IoT Hub deliveries all validate the
+same `geovision.telemetry.v1` envelope and write the same receipt/readings
+ledger. Store-and-forward samples may be older than the live message window
+only when they carry an explicit queue time, stream, and sequence; their maximum
+age cannot exceed raw retention. Run the independent IoT worker in deployed
+environments rather than enabling one copy in every API replica.
+
+IoT Hub delivery is disabled by default. When enabled, Event Grid must send the
+configured random custom header to `/iot/providers/azure-iot-hub/events`; a
+deployed profile requires a 32+ character secret and exact hub name. This
+webhook secret and all device credentials remain backend-only. The
+repository-level `.env.iot.example` documents the local MQTT stack, and
+[`docs/IOT_EDGE_CONTRACT.md`](../docs/IOT_EDGE_CONTRACT.md) covers both gateway
+topologies and the live activation gate.
 
 ## Safe diagnostics
 

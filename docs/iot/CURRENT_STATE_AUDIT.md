@@ -2,6 +2,12 @@
 
 Audit date: 2026-08-03. Canonical repository: `/Users/genovesimaria/geovision`, branch `feature/erp-realtime-account`.
 
+> Historical baseline: this audit records the state before the IoT platform was
+> built. As of Phase 16 (2026-09-10), the migration chain extends through
+> `iot_edge_contract_v1`; devices have canonical assignment history and durable
+> telemetry receipts, and REST/MQTT/FieldBox/Azure IoT Hub share the versioned
+> edge contract in `docs/IOT_EDGE_CONTRACT.md`.
+
 ## Repository and history
 
 The canonical copy is a clean Git repository before this work. `origin` is `https://github.com/Genovesi-JM/geovision.git`. GitHub `main` is at `6e514f9` (2026-02-20); the local feature branch contains 18 later commits through `aabe79e` (2026-07-22). Those commits are not present on GitHub. Desktop, Downloads and iCloud copies were left untouched.

@@ -90,17 +90,25 @@ class MqttBridge:
             if len(nonce) < 8 or db.query(IotMessageNonce).filter(IotMessageNonce.device_id == device.id, IotMessageNonce.nonce == nonce).first():
                 raise ValueError("invalid or replayed nonce")
             timestamp = parse_utc(str(payload.get("timestamp") or ""))
-            if not timestamp_is_fresh(timestamp) and kind != "state": raise ValueError("stale message")
+            # Telemetry freshness, including the explicit store-and-forward
+            # exception, is enforced by the provider-neutral ingestion service.
+            if kind not in {"telemetry", "state"} and not timestamp_is_fresh(timestamp):
+                raise ValueError("stale message")
             db.add(IotMessageNonce(device_id=device.id, nonce=nonce))
             if kind == "telemetry":
                 signed = MqttEnvelope.model_validate({**payload, "device_uid": payload.get("device_uid", device_uid)})
-                envelope = TelemetryEnvelope(message_id=signed.message_id, timestamp=signed.timestamp, measurements=signed.measurements, metadata=signed.metadata)
+                envelope = TelemetryEnvelope.model_validate(
+                    signed.model_dump(exclude={"device_uid", "nonce", "signature"})
+                )
                 publish = (lambda device_id, event: self.loop.call_soon_threadsafe(event_hub.publish, device_id, event)) if self.loop else None
                 ingest_telemetry(db, device, envelope, source="mqtt", publish=publish)
             elif kind == "state":
                 state = str(payload.get("state") or "")
                 if state not in {"online", "offline", "maintenance"}: raise ValueError("invalid state")
                 device.status = state; device.last_seen_at = utc_now()
+                device.connectivity_status = "online" if state == "online" else "offline"
+                if state != "online" and device.health_status == "healthy":
+                    device.health_status = "degraded"
                 enqueue_domain_event(
                     db,
                     name=EventNames.DEVICE_STATE_CHANGED,
@@ -112,6 +120,7 @@ class MqttBridge:
                         "device_id": device.id,
                         "organization_id": device.company_id,
                         "site_id": device.site_id,
+                        "asset_id": device.core_asset_id,
                         "status": state,
                     },
                 )

@@ -28,6 +28,7 @@ from app.iot.schemas import (
     CommandCreate,
     CommandResult,
     CommissioningCreate,
+    DeviceAssignmentCreate,
     DeviceCreate,
     ProvisionExchange,
     TelemetryEnvelope,
@@ -37,9 +38,11 @@ from app.iot.security import hash_secret, new_secret, protect_secret, secret_mat
 from app.iot.service import authenticate_device, device_for_company, ingest_telemetry, json_value, latest_readings
 from app.models import (
     AuditLog,
+    Asset,
     CalibrationRecord,
     CommissioningRecord,
     DeviceCredential,
+    DeviceAssignment,
     DeviceProvisioningToken,
     IotAlert,
     IotAlertRule,
@@ -52,6 +55,7 @@ from app.models import (
     ShopProduct,
     Site,
     TelemetryAggregate,
+    TelemetryReceipt,
     TelemetryReading,
     User,
     Company,
@@ -124,11 +128,17 @@ def _topics(device: IotDevice) -> dict:
 def _device_payload(db: Session, device: IotDevice) -> dict:
     site = db.get(Site, device.site_id)
     readings = latest_readings(db, device)
-    battery = next((r["value"] for r in readings if r["channel"] == "battery"), 0)
+    battery = device.battery_percent
+    if battery is None:
+        battery = next((r["value"] for r in readings if r["channel"] == "battery"), 0)
     signal = next((r["value"] for r in readings if r["channel"] == "signal"), 0)
     # Location: prefer live GPS readings, fall back to the site's coordinates.
-    lat = next((r["value"] for r in readings if r["channel"] == "latitude" and isinstance(r["value"], (int, float))), None)
-    lon = next((r["value"] for r in readings if r["channel"] == "longitude" and isinstance(r["value"], (int, float))), None)
+    lat = device.last_latitude
+    lon = device.last_longitude
+    if lat is None:
+        lat = next((r["value"] for r in readings if r["channel"] == "latitude" and isinstance(r["value"], (int, float))), None)
+    if lon is None:
+        lon = next((r["value"] for r in readings if r["channel"] == "longitude" and isinstance(r["value"], (int, float))), None)
     if (lat is None or lon is None) and site and site.latitude is not None and site.longitude is not None:
         lat, lon = site.latitude, site.longitude
     last = max((datetime.fromisoformat(r["at"].replace("Z", "+00:00")) for r in readings), default=None)
@@ -137,10 +147,18 @@ def _device_payload(db: Session, device: IotDevice) -> dict:
         "id": device.id, "device_uid": device.public_id, "name": device.name,
         "type": device.device_type, "site_id": device.site_id,
         "site_name": site.name if site else "", "asset_id": device.asset_id,
+        "core_asset_id": device.core_asset_id,
         "status": device.status, "battery_percent": int(float(battery or 0)),
+        "health_status": device.health_status,
+        "connectivity_status": device.connectivity_status,
         "signal_percent": int(float(signal or 0)),
         "last_reading_at": last.isoformat() if last else None,
-        "last_reading_label": label, "provider_id": "geovision-backend",
+        "last_reading_label": label, "provider_id": device.provider_device_id,
+        "provider_code": device.provider_code,
+        "protocol_version": device.protocol_version,
+        "firmware_version": device.firmware_version,
+        "last_stream_id": device.last_stream_id,
+        "last_sequence": device.last_sequence,
         "transport": device.transport, "capabilities": json_value(device.capabilities_json, []),
         "allow_remote_control": device.allow_remote_control,
         "last_seen_at": device.last_seen_at.isoformat() + "Z" if device.last_seen_at else None,
@@ -190,6 +208,7 @@ def _build_device(
     name: str, device_type: str, transport: str, hardware_model: str | None,
     capabilities: list[str], channels: list[ChannelDefinition],
     allow_remote_control: bool, asset_id: str | None, gateway_id: str | None,
+    provider_code: str, provider_device_id: str | None, protocol_version: str,
 ) -> tuple[IotDevice, str, DeviceProvisioningToken]:
     """Create a device, its sensor channels and a one-time provisioning token.
 
@@ -202,9 +221,22 @@ def _build_device(
             raise HTTPException(status_code=422, detail=f"Unsupported unit for {channel.key}: {channel.unit}")
     placeholder = new_secret()
     public_id = f"gv-{secrets.token_hex(6)}"
+    from app.modules.assets.services import (
+        synchronize_legacy_iot_asset,
+        synchronize_legacy_site,
+    )
+    legacy_asset = db.get(IotAsset, asset_id) if asset_id else None
+    core_asset = (
+        synchronize_legacy_iot_asset(db, legacy_asset, actor_user_id=user.id)
+        if legacy_asset is not None
+        else synchronize_legacy_site(db, site, actor_user_id=user.id)
+    )
     device = IotDevice(
         public_id=public_id, company_id=company_id, site_id=site.id,
-        asset_id=asset_id, gateway_id=gateway_id,
+        asset_id=asset_id, core_asset_id=core_asset.id, gateway_id=gateway_id,
+        provider_code=provider_code,
+        provider_device_id=provider_device_id or public_id,
+        protocol_version=protocol_version,
         name=name.strip(), device_type=device_type,
         transport=transport, hardware_model=hardware_model,
         capabilities_json=json.dumps(sorted(set(capabilities))),
@@ -213,6 +245,17 @@ def _build_device(
     )
     db.add(device)
     db.flush()
+    db.add(
+        DeviceAssignment(
+            company_id=company_id,
+            device_id=device.id,
+            asset_id=core_asset.id,
+            legacy_iot_asset_id=asset_id,
+            gateway_id=gateway_id,
+            reason="initial device assignment",
+            assigned_by=user.id,
+        )
+    )
     for channel in channels:
         db.add(SensorChannel(device_id=device.id, asset_id=asset_id, **channel.model_dump()))
     one_time = new_secret()
@@ -248,12 +291,20 @@ def create_device(payload: DeviceCreate, user: User = Depends(get_current_user),
     if payload.gateway_id:
         gateway = db.get(IotGateway, payload.gateway_id)
         if not gateway or gateway.company_id != company_id or gateway.site_id != site.id: raise HTTPException(status_code=404, detail="Gateway not found at this site")
+    if payload.provider_device_id and db.query(IotDevice.id).filter(
+        IotDevice.provider_code == payload.provider_code,
+        IotDevice.provider_device_id == payload.provider_device_id,
+    ).first():
+        raise HTTPException(status_code=409, detail="Provider device identity is already registered")
     device, one_time, token_row = _build_device(
         db, user, company_id, site,
         name=payload.name, device_type=payload.device_type, transport=payload.transport,
         hardware_model=payload.hardware_model, capabilities=payload.capabilities,
         channels=payload.channels, allow_remote_control=payload.allow_remote_control,
         asset_id=payload.asset_id, gateway_id=payload.gateway_id,
+        provider_code=payload.provider_code,
+        provider_device_id=payload.provider_device_id,
+        protocol_version=payload.protocol_version,
     )
     _audit(db, user, "iot.device_created", "iot_device", device.id, {"site_id": site.id, "transport": device.transport})
     db.commit()
@@ -305,6 +356,8 @@ def provision_from_kit(kit_id: str, payload: KitProvision, user: User = Depends(
         hardware_model=f"geovision-{kit['id']}", capabilities=kit.get("capabilities", []),
         channels=channels, allow_remote_control=kit.get("allow_remote_control", False),
         asset_id=payload.asset_id, gateway_id=None,
+        provider_code="geovision", provider_device_id=None,
+        protocol_version="geovision.telemetry.v1",
     )
     created_rules = []
     for rule in kit.get("alert_rules", []):
@@ -371,6 +424,68 @@ def rest_ingest(
     )
 
 
+@router.post("/providers/azure-iot-hub/events")
+async def azure_iot_hub_events(request: Request, db: Session = Depends(get_db)):
+    """Receive Event Grid telemetry through the normal GeoVision IoT boundary."""
+
+    from app.integrations.iot.azure_iot_hub import (
+        AzureIotHubEventGridAdapter,
+        AzureIotHubPayloadError,
+    )
+
+    try:
+        payload = await request.json()
+        batch = AzureIotHubEventGridAdapter(settings).parse_delivery(
+            payload,
+            headers=request.headers,
+        )
+    except (json.JSONDecodeError, AzureIotHubPayloadError, ValueError) as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Azure IoT Hub delivery was rejected",
+        ) from exc
+    if batch.validation_code is not None:
+        return {"validationResponse": batch.validation_code}
+
+    results = []
+    for event in batch.events:
+        device = (
+            db.query(IotDevice)
+            .filter(
+                IotDevice.provider_code == event.provider_code,
+                IotDevice.provider_device_id == event.provider_device_id,
+            )
+            .one_or_none()
+        )
+        if device is None or device.status in {"disabled", "quarantined"}:
+            raise HTTPException(status_code=422, detail="IoT Hub device is not registered")
+        try:
+            envelope = TelemetryEnvelope.model_validate(event.envelope)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail="IoT Hub telemetry envelope is invalid",
+            ) from exc
+        results.append(
+            ingest_telemetry(
+                db,
+                device,
+                envelope,
+                source="azure_iot_hub",
+                provider_message_id=event.provider_event_id,
+                remote_ip=request.client.host if request.client else None,
+                publish=event_hub.publish,
+            )
+        )
+    return {
+        "accepted": len(results),
+        "duplicates": sum(int(result["duplicate"]) for result in results),
+        "stored": sum(int(result["stored"]) for result in results),
+        "results": results,
+    }
+
+
 @router.get("/devices")
 def list_devices(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     company_id = _company_id(user, db)
@@ -388,6 +503,127 @@ def get_device(device_id: str, user: User = Depends(get_current_user), db: Sessi
     return _device_payload(db, device_for_company(db, device_id, _company_id(user, db)))
 
 
+def _assignment_payload(row: DeviceAssignment) -> dict:
+    return {
+        "id": row.id,
+        "device_id": row.device_id,
+        "asset_id": row.asset_id,
+        "legacy_iot_asset_id": row.legacy_iot_asset_id,
+        "gateway_id": row.gateway_id,
+        "status": row.status,
+        "reason": row.reason,
+        "assigned_by": row.assigned_by,
+        "assigned_at": row.assigned_at.isoformat() + "Z",
+        "ended_at": row.ended_at.isoformat() + "Z" if row.ended_at else None,
+    }
+
+
+@router.get("/devices/{device_id}/assignments")
+def device_assignments(
+    device_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    device = device_for_company(db, device_id, _company_id(user, db))
+    rows = (
+        db.query(DeviceAssignment)
+        .filter(DeviceAssignment.device_id == device.id)
+        .order_by(DeviceAssignment.assigned_at.desc(), DeviceAssignment.id.desc())
+        .all()
+    )
+    return [_assignment_payload(row) for row in rows]
+
+
+@router.post("/devices/{device_id}/assignments", status_code=status.HTTP_201_CREATED)
+def assign_device(
+    device_id: str,
+    payload: DeviceAssignmentCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    company_id = _company_id(user, db)
+    device = device_for_company(db, device_id, company_id)
+    asset = db.get(Asset, payload.asset_id)
+    if asset is None or asset.organization_id != company_id or asset.status == "archived":
+        raise HTTPException(status_code=404, detail="Asset not found")
+    current = (
+        db.query(DeviceAssignment)
+        .filter(
+            DeviceAssignment.device_id == device.id,
+            DeviceAssignment.status == "active",
+        )
+        .one_or_none()
+    )
+    if current is not None and current.asset_id == asset.id:
+        return _assignment_payload(current)
+    now = utc_now()
+    if current is not None:
+        current.status = "ended"
+        current.ended_at = now
+    legacy_iot_asset_id = (
+        asset.legacy_source_id if asset.legacy_source == "iot_asset" else None
+    )
+    row = DeviceAssignment(
+        company_id=company_id,
+        device_id=device.id,
+        asset_id=asset.id,
+        legacy_iot_asset_id=legacy_iot_asset_id,
+        gateway_id=device.gateway_id,
+        reason=payload.reason.strip(),
+        assigned_by=user.id,
+        assigned_at=now,
+    )
+    device.core_asset_id = asset.id
+    device.asset_id = legacy_iot_asset_id
+    db.add(row)
+    db.flush()
+    _audit(
+        db,
+        user,
+        "iot.device_assigned",
+        "iot_device",
+        device.id,
+        {"asset_id": asset.id, "previous_asset_id": current.asset_id if current else None},
+    )
+    db.commit()
+    return _assignment_payload(row)
+
+
+@router.get("/devices/{device_id}/receipts")
+def telemetry_receipts(
+    device_id: str,
+    limit: int = 200,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    device = device_for_company(db, device_id, _company_id(user, db))
+    rows = (
+        db.query(TelemetryReceipt)
+        .filter(TelemetryReceipt.device_id == device.id)
+        .order_by(TelemetryReceipt.received_at.desc(), TelemetryReceipt.id.desc())
+        .limit(min(max(limit, 1), 1000))
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "asset_id": row.core_asset_id,
+            "message_id": row.message_id,
+            "provider_code": row.provider_code,
+            "protocol_version": row.protocol_version,
+            "firmware_version": row.firmware_version,
+            "stream_id": row.stream_id,
+            "sequence": row.sequence,
+            "recorded_at": row.recorded_at.isoformat() + "Z",
+            "received_at": row.received_at.isoformat() + "Z",
+            "out_of_order": row.out_of_order,
+            "replayed_from_edge": row.replayed_from_edge,
+            "measurement_count": row.measurement_count,
+        }
+        for row in rows
+    ]
+
+
 @router.post("/devices/{device_id}/provision")
 def renew_provisioning(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device = device_for_company(db, device_id, _company_id(user, db)); one_time = new_secret()
@@ -400,7 +636,10 @@ def renew_provisioning(device_id: str, user: User = Depends(get_current_user), d
 def update_device_status(device_id: str, payload: DeviceStatusUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device = device_for_company(db, device_id, _company_id(user, db)); device.status = payload.status
     if payload.status in {"disabled", "quarantined"}:
+        device.connectivity_status = "offline"
         db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").update({"status": "revoked", "revoked_at": utc_now()}, synchronize_session=False)
+    elif payload.status == "active" and device.connectivity_status == "offline":
+        device.connectivity_status = "unknown"
     _audit(db, user, f"iot.device_{payload.status}", "iot_device", device.id, {"reason": payload.reason}); db.commit()
     return {"id": device.id, "status": device.status}
 
@@ -408,7 +647,7 @@ def update_device_status(device_id: str, payload: DeviceStatusUpdate, user: User
 @router.post("/devices/{device_id}/diagnose")
 def diagnose_device(device_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     device = device_for_company(db, device_id, _company_id(user, db)); readings = latest_readings(db, device)
-    stale = not device.last_seen_at or (utc_now() - device.last_seen_at).total_seconds() > 120
+    stale = not device.last_seen_at or (utc_now() - device.last_seen_at).total_seconds() > settings.iot_offline_after_seconds
     return {"outcome": "offline" if stale else "success", "message": "No recent heartbeat" if stale else "Telemetry route and storage are operational", "retryable": stale, "data": {"last_seen_at": device.last_seen_at.isoformat() + "Z" if device.last_seen_at else None, "channels_reporting": len(readings), "status": device.status}}
 
 

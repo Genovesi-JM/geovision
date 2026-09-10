@@ -175,6 +175,10 @@ class Settings(BaseSettings):
     azure_event_grid_enabled: bool = False
     azure_event_grid_webhook_secret: Optional[str] = Field(default=None, repr=False)
     azure_event_grid_subscription_name: Optional[str] = None
+    iot_cloud_provider: str = "none"
+    azure_iot_hub_enabled: bool = False
+    azure_iot_hub_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    azure_iot_hub_name: Optional[str] = None
     processing_provider: str = "none"
     processing_auto_create_enabled: bool = False
     processing_default_outputs: str = "ORTHOMOSAIC,DSM,POINT_CLOUD"
@@ -367,6 +371,7 @@ class Settings(BaseSettings):
     iot_max_messages_per_minute: int = Field(default=120, ge=1)
     iot_raw_retention_days: int = Field(default=30, ge=1)
     iot_aggregate_retention_days: int = Field(default=730, ge=1)
+    iot_store_forward_max_age_days: int = Field(default=30, ge=1, le=365)
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
@@ -392,6 +397,7 @@ class Settings(BaseSettings):
             "openai_api_key",
             "service_bus_connection_string",
             "azure_event_grid_webhook_secret",
+            "azure_iot_hub_webhook_secret",
             "nodeodm_token",
             "copernicus_access_token",
             "aemet_api_key",
@@ -450,6 +456,7 @@ class Settings(BaseSettings):
     @field_validator(
         "identity_provider",
         "queue_provider",
+        "iot_cloud_provider",
         "processing_provider",
         "weather_provider",
         "satellite_provider",
@@ -577,6 +584,21 @@ class Settings(BaseSettings):
         if self.queue_provider not in {"database", "in_memory", "azure_service_bus", "null"}:
             raise ValueError(
                 "QUEUE_PROVIDER must be database, in_memory, azure_service_bus, or null"
+            )
+        if self.iot_cloud_provider not in {"none", "null", "azure_iot_hub"}:
+            raise ValueError("IOT_CLOUD_PROVIDER must be none or azure_iot_hub")
+        if self.azure_iot_hub_enabled and self.iot_cloud_provider != "azure_iot_hub":
+            raise ValueError(
+                "AZURE_IOT_HUB_ENABLED requires IOT_CLOUD_PROVIDER=azure_iot_hub"
+            )
+        if self.azure_iot_hub_name and not re.fullmatch(
+            r"[A-Za-z0-9](?:[A-Za-z0-9-]{1,48}[A-Za-z0-9])?",
+            self.azure_iot_hub_name,
+        ):
+            raise ValueError("AZURE_IOT_HUB_NAME is invalid")
+        if self.iot_store_forward_max_age_days > self.iot_raw_retention_days:
+            raise ValueError(
+                "IOT_STORE_FORWARD_MAX_AGE_DAYS must not exceed IOT_RAW_RETENTION_DAYS"
             )
         if self.event_retry_max_seconds < self.event_retry_initial_seconds:
             raise ValueError(
@@ -830,6 +852,15 @@ class Settings(BaseSettings):
                     "AZURE_EVENT_GRID_WEBHOOK_SECRET must contain at least 32 characters "
                     "when Event Grid ingestion is enabled in a deployed environment"
                 )
+            if self.azure_iot_hub_enabled and (
+                not self.azure_iot_hub_webhook_secret
+                or len(self.azure_iot_hub_webhook_secret) < 32
+                or not self.azure_iot_hub_name
+            ):
+                raise ValueError(
+                    "Deployed Azure IoT Hub ingress requires AZURE_IOT_HUB_NAME and "
+                    "a 32+ character AZURE_IOT_HUB_WEBHOOK_SECRET"
+                )
             if self.processing_auto_create_enabled and self.processing_provider in {
                 "none",
                 "null",
@@ -1053,6 +1084,7 @@ class Settings(BaseSettings):
                 "identity": self.identity_provider,
                 "object_storage": self.object_storage_provider,
                 "queue": self.queue_provider,
+                "iot_cloud": self.iot_cloud_provider,
                 "processing": self.processing_provider,
                 "weather": self.weather_provider,
                 "satellite": self.satellite_provider,
@@ -1089,6 +1121,11 @@ class Settings(BaseSettings):
                 "azure_event_grid": bool(
                     self.azure_event_grid_enabled
                     and self.azure_event_grid_webhook_secret
+                ),
+                "azure_iot_hub": bool(
+                    self.azure_iot_hub_enabled
+                    and self.azure_iot_hub_webhook_secret
+                    and self.azure_iot_hub_name
                 ),
                 "nodeodm": bool(
                     self.processing_provider in {"nodeodm", "opendronemap"}

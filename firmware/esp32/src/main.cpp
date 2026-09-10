@@ -29,6 +29,10 @@ HardwareSerial gpsSerial(1);
 bool gpsEnabled = false;
 uint32_t lastSample = 0, lastCommandPoll = 0;
 bool safeMode = false;
+String telemetryStreamId;
+uint32_t nextTelemetrySequence = 0, telemetrySequenceLimit = 0;
+const uint32_t TELEMETRY_SEQUENCE_BLOCK = 256;
+const size_t TELEMETRY_QUEUE_MAX_BYTES = 512 * 1024;
 
 // ── Irrigation valve state + local safety interlocks ──
 // The valve MUST be able to close itself without the cloud: the main rule runs
@@ -67,6 +71,16 @@ void loadConfig() {
   cfg.leakPin=prefs.getChar("leakPin", -1); cfg.doorPin=prefs.getChar("doorPin", -1); cfg.analogLevelPin=prefs.getChar("levelPin", -1);
   cfg.relayPin=prefs.getChar("relayPin", -1); cfg.ledPin=prefs.getChar("ledPin", -1); cfg.buzzerPin=prefs.getChar("buzzPin", -1);
   cfg.gpsRx=prefs.getChar("gpsRx", -1); cfg.gpsTx=prefs.getChar("gpsTx", -1);
+  telemetryStreamId=prefs.getString("streamId", "");
+  if(telemetryStreamId.isEmpty()){
+    telemetryStreamId=String((uint32_t)esp_random(),HEX)+String((uint32_t)esp_random(),HEX);
+    prefs.putString("streamId",telemetryStreamId);
+  }
+  // Reserve sequence numbers in blocks so reboot persistence does not write
+  // NVS on every sample. Gaps are valid; reuse is not.
+  nextTelemetrySequence=prefs.getULong("sequence",0);
+  telemetrySequenceLimit=nextTelemetrySequence+TELEMETRY_SEQUENCE_BLOCK;
+  prefs.putULong("sequence",telemetrySequenceLimit);
 }
 
 void saveSerialConfiguration(JsonDocument &doc) {
@@ -123,7 +137,13 @@ String makeTelemetry() {
   if(cfg.shtSda>=0){humidity=sht31.readHumidity();if(isnan(temperature))temperature=sht31.readTemperature();}
   JsonDocument unsignedDoc;
   // Keys are inserted lexicographically to match backend canonical JSON.
-  unsignedDoc["device_uid"]=cfg.deviceUid; JsonObject values=unsignedDoc["measurements"].to<JsonObject>();
+  if(nextTelemetrySequence>=telemetrySequenceLimit){
+    telemetrySequenceLimit+=TELEMETRY_SEQUENCE_BLOCK;
+    prefs.putULong("sequence",telemetrySequenceLimit);
+  }
+  uint32_t sequence=nextTelemetrySequence++;
+  unsignedDoc["device_id"]=cfg.deviceUid;unsignedDoc["device_uid"]=cfg.deviceUid;
+  unsignedDoc["firmware_version"]=GV_FIRMWARE_VERSION;JsonObject values=unsignedDoc["measurements"].to<JsonObject>();
   values["battery"]=100.0; if(cfg.doorPin>=0)values["door_open"]=digitalRead(cfg.doorPin)==HIGH;
   if(!isnan(humidity))values["humidity"]=humidity;
   // Keys stay lexicographic: latitude/longitude sit between humidity and safety_ok.
@@ -132,8 +152,11 @@ String makeTelemetry() {
   if(cfg.analogLevelPin>=0)values["tank_level"]=100.0*analogRead(cfg.analogLevelPin)/4095.0; if(!isnan(temperature))values["temperature"]=temperature;
   if(cfg.relayPin>=0)values["valve_open"]=valveOpen;
   if(cfg.leakPin>=0)values["water_leak"]=digitalRead(cfg.leakPin)==LOW;
-  unsignedDoc["message_id"]="esp32-"+String((uint32_t)esp_random(),HEX); JsonObject metadata=unsignedDoc["metadata"].to<JsonObject>(); metadata["firmware"]=GV_FIRMWARE_VERSION; metadata["reset_reason"]=(int)esp_reset_reason();
-  unsignedDoc["nonce"]=String((uint32_t)esp_random(),HEX)+String((uint32_t)esp_random(),HEX); unsignedDoc["timestamp"]=isoTimestamp();
+  unsignedDoc["message_id"]="esp32-"+telemetryStreamId+"-"+String(sequence); JsonObject metadata=unsignedDoc["metadata"].to<JsonObject>(); metadata["firmware"]=GV_FIRMWARE_VERSION; metadata["reset_reason"]=(int)esp_reset_reason();
+  unsignedDoc["nonce"]=String((uint32_t)esp_random(),HEX)+String((uint32_t)esp_random(),HEX);
+  unsignedDoc["protocol_version"]="geovision.telemetry.v1";unsignedDoc["queued_at"]=nullptr;
+  unsignedDoc["replayed_from_edge"]=false;unsignedDoc["sequence"]=sequence;
+  unsignedDoc["stream_id"]=telemetryStreamId;unsignedDoc["timestamp"]=isoTimestamp();
   String canonical; serializeJson(unsignedDoc,canonical); unsignedDoc["signature"]=hmacSha256(canonical,cfg.deviceSecret); String output;serializeJson(unsignedDoc,output);return output;
 }
 
@@ -144,12 +167,32 @@ String makeState(const char *state) {
   String canonical;serializeJson(doc,canonical);doc["signature"]=hmacSha256(canonical,cfg.deviceSecret);String output;serializeJson(doc,output);return output;
 }
 
-void bufferPayload(const String &payload) { File file=LittleFS.open("/telemetry.queue","a"); if(file){file.println(payload);file.close();} }
+String markStoreForward(const String &payload) {
+  JsonDocument doc;if(deserializeJson(doc,payload))return payload;
+  doc["queued_at"]=isoTimestamp();doc["replayed_from_edge"]=true;doc.remove("signature");
+  String canonical;serializeJson(doc,canonical);doc["signature"]=hmacSha256(canonical,cfg.deviceSecret);
+  String output;serializeJson(doc,output);return output;
+}
+
+void makeQueueRoom(size_t incomingBytes) {
+  if(!LittleFS.exists("/telemetry.queue"))return;
+  File check=LittleFS.open("/telemetry.queue","r");size_t current=check?check.size():0;if(check)check.close();
+  if(current+incomingBytes<=TELEMETRY_QUEUE_MAX_BYTES)return;
+  size_t discard=current+incomingBytes-TELEMETRY_QUEUE_MAX_BYTES;
+  File input=LittleFS.open("/telemetry.queue","r"),output=LittleFS.open("/telemetry.trim","w");size_t removed=0;
+  while(input.available()){String line=input.readStringUntil('\n');if(removed<discard)removed+=line.length()+1;else if(line.length())output.println(line);}
+  input.close();output.close();LittleFS.remove("/telemetry.queue");LittleFS.rename("/telemetry.trim","/telemetry.queue");
+}
+
+void bufferPayload(const String &payload) {
+  String stored=markStoreForward(payload);makeQueueRoom(stored.length()+1);
+  File file=LittleFS.open("/telemetry.queue","a");if(file){file.println(stored);file.close();}
+}
 
 bool publishPayload(const String &payload) {
   if(mqtt.connected() && mqtt.publish(topic("telemetry").c_str(),payload.c_str(),false)) return true;
   HTTPClient http; http.begin(cfg.apiBase+"/iot/ingest");http.addHeader("Content-Type","application/json");http.addHeader("Authorization","Device "+cfg.deviceSecret);http.addHeader("X-Device-ID",cfg.deviceUid);
-  JsonDocument full,rest;deserializeJson(full,payload);for(const char *key:{"message_id","timestamp","measurements","metadata"})rest[key]=full[key];String body;serializeJson(rest,body);int code=http.POST(body);http.end();return code>=200&&code<300;
+  JsonDocument full,rest;deserializeJson(full,payload);for(const char *key:{"context","device_id","firmware_version","location","measurements","message_id","metadata","protocol_version","queued_at","replayed_from_edge","sequence","stream_id","timestamp"})if(!full[key].isNull())rest[key]=full[key];String body;serializeJson(rest,body);int code=http.POST(body);http.end();return code>=200&&code<300;
 }
 
 void flushBuffer() { if(!LittleFS.exists("/telemetry.queue"))return;File input=LittleFS.open("/telemetry.queue","r"), output=LittleFS.open("/telemetry.tmp","w");while(input.available()){String line=input.readStringUntil('\n');if(line.length()&&!publishPayload(line))output.println(line);esp_task_wdt_reset();}input.close();output.close();LittleFS.remove("/telemetry.queue");LittleFS.rename("/telemetry.tmp","/telemetry.queue"); }

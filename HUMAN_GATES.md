@@ -133,3 +133,27 @@ how to confirm · what the automation does afterwards.
   monitor failed/retrying/stale acquisitions, schedule failures, provider
   latency, cache hit rate and download/storage consumption. Azure Maps Weather
   remains unavailable until a separately approved adapter is implemented.
+
+## 13. Physical IoT/FieldBox and Azure IoT Hub activation
+
+- **Reason:** The common telemetry contract, durable receipts, IoT Hub/Event
+  Grid adapter, simulator, ESP32 queue and Raspberry Pi FieldBox reference are
+  implemented, but live cloud routing and physical actuators require
+  account-bound infrastructure and supervised field safety validation.
+- **Action:** Provision a restricted staging IoT Hub/Event Grid subscription;
+  store its random custom webhook secret in the backend secret manager; register
+  exact external device IDs; commission representative ESP32 and FieldBox
+  hardware; approve clock sync, disk/flash bounds and wear, queue-overflow policy,
+  network loss/recovery, command allowlists, physical override and every local
+  fail-safe. Do not enable mains or safety-critical loads.
+- **Where:** Azure staging, GeoVision secret manager/monitoring, isolated bench,
+  then a supervised field site; never customer clients or Git.
+- **Confirm:** The simulator and physical devices both complete live, duplicate,
+  disconnected queue, reconnect replay, out-of-order, provider retry, offline
+  watchdog, command acknowledgement and forced-interlock scenarios with the
+  correct canonical Asset and no duplicate readings/events.
+- **After:** Set `IOT_CLOUD_PROVIDER=azure_iot_hub`, configure the exact hub and
+  32+ character delivery secret, enable `AZURE_IOT_HUB_ENABLED`, deploy one IoT
+  maintenance worker, and alert on rejected ingress, receipt latency/volume,
+  offline devices, edge queue depth/drops and command failures. Remote actuator
+  control stays disabled per device until its separate supervised approval.

@@ -36,6 +36,9 @@ def mark_offline_devices() -> list[str]:
         rows = db.query(IotDevice).filter(IotDevice.last_seen_at.is_not(None), IotDevice.last_seen_at < cutoff, IotDevice.status == "online").all()
         for device in rows:
             device.status = "offline"
+            device.connectivity_status = "offline"
+            if device.health_status == "healthy":
+                device.health_status = "degraded"
             enqueue_domain_event(
                 db,
                 name=EventNames.DEVICE_OFFLINE_DETECTED,
@@ -49,6 +52,7 @@ def mark_offline_devices() -> list[str]:
                     "device_id": device.id,
                     "organization_id": device.company_id,
                     "site_id": device.site_id,
+                    "asset_id": device.core_asset_id,
                     "reason": "heartbeat_timeout",
                     "last_seen_at": device.last_seen_at,
                 },

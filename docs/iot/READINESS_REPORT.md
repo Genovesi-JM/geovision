@@ -2,6 +2,14 @@
 
 Updated 2026-08-03 from executed evidence, not feature claims.
 
+> Phase 16 software update (2026-09-10): the readiness percentages below remain
+> the historical physical-hardware assessment and were not raised without a new
+> bench test. Software now also includes canonical device assignments, a durable
+> message/stream/provider receipt ledger, explicit out-of-order handling, an
+> authenticated Azure IoT Hub/Event Grid adapter and simulator, and a bounded
+> Raspberry Pi FieldBox queue/reference. Physical and live Azure activation is
+> still gated by `HUMAN_GATES.md` Gate 13.
+
 ## Readiness score
 
 - Software/simulator integration: **91%** — ready for an internal or guided customer demonstration.

@@ -23,6 +23,7 @@ from app.models import (
     IotDevice,
     SensorChannel,
     Site,
+    TelemetryReceipt,
     TelemetryReading,
 )
 from app.core.time import utc_now
@@ -77,6 +78,59 @@ def _normalize_value(raw):
     if isinstance(raw, MeasurementValue):
         return raw.value, raw.unit, raw.quality, raw.metadata
     return raw, None, "good", {}
+
+
+def _naive_utc(value: datetime) -> datetime:
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
+
+
+def _recorded_at(envelope: TelemetryEnvelope, now: datetime) -> tuple[datetime, datetime | None]:
+    recorded_at = _naive_utc(envelope.timestamp)
+    queued_at = _naive_utc(envelope.queued_at) if envelope.queued_at else None
+    if envelope.replayed_from_edge:
+        if queued_at is None:
+            raise HTTPException(status_code=422, detail="Store-and-forward queued_at is required")
+        if queued_at < recorded_at - timedelta(seconds=5):
+            raise HTTPException(status_code=422, detail="queued_at cannot precede the measurement")
+        if queued_at > now + timedelta(minutes=5) or recorded_at > now + timedelta(minutes=5):
+            raise HTTPException(status_code=422, detail="Telemetry timestamp is in the future")
+        if recorded_at < now - timedelta(days=settings.iot_store_forward_max_age_days):
+            raise HTTPException(status_code=422, detail="Store-and-forward telemetry exceeds retention")
+    elif not timestamp_is_fresh(recorded_at):
+        raise HTTPException(status_code=422, detail="Telemetry timestamp is outside the accepted window")
+    return recorded_at, queued_at
+
+
+def _device_identity_matches(device: IotDevice, envelope: TelemetryEnvelope) -> bool:
+    if envelope.device_id is None:
+        return True
+    allowed = {device.id, device.public_id}
+    if device.provider_device_id:
+        allowed.add(device.provider_device_id)
+    return envelope.device_id in allowed
+
+
+def _mark_contact(db: Session, device: IotDevice, *, remote_ip: str | None) -> None:
+    device.last_seen_at = utc_now()
+    device.last_ip = remote_ip
+    device.status = "online"
+    device.connectivity_status = "online"
+    db.commit()
+
+
+def _health_snapshot(readings: list[dict], current_battery: float | None) -> tuple[float | None, str]:
+    battery = current_battery
+    for reading in readings:
+        if reading["channel"] == "battery" and isinstance(reading["value"], (int, float)):
+            battery = max(0.0, min(100.0, float(reading["value"])))
+    qualities = {str(reading["quality"]) for reading in readings}
+    if "sensor_error" in qualities or "bad" in qualities or (battery is not None and battery < 10):
+        return battery, "critical"
+    if "uncertain" in qualities or (battery is not None and battery < 25):
+        return battery, "degraded"
+    return battery, "healthy"
 
 
 def _comparison(operator: str, value: float, threshold: float, previous: float | None) -> bool:
@@ -199,20 +253,83 @@ def ingest_telemetry(
     envelope: TelemetryEnvelope,
     *,
     source: str,
+    provider_message_id: str | None = None,
     remote_ip: str | None = None,
     publish: Callable[[str, dict], None] | None = None,
 ) -> dict:
-    recorded_at = envelope.timestamp.astimezone(timezone.utc).replace(tzinfo=None) if envelope.timestamp.tzinfo else envelope.timestamp
-    if not timestamp_is_fresh(recorded_at):
-        raise HTTPException(status_code=422, detail="Telemetry timestamp is outside the accepted window")
+    now = utc_now()
+    if not _device_identity_matches(device, envelope):
+        raise HTTPException(status_code=422, detail="Telemetry device_id does not match the authenticated device")
 
-    existing = (
-        db.query(TelemetryReading.id)
-        .filter(TelemetryReading.device_id == device.id, TelemetryReading.message_id == envelope.message_id)
+    existing_receipt = (
+        db.query(TelemetryReceipt)
+        .filter(
+            TelemetryReceipt.device_id == device.id,
+            TelemetryReceipt.message_id == envelope.message_id,
+        )
         .first()
     )
-    if existing:
-        return {"accepted": True, "duplicate": True, "stored": 0, "message_id": envelope.message_id}
+    if provider_message_id and existing_receipt is None:
+        existing_receipt = (
+            db.query(TelemetryReceipt)
+            .filter(
+                TelemetryReceipt.provider_code == device.provider_code,
+                TelemetryReceipt.provider_message_id == provider_message_id,
+            )
+            .first()
+        )
+        if existing_receipt is not None and existing_receipt.device_id != device.id:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "provider_message_conflict",
+                    "message": "The provider event identity is already bound to another device",
+                },
+            )
+    legacy_duplicate = None
+    if existing_receipt is None:
+        legacy_duplicate = (
+            db.query(TelemetryReading.id)
+            .filter(
+                TelemetryReading.device_id == device.id,
+                TelemetryReading.message_id == envelope.message_id,
+            )
+            .first()
+        )
+    if existing_receipt or legacy_duplicate:
+        _mark_contact(db, device, remote_ip=remote_ip)
+        return {
+            "accepted": True,
+            "duplicate": True,
+            "stored": 0,
+            "message_id": existing_receipt.message_id if existing_receipt else envelope.message_id,
+            "receipt_id": existing_receipt.id if existing_receipt else None,
+            "out_of_order": existing_receipt.out_of_order if existing_receipt else False,
+            "replayed_from_edge": (
+                existing_receipt.replayed_from_edge if existing_receipt else envelope.replayed_from_edge
+            ),
+        }
+
+    recorded_at, queued_at = _recorded_at(envelope, now)
+
+    if envelope.stream_id is not None and envelope.sequence is not None:
+        sequence_row = (
+            db.query(TelemetryReceipt)
+            .filter(
+                TelemetryReceipt.device_id == device.id,
+                TelemetryReceipt.stream_id == envelope.stream_id,
+                TelemetryReceipt.sequence == envelope.sequence,
+            )
+            .first()
+        )
+        if sequence_row:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "telemetry_sequence_conflict",
+                    "message": "The stream sequence is already bound to another message",
+                },
+            )
 
     recent_count = db.query(TelemetryReading.id).filter(
         TelemetryReading.device_id == device.id,
@@ -225,6 +342,49 @@ def ingest_telemetry(
     unknown = sorted(set(envelope.measurements) - set(channels))
     if unknown:
         raise HTTPException(status_code=422, detail={"unknown_channels": unknown})
+
+    latest_receipt = (
+        db.query(TelemetryReceipt)
+        .filter(TelemetryReceipt.device_id == device.id)
+        .order_by(TelemetryReceipt.recorded_at.desc(), TelemetryReceipt.received_at.desc())
+        .first()
+    )
+    out_of_order = bool(latest_receipt and recorded_at < latest_receipt.recorded_at)
+    if (
+        envelope.stream_id is not None
+        and envelope.sequence is not None
+        and device.last_stream_id == envelope.stream_id
+        and device.last_sequence is not None
+        and envelope.sequence < device.last_sequence
+    ):
+        out_of_order = True
+
+    receipt = TelemetryReceipt(
+        device_id=device.id,
+        company_id=device.company_id,
+        site_id=device.site_id,
+        core_asset_id=device.core_asset_id,
+        message_id=envelope.message_id,
+        provider_code=device.provider_code,
+        provider_message_id=provider_message_id,
+        protocol_version=envelope.protocol_version,
+        firmware_version=envelope.firmware_version,
+        stream_id=envelope.stream_id,
+        sequence=envelope.sequence,
+        recorded_at=recorded_at,
+        received_at=now,
+        out_of_order=out_of_order,
+        replayed_from_edge=envelope.replayed_from_edge,
+        queued_at=queued_at,
+        measurement_count=len(envelope.measurements),
+        context_json=json.dumps(
+            {"context": envelope.context, "source": source},
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+    )
+    db.add(receipt)
+    db.flush()
 
     reading_payloads = []
     alert_events: list[dict] = []
@@ -258,21 +418,72 @@ def ingest_telemetry(
             .first()
         )
         row = TelemetryReading(
-            device_id=device.id, company_id=device.company_id, site_id=device.site_id,
+            receipt_id=receipt.id, device_id=device.id, company_id=device.company_id,
+            site_id=device.site_id, core_asset_id=device.core_asset_id,
             message_id=envelope.message_id, channel=key, numeric_value=numeric,
             text_value=text, boolean_value=boolean, unit=unit, quality=quality,
-            recorded_at=recorded_at, metadata_json=json.dumps({**envelope.metadata, **metadata, "source": source}),
+            sequence=envelope.sequence, protocol_version=envelope.protocol_version,
+            source=source, recorded_at=recorded_at,
+            metadata_json=json.dumps(
+                {
+                    **envelope.metadata,
+                    **metadata,
+                    "context": envelope.context,
+                    "replayed_from_edge": envelope.replayed_from_edge,
+                    "source": source,
+                },
+                default=str,
+            ),
         )
         db.add(row)
         db.flush()
-        alert_events.extend(_evaluate_alerts(db, device, row, previous_row.numeric_value if previous_row else None))
+        if not out_of_order:
+            alert_events.extend(
+                _evaluate_alerts(
+                    db,
+                    device,
+                    row,
+                    previous_row.numeric_value if previous_row else None,
+                )
+            )
         reading_payloads.append({"channel": key, "value": value, "unit": unit, "quality": quality})
 
-    automation_events = _evaluate_irrigation(db, device)
+    automation_events = [] if out_of_order else _evaluate_irrigation(db, device)
 
-    device.last_seen_at = utc_now()
+    device.last_seen_at = now
     device.last_ip = remote_ip
     device.status = "online"
+    device.connectivity_status = "online"
+    if not out_of_order:
+        device.protocol_version = envelope.protocol_version
+        if envelope.firmware_version:
+            device.firmware_version = envelope.firmware_version
+        if envelope.stream_id is not None and envelope.sequence is not None:
+            device.last_stream_id = envelope.stream_id
+            device.last_sequence = envelope.sequence
+        device.battery_percent, device.health_status = _health_snapshot(
+            reading_payloads,
+            device.battery_percent,
+        )
+        latitude = envelope.location.latitude if envelope.location else next(
+            (
+                float(row["value"])
+                for row in reading_payloads
+                if row["channel"] == "latitude" and isinstance(row["value"], (int, float))
+            ),
+            None,
+        )
+        longitude = envelope.location.longitude if envelope.location else next(
+            (
+                float(row["value"])
+                for row in reading_payloads
+                if row["channel"] == "longitude" and isinstance(row["value"], (int, float))
+            ),
+            None,
+        )
+        if latitude is not None and longitude is not None:
+            device.last_latitude = latitude
+            device.last_longitude = longitude
     enqueue_domain_event(
         db,
         name=EventNames.DEVICE_TELEMETRY_RECEIVED,
@@ -286,7 +497,14 @@ def ingest_telemetry(
             "device_uid": device.public_id,
             "organization_id": device.company_id,
             "site_id": device.site_id,
+            "asset_id": device.core_asset_id,
             "message_id": envelope.message_id,
+            "receipt_id": receipt.id,
+            "protocol_version": envelope.protocol_version,
+            "stream_id": envelope.stream_id,
+            "sequence": envelope.sequence,
+            "out_of_order": out_of_order,
+            "replayed_from_edge": envelope.replayed_from_edge,
             "source": source,
             "channels": [reading["channel"] for reading in reading_payloads],
             "alert_ids": [event["id"] for event in alert_events],
@@ -301,6 +519,8 @@ def ingest_telemetry(
     event = {
         "type": "telemetry", "device_id": device.id, "device_uid": device.public_id,
         "message_id": envelope.message_id, "at": recorded_at.isoformat() + "Z",
+        "receipt_id": receipt.id, "asset_id": device.core_asset_id,
+        "out_of_order": out_of_order, "replayed_from_edge": envelope.replayed_from_edge,
         "readings": reading_payloads, "alerts": alert_events, "automation": automation_events,
     }
     if publish:
@@ -309,7 +529,17 @@ def ingest_telemetry(
             publish(device.id, alert)
         for act in automation_events:
             publish(device.id, act)
-    return {"accepted": True, "duplicate": False, "stored": len(reading_payloads), "message_id": envelope.message_id, "automation": automation_events}
+    return {
+        "accepted": True,
+        "duplicate": False,
+        "stored": len(reading_payloads),
+        "message_id": envelope.message_id,
+        "receipt_id": receipt.id,
+        "asset_id": device.core_asset_id,
+        "out_of_order": out_of_order,
+        "replayed_from_edge": envelope.replayed_from_edge,
+        "automation": automation_events,
+    }
 
 
 def latest_readings(db: Session, device: IotDevice) -> list[dict]:

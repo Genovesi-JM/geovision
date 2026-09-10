@@ -160,7 +160,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Datasets | Asset/mission-linked metadata, lifecycle, tenant-safe streaming/signed uploads, immutable file identity, and local/S3/Azure storage adapters are implemented |
 | Processing | Durable source/output-linked jobs, quality/retry states, an independent worker, deterministic fake and NodeODM adapter are implemented; paid vendor adapters remain explicit scaffolds |
 | Analytics | KPI catalogue, risk calculations and AI explanation endpoints exist; numeric truth remains structured |
-| Monitoring | IoT devices, telemetry, alerts, live events and watchdog behavior coexist with durable, cached satellite/weather acquisitions, normalized scenes/observations, provenance and an independent scheduled worker |
+| Monitoring | Provider-mapped IoT devices, canonical assignments, versioned telemetry receipts, safe offline replay, alerts, live events and watchdog behavior coexist with durable cached satellite/weather acquisitions, normalized provenance and independent workers |
 | Actions | Recommendations, commands and assignments exist across compatibility facades; Phase 17 owns the aggregate |
 | Reports | PDF/document/deliverable behavior exists across facades; Phase 19 owns report workflow and publication |
 | Notifications | Contact routes, email and IoT notification adapters exist; Phase 20 owns durable delivery |

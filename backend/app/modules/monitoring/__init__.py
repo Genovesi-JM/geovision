@@ -5,7 +5,8 @@ from app.modules.contracts import DomainModule, RouterMount
 definition = DomainModule(
     name="monitoring",
     purpose=(
-        "Devices, telemetry, alerts, satellite/weather intelligence, live events, and health."
+        "Assigned devices, edge/cloud telemetry, alerts, satellite/weather "
+        "intelligence, live events, and health."
     ),
     maturity="implemented",
     dependencies=("core", "organizations", "assets", "missions", "datasets"),

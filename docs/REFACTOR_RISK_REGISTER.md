@@ -40,6 +40,7 @@ instead of treating legacy structures as disposable.
 | R30 | High | Phase 12 pins every object reference to local, S3-compatible, or Azure Blob storage; changing the configured default deliberately does not move old bytes, and signed uploads currently use a portable single-PUT ceiling | A settings-only cutover can make historical objects unavailable, and files above the ceiling need a real multipart/block client rather than a larger advertised limit | Run a staged copy with size/checksum verification, dual-provider read window, transactional reference switch, and rollback; add provider-specific multipart/block sessions only when client/workload evidence requires them |
 | R31 | High | Phase 14 adds durable processing jobs, a deterministic fake and NodeODM integration, but live photogrammetry compute capacity and measurement quality are not validated; the initial NodeODM output path reads a bounded archive into worker memory | A live node can exhaust memory/CPU/storage, a technically valid output can still be operationally inaccurate, or raising safety limits can destabilize workers | Keep automatic processing off until staging capacity and representative accuracy tests pass; pin/review the processor image, monitor queues/resources, retain NEEDS_REVIEW, and implement streamed/chunked transfer before larger workloads |
 | R32 | High | Phase 15 adds Copernicus and AEMET adapters, durable cached acquisitions and normalized provenance, but live credentials, provider quotas/licences, coverage and source interpretation are not validated | Provider outages or limits can create data gaps and costs, sparse stations/cloudy scenes can mislead users, or source data can be presented as a validated sector conclusion | Keep live providers behind Gate 12; review licence/attribution and budgets, validate representative assets and source quality, monitor failures/cache/storage, preserve provenance and require sector-specific interpretation before customer claims |
+| R33 | High | Phase 16 adds provider-mapped devices, canonical assignment history, IoT Hub/Event Grid ingestion, offline replay and safe sample edge rules, but no physical FieldBox/ESP32 or live Azure subscription has been commissioned | Bad clocks, exhausted flash/SD media, duplicate provider registrations, lost queue rows, weak webhook routing, or an incorrectly wired actuator can create monitoring gaps or unsafe physical behavior | Keep cloud ingress and remote control off until Gate 13; validate exact device mappings, secrets/network restrictions, clocks, queue limits/wear, replay ordering, physical interlocks and acknowledgements on representative hardware; alert on rejects, offline devices and edge depth |
 
 ## Controls that already reduce risk
 
@@ -414,3 +415,25 @@ without a compatibility plan.
 - **Introduced and controlled:** R32 records remaining external quota, licence,
   coverage, source-quality, cost and interpretation work. Gate 12 must pass
   before live activation; source data alone is not a sector conclusion.
+
+## Phase 16 outcome
+
+- **Reduced:** R09, because every REST, signed-MQTT, FieldBox and IoT Hub message
+  now reaches one versioned ingestion contract with a durable envelope receipt,
+  canonical Asset ID, independent message/stream/provider replay controls, and
+  explicit ordering state. Duplicate deliveries cannot add readings or domain
+  events.
+- **Contained:** Delayed and out-of-order telemetry remains useful history but
+  cannot regress current firmware/health/battery/location or trigger alerts and
+  automatic actuator commands. Raw receipt/readings retention is aligned and
+  the independent watchdog emits asset-scoped offline events.
+- **Contained:** Azure coupling, because Event Grid/IoT Hub parsing, hub/source
+  checks, custom-secret authentication, system-property identity and base64
+  decoding remain in an adapter behind a monitoring-owned port. GeoVision IDs
+  remain authoritative and local development needs no Azure account.
+- **Contained:** Loss of WAN connectivity, because the ESP32 and Raspberry Pi
+  references persist stream/sequence and bounded queues, preserve message IDs,
+  flush in order, acknowledge command outcomes and retain local fail-safe rules.
+- **Introduced and controlled:** R33 records the remaining physical wiring,
+  clock, storage wear/capacity, live Azure routing/security and field-safety
+  work. Remote control and IoT Hub ingress remain disabled until Gate 13.

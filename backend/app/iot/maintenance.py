@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models import TelemetryAggregate, TelemetryReading
+from app.models import TelemetryAggregate, TelemetryReading, TelemetryReceipt
 from app.core.time import utc_from_timestamp, utc_now
 
 
@@ -43,7 +43,14 @@ def aggregate_and_retain(db: Session) -> dict[str, int]:
             aggregate = TelemetryAggregate(device_id=device_id, company_id=source.company_id, site_id=source.site_id, channel=channel, unit=source.unit, bucket_start=bucket_start, bucket_seconds=BUCKET_SECONDS, sample_count=0, minimum=0, maximum=0, average=0)
             db.add(aggregate)
         aggregate.sample_count = len(values); aggregate.minimum = min(values); aggregate.maximum = max(values); aggregate.average = sum(values) / len(values)
-    raw_deleted = db.query(TelemetryReading).filter(TelemetryReading.recorded_at < now - timedelta(days=settings.iot_raw_retention_days)).delete(synchronize_session=False)
+    raw_cutoff = now - timedelta(days=settings.iot_raw_retention_days)
+    raw_deleted = db.query(TelemetryReading).filter(TelemetryReading.recorded_at < raw_cutoff).delete(synchronize_session=False)
+    receipts_deleted = db.query(TelemetryReceipt).filter(TelemetryReceipt.recorded_at < raw_cutoff).delete(synchronize_session=False)
     aggregate_deleted = db.query(TelemetryAggregate).filter(TelemetryAggregate.bucket_start < now - timedelta(days=settings.iot_aggregate_retention_days)).delete(synchronize_session=False)
     db.commit()
-    return {"buckets": len(groups), "raw_deleted": raw_deleted, "aggregates_deleted": aggregate_deleted}
+    return {
+        "buckets": len(groups),
+        "raw_deleted": raw_deleted,
+        "receipts_deleted": receipts_deleted,
+        "aggregates_deleted": aggregate_deleted,
+    }
