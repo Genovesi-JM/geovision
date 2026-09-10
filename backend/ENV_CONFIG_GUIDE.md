@@ -164,9 +164,9 @@ INTEGRATION_RETRY_MAX_SECONDS=8
 ```
 
 `INTEGRATION_RETRY_ATTEMPTS` includes the first attempt. Retry delays use
-bounded exponential backoff. The ERP outbox applies this convention to due
-items; the independent scheduled worker and dead-letter workflow remain Phase
-13 work.
+bounded exponential backoff. ERP provider calls retain this policy; the general
+event worker has its own bounded claim/retry/dead-letter settings documented in
+[`docs/DURABLE_EVENTS.md`](../docs/DURABLE_EVENTS.md).
 
 ## Provider selection
 
@@ -176,7 +176,7 @@ credentials to domain modules:
 ```dotenv
 IDENTITY_PROVIDER=internal
 OBJECT_STORAGE_PROVIDER=local
-QUEUE_PROVIDER=null
+QUEUE_PROVIDER=database
 PROCESSING_PROVIDER=none
 WEATHER_PROVIDER=none
 SATELLITE_PROVIDER=none
@@ -188,18 +188,17 @@ ASSET_MANAGEMENT_PROVIDER=none
 MARITIME_PROVIDER=none
 ```
 
-`OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`, and
-`IDENTITY_PROVIDER` drive provider factories. Identity accepts `internal`,
+`OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
+`IDENTITY_PROVIDER`, and `QUEUE_PROVIDER` drive provider factories. Queue
+delivery accepts `database`, test-only `in_memory`, `azure_service_bus`, or the
+local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
 Entra configuration at startup and control the external-token exchange boundary.
 Business API routes still accept only GeoVision internal sessions. Payment
-methods use their own per-method factory rather than one selector. The queue,
-processing, weather, satellite, GIS, construction, asset-management, and
-maritime declarations remain reserved seams/configuration metadata; changing
-them does not wire, enable, or disable an implementation. `none` and `null`
-therefore mean only that the boundary exists with no live adapter. Do not set
-these declarations to an Azure or third-party name until a matching adapter has
-been implemented and tested.
+methods use their own per-method factory rather than one selector. Processing,
+weather, satellite, GIS, construction, asset-management, and maritime remain
+reserved seams/configuration metadata. Do not select a third-party name until a
+matching adapter has been implemented and tested.
 
 In addition to the signing and encryption guards, identity selector and Entra
 configuration structure are validated when settings load. Most other provider

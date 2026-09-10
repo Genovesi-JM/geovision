@@ -1792,6 +1792,7 @@ class DatasetFile(Base):
     __table_args__ = (
         CheckConstraint("file_size >= 0", name="ck_dataset_file_size"),
         CheckConstraint("lifecycle_version > 0", name="ck_dataset_file_version"),
+        Index("ix_dataset_files_storage_object", storage_provider, storage_key, deleted_at),
     )
 
 
@@ -2216,13 +2217,13 @@ class FulfilmentJobDependency(Base):
 
 
 class OperationalDomainEvent(Base):
-    """Transactional local event ledger behind the replaceable publisher port."""
+    """Canonical transactional outbox (legacy table name retained in-place)."""
 
     __tablename__ = "operational_domain_events"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     aggregate_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    aggregate_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    aggregate_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     payload_json: Mapped[str] = mapped_column(
         Text, nullable=False, default="{}", server_default="{}"
@@ -2230,16 +2231,88 @@ class OperationalDomainEvent(Base):
     idempotency_key: Mapped[str] = mapped_column(
         String(200), nullable=False, unique=True, index=True
     )
+    topic: Mapped[str] = mapped_column(
+        String(120), nullable=False, default="geovision.domain.v1", server_default="geovision.domain.v1"
+    )
+    schema_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    correlation_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    causation_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending", server_default="pending", index=True
+    )
     publish_attempts: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
+    next_attempt_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    dead_lettered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
             "publish_attempts >= 0", name="ck_operational_domain_event_attempts"
         ),
+        CheckConstraint(
+            "schema_version > 0", name="ck_operational_domain_event_schema_version"
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'processing', 'retry', 'published', 'dead_letter')",
+            name="ck_operational_domain_event_status",
+        ),
+        Index("ix_operational_domain_events_due", status, next_attempt_at, occurred_at),
+    )
+
+
+EventOutbox = OperationalDomainEvent
+
+
+class EventConsumerReceipt(Base):
+    """Inbox receipt that makes at-least-once event consumption idempotent."""
+
+    __tablename__ = "event_consumer_receipts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    consumer_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    event_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    correlation_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    processed_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "consumer_name", "event_id", name="uq_event_consumer_receipt"
+        ),
+        Index("ix_event_consumer_receipts_consumer", consumer_name, processed_at),
+    )
+
+
+class EventDeliveryAttempt(Base):
+    """Bounded, secret-free audit trail for outbox delivery and retries."""
+
+    __tablename__ = "event_delivery_attempts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    event_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    worker_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False)
+    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    outcome: Mapped[str] = mapped_column(String(20), nullable=False)
+    error_code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("attempt_number > 0", name="ck_event_delivery_attempt_number"),
+        CheckConstraint(
+            "outcome IN ('published', 'retry', 'dead_letter')",
+            name="ck_event_delivery_attempt_outcome",
+        ),
+        Index("ix_event_delivery_attempts_event_attempt", event_id, attempt_number),
     )
 
 

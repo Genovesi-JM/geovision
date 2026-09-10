@@ -9,6 +9,7 @@ from typing import Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import (
     Account,
@@ -29,6 +30,7 @@ from app.modules.organizations.domain import (
     normalize_customer_role,
     permission_granted,
 )
+from app.services.event_outbox import enqueue_domain_event
 
 
 class OrganizationAccessError(RuntimeError):
@@ -405,6 +407,19 @@ def create_organization_with_workspace(
         resource_id=organization.id,
         details={"workspace_id": workspace.id},
     )
+    enqueue_domain_event(
+        db,
+        name=EventNames.ORGANIZATION_CREATED,
+        aggregate_type="organization",
+        aggregate_id=organization.id,
+        idempotency_key=f"organization:{organization.id}:created",
+        correlation_id=organization.id,
+        payload={
+            "organization_id": organization.id,
+            "workspace_id": workspace.id,
+            "owner_user_id": actor.id,
+        },
+    )
     return organization, workspace, organization_membership, workspace_membership
 
 
@@ -617,6 +632,25 @@ def add_or_invite_member(
         resource_id=membership.id,
         details={"role": normalized_role.value, "status": membership.status},
     )
+    enqueue_domain_event(
+        db,
+        name=(
+            EventNames.ORGANIZATION_MEMBER_ADDED
+            if bound_user is not None
+            else EventNames.ORGANIZATION_MEMBER_INVITED
+        ),
+        aggregate_type="organization_membership",
+        aggregate_id=membership.id,
+        idempotency_key=f"organization-member:{membership.id}:created",
+        correlation_id=organization.id,
+        payload={
+            "organization_id": organization.id,
+            "membership_id": membership.id,
+            "user_id": membership.user_id,
+            "role": membership.role,
+            "status": membership.status,
+        },
+    )
     return membership
 
 
@@ -731,6 +765,23 @@ def update_member(
         resource_type="organization_membership",
         resource_id=membership.id,
         details={"role": membership.role, "status": membership.status},
+    )
+    enqueue_domain_event(
+        db,
+        name=EventNames.ORGANIZATION_MEMBER_UPDATED,
+        aggregate_type="organization_membership",
+        aggregate_id=membership.id,
+        idempotency_key=(
+            f"organization-member:{membership.id}:{membership.role}:{membership.status}"
+        ),
+        correlation_id=organization.id,
+        payload={
+            "organization_id": organization.id,
+            "membership_id": membership.id,
+            "user_id": membership.user_id,
+            "role": membership.role,
+            "status": membership.status,
+        },
     )
     return membership
 

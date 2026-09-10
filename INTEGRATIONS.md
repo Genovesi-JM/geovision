@@ -39,6 +39,8 @@ plus pilot supervision.
 | GeoVision support channels | WhatsApp, Instagram and support email from the public website | **Working** through native external links | Maintained website contact records | — | iOS/Android native build | No |
 | Website payment methods | Multicaixa Express, Angola IBAN, Visa/Mastercard, international IBAN and PayPal presentation | **Working in mobile UI and checkout selection** · live providers gated | Backend/provider-specific | Provider-dependent | Flutter tests + native builds | Yes for live processing |
 | ERPNext | Sales, purchasing, inventory, warehouse, invoices and reconciliation | **Adapter + durable outbox working in mock mode** · staging credentials required | `ERP_PROVIDER=erpnext`, `ERPNEXT_BASE_URL`, restricted API credentials | Inbound webhook after staging schema approval | Mock adapter + backend contract | Yes (hosting, credentials, fiscal validation) |
+| Azure Service Bus | Durable cross-module event topic and consumers | **Adapter + local database worker working** · live namespace not activated | `QUEUE_PROVIDER=azure_service_bus`, namespace or connection secret, topic/subscription | Topic subscription | Fake adapter + outbox failure-mode tests | Yes (Azure resource/RBAC) |
+| Azure Event Grid | BlobCreated to dataset-ingestion bridge | **Authenticated adapter working** · live subscription not activated | Event Grid enable flag, custom delivery secret, storage account/container | BlobCreated + validation handshake | Contract + duplicate-ingestion tests | Yes (subscription/RBAC) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |
 | IoT multi-provider bridge | API, MQTT, webhooks, BLE provisioning, LoRaWAN and Modbus gateways | Contract + mock outcomes working · backend adapter prepared | `GV_IOT_PROVIDER=mock|backend` | Backend bridge | Unit outcome matrix | Yes (vendor credentials/hardware) |
@@ -75,6 +77,7 @@ should synchronize through an adapter instead of replacing the mobile API.
 GeoVision remains the only API used by the mobile app. The durable outbox maps
 customer, product, order, invoice, payment and delivery events to ERPNext
 `Customer`, `Item`, `Sales Order`, `Sales Invoice`, `Payment Entry` and
-`Delivery Note` documents. Retries use a unique idempotency key. ERP downtime
-does not block customer checkout; failed events remain available for retry. No
+`Delivery Note` documents. The independent event worker claims requests and
+retries with a unique idempotency key; exhausted work is visible and recoverable
+through the dead-letter API. ERP downtime does not block customer checkout. No
 ERP credential or internal accounting data is returned to the mobile app.

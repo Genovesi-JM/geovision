@@ -14,6 +14,7 @@ from app.iot.registry import valid_unit
 from app.iot.schemas import MeasurementValue, TelemetryEnvelope
 from app.iot.security import secret_matches, timestamp_is_fresh
 from app.core.config import settings
+from app.core.event_names import EventNames
 from app.models import (
     DeviceCredential,
     IotAlert,
@@ -25,6 +26,7 @@ from app.models import (
     TelemetryReading,
 )
 from app.core.time import utc_now
+from app.services.event_outbox import enqueue_domain_event
 
 # On-device firmware also enforces these locally; the backend rule is the
 # "decide" layer of detect → decide → act → confirm.
@@ -271,6 +273,25 @@ def ingest_telemetry(
     device.last_seen_at = utc_now()
     device.last_ip = remote_ip
     device.status = "online"
+    enqueue_domain_event(
+        db,
+        name=EventNames.DEVICE_TELEMETRY_RECEIVED,
+        aggregate_type="iot_device",
+        aggregate_id=device.id,
+        idempotency_key=f"device:{device.id}:telemetry:{envelope.message_id}",
+        correlation_id=envelope.message_id,
+        occurred_at=recorded_at,
+        payload={
+            "device_id": device.id,
+            "device_uid": device.public_id,
+            "organization_id": device.company_id,
+            "site_id": device.site_id,
+            "message_id": envelope.message_id,
+            "source": source,
+            "channels": [reading["channel"] for reading in reading_payloads],
+            "alert_ids": [event["id"] for event in alert_events],
+        },
+    )
     try:
         db.commit()
     except IntegrityError:

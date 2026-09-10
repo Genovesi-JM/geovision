@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import (
     Account,
@@ -34,6 +35,7 @@ from app.modules.orders.domain import (
     require_transition,
 )
 from app.modules.orders.schemas import DraftOrderCreate
+from app.services.event_outbox import enqueue_domain_event
 
 
 def _dumps(value: Any) -> str:
@@ -103,6 +105,32 @@ def _event(
     )
     db.add(row)
     return row
+
+
+def _domain_event(
+    db: Session,
+    *,
+    order: Order,
+    name: str,
+    key: str,
+    payload: dict[str, Any] | None = None,
+    causation_id: str | None = None,
+) -> None:
+    enqueue_domain_event(
+        db,
+        name=name,
+        aggregate_type="order",
+        aggregate_id=order.id,
+        idempotency_key=key,
+        correlation_id=order.id,
+        causation_id=causation_id,
+        payload={
+            "order_id": order.id,
+            "organization_id": order.organization_id or order.company_id,
+            "workspace_id": order.workspace_id,
+            **(payload or {}),
+        },
+    )
 
 
 def _canonical_status(order: Order) -> FulfilmentStatus:
@@ -270,6 +298,18 @@ def create_draft_order(
         customer_visible=bool(data.customer_id),
     )
     _audit(db, actor=actor, action="order.draft.created", order=order)
+    _domain_event(
+        db,
+        order=order,
+        name=EventNames.ORDER_CREATED,
+        key=f"order:{order.id}:created",
+        payload={
+            "order_number": order.order_number,
+            "order_type": order.order_type,
+            "currency": order.currency,
+            "total": int(order.total or 0),
+        },
+    )
     return order
 
 
@@ -382,6 +422,13 @@ def transition_order(
         order=order,
         details={"from": current.value, "to": target.value},
     )
+    _domain_event(
+        db,
+        order=order,
+        name=EventNames.ORDER_STATE_CHANGED,
+        key=f"order:{order.id}:state:{order.lifecycle_version}",
+        payload={"from": current.value, "to": target.value, "reason": reason},
+    )
     return True
 
 
@@ -447,6 +494,28 @@ def apply_payment_state(
         metadata={
             "payment_id": payment.id,
             "provider": payment.provider,
+            "source_event_id": source_event_id,
+        },
+    )
+    payment_event_name = {
+        OrderPaymentStatus.AUTHORIZED: EventNames.PAYMENT_AUTHORIZED,
+        OrderPaymentStatus.PAID: EventNames.PAYMENT_SETTLED,
+        OrderPaymentStatus.FAILED: EventNames.PAYMENT_FAILED,
+    }.get(target_payment, EventNames.PAYMENT_STATE_CHANGED)
+    _domain_event(
+        db,
+        order=order,
+        name=payment_event_name,
+        key=(
+            f"payment:{payment.id}:{target_payment.value}:"
+            f"{source_event_id or order.lifecycle_version}"
+        ),
+        causation_id=source_event_id,
+        payload={
+            "payment_id": payment.id,
+            "provider": payment.provider,
+            "from": current_payment.value,
+            "to": target_payment.value,
             "source_event_id": source_event_id,
         },
     )

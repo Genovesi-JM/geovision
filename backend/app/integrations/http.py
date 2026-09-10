@@ -9,6 +9,12 @@ INTEGRATION_HTTP_ROUTES = (
         import_path="app.routers.integrations",
         order=180,
     ),
+    RouterMount(
+        key="integrations.events",
+        owner="integrations",
+        import_path="app.routers.events",
+        order=181,
+    ),
 )
 
 __all__ = ["INTEGRATION_HTTP_ROUTES"]

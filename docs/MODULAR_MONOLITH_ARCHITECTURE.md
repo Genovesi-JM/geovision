@@ -100,7 +100,8 @@ new code should use `app.core`.
 
 The device-specific `DeviceEventHub` stays in `app/iot/events.py`. It is an
 in-process monitoring transport, not the durable platform event publisher.
-Durable outbox and queue behavior remains owned by Phase 13.
+The Phase 13 event outbox is the durable cross-process source; the WebSocket hub
+remains an optional live projection.
 
 ## Provider boundaries
 
@@ -108,13 +109,16 @@ Provider protocols live with their owning domains rather than with vendor
 code. Phase 2 declares ports for object storage, payments, ERP, notifications,
 identity, text generation, processing, weather, satellite, GIS, construction
 systems, asset management, and maritime context. `app/core/events.py` provides
-the shared event and queue publisher contracts.
+the shared versioned event and queue publisher contracts, while
+`app/services/event_outbox.py` owns transactional persistence, claims, retries,
+consumer receipts, and dead-letter state.
 
 Concrete implementations live under `app/integrations`. The storage factory
 lazily selects private local, S3-compatible, or Azure Blob adapters, and the ERP
-factory selects the local mock or existing ERPNext adapter. No Azure Service
-Bus, Event Grid, Odoo, processing, weather, satellite, GIS, construction,
-asset-management, or maritime adapter is activated yet.
+factory selects the local mock or existing ERPNext adapter. Queue composition
+selects the database worker or Azure Service Bus, while the Event Grid adapter
+normalizes BlobCreated ingress. Odoo, processing, weather, satellite, GIS,
+construction, asset-management, and maritime adapters are not activated yet.
 
 `app/core/config.py` is the single typed source for environment and provider
 configuration. It recognizes local, development, test, staging, and production

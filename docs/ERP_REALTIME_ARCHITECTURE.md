@@ -18,7 +18,8 @@ Flutter app
 FastAPI /mobile/account/*
     │                 └── customer-visible account_events
     ├── PostgreSQL/PostGIS (sites, IoT, work, commerce)
-    └── transactional integration_outbox
+    ├── transactional integration_outbox
+    └── canonical event outbox ── independent worker
                             │ restricted token API
                             ▼
                          ERPNext
@@ -47,4 +48,4 @@ also refreshes every ten seconds and supports pull-to-refresh.
 5. Create a least-privilege API user and store secrets outside Git.
 6. Validate Angolan fiscal requirements with a qualified accountant.
 7. Run a full sandbox order and reconciliation.
-8. Enable a scheduled worker and alerts for failed outbox records.
+8. Deploy `python -m app.workers.event_worker` and alert on retry/dead-letter counts.

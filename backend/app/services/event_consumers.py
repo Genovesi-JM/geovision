@@ -1,0 +1,75 @@
+"""Composition of application-level event consumers."""
+
+from __future__ import annotations
+
+from sqlalchemy.orm import Session
+
+from app.core.event_names import EventNames
+from app.core.events import DomainEvent
+from app.models import IntegrationOutbox
+from app.services.event_outbox import (
+    EventConsumerRegistry,
+    EventOutboxError,
+    enqueue_domain_event,
+)
+
+
+def _consume_erp_sync(db: Session, event: DomainEvent) -> None:
+    from app.integrations.erp import get_erp_adapter
+    from app.services.erp_sync import process_outbox_item
+
+    item_id = str(event.payload.get("integration_outbox_id") or "")
+    if not item_id:
+        raise EventOutboxError(
+            "erp_event_invalid",
+            "ERP sync request is missing its integration outbox ID",
+        )
+    query = db.query(IntegrationOutbox).filter(IntegrationOutbox.id == item_id)
+    if db.get_bind().dialect.name == "postgresql":
+        query = query.with_for_update()
+    item = query.one_or_none()
+    if item is None:
+        raise EventOutboxError(
+            "erp_item_missing", "ERP sync request no longer has a source record"
+        )
+    provider = get_erp_adapter()
+    outcome = process_outbox_item(
+        db,
+        item,
+        provider=provider,
+        raise_retryable=True,
+    )
+    result_event = (
+        EventNames.ERP_SYNC_COMPLETED
+        if outcome == "completed"
+        else EventNames.ERP_SYNC_FAILED
+    )
+    enqueue_domain_event(
+        db,
+        name=result_event,
+        aggregate_type=item.aggregate_type,
+        aggregate_id=item.aggregate_id,
+        idempotency_key=f"erp-result:{item.id}:{outcome}",
+        correlation_id=event.correlation_id,
+        causation_id=str(event.event_id),
+        payload={
+            "integration_outbox_id": item.id,
+            "organization_id": item.company_id,
+            "provider": item.provider,
+            "external_reference": item.external_id,
+            "outcome": outcome,
+        },
+    )
+
+
+def default_event_consumers() -> EventConsumerRegistry:
+    registry = EventConsumerRegistry()
+    registry.register(
+        EventNames.ERP_SYNC_REQUESTED,
+        "erp_sync_outbox_v1",
+        _consume_erp_sync,
+    )
+    return registry
+
+
+__all__ = ["default_event_consumers"]

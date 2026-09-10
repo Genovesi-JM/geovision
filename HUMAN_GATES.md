@@ -90,4 +90,5 @@ how to confirm · what the automation does afterwards.
 - **Confirm:** One sandbox order completes order → invoice → payment → delivery
   reconciliation and the accountant signs off the configuration.
 - **After:** Set `ERP_PROVIDER=erpnext`, add restricted credentials, map custom
-  fields and enable scheduled outbox processing.
+  fields, deploy the independent event worker, and alert on retry/dead-letter
+  counts. Do not enable uncertain-write retries until provider uniqueness is proven.

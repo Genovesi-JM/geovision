@@ -9,6 +9,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import (
     Acquisition,
@@ -40,6 +41,7 @@ from app.modules.missions.schemas import (
     InternalAcquisitionCreate,
     InternalAcquisitionUpdate,
 )
+from app.services.event_outbox import enqueue_domain_event
 
 
 def _json(value: Any) -> str:
@@ -96,6 +98,34 @@ def _audit(
                 }
             ),
         )
+    )
+
+
+def _acquisition_event(
+    db: Session,
+    *,
+    acquisition: Acquisition,
+    name: str,
+    key: str,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    enqueue_domain_event(
+        db,
+        name=name,
+        aggregate_type="acquisition",
+        aggregate_id=acquisition.id,
+        idempotency_key=key,
+        correlation_id=acquisition.order_id or acquisition.id,
+        payload={
+            "acquisition_id": acquisition.id,
+            "organization_id": acquisition.organization_id,
+            "workspace_id": acquisition.workspace_id,
+            "asset_id": acquisition.asset_id,
+            "order_id": acquisition.order_id,
+            "fulfilment_job_id": acquisition.fulfilment_job_id,
+            "acquisition_type": acquisition.acquisition_type,
+            **(payload or {}),
+        },
     )
 
 
@@ -261,6 +291,13 @@ def create_acquisition(
         action="acquisition.created",
         acquisition=acquisition,
         details={"type": acquisition.acquisition_type, "state": acquisition.state},
+    )
+    _acquisition_event(
+        db,
+        acquisition=acquisition,
+        name=EventNames.ACQUISITION_CREATED,
+        key=f"acquisition:{acquisition.id}:created",
+        payload={"state": acquisition.state},
     )
     return acquisition
 
@@ -453,6 +490,13 @@ def update_acquisition(
         acquisition=acquisition,
         details={"fields": sorted(data.model_fields_set)},
     )
+    _acquisition_event(
+        db,
+        acquisition=acquisition,
+        name=EventNames.ACQUISITION_UPDATED,
+        key=f"acquisition:{acquisition.id}:updated:{acquisition.lifecycle_version}",
+        payload={"fields": sorted(data.model_fields_set)},
+    )
     return acquisition
 
 
@@ -520,6 +564,13 @@ def transition_acquisition(
         action="acquisition.state_changed",
         acquisition=acquisition,
         details={"from": current.value, "to": target.value, "reason": data.reason},
+    )
+    _acquisition_event(
+        db,
+        acquisition=acquisition,
+        name=EventNames.ACQUISITION_STATE_CHANGED,
+        key=f"acquisition:{acquisition.id}:state:{acquisition.lifecycle_version}",
+        payload={"from": current.value, "to": target.value, "reason": data.reason},
     )
     return acquisition
 

@@ -13,6 +13,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import Acquisition, Asset, AuditLog, Dataset, DatasetFile, Site, User
 from app.modules.assets.services import (
@@ -33,6 +34,7 @@ from app.modules.datasets.domain import (
 from app.modules.datasets.schemas import DatasetCreate, DatasetUpdate
 from app.modules.identity.domain import AuthorizationContext
 from app.modules.organizations.domain import permission_granted
+from app.services.event_outbox import enqueue_domain_event
 from app.services.storage import StorageService, detect_file_type
 
 
@@ -80,6 +82,32 @@ def _audit(
                 }
             ),
         )
+    )
+
+
+def _dataset_event(
+    db: Session,
+    *,
+    dataset: Dataset,
+    name: str,
+    key: str,
+    payload: dict[str, Any] | None = None,
+) -> None:
+    enqueue_domain_event(
+        db,
+        name=name,
+        aggregate_type="dataset",
+        aggregate_id=dataset.id,
+        idempotency_key=key,
+        correlation_id=dataset.id,
+        payload={
+            "dataset_id": dataset.id,
+            "organization_id": dataset.company_id,
+            "workspace_id": dataset.workspace_id,
+            "asset_id": dataset.asset_id,
+            "mission_id": dataset.mission_id,
+            **(payload or {}),
+        },
     )
 
 
@@ -226,6 +254,13 @@ def create_dataset(
         action="dataset.created",
         dataset=dataset,
         details={"dataset_type": dataset.dataset_type, "mission_id": dataset.mission_id},
+    )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_CREATED,
+        key=f"dataset:{dataset.id}:created",
+        payload={"dataset_type": dataset.dataset_type},
     )
     return dataset
 
@@ -485,6 +520,13 @@ def upload_dataset_file(
         dataset=dataset,
         details={"file_id": file.id, "size_bytes": size_bytes, "mode": "stream"},
     )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_UPLOAD_RESERVED,
+        key=f"dataset-file:{file.id}:upload-reserved",
+        payload={"file_id": file.id, "object_key": key, "size_bytes": size_bytes},
+    )
     try:
         db.commit()
         db.refresh(file)
@@ -529,6 +571,13 @@ def upload_dataset_file(
         action="dataset.file_uploaded",
         dataset=dataset,
         details={"file_id": file.id, "size_bytes": actual_size},
+    )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_FILE_UPLOADED,
+        key=f"dataset-file:{file.id}:uploaded",
+        payload={"file_id": file.id, "object_key": stored_key, "size_bytes": actual_size},
     )
     try:
         db.commit()
@@ -603,6 +652,13 @@ def reserve_upload(
             dataset=dataset,
             details={"file_id": file.id, "expires_in": expires_in},
         )
+        _dataset_event(
+            db,
+            dataset=dataset,
+            name=EventNames.DATASET_UPLOAD_RESERVED,
+            key=f"dataset-file:{file.id}:upload-reserved",
+            payload={"file_id": file.id, "object_key": key, "size_bytes": size_bytes},
+        )
         db.commit()
         db.refresh(file)
     except Exception:
@@ -675,6 +731,13 @@ def complete_reserved_upload_from_stream(
         action="dataset.file_uploaded",
         dataset=dataset,
         details={"file_id": file.id, "size_bytes": actual_size},
+    )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_FILE_UPLOADED,
+        key=f"dataset-file:{file.id}:uploaded",
+        payload={"file_id": file.id, "object_key": stored_key, "size_bytes": actual_size},
     )
     try:
         db.commit()
@@ -777,6 +840,13 @@ def confirm_reserved_upload(
         dataset=dataset,
         details={"file_id": file.id, "size_bytes": actual_size},
     )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_FILE_UPLOADED,
+        key=f"dataset-file:{file.id}:uploaded",
+        payload={"file_id": file.id, "object_key": storage_key, "size_bytes": actual_size},
+    )
     db.commit()
     db.refresh(file)
     return file
@@ -849,6 +919,13 @@ def delete_dataset_file(
         dataset=dataset,
         details={"file_id": file.id},
     )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_FILE_DELETED,
+        key=f"dataset-file:{file.id}:deleted",
+        payload={"file_id": file.id},
+    )
     db.commit()
     return file
 
@@ -884,6 +961,13 @@ def finalize_dataset(
         dataset=dataset,
         details={"file_count": dataset.file_count},
     )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_READY,
+        key=f"dataset:{dataset.id}:ready:{dataset.lifecycle_version}",
+        payload={"file_count": dataset.file_count},
+    )
     return dataset
 
 
@@ -906,6 +990,13 @@ def archive_dataset(
         action="dataset.archived",
         dataset=dataset,
         details={"retained_object_count": dataset.file_count},
+    )
+    _dataset_event(
+        db,
+        dataset=dataset,
+        name=EventNames.DATASET_ARCHIVED,
+        key=f"dataset:{dataset.id}:archived:{dataset.lifecycle_version}",
+        payload={"retained_object_count": dataset.file_count},
     )
     return dataset
 

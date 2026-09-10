@@ -154,8 +154,24 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = Field(default=None, repr=False)
     openai_model: str = "gpt-4o-mini"
 
-    # Provider-neutral selections for capabilities implemented in later phases.
-    queue_provider: str = "null"
+    # Durable events. Database delivery is self-contained for local/dev/test;
+    # deployed workers may publish the same envelope to Azure Service Bus.
+    queue_provider: str = "database"
+    event_topic: str = "geovision.domain.v1"
+    event_worker_in_process: bool = False
+    event_worker_poll_seconds: float = Field(default=1.0, gt=0, le=60)
+    event_worker_batch_size: int = Field(default=50, ge=1, le=500)
+    event_worker_max_attempts: int = Field(default=8, ge=1, le=50)
+    event_worker_claim_timeout_seconds: int = Field(default=300, ge=30, le=3600)
+    event_retry_initial_seconds: float = Field(default=1.0, ge=0, le=3600)
+    event_retry_max_seconds: float = Field(default=300.0, ge=0, le=86400)
+    service_bus_fully_qualified_namespace: Optional[str] = None
+    service_bus_connection_string: Optional[str] = Field(default=None, repr=False)
+    service_bus_topic: str = "geovision-events"
+    service_bus_subscription: str = "geovision-workers"
+    azure_event_grid_enabled: bool = False
+    azure_event_grid_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    azure_event_grid_subscription_name: Optional[str] = None
     processing_provider: str = "none"
     weather_provider: str = "none"
     satellite_provider: str = "none"
@@ -283,6 +299,8 @@ class Settings(BaseSettings):
     mqtt_tls: bool = False
     mqtt_topic_prefix: str = "geovision"
     mqtt_client_id: str = "geovision-backend"
+    iot_watchdog_in_process: bool = False
+    iot_watchdog_interval_seconds: int = Field(default=30, ge=5, le=3600)
     iot_message_max_age_seconds: int = Field(default=300, ge=1)
     iot_offline_after_seconds: int = Field(default=120, ge=1)
     iot_command_ttl_seconds: int = Field(default=300, ge=1)
@@ -312,6 +330,8 @@ class Settings(BaseSettings):
             "database_url",
             "accounts_database_url",
             "openai_api_key",
+            "service_bus_connection_string",
+            "azure_event_grid_webhook_secret",
             "s3_access_key_id",
             "s3_secret_access_key",
             "azure_storage_connection_string",
@@ -465,6 +485,37 @@ class Settings(BaseSettings):
         )
         if self.paypal_mode not in {"sandbox", "live"}:
             raise ValueError("PAYPAL_MODE must be 'sandbox' or 'live'")
+        if self.queue_provider not in {"database", "in_memory", "azure_service_bus", "null"}:
+            raise ValueError(
+                "QUEUE_PROVIDER must be database, in_memory, azure_service_bus, or null"
+            )
+        if self.event_retry_max_seconds < self.event_retry_initial_seconds:
+            raise ValueError(
+                "EVENT_RETRY_MAX_SECONDS must be greater than or equal to "
+                "EVENT_RETRY_INITIAL_SECONDS"
+            )
+        if not self.event_topic.strip() or not self.service_bus_topic.strip():
+            raise ValueError("event and Service Bus topic names must not be empty")
+        if not self.service_bus_subscription.strip():
+            raise ValueError("SERVICE_BUS_SUBSCRIPTION must not be empty")
+        if self.service_bus_fully_qualified_namespace:
+            namespace = self.service_bus_fully_qualified_namespace.strip().lower()
+            if (
+                "://" in namespace
+                or "/" in namespace
+                or not namespace.endswith(".servicebus.windows.net")
+            ):
+                raise ValueError(
+                    "SERVICE_BUS_FULLY_QUALIFIED_NAMESPACE must be an Azure Service Bus host name"
+                )
+            self.service_bus_fully_qualified_namespace = namespace
+        if self.queue_provider == "azure_service_bus" and not (
+            self.service_bus_connection_string
+            or self.service_bus_fully_qualified_namespace
+        ):
+            raise ValueError(
+                "Azure Service Bus queue delivery requires a connection string or namespace"
+            )
         if self.identity_provider not in {
             "internal",
             "transition",
@@ -544,6 +595,18 @@ class Settings(BaseSettings):
                 "INTEGRATION_RETRY_INITIAL_SECONDS"
             )
         if self.is_deployed:
+            if self.queue_provider in {"null", "in_memory"}:
+                raise ValueError(
+                    "deployed environments require database or azure_service_bus queue delivery"
+                )
+            if self.azure_event_grid_enabled and (
+                not self.azure_event_grid_webhook_secret
+                or len(self.azure_event_grid_webhook_secret) < 32
+            ):
+                raise ValueError(
+                    "AZURE_EVENT_GRID_WEBHOOK_SECRET must contain at least 32 characters "
+                    "when Event Grid ingestion is enabled in a deployed environment"
+                )
             for field_name, configured_url in (
                 ("FRONTEND_BASE", self.frontend_base),
                 ("BACKEND_BASE", self.backend_base),
@@ -761,6 +824,14 @@ class Settings(BaseSettings):
                         self.azure_storage_connection_string
                         or self.azure_storage_account_url
                     )
+                ),
+                "azure_service_bus": bool(
+                    self.service_bus_connection_string
+                    or self.service_bus_fully_qualified_namespace
+                ),
+                "azure_event_grid": bool(
+                    self.azure_event_grid_enabled
+                    and self.azure_event_grid_webhook_secret
                 ),
                 "erpnext": bool(
                     self.erpnext_base_url

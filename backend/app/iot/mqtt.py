@@ -7,12 +7,14 @@ import ssl
 from datetime import datetime
 
 from app.core.config import settings
+from app.core.event_names import EventNames
 from app.iot.events import event_hub
 from app.iot.schemas import MqttEnvelope, TelemetryEnvelope
 from app.iot.security import parse_utc, reveal_secret, timestamp_is_fresh, verify_mqtt_signature
 from app.iot.service import active_credential, ingest_telemetry
 from app.models import IotCommand, IotDevice, IotMessageNonce
 from app.core.time import utc_now
+from app.services.event_outbox import enqueue_domain_event
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +100,22 @@ class MqttBridge:
             elif kind == "state":
                 state = str(payload.get("state") or "")
                 if state not in {"online", "offline", "maintenance"}: raise ValueError("invalid state")
-                device.status = state; device.last_seen_at = utc_now(); db.commit()
+                device.status = state; device.last_seen_at = utc_now()
+                enqueue_domain_event(
+                    db,
+                    name=EventNames.DEVICE_STATE_CHANGED,
+                    aggregate_type="iot_device",
+                    aggregate_id=device.id,
+                    idempotency_key=f"device:{device.id}:state:{nonce}",
+                    correlation_id=nonce,
+                    payload={
+                        "device_id": device.id,
+                        "organization_id": device.company_id,
+                        "site_id": device.site_id,
+                        "status": state,
+                    },
+                )
+                db.commit()
                 if self.loop: self.loop.call_soon_threadsafe(event_hub.publish, device.id, {"type": "device.state", "status": state})
             elif kind == "command-results":
                 command = db.get(IotCommand, str(payload.get("command_id") or ""))
@@ -107,6 +124,20 @@ class MqttBridge:
                     raise ValueError("invalid command result")
                 command.status = result_status; command.acknowledged_at = utc_now()
                 command.result_json = json.dumps({"actual_state": payload.get("actual_state") or {}, "message": payload.get("message")})
+                enqueue_domain_event(
+                    db,
+                    name=EventNames.DEVICE_COMMAND_RESULT_RECORDED,
+                    aggregate_type="iot_command",
+                    aggregate_id=command.id,
+                    idempotency_key=f"device-command:{command.id}:result:{nonce}",
+                    correlation_id=command.correlation_id,
+                    payload={
+                        "command_id": command.id,
+                        "device_id": device.id,
+                        "organization_id": device.company_id,
+                        "status": result_status,
+                    },
+                )
                 db.commit()
                 if self.loop: self.loop.call_soon_threadsafe(event_hub.publish, device.id, {"type": "command.result", "command_id": command.id, "status": command.status, "actual_state": payload.get("actual_state") or {}})
         finally:
