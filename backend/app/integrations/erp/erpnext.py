@@ -20,6 +20,18 @@ from .base import ErpAdapter, ErpResult
 
 class ErpNextAdapter(ErpAdapter):
     id = "erpnext"
+    _DOCUMENT_TYPES = {
+        "customer": "Customer",
+        "product": "Item",
+        "service": "Item",
+        "order": "Sales Order",
+        "invoice": "Sales Invoice",
+        "payment": "Payment Entry",
+        "delivery": "Delivery Note",
+        "supplier": "Supplier",
+        "purchase_order": "Purchase Order",
+        "inventory": "Stock Entry",
+    }
 
     def __init__(
         self,
@@ -103,17 +115,22 @@ class ErpNextAdapter(ErpAdapter):
                 retryable=operation_is_read_only,
             ) from exc
 
-    def upsert(self, document_type: str, payload: dict[str, Any], idempotency_key: str) -> ErpResult:
+    def upsert(self, resource_type: str, payload: dict[str, Any], idempotency_key: str) -> ErpResult:
         # GeoVision's key is stored in a custom field when that field exists in
         # ERPNext. A lost POST response is terminal for automatic processing:
         # the custom field is not assumed unique until operators configure and
         # verify provider-side reconciliation/deduplication.
         body = dict(payload)
         body.setdefault("custom_geovision_idempotency_key", idempotency_key)
+        document_type = self._DOCUMENT_TYPES.get(resource_type, resource_type)
         result = self._request("POST", f"/api/resource/{quote(document_type)}", body)
         data = result.get("data") or {}
         external_id = str(data.get("name") or data.get("id") or "accepted")
-        return ErpResult(external_id=external_id, provider=self.id)
+        return ErpResult(
+            external_id=external_id,
+            external_model=document_type,
+            provider=self.id,
+        )
 
     def health(self) -> dict[str, Any]:
         return {"provider": self.id, "configured": True, "mode": "live"}

@@ -93,6 +93,21 @@ services:
   - key: ENCRYPTION_KEY
     scope: RUN_TIME
     type: SECRET
+  - key: ERP_PROVIDER
+    scope: RUN_TIME
+    value: odoo
+  - key: ODOO_BASE_URL
+    scope: RUN_TIME
+    type: SECRET
+  - key: ODOO_DATABASE
+    scope: RUN_TIME
+    type: SECRET
+  - key: ODOO_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ODOO_WEBHOOK_SECRET
+    scope: RUN_TIME
+    type: SECRET
   - key: NOTIFICATION_PROVIDER
     scope: RUN_TIME
     value: smtp
@@ -171,6 +186,45 @@ services:
   run_command: python start.py
   source_dir: /backend
 workers:
+- build_command: pip install --upgrade pip && pip install -r requirements.deploy.txt
+  environment_slug: python
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${db-postgresql-ams3-28118.DATABASE_URL}
+  - key: ENV
+    scope: RUN_AND_BUILD_TIME
+    value: prod
+  - key: SECRET_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENCRYPTION_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ERP_PROVIDER
+    scope: RUN_TIME
+    value: odoo
+  - key: ODOO_BASE_URL
+    scope: RUN_TIME
+    type: SECRET
+  - key: ODOO_DATABASE
+    scope: RUN_TIME
+    type: SECRET
+  - key: ODOO_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ODOO_WEBHOOK_SECRET
+    scope: RUN_TIME
+    type: SECRET
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: Genovesi-JM/geovision
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-1gb
+  name: erp-worker
+  run_command: python -m app.workers.erp_worker
+  source_dir: /backend
 - build_command: pip install --upgrade pip && pip install -r requirements.deploy.txt
   environment_slug: python
   envs:

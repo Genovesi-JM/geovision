@@ -32,7 +32,7 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_20_OPENAPI_SHA256 = "6e4ab53f009287b3348cf014fb7e8a4997c26ead5faaf239e7ee04a8abc45494"
+PHASE_21_OPENAPI_SHA256 = "32169a167aae3db6ccd4573a0ff184b1d7d56cd7b511723cc1f7a3fb9775e985"
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
 DEPLOYED_BACKEND_BASE = "https://api.geovisionops.com"
@@ -466,7 +466,7 @@ def test_erp_sync_accepts_fake_without_importing_real_adapter(db_session):
     assert event.aggregate_id == aggregate_id
     assert event.external_id == "FAKE-1"
     assert event.external_id != event.aggregate_id
-    assert provider.calls == [("Sales Order", event.idempotency_key)]
+    assert provider.calls == [("order", event.idempotency_key)]
     assert ("app.integrations.erp.erpnext" in sys.modules) is erpnext_was_loaded
 
 
@@ -1352,10 +1352,10 @@ def test_deployed_credential_writes_never_fall_back_to_plaintext(monkeypatch):
     assert sentinel not in str(unavailable.value)
 
 
-def test_phase_20_openapi_contract_is_byte_stable(client):
+def test_phase_21_openapi_contract_is_byte_stable(client):
     payload = json.dumps(
         client.app.openapi(),
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_20_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_21_OPENAPI_SHA256

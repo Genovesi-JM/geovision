@@ -71,16 +71,22 @@ requires an operator-owned backup and rotation procedure before key replacement.
 - Each concrete adapter maps provider exceptions to a safe integration error or
   result instead of leaking the raw vendor exception into domain code.
 
-The ERP outbox now pins each item to its selected provider and processes only
-matching due work below the attempt limit. Retryable failures receive a bounded
-next attempt. Historical `failed` rows with `next_attempt_at = NULL` receive one
-compatibility processing decision; new non-retryable or exhausted failures use
-`failed_terminal` and are excluded from automatic selection. ERPNext classifies
-authentication, validation, timeout, rate-limit, availability, and unexpected
-response failures conservatively. In particular, an unknown outcome from a
-side-effecting POST/upsert is terminal for automatic processing until an adapter
-can prove provider-side idempotency. The outbox still requires an independent
-worker, concurrency controls, and dead-letter/operator handling in Phase 13.
+The ERP outbox pins every command to the selected provider. The independent ERP
+worker uses short leases, recovers expired claims, revalidates the resource and
+payload, resolves the recorded provider, releases database locks before I/O, and
+persists completion, a bounded due retry, or `dead_letter`. The legacy
+`failed_terminal` state remains eligible only for the same explicit operator
+requeue. The general `erp.sync_requested` event consumer performs no provider I/O;
+the ERP worker emits canonical completion/failure facts after it persists the
+outcome. Tenant-filtered status, command listing and reviewed requeue operations
+are available under `/integrations/erp`.
+
+ERPNext and Odoo classify authentication, validation, timeout, rate-limit,
+availability, and unexpected-response failures into safe shared results. A
+side-effecting retry is operationally safe only after the target provider's
+idempotency constraint is proven: ERPNext uses its configured custom field, while
+the Odoo bridge must enforce the stable `idempotency_key` atomically. Reconcile a
+dead-lettered unknown outcome before requeue.
 
 ## External references and authoritative IDs
 
@@ -114,7 +120,7 @@ backfill can be considered after those ownership boundaries are established.
 | Weather | `WeatherProvider` | Durable acquisition/observation workflow, deterministic fake and AEMET OpenData adapter are implemented; Azure Maps remains an explicit unavailable scaffold |
 | Satellite | `SatelliteProvider` | Durable acquisition/scene workflow, deterministic fake and Copernicus Data Space STAC adapter are implemented, including optional bounded asset download |
 | Payments | `PaymentProvider` | Existing bank, Stripe, Multicaixa, and PayPal adapters have a normalized facade and lazy factory; the orchestrator accepts injected adapters; Phase 8 still owns lifecycle consolidation |
-| ERP | `ERPProvider` | Existing mock and ERPNext adapters implement the boundary; mock is limited to local/dev/test; no Odoo adapter yet |
+| ERP | `ERPProvider` | Mock, ERPNext compatibility and Odoo 19 JSON-2 adapters implement the boundary; durable commands and external mappings remain GeoVision-owned; live Odoo requires Gate 17 |
 | Notifications | `NotificationProvider`, `ExternalDeliveryProvider` | Contextual inbox and provider-pinned delivery rows are durable; SMTP, Azure Notification Hubs, ID-only local and unavailable adapters are selected lazily by an independent worker; live SMTP/APNs/FCM requires Gate 16 |
 | Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
@@ -170,21 +176,35 @@ unavailable until its commercial adapter is implemented. See
 
 ### ERP
 
-ERP outbox processing accepts an injected `ERPProvider`. The existing mock and
-ERPNext adapters return normalized integration results, while the legacy
+The independent ERP worker claims and revalidates provider-pinned commands using
+short transactions, performs provider I/O without a database lock, and persists
+bounded retry or dead-letter state afterwards. It accepts an injected
+`ERPProvider`. The mock, ERPNext and Odoo 19 JSON-2 adapters return normalized
+integration results, while the legacy
 `ErpResult.external_id` accessor remains available. The outbox stores the opaque
 external reference separately from its own UUID and idempotency key and is
 provider-pinned at enqueue time. Changing the configured provider does not move
 old rows; operators must drain or reconcile those rows with their original
 adapter. ERPNext sends the GeoVision idempotency key in a custom field, but
 provider-side field availability and uniqueness must be configured and verified
-before retries of uncertain writes can be considered safe. The typed
-`ERPNEXT_WEBHOOK_SECRET` setting is reserved and is not consumed by a webhook
-handler in Phase 2.
+before retries of uncertain writes can be considered safe. The typed legacy
+`ERPNEXT_WEBHOOK_SECRET` remains reserved and is not consumed by a handler.
 
-ERPNext remains the only current live ERP adapter. GeoVision continues to own
-orders, assets, missions, intelligence, and customer experience. Odoo must be
-added as another adapter and cut over explicitly in Phase 21.
+The Odoo adapter calls only the configured
+`geovision.integration.bridge.sync_from_geovision` method through Odoo 19
+JSON-2. It sends canonical resource values and a stable idempotency key; neither
+events nor customer input can choose arbitrary Odoo models/methods. A provider
+response creates or updates the local `erp_external_references` projection while
+the GeoVision UUID remains authoritative. A callback authenticated with
+`ODOO_WEBHOOK_SECRET`, a five-minute replay window and a unique event receipt can
+update only allowlisted invoice, stock and purchase status fields on a matching
+mapping. The raw callback body is represented by its digest, not persisted.
+
+GeoVision continues to own identities, orders, assets, missions, intelligence
+and customer experience. Live Odoo needs a Custom plan, an installed reviewed
+bridge addon, least-privilege bot/key, callback signer and
+[Gate 17](../HUMAN_GATES.md#17-odoo-19-live-erpcrm-activation). See
+[the Odoo 19 contract and runbook](ODOO_19_INTEGRATION.md).
 
 ### Payments
 
@@ -255,9 +275,9 @@ complete identity-provider implementation.
 ## Deferred work
 
 The initial Phase 2 boundary did not implement these later capabilities.
-Durable messaging, processing jobs, payment lifecycle consolidation and
-satellite/weather ingestion are now implemented by their owning phases. Cloud
-infrastructure activation, the Odoo cutover, a generic external-ID table, full
-legacy identity/session retirement, live notification-provider activation,
+Durable messaging, processing jobs, payment lifecycle consolidation,
+satellite/weather ingestion and the provider-neutral Odoo integration are now
+implemented by their owning phases. Cloud infrastructure activation, live Odoo
+and notification-provider cutovers, full legacy identity/session retirement,
 credential-key rotation and notification-log lifecycle management remain
 deferred to their documented human gates.

@@ -9,10 +9,10 @@ from .base import ErpAdapter, ErpResult
 class MockErpAdapter(ErpAdapter):
     id = "mock"
 
-    def upsert(self, document_type: str, payload: dict[str, Any], idempotency_key: str) -> ErpResult:
+    def upsert(self, resource_type: str, payload: dict[str, Any], idempotency_key: str) -> ErpResult:
         digest = hashlib.sha256(idempotency_key.encode()).hexdigest()[:12]
         return ErpResult(
-            external_id=f"MOCK-{document_type.upper()}-{digest}",
+            external_id=f"MOCK-{resource_type.upper()}-{digest}",
             status="simulated",
             provider=self.id,
         )

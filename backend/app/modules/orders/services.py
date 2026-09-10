@@ -133,6 +133,78 @@ def _domain_event(
     )
 
 
+def enqueue_order_created_erp(db: Session, *, order: Order) -> None:
+    """Stage the ERP order command in the order's own transaction.
+
+    Callers must invoke this before their single business commit. The payload
+    is built only from the server-owned order snapshot and the creation key is
+    stable, so canonical and compatibility routes cannot enqueue duplicates.
+    """
+
+    from app.services.erp_sync import enqueue_erp_event
+
+    # Creation paths add line items before this helper. Flush once so defaults,
+    # timestamps, and the relationship snapshot are available without commit.
+    db.flush()
+    created_at = order.created_at or utc_now()
+    organization_id = order.organization_id or order.company_id
+    organization = db.get(Company, organization_id) if organization_id else None
+    customer = db.get(User, order.user_id) if order.user_id else None
+    customer_reference = organization_id or order.user_id
+    contact_snapshot = {
+        "geovision_id": customer_reference,
+        "name": (
+            organization.name
+            if organization is not None
+            else getattr(getattr(customer, "profile", None), "full_name", None)
+        ),
+        "email": (
+            organization.email
+            if organization is not None
+            else getattr(customer, "email", None)
+        ),
+        "phone": (
+            organization.phone
+            if organization is not None
+            else getattr(getattr(customer, "profile", None), "phone", None)
+        ),
+        "tax_id": organization.tax_id if organization is not None else None,
+        "address": organization.address if organization is not None else None,
+        "country": organization.country if organization is not None else None,
+    }
+    enqueue_erp_event(
+        db,
+        company_id=organization_id,
+        aggregate_type="order",
+        aggregate_id=order.id,
+        event_type=EventNames.ORDER_CREATED,
+        version="created.v1",
+        payload={
+            "customer_reference": customer_reference,
+            "customer": contact_snapshot,
+            "transaction_date": created_at.date().isoformat(),
+            "currency": order.currency,
+            "order_type": order.order_type,
+            "order_number": order.order_number,
+            "total_cents": _money(order.total),
+            "items": [
+                {
+                    "item_code": (
+                        item.sku
+                        or item.catalog_item_id
+                        or item.product_id
+                        or item.id
+                    ),
+                    "item_name": item.name,
+                    "qty": item.qty,
+                    "rate": _money(item.unit_price) / 100,
+                }
+                for item in order.items
+            ],
+        },
+    )
+
+
 def _canonical_status(order: Order) -> FulfilmentStatus:
     try:
         return FulfilmentStatus(order.fulfilment_status)
@@ -310,6 +382,7 @@ def create_draft_order(
             "total": int(order.total or 0),
         },
     )
+    enqueue_order_created_erp(db, order=order)
     return order
 
 
@@ -676,6 +749,7 @@ __all__ = [
     "create_draft_order",
     "customer_can_view",
     "customer_orders",
+    "enqueue_order_created_erp",
     "order_detail",
     "order_summary",
     "transition_order",

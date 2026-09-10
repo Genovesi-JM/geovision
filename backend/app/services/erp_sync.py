@@ -15,18 +15,8 @@ from app.core.integration import (
     RetryPolicy,
 )
 from app.core.time import utc_now
-from app.models import AccountEvent, IntegrationOutbox
-from app.modules.orders.ports import ERPProvider
-
-
-ERP_DOCTYPE = {
-    "customer": "Customer",
-    "product": "Item",
-    "order": "Sales Order",
-    "invoice": "Sales Invoice",
-    "payment": "Payment Entry",
-    "delivery": "Delivery Note",
-}
+from app.models import AccountEvent, ErpExternalReference, IntegrationOutbox
+from app.modules.orders.ports import ERPProvider, as_erp_write_result
 
 
 def enqueue_erp_event(
@@ -53,6 +43,7 @@ def enqueue_erp_event(
         payload_json=json.dumps(payload, default=str),
         idempotency_key=key,
         provider=provider or settings.erp_provider,
+        max_attempts=settings.integration_retry_attempts,
     )
     db.add(item)
     db.flush()
@@ -117,14 +108,13 @@ def process_outbox_item(
     *,
     provider: ERPProvider,
     retry_policy: RetryPolicy | None = None,
-    raise_retryable: bool = False,
 ) -> str:
     """Process one pinned ERP item without committing the caller's transaction."""
 
     policy = _policy(retry_policy)
     if item.status == "completed":
         return "completed"
-    if item.status == "failed_terminal":
+    if item.status in {"failed_terminal", "dead_letter"}:
         return "failed_terminal"
     if item.provider != provider.provider_name:
         raise IntegrationError(
@@ -137,9 +127,19 @@ def process_outbox_item(
     item.attempts += 1
     item.status = "processing"
     try:
+        provider_payload = json.loads(item.payload_json or "{}")
+        if not isinstance(provider_payload, dict):
+            raise ValueError("ERP payload must be a JSON object")
+        provider_payload.update(
+            {
+                "geovision_id": item.aggregate_id,
+                "organization_id": item.company_id,
+                "source_event": item.event_type,
+            }
+        )
         result = provider.upsert(
-            ERP_DOCTYPE.get(item.aggregate_type, item.aggregate_type),
-            json.loads(item.payload_json or "{}"),
+            item.aggregate_type,
+            provider_payload,
             item.idempotency_key,
         )
         if not result.ok or not result.value:
@@ -155,11 +155,51 @@ def process_outbox_item(
                 retryable=failure.retryable,
                 retry_after_seconds=failure.retry_after_seconds,
             )
-        item.external_id = result.value
+        write_result = as_erp_write_result(result.value)
+        item.external_id = write_result.external_id
+        item.external_model = write_result.external_model
         item.status = "completed"
         item.processed_at = utc_now()
         item.last_error = None
+        item.last_error_code = None
         item.next_attempt_at = None
+        item.dead_lettered_at = None
+        reference = (
+            db.query(ErpExternalReference)
+            .filter(
+                ErpExternalReference.provider == item.provider,
+                ErpExternalReference.resource_type == item.aggregate_type,
+                ErpExternalReference.internal_id == item.aggregate_id,
+            )
+            .one_or_none()
+        )
+        if reference is None:
+            reference = ErpExternalReference(
+                company_id=item.company_id,
+                provider=item.provider,
+                resource_type=item.aggregate_type,
+                internal_id=item.aggregate_id,
+                external_id=write_result.external_id,
+            )
+            db.add(reference)
+        reference.external_id = write_result.external_id
+        reference.external_model = write_result.external_model
+        reference.invoice_status = (
+            write_result.invoice_status
+            if write_result.invoice_status is not None
+            else reference.invoice_status
+        )
+        reference.stock_status = (
+            write_result.stock_status
+            if write_result.stock_status is not None
+            else reference.stock_status
+        )
+        reference.purchase_status = (
+            write_result.purchase_status
+            if write_result.purchase_status is not None
+            else reference.purchase_status
+        )
+        reference.provider_updated_at = utc_now()
         return "completed"
     except Exception as exc:
         failure = (
@@ -172,12 +212,13 @@ def process_outbox_item(
             )
         )
         item.last_error = failure.message
+        item.last_error_code = failure.code
         may_retry = policy.allows_retry(
             attempts_made=item.attempts,
             failure=failure,
             operation_is_idempotent=False,
             idempotency_key=item.idempotency_key,
-        )
+        ) and item.attempts < item.max_attempts
         if may_retry:
             item.status = "failed"
             delay = policy.delay_after(
@@ -185,18 +226,10 @@ def process_outbox_item(
                 retry_after_seconds=failure.retry_after_seconds,
             )
             item.next_attempt_at = utc_now() + timedelta(seconds=delay)
-            if raise_retryable:
-                raise IntegrationError(
-                    provider=provider.provider_name,
-                    operation="upsert",
-                    code=failure.code,
-                    message=failure.message,
-                    retryable=True,
-                    retry_after_seconds=failure.retry_after_seconds,
-                ) from exc
             return "failed"
         item.status = "failed_terminal"
         item.next_attempt_at = None
+        item.dead_lettered_at = utc_now()
         return "failed_terminal"
 
 
@@ -217,6 +250,7 @@ def process_pending(
     pending = (
         db.query(IntegrationOutbox)
         .filter(IntegrationOutbox.attempts < policy.max_attempts)
+        .filter(IntegrationOutbox.attempts < IntegrationOutbox.max_attempts)
         .filter(IntegrationOutbox.provider == provider.provider_name)
         .filter(
             or_(

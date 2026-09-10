@@ -25,8 +25,8 @@ from app.sectors.registry import (
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 GENERATED_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}
-PHASE_20_ROUTE_COUNT = 345
-PHASE_20_ROUTE_SHA256 = "9978bd6801c8208324746232f30054e9d3bb48408347aa0740350ee6edd333bc"
+PHASE_21_ROUTE_COUNT = 349
+PHASE_21_ROUTE_SHA256 = "81a3d8aa04acbacc51bd54b754c4a7b36bca8a2f7c6775f22d76fce5d0c587de"
 
 
 def _route_contract(application) -> list[str]:
@@ -57,13 +57,13 @@ def _import_targets(path: Path) -> set[str]:
     return targets
 
 
-def test_phase_20_http_and_websocket_contract_is_pinned(client):
+def test_phase_21_http_and_websocket_contract_is_pinned(client):
     routes = _route_contract(client.app)
     payload = "\n".join(routes).encode()
 
-    assert len(routes) == PHASE_20_ROUTE_COUNT, "\n".join(routes)
+    assert len(routes) == PHASE_21_ROUTE_COUNT, "\n".join(routes)
     assert len(routes) == len(set(routes)), "duplicate method/path registration detected"
-    assert hashlib.sha256(payload).hexdigest() == PHASE_20_ROUTE_SHA256, "\n".join(routes)
+    assert hashlib.sha256(payload).hexdigest() == PHASE_21_ROUTE_SHA256, "\n".join(routes)
 
 
 def test_application_mount_order_preserves_legacy_router_order():
@@ -165,6 +165,20 @@ def test_routers_do_not_import_other_routers():
             assert not target.startswith("app.routers"), f"{path}: router-to-router import {target}"
             assert not (target.startswith(".") and not target.startswith("..")), (
                 f"{path}: router-to-router relative import {target}"
+            )
+
+
+def test_customer_clients_never_call_odoo_directly():
+    repository_root = APP_ROOT.parents[1]
+    client_roots = (repository_root / "mobile" / "lib", repository_root / "assets" / "js")
+    forbidden = ("/json/2", "x-odoo-database", "odoo_base_url", "odoo.com/json")
+    for root in client_roots:
+        for path in root.rglob("*"):
+            if path.suffix.lower() not in {".dart", ".js", ".ts", ".tsx"}:
+                continue
+            source = path.read_text(encoding="utf-8", errors="ignore").lower()
+            assert not any(token in source for token in forbidden), (
+                f"{path}: customer clients must call GeoVision APIs, never Odoo"
             )
 
 

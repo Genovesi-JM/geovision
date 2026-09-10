@@ -90,8 +90,9 @@ how to confirm · what the automation does afterwards.
 - **Confirm:** One sandbox order completes order → invoice → payment → delivery
   reconciliation and the accountant signs off the configuration.
 - **After:** Set `ERP_PROVIDER=erpnext`, add restricted credentials, map custom
-  fields, deploy the independent event worker, and alert on retry/dead-letter
-  counts. Do not enable uncertain-write retries until provider uniqueness is proven.
+  fields, deploy the independent ERP and event workers, and alert on
+  retry/dead-letter counts. Do not requeue an uncertain write until provider
+  uniqueness and its external result have been reconciled.
 
 ## 11. Live photogrammetry processor activation
 - **Reason:** The deterministic provider, durable processing worker and NodeODM
@@ -260,3 +261,38 @@ how to confirm · what the automation does afterwards.
   claims, dead letters, provider latency/errors and endpoint suppressions. Keep
   SMS disabled until its own adapter and gate exist, and reconcile uncertain
   provider outcomes rather than blindly re-sending them.
+
+## 17. Odoo 19 live ERP/CRM activation
+
+- **Reason:** The provider-neutral ERP boundary, Odoo 19 JSON-2 adapter,
+  provider-pinned durable commands, external-reference/status projection and
+  signed replay-safe callback contract are implemented. A live Odoo database,
+  bridge addon, API key, accounting setup and callback signer are account- and
+  deployment-bound. The adapter is not evidence of fiscal correctness or safe
+  provider-side idempotency.
+- **Action:** Acquire an Odoo 19 Custom plan; create a duplicate/staging database;
+  install and review the custom `geovision.integration.bridge` addon; verify its
+  field/resource allowlist, company scoping and unique idempotency constraint;
+  create a dedicated least-privilege bot and API key; configure the independent
+  callback HMAC secret; approve network/TLS restrictions, retention, monitoring,
+  expiry ownership and a key rotation schedule of no more than three months.
+  Configure companies, currencies, taxes, accounts, warehouses, suppliers and
+  numbering with an accountant qualified for the operating jurisdictions.
+- **Where:** Odoo staging, GeoVision staging/secret manager, edge gateway and
+  monitoring; never Flutter/web clients, Git, event payloads or logs.
+- **Confirm:** The target database reports Odoo 19 and its `/doc` page exposes the
+  reviewed bridge. A representative GeoVision order syncs twice with one Odoo
+  result, then signed invoice, stock and purchase callbacks update only its
+  external projection. Reject a bad signature, expired/future timestamp,
+  duplicate/conflicting event, unknown mapping, external-ID mismatch and
+  cross-organization attempt. Exercise timeout, throttling, Odoo outage, stale
+  claim, bounded retry, dead-letter inspection/requeue, API-key rotation,
+  backup/restore and rollback. Throughout, GeoVision checkout, assets and
+  intelligence remain available and the accountant signs off the commercial and
+  Angolan fiscal workflow.
+- **After:** Set `ERP_PROVIDER=odoo`, load `ODOO_*` values only from the server
+  secret manager, deploy the independent ERP and event workers and alert on oldest due
+  work, claim age, retry/dead-letter volume, authentication/rate-limit errors,
+  callback rejects/age and mapping drift. Retain the old provider long enough to
+  drain or reconcile rows already pinned to it; never relabel those rows. Follow
+  [the Odoo 19 runbook](docs/ODOO_19_INTEGRATION.md) for rotation and rollback.

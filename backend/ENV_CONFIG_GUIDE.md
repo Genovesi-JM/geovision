@@ -163,9 +163,12 @@ INTEGRATION_RETRY_INITIAL_SECONDS=0.5
 INTEGRATION_RETRY_MAX_SECONDS=8
 ```
 
-`INTEGRATION_RETRY_ATTEMPTS` includes the first attempt. Retry delays use
-bounded exponential backoff. ERP provider calls retain this policy; the general
-event worker has its own bounded claim/retry/dead-letter settings documented in
+`INTEGRATION_RETRY_ATTEMPTS` includes the first attempt. Retry delays use bounded
+exponential backoff. Each new ERP command snapshots that attempt value and the
+independent ERP worker uses the initial/maximum delay values above; changing the
+environment later does not rewrite queued rows. Migrated existing rows receive a
+three-attempt default. The general event worker has its own bounded
+claim/retry/dead-letter settings documented in
 [`docs/DURABLE_EVENTS.md`](../docs/DURABLE_EVENTS.md).
 
 ## Provider selection
@@ -350,9 +353,10 @@ authorization, deletion, and rollback contracts.
 
 ## ERP
 
-GeoVision remains the system of record. The existing ERPNext adapter consumes
-the provider-neutral ERP port and the local integration outbox remains the
-idempotency boundary.
+GeoVision remains the system of record. Odoo 19 and the existing ERPNext
+compatibility adapter consume the provider-neutral ERP port. The local
+integration outbox plus provider-side uniqueness form the retry/idempotency
+boundary; neither provider owns GeoVision UUIDs.
 
 Local development and tests may use:
 
@@ -373,24 +377,69 @@ ERPNEXT_API_SECRET=
 flow; Phase 2 does not consume it and setting it does not enable webhook
 verification.
 
-Every new outbox row records its selected provider, and processing selects only
-rows pinned to the provider being run. A provider change therefore does not
-silently reroute new or pending rows. Before a cutover, drain or explicitly
-reconcile work pinned to the old provider. For compatibility, a legacy row with
-`status="failed"` and `next_attempt_at=NULL` receives one processing decision:
-success completes it, a retryable failure receives a due time, and a
-non-retryable or exhausted failure becomes `failed_terminal`. New terminal
-failures also use `failed_terminal` and are not selected again automatically.
+To select the Odoo 19 JSON-2 adapter, provide only server-side values:
+
+```dotenv
+ERP_PROVIDER=odoo
+ODOO_BASE_URL=https://odoo.example.invalid
+ODOO_DATABASE=geovision-staging
+ODOO_API_KEY=
+ODOO_WEBHOOK_SECRET=
+ODOO_BRIDGE_MODEL=geovision.integration.bridge
+ODOO_BRIDGE_METHOD=sync_from_geovision
+ERP_WORKER_POLL_SECONDS=5
+ERP_WORKER_BATCH_SIZE=50
+ERP_WORKER_CLAIM_TIMEOUT_SECONDS=300
+ERP_CALLBACK_REPLAY_WINDOW_SECONDS=300
+```
+
+`ODOO_BASE_URL` is the origin only, without credentials, path, query or fragment;
+deployed profiles require HTTPS. `ODOO_API_KEY` is a bearer key for a dedicated
+least-privilege Odoo bot and `ODOO_WEBHOOK_SECRET` independently authenticates
+callbacks. Both are redacted settings and belong in the server secret manager;
+deployed Odoo profiles require a webhook secret of at least 32 characters.
+Odoo makes `X-Odoo-Database` optional at protocol level, but GeoVision requires
+`ODOO_DATABASE` and always sends it. This deliberately pins one reviewed database
+and fails closed instead of relying on host routing that could later become
+ambiguous. The bridge model/method are validated technical identifiers and should
+retain their defaults unless the reviewed Odoo addon deliberately uses another
+name.
+
+Odoo 19 external API access requires a Custom plan. Odoo keys expire after at
+most three months, so create a replacement, update/restart all workers and API
+replicas, verify a new sync, and only then revoke the old key. Complete
+[Human Gate 17](../HUMAN_GATES.md#17-odoo-19-live-erpcrm-activation) before a
+live selection. The exact JSON-2, callback, worker, reconciliation and rollback
+contracts are in
+[`docs/ODOO_19_INTEGRATION.md`](../docs/ODOO_19_INTEGRATION.md).
+
+Run Odoo/ERPNext command delivery independently from API replicas:
+
+```bash
+python -m app.workers.erp_worker
+```
+
+The general `event_worker` should also run for canonical event receipts and ERP
+result facts. `erp_worker --once` performs one bounded cycle;
+`erp_worker --requeue <OUTBOX_ID>` requeues a reconciled ERP dead letter.
+
+Every new outbox row records its selected provider, and the ERP worker resolves
+that recorded provider after claim/revalidation. A settings change therefore does
+not silently reroute old pending work. Before a cutover, drain or explicitly
+reconcile work pinned to the old provider. Current worker states are `pending`,
+`processing`, `failed` (scheduled retry), `completed`, and `dead_letter`. It
+recovers expired leases and moves exhausted/non-retryable work to `dead_letter`.
+The older synchronous compatibility path can still produce `failed_terminal`;
+both terminal names require an explicit reconciled requeue and are never selected
+automatically.
 
 The local outbox and unique idempotency key prevent duplicate GeoVision queue
-rows, but they do not alone guarantee exactly-once behavior in ERPNext. The
-adapter sends `custom_geovision_idempotency_key`; the ERPNext deployment must
-provide and enforce a suitable custom field or other provider-side deduplication.
-An unknown outcome from the side-effecting POST/upsert is terminal for manual
-reconciliation unless an adapter can prove provider-side idempotency. The mock
-ERP adapter is rejected in staging and production when the adapter is resolved,
-not at application startup. Odoo is not active; its implementation and controlled
-cutover remain Phase 21 work.
+rows, but do not alone guarantee exactly-once behavior. ERPNext must enforce its
+`custom_geovision_idempotency_key`. The Odoo custom bridge must enforce the
+request `idempotency_key` and atomically return the same logical mapping for a
+retry. Reconcile an unknown side-effecting outcome before manual requeue unless
+that provider-side guarantee has been proven. The mock adapter is rejected in
+staging and production when resolved, not at application startup.
 
 ## Notifications
 

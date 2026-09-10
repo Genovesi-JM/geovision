@@ -17,11 +17,11 @@ instead of treating legacy structures as disposable.
 | R07 | Medium | Customer roles and internal GeoVision assignments are now separate, but `users.role = admin` remains a documented temporary bridge for old deployments/tests | A legacy staff record can retain platform access until the bridge is removed | Audit `ADMIN_EMAILS`, verify all admins have `GV_SUPER_ADMIN`, move staff grants to `internal_role_assignments`, then remove the legacy bridge after client/cutover validation |
 | R08 | Medium | Phase 6 provides expiring, single-use, tenant-scoped invitations into an existing workspace/asset/result and Phase 20 stages their durable encrypted email delivery; production HTTPS app-link association and live provider delivery are not verified yet | A deployment could fall back to browser/custom-scheme handling or fail to deliver an invitation even though acceptance itself is safe | Complete signed-domain association and Gate 16 live delivery tests; monitor issue-to-delivery-to-accept conversion using IDs without recording tokens |
 | R09 | Medium | IoT offline detection and retention have an independent worker and emit durable events; MQTT ingress and WebSocket fan-out remain API-local when enabled | Multiple MQTT-enabled API replicas can duplicate ingress connections, while in-memory live updates do not fan out across replicas | Deploy one MQTT ingress owner until a managed ingress is selected, run the independent IoT worker, and add distributed live fan-out before scaling MQTT/WebSocket replicas |
-| R10 | High | ERP work now flows through the canonical event worker with claims, receipts, bounded retry, attempt history and operator dead-letter recovery; provider-side ERP deduplication is not yet proven | An uncertain provider write still requires reconciliation and must not be blindly repeated | Add the provider idempotency field in staging, prove uniqueness/reconciliation, and alert on canonical retry/dead-letter counts before activation |
+| R10 | High | ERP work flows through provider-pinned durable commands, an independent short-lease worker, and canonical result events with bounded retry and operator dead-letter recovery; Odoo/ERPNext provider-side deduplication is not yet proven live | An uncertain provider write can duplicate a commercial document if it is blindly repeated | Enforce and test the stable idempotency key in each provider, reconcile timeouts through the external mapping, and alert on due/retry/dead-letter counts before activation |
 | R11 | High | Typed configuration fails closed for signing/encryption in staging/production, but the JWT guard is syntactic rather than an entropy assessment and most provider validation occurs when a factory/adapter is used; local/development may still generate an ephemeral JWT key or explicit `plain:` connector compatibility values | Misclassified environments can invalidate sessions, weak-looking secrets can pass a length/placeholder check, or a dormant provider misconfiguration can remain undiscovered until use | Use high-entropy managed secrets, exercise every enabled provider in deployment checks, keep redacted diagnostics, require encryption anywhere real connector credentials are used, and track historical-row remediation under R24 |
 | R12 | High | Phase 8 derives payment truth from the owned order, routes operations through the provider port, separates settlement/fulfilment, and deduplicates signed Stripe/Multicaixa callbacks; bank fields are still not live-validated and PayPal lacks deployed webhook verification/API-backed refunds | An operator can deploy invalid bank details or mistake an unsupported PayPal operation for a live capability | Require verified banking values and keep unavailable capability states explicit; add and verify PayPal webhook/refund support only when real credentials and provider verification are available |
 | R13 | Medium | Dataset storage now has durable file identity, streaming, signed uploads, local/S3/Azure adapters, provider size/checksum verification, and recoverable deletion; legacy Document flows still use their older facade | New dataset uploads no longer require relational blobs or full buffering, but legacy documents can retain weaker storage behavior | Route new geospatial payloads through canonical datasets and harden/retire the legacy Document facade during the report/document phases |
-| R14 | High | The provider-neutral ERP port preserves the current ERPNext adapter, while the playbook specifies a later Odoo integration | Replacing ERP code prematurely can interrupt commerce and accounting synchronization | Add Odoo as another adapter and retire ERPNext only after an approved Phase 21 cutover |
+| R14 | High | Phase 21 adds Odoo 19 JSON-2 behind the provider-neutral ERP port while preserving the ERPNext adapter and provider-pinned queued work | A settings-only or destructive cutover can strand or send old commercial commands to the wrong provider | Complete Gate 17, inventory/drain/reconcile rows with their recorded provider, retain rollback credentials and retire ERPNext only after an approved cutover |
 | R15 | High | Current deployment is DigitalOcean; Azure Blob, Service Bus and Event Grid adapters now exist behind provider boundaries, but live Azure infrastructure and identity assignments are not provisioned | A big-bang cloud move can mix domain refactoring with operational migration or activate unverified credentials | Provision and validate adapters in staging, rehearse rollback, then migrate capabilities independently rather than switching the whole platform at once |
 | R16 | Medium | The current public scope hides or combines some sectors, while the playbook requires five explicit verticals including Ports/Industrial | UI, catalogue and data fixtures may contradict the new architecture or over-promise immature capabilities | Treat sector activation as later feature-flagged phases; do not change public claims during foundation work |
 | R17 | Medium | Flutter top-level navigation is Portal, Assets, Store, Alerts and More rather than Home, Assets, Actions, Services and More | Early backend work could accidentally couple to a UI structure scheduled for replacement | Keep navigation changes in Phase 22 and expose backend capabilities independent of tab names |
@@ -45,6 +45,7 @@ instead of treating legacy structures as disposable.
 | R35 | High | Phase 18 activates Agriculture bundle `1.0.0` with a strict structured-analysis schema and generic initial screening thresholds, while real crop/season/sensor validation and raster-statistics production remain gated | A valid but locally inappropriate index threshold, stale sensor, or unreviewed zone model could be mistaken for an agronomic diagnosis or treatment instruction | Require Gate 14a and exact applicability profiles before live decision claims; accept only finite/ranged structured evidence, expose missing sources, retain `NEEDS_REVIEW`, never infer indices from band availability, and never generate chemical/disease/yield prescriptions |
 | R36 | High | External narrative generation and report publication can amplify an invented, rounded, weakly sourced or cross-tenant claim | A customer could act on a false number or receive evidence that was never approved for them | Keep deterministic generation as default; freeze and hash an authorized context; reject unknown output fields, evidence IDs and all provider-authored numeric literals; inject exact numbers only in the renderer; require QA/review/publication permissions, tenant filtering, audit/outbox events and Gate 15 before any live model |
 | R37 | High | Phase 20 adds durable SMTP/Azure Notification Hubs delivery, encrypted platform tokens, backend-managed Azure installations and a Flutter native-channel boundary, but signed iOS/Android host handlers, live SMTP/APNs/FCM accounts, physical-device behavior, quotas and provider-side deduplication are not verified; installation identifiers remain operational personal data | A missing/misconfigured host or provider can delay/drop customer messages, dead endpoints can accumulate, or a crash after provider acceptance can cause a duplicate; weak endpoint lifecycle/retention can expose routing metadata | Keep the durable inbox authoritative; require Gate 16 before live activation; implement/test the signed host channels, encrypt and digest platform tokens, restrict and retain endpoint/delivery data deliberately, monitor due age/retries/stale claims/dead letters/suppressions, reauthorize every target on tap, and reconcile uncertain outcomes rather than blind requeue |
+| R38 | High | Phase 21 implements the Odoo 19 JSON-2 adapter, narrow external-reference/status projection and signed callback receipts, but no live Odoo Custom plan/database, reviewed bridge addon, bot ACLs, API key, callback signer or Angolan accounting configuration has been validated | A broad bridge or bot can expose/corrupt multiple companies; a missing idempotency constraint can duplicate documents; a bad callback/cutover can overwrite status projections, and an expired three-month key can silently stop synchronization | Require Gate 17; allowlist bridge fields/resources, audit ACLs/record rules/company access, prove idempotency and callback replay/mapping checks, rotate keys before expiry, validate fiscal workflows, monitor/reconcile queues and retain provider-pinned rollback |
 
 ## Controls that already reduce risk
 
@@ -55,7 +56,8 @@ instead of treating legacy structures as disposable.
 - IoT ingestion includes tenant scoping, per-device credentials, replay
   protection and test coverage.
 - ERP events use durable GeoVision idempotency keys and provider-pinned outbox
-  rows; this does not yet prove provider-side deduplication.
+  rows. Odoo is confined to one configured JSON-2 bridge and signed callback
+  status projection; live provider-side deduplication remains Gate 17 evidence.
 - Staging and production configuration apply a minimum syntactic JWT guard and
   require a valid Fernet encryption key before application startup; deployed
   encryption calls also fail closed if the runtime cannot encrypt.
@@ -67,11 +69,11 @@ instead of treating legacy structures as disposable.
 - The S3 factory rejects partial explicit credentials, and the adapter maps
   provider authentication, configuration, validation/not-found, and transient
   failures into normalized outcomes.
-- ERP outbox retries are bounded and scheduled only when a retryable failure is
-  due. Legacy `failed` rows with a NULL next-attempt time receive one
-  compatibility decision; new terminal/exhausted failures use
-  `failed_terminal`. Unknown outcomes from side-effecting ERPNext writes are not
-  retried automatically without proven provider-side idempotency.
+- ERP outbox retries are bounded and scheduled only when due. Terminal work and
+  canonical dead letters require operator reconciliation/requeue. Odoo external
+  mappings keep GeoVision UUIDs authoritative and callback receipts reject replay
+  without storing raw bodies. Unknown side-effecting outcomes still require
+  provider-side idempotency evidence before requeue.
 - Deployed SMTP delivery requires STARTTLS with certificate verification. The
   independent delivery worker uses bounded claims, retry and dead-letter state;
   the local delivery sinks remain development-only compatibility adapters.
@@ -526,3 +528,24 @@ without a compatibility plan.
 - **Introduced and controlled:** R37 records the remaining live SMTP/APNs/FCM,
   physical-device, quota, endpoint-retention and uncertain-acknowledgement work.
   The in-app history is authoritative; external delivery is not exactly once.
+
+## Phase 21 outcome
+
+- **Reduced:** R14, because Odoo 19 is an additional adapter behind the existing
+  ERP port rather than a replacement for GeoVision or an in-place rewrite of
+  ERPNext. Commands retain their selected provider through cutover and rollback.
+- **Reduced:** R10, because order creation stages its server-owned commercial
+  snapshot and ERP sync-request event atomically, Odoo receives a stable idempotency key,
+  and worker claim/retry/dead-letter state plus mappings make reconciliation
+  observable. Live bridge uniqueness still requires Gate 17 proof.
+- **Contained:** Provider identity and callback risk, because external IDs live
+  only in a provider/resource/internal-ID mapping and a signed, timestamp-bounded,
+  event-deduplicated callback can update only allowlisted status projections.
+  Raw callback bodies and Odoo debug responses are not retained.
+- **Contained:** Odoo outage and lock-in, because provider I/O occurs after the
+  GeoVision transaction and the customer application reads GeoVision-owned
+  orders, assets and intelligence. XML-RPC/JSON-RPC and Odoo-specific model calls
+  do not leak into domain modules or clients.
+- **Introduced and controlled:** R38 and Gate 17 record the remaining Odoo Custom
+  plan, bridge-addon review, bot permissions, API-key rotation, callback signer,
+  fiscal validation, staging recovery and live cutover work.

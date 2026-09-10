@@ -65,6 +65,29 @@ services:
     depends_on:
       db: {condition: service_healthy}
 
+  erp-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    command: ["python", "-m", "app.workers.erp_worker"]
+    env_file:
+      - path: .env.iot
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      ERP_PROVIDER: ${ERP_PROVIDER:-mock}
+      ODOO_BASE_URL: ${ODOO_BASE_URL:-}
+      ODOO_DATABASE: ${ODOO_DATABASE:-}
+      ODOO_API_KEY: ${ODOO_API_KEY:-}
+      ODOO_WEBHOOK_SECRET: ${ODOO_WEBHOOK_SECRET:-}
+      ODOO_BRIDGE_MODEL: ${ODOO_BRIDGE_MODEL:-geovision.integration.bridge}
+      ODOO_BRIDGE_METHOD: ${ODOO_BRIDGE_METHOD:-sync_from_geovision}
+      ERPNEXT_BASE_URL: ${ERPNEXT_BASE_URL:-}
+      ERPNEXT_API_KEY: ${ERPNEXT_API_KEY:-}
+      ERPNEXT_API_SECRET: ${ERPNEXT_API_SECRET:-}
+    depends_on:
+      db: {condition: service_healthy}
+
   notification-worker:
     build:
       context: ./backend

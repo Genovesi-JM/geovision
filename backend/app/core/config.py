@@ -43,6 +43,7 @@ _URL_FIELDS = frozenset(
         "entra_external_id_discovery_url",
         "entra_external_id_issuer",
         "erpnext_base_url",
+        "odoo_base_url",
         "frontend_base",
         "multicaixa_api_url",
         "multicaixa_callback_url",
@@ -296,6 +297,16 @@ class Settings(BaseSettings):
     erpnext_api_key: Optional[str] = Field(default=None, repr=False)
     erpnext_api_secret: Optional[str] = Field(default=None, repr=False)
     erpnext_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    odoo_base_url: Optional[str] = Field(default=None, repr=False)
+    odoo_database: Optional[str] = None
+    odoo_api_key: Optional[str] = Field(default=None, repr=False)
+    odoo_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    odoo_bridge_model: str = "geovision.integration.bridge"
+    odoo_bridge_method: str = "sync_from_geovision"
+    erp_worker_poll_seconds: float = Field(default=5.0, gt=0, le=300)
+    erp_worker_batch_size: int = Field(default=50, ge=1, le=500)
+    erp_worker_claim_timeout_seconds: int = Field(default=300, ge=30, le=3600)
+    erp_callback_replay_window_seconds: int = Field(default=300, ge=30, le=3600)
 
     # Notifications. MAIL_* aliases preserve the older deployment guide.
     notification_provider: str = "auto"
@@ -426,6 +437,8 @@ class Settings(BaseSettings):
             "erpnext_api_key",
             "erpnext_api_secret",
             "erpnext_webhook_secret",
+            "odoo_api_key",
+            "odoo_webhook_secret",
             "smtp_password",
             "azure_notification_hubs_sas_key",
             "multicaixa_api_key",
@@ -868,6 +881,34 @@ class Settings(BaseSettings):
                 "INTEGRATION_RETRY_MAX_SECONDS must be greater than or equal to "
                 "INTEGRATION_RETRY_INITIAL_SECONDS"
             )
+        if self.erp_provider not in {"mock", "erpnext", "odoo"}:
+            raise ValueError("ERP_PROVIDER must be mock, erpnext, or odoo")
+        if not re.fullmatch(r"[a-z][a-z0-9_.]{1,118}[a-z0-9]", self.odoo_bridge_model):
+            raise ValueError("ODOO_BRIDGE_MODEL must be a technical model identifier")
+        if not re.fullmatch(r"[a-z][a-z0-9_]{1,118}[a-z0-9]", self.odoo_bridge_method):
+            raise ValueError("ODOO_BRIDGE_METHOD must be a technical method identifier")
+        if self.odoo_base_url:
+            parsed = urlsplit(self.odoo_base_url)
+            allowed_schemes = {"https"} if self.is_deployed else {"http", "https"}
+            if (
+                parsed.scheme.lower() not in allowed_schemes
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+                or parsed.path not in {"", "/"}
+            ):
+                raise ValueError(
+                    "ODOO_BASE_URL must be an origin-only provider URL without credentials"
+                )
+            self.odoo_base_url = self.odoo_base_url.rstrip("/")
+        if self.erp_provider == "odoo" and not all(
+            (self.odoo_base_url, self.odoo_database, self.odoo_api_key)
+        ):
+            raise ValueError(
+                "ERP_PROVIDER=odoo requires ODOO_BASE_URL, ODOO_DATABASE, and ODOO_API_KEY"
+            )
         if self.is_deployed:
             if self.queue_provider in {"null", "in_memory"}:
                 raise ValueError(
@@ -906,6 +947,13 @@ class Settings(BaseSettings):
                 raise ValueError("deployed environments cannot use the fake satellite provider")
             if self.weather_provider in {"fake", "deterministic"}:
                 raise ValueError("deployed environments cannot use the fake weather provider")
+            if self.erp_provider == "odoo" and (
+                not self.odoo_webhook_secret or len(self.odoo_webhook_secret) < 32
+            ):
+                raise ValueError(
+                    "deployed Odoo integration requires a 32+ character "
+                    "ODOO_WEBHOOK_SECRET"
+                )
             for field_name, configured_url in (
                 ("FRONTEND_BASE", self.frontend_base),
                 ("BACKEND_BASE", self.backend_base),
@@ -1176,6 +1224,11 @@ class Settings(BaseSettings):
                     self.erpnext_base_url
                     and self.erpnext_api_key
                     and self.erpnext_api_secret
+                ),
+                "odoo": bool(
+                    self.odoo_base_url
+                    and self.odoo_database
+                    and self.odoo_api_key
                 ),
                 "multicaixa": self.multicaixa_configuration_complete,
                 "stripe": bool(self.stripe_secret_key),

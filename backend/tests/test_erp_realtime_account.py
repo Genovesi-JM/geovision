@@ -70,7 +70,7 @@ def test_erp_outbox_is_idempotent_and_mock_processes():
         db.refresh(first)
         assert result["failed"] == 0
         assert first.status == "completed"
-        assert first.external_id.startswith("MOCK-SALES ORDER-")
+        assert first.external_id.startswith("MOCK-ORDER-")
         assert db.query(IntegrationOutbox).filter_by(idempotency_key=first.idempotency_key).count() == 1
     finally:
         db.close()

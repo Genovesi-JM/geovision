@@ -27,6 +27,7 @@ Run workers independently from API replicas:
 
 ```bash
 python -m app.workers.event_worker
+python -m app.workers.erp_worker
 python -m app.workers.iot_worker
 python -m app.workers.notification_worker
 ```
@@ -109,16 +110,32 @@ objects are reported but never attached to a tenant or dataset.
 ## ERP migration and operations
 
 The older `integration_outbox` remains the ERP-specific command record and
-provider status surface. Enqueuing it now also creates `erp.sync_requested` in
-the general outbox. The event worker locks and processes the pinned ERP record,
-then records `erp.sync_completed` or `erp.sync_failed`. The old administrator
-sync endpoint remains compatible during cutover. Provider-side uniqueness is
-still required before uncertain external writes may be considered exactly once.
+provider status surface. Enqueuing it also creates `erp.sync_requested` in the
+general outbox in the domain transaction. The general event consumer validates
+and acknowledges that signal without provider I/O. The independent ERP worker
+claims the provider-pinned command using a short lease, releases database locks
+before the request, and records `erp.sync_completed` or `erp.sync_failed` after
+the result. The old administrator sync endpoint remains compatible during
+cutover. Odoo results populate a narrow provider/GeoVision UUID mapping and may
+project invoice, stock and purchase status; an Odoo ID never replaces the
+aggregate identity.
 
-Administrators can inspect counts, dead letters, and attempt history under
-`/integrations/events`. Requeue resets the delivery budget but retains the prior
-attempt audit. Requeue only after correcting the payload consumer, provider
-configuration, or downstream data problem.
+Odoo calls one custom JSON-2 bridge method with the same stable idempotency key.
+The bridge must enforce that key before retry of an uncertain external write is
+safe. A signed Odoo callback has a five-minute replay window, a unique
+provider/event receipt and a raw-body digest; it can update only status fields on
+an existing matching mapping. Callback failure never removes or rolls back the
+owning GeoVision order.
+
+Administrators inspect ERP counts, safe command details, tenant-filtered status
+projections and controlled requeue under `/integrations/erp`. The separate
+`/integrations/events` endpoints expose canonical-event state and attempts.
+`python -m app.workers.erp_worker --requeue <OUTBOX_ID>` provides a server-side
+ERP requeue. Requeue only after correcting the provider/data problem and
+reconciling any timeout with the Odoo idempotency/mapping record. Switching
+`ERP_PROVIDER` affects new commands; it does not reroute rows already pinned to
+Odoo or ERPNext. See
+[the Odoo 19 integration runbook](ODOO_19_INTEGRATION.md).
 
 ## Contextual notification projection
 

@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.deps import get_current_user
 from app.core.time import utc_now
 from app.models import CatalogItem, User, Order, OrderItem, Product, Inventory
+from app.modules.orders.services import enqueue_order_created_erp
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -111,6 +112,7 @@ def create_order(
         oi.order_id = o.id
         db.add(oi)
 
+    enqueue_order_created_erp(db, order=o)
     db.commit()
     return {"order_id": o.id, "total": float(o.total), "status": o.status}
 

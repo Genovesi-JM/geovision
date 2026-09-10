@@ -382,6 +382,13 @@ class OrderService:
 
         self.db.flush()
 
+        # Order, line snapshots, ERP outbox command, and its wake-up event are
+        # committed atomically by the checkout transaction. ERP availability
+        # is never part of the customer-facing checkout result.
+        from app.modules.orders.services import enqueue_order_created_erp
+
+        enqueue_order_created_erp(self.db, order=order)
+
         # Decrement stock for items that track inventory
         try:
             from sqlalchemy import text as sa_text

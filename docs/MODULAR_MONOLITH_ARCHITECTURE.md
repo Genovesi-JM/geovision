@@ -115,18 +115,17 @@ consumer receipts, and dead-letter state.
 
 Concrete implementations live under `app/integrations`. The storage factory
 lazily selects private local, S3-compatible, or Azure Blob adapters, and the ERP
-factory selects the local mock or existing ERPNext adapter. Queue composition
-selects the database worker or Azure Service Bus, while the Event Grid adapter
-normalizes BlobCreated ingress. Processing now selects deterministic fake or
-NodeODM adapters; monitoring selects deterministic fake, Copernicus satellite,
-or AEMET weather adapters at the composition boundary. Reports select a strict
-offline deterministic narrative provider and retain an explicit unavailable
-boundary for unapproved external models. Notification deliveries are pinned to
-provider-neutral channel rows and resolved lazily to SMTP, Azure Notification
-Hubs, a local ID-only sink, or an unavailable adapter by an independent worker.
-Odoo, Azure Maps
-Weather, GIS, construction, asset-management, and maritime adapters are not
-activated yet.
+factory selects the local mock, ERPNext compatibility adapter or Odoo 19 JSON-2
+adapter. Queue composition selects the database worker or Azure Service Bus,
+while the Event Grid adapter normalizes BlobCreated ingress. Processing now
+selects deterministic fake or NodeODM adapters; monitoring selects deterministic
+fake, Copernicus satellite, or AEMET weather adapters at the composition
+boundary. Reports select a strict offline deterministic narrative provider and
+retain an explicit unavailable boundary for unapproved external models.
+Notification deliveries are pinned to provider-neutral channel rows and resolved
+lazily to SMTP, Azure Notification Hubs, a local ID-only sink, or an unavailable
+adapter by an independent worker. Live Odoo requires Gate 17; Azure Maps Weather,
+GIS, construction, asset-management, and maritime adapters are not activated.
 
 `app/core/config.py` is the single typed source for environment and provider
 configuration. It recognizes local, development, test, staging, and production
@@ -143,9 +142,9 @@ credentials, headers, or unbounded response bodies.
 
 Existing dedicated external-ID fields remain unchanged. The
 `ExternalReference` utility associates such an opaque value with an existing
-GeoVision UUID and provider/resource namespaces. A generic persisted mapping is
-deferred until workspace and generic Asset ownership are stable, so Phase 2
-requires no schema or customer-data migration.
+GeoVision UUID and provider/resource namespaces. Phase 21 adds the narrow
+`erp_external_references` persistence projection for ERP commercial resources;
+it is not a generic connector mapping and cannot map Assets or intelligence.
 
 ## Common domain modules
 
@@ -159,7 +158,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Organizations | Canonical organizations/workspaces, membership lifecycle, separate staff roles, server-enforced RBAC, and secure invitation-first acceptance/deep-link contracts are implemented over compatibility table names |
 | Assets | Generic organization/workspace-owned hierarchy, validated GeoJSON, portable bbox queries, optional PostGIS projection, and legacy Site/IoT mirroring are implemented |
 | Catalog | Canonical first-party products, services, plans, installations, inspections and analyses; legacy shop/product routes are compatibility projections |
-| Orders | Canonical customer/internal order APIs, catalogue pricing snapshots, separate fulfilment/settlement state machines, optimistic lifecycle guards, and legacy shop/order projections are implemented |
+| Orders | Canonical customer/internal order APIs, catalogue pricing snapshots, separate fulfilment/settlement state machines, optimistic lifecycle guards, atomic provider-neutral ERP handoff, and legacy shop/order projections are implemented |
 | Operations | Private suppliers, generic contractors/capabilities, guarded assignments, least-privilege contractor self-access, and canonical fulfilment jobs are implemented; admin/mobile/inspection facades remain transitional |
 | Missions | Provider-neutral drone, satellite, IoT, manual-inspection, and third-party acquisitions share one asset history; drone details and legacy mobile/inspection routes are compatibility extensions |
 | Datasets | Asset/mission-linked metadata, lifecycle, tenant-safe streaming/signed uploads, immutable file identity, and local/S3/Azure storage adapters are implemented |
@@ -196,6 +195,17 @@ signed host. GeoVision stores the returned APNs/FCM token encrypted; the worker
 validates it and the Azure adapter idempotently maintains the provider
 installation before sending. See
 [the notification delivery contract](NOTIFICATION_DELIVERY.md).
+
+The orders module owns the provider-neutral `ERPProvider` command/result
+contract. Its creation service stages the authoritative order snapshot, the
+provider-pinned ERP command and `erp.sync_requested` in the caller's transaction.
+`app/integrations/erp` owns Odoo/ERPNext protocol details; the independent ERP
+worker owns short claims, external I/O, bounded retry and dead-letter transitions,
+while the event worker records canonical receipts and result facts. Signed Odoo
+callbacks terminate at the integrations router and can update only the narrow
+external-reference/status projection after replay and mapping checks. They do
+not call order routes or modify organizations, Assets or intelligence. See
+[the Odoo 19 integration contract](ODOO_19_INTEGRATION.md).
 
 ## Sector boundaries
 
@@ -245,13 +255,14 @@ This boundary does not imply that in-process execution is production-safe at
 multiple replicas; Phase 13 and Phase 16 must introduce durable/distributed
 coordination before scaling them horizontally.
 
-The event worker and notification worker are independent deployed processes.
-The event worker converts registered domain facts into provider-neutral inbox
-and delivery rows through an idempotent consumer receipt. The notification
-worker uses short database claims, rechecks membership/preferences/endpoints,
-performs external I/O without holding the claim transaction open, and persists
-bounded retry, suppression, delivery or dead-letter state afterwards. API
-replicas do not need SMTP or Azure access merely to commit a business result.
+The event, ERP and notification workers are independent deployed processes. The
+event worker delivers registered domain facts through idempotent consumer
+receipts. The ERP worker claims provider-pinned commands and performs Odoo I/O
+outside short database transactions. The notification worker uses short database
+claims, rechecks membership/preferences/endpoints, performs external I/O without
+holding the claim transaction open, and persists bounded retry, suppression,
+delivery or dead-letter state afterwards. API replicas do not need SMTP, Azure or
+Odoo access merely to commit a business result.
 
 ## Transitional persistence layer
 

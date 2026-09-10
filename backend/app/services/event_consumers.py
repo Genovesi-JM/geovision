@@ -11,14 +11,16 @@ from app.models import IntegrationOutbox
 from app.services.event_outbox import (
     EventConsumerRegistry,
     EventOutboxError,
-    enqueue_domain_event,
 )
 
 
 def _consume_erp_sync(db: Session, event: DomainEvent) -> None:
-    from app.integrations.erp import get_erp_adapter
-    from app.services.erp_sync import process_outbox_item
+    """Acknowledge the wake-up signal; the ERP worker owns provider I/O.
 
+    This consumer deliberately performs no network calls. Rolling back the
+    generic event transaction can therefore never erase an ERP attempt or its
+    retry/dead-letter state.
+    """
     item_id = str(event.payload.get("integration_outbox_id") or "")
     if not item_id:
         raise EventOutboxError(
@@ -33,34 +35,12 @@ def _consume_erp_sync(db: Session, event: DomainEvent) -> None:
         raise EventOutboxError(
             "erp_item_missing", "ERP sync request no longer has a source record"
         )
-    provider = get_erp_adapter()
-    outcome = process_outbox_item(
-        db,
-        item,
-        provider=provider,
-        raise_retryable=True,
-    )
-    result_event = (
-        EventNames.ERP_SYNC_COMPLETED
-        if outcome == "completed"
-        else EventNames.ERP_SYNC_FAILED
-    )
-    enqueue_domain_event(
-        db,
-        name=result_event,
-        aggregate_type=item.aggregate_type,
-        aggregate_id=item.aggregate_id,
-        idempotency_key=f"erp-result:{item.id}:{outcome}",
-        correlation_id=event.correlation_id,
-        causation_id=str(event.event_id),
-        payload={
-            "integration_outbox_id": item.id,
-            "organization_id": item.company_id,
-            "provider": item.provider,
-            "external_reference": item.external_id,
-            "outcome": outcome,
-        },
-    )
+    event_provider = str(event.payload.get("provider") or "")
+    if event_provider and event_provider != item.provider:
+        raise EventOutboxError(
+            "erp_provider_mismatch",
+            "ERP sync signal does not match the provider pinned on its source record",
+        )
 
 
 def _consume_dataset_ready(

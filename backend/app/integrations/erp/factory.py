@@ -6,8 +6,12 @@ from app.core.integration import IntegrationConfigurationError
 from .base import ErpAdapter
 
 
-def get_erp_adapter(config: Settings = settings) -> ErpAdapter:
-    provider_name = config.erp_provider.lower()
+def get_erp_adapter(
+    config: Settings = settings,
+    *,
+    provider_name: str | None = None,
+) -> ErpAdapter:
+    provider_name = (provider_name or config.erp_provider).lower()
     if provider_name == "erpnext":
         if not all(
             (
@@ -27,6 +31,23 @@ def get_erp_adapter(config: Settings = settings) -> ErpAdapter:
             config.erpnext_base_url,
             config.erpnext_api_key,
             config.erpnext_api_secret,
+            timeout_seconds=config.integration_read_timeout_seconds,
+        )
+    if provider_name == "odoo":
+        if not all((config.odoo_base_url, config.odoo_database, config.odoo_api_key)):
+            raise IntegrationConfigurationError(
+                provider="odoo",
+                operation="initialize",
+                message="Odoo is selected but its URL, database, or API key is incomplete",
+            )
+        from .odoo import OdooAdapter
+
+        return OdooAdapter(
+            config.odoo_base_url,
+            config.odoo_database,
+            config.odoo_api_key,
+            bridge_model=config.odoo_bridge_model,
+            bridge_method=config.odoo_bridge_method,
             timeout_seconds=config.integration_read_timeout_seconds,
         )
     if provider_name == "mock":

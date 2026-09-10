@@ -3581,11 +3581,98 @@ class IntegrationOutbox(Base):
     idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True, index=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=3, server_default="3"
+    )
     external_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    external_model: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    last_error_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     next_attempt_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    lease_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    dead_lettered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class ErpExternalReference(Base):
+    """Provider mapping/projection; GeoVision's internal ID remains authoritative."""
+
+    __tablename__ = "erp_external_references"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    company_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    internal_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    external_model: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    external_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    invoice_status: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    stock_status: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    purchase_status: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    provider_updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_callback_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "resource_type",
+            "internal_id",
+            name="uq_erp_reference_internal",
+        ),
+        UniqueConstraint(
+            "provider",
+            "external_model",
+            "external_id",
+            name="uq_erp_reference_external",
+        ),
+        Index(
+            "ix_erp_reference_company_resource",
+            "company_id",
+            "resource_type",
+        ),
+    )
+
+
+class ErpCallbackReceipt(Base):
+    """Replay-safe audit receipt for authenticated ERP status callbacks."""
+
+    __tablename__ = "erp_callback_receipts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    provider: Mapped[str] = mapped_column(String(30), nullable=False)
+    event_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    payload_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    signature_verified: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    internal_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    external_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(30), nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "provider", "event_id", name="uq_erp_callback_provider_event"
+        ),
+        CheckConstraint(
+            "outcome IN ('PROCESSED', 'DUPLICATE', 'IGNORED')",
+            name="ck_erp_callback_outcome",
+        ),
+    )
 
 
 class AccountEvent(Base):

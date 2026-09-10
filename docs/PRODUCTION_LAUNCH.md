@@ -46,6 +46,7 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **Multicaixa Express** | Merchant credentials. | Set `MULTICAIXA_MERCHANT_ID`, `MULTICAIXA_API_KEY`, `MULTICAIXA_WEBHOOK_SECRET`. |
 | **PayPal** | REST app creds. | Set `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE=live`. |
 | **Company IBAN** | Your real IBANs. | Set `COMPANY_IBAN`, `COMPANY_IBAN_INTL` (defaults are placeholders). |
+| **Odoo 19 ERP/CRM** | Odoo Custom plan/database, reviewed GeoVision bridge addon, least-privilege bot/API key, signed callback, accounting/fiscal configuration and tested rollback. | Complete [Gate 17](../HUMAN_GATES.md#17-odoo-19-live-erpcrm-activation), then select `ERP_PROVIDER=odoo` with server-managed `ODOO_*` secrets and deploy the ERP and event workers. See the [Odoo runbook](ODOO_19_INTEGRATION.md). |
 | **Push notifications** | Azure Notification Hubs plus APNs/FCM credentials, signed-app capabilities, platform configuration files and native host channel handlers. | Flutter's channel boundary and backend-managed Azure installation/delivery are implemented. Complete [Gate 16](../HUMAN_GATES.md#16-live-email-and-mobile-push-activation), wire/test the signed host side, then select `apns`, `fcm`, or `azure_notification_hubs` with `GV_PUSH_PROVIDER`. Missing host support fails closed without mock push. |
 | **Maps** | Mapbox/ArcGIS key. | Set `GV_MAP_PROVIDER=mapbox` (+ token); currently `demo`. |
 | **Android release signing** | A release keystore. | `signingConfigs.release` is wired — just `cp android/key.properties.example android/key.properties`, fill in the keystore path/passwords, and `make android-release`. Without it, release builds fall back to the debug cert. |
@@ -67,6 +68,11 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
   Azure Notification Hubs installation before delivery.
 
 ## Recently landed (code, done)
+- **Odoo 19 boundary** — the server-side JSON-2 adapter calls one configured
+  bridge, durable order commands remain provider-pinned, and signed callbacks
+  project only mapped invoice/stock/purchase status. GeoVision remains
+  authoritative; the account, bridge, credentials and live workflow still
+  require Gate 17.
 - **Android release signing** — `app/build.gradle.kts` now loads
   `android/key.properties` (git-ignored) and signs `release` with the private
   keystore when present, falling back to the debug cert otherwise. Validated:
