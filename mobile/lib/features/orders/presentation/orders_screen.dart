@@ -9,6 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../authentication/presentation/auth_controller.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
@@ -34,6 +35,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   String sector = 'all';
   String query = '';
   bool showOrders = false;
+  bool _sectorChosen = false;
+  String? _workspaceId;
 
   @override
   void initState() {
@@ -50,6 +53,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   Widget build(BuildContext context) {
     final catalogue = ref.watch(catalogueProvider);
     final orders = ref.watch(ordersProvider);
+    final experience = ref.watch(customerExperienceProvider).valueOrNull;
+    if (_workspaceId != experience?.activeWorkspaceId) {
+      _workspaceId = experience?.activeWorkspaceId;
+      if (!_sectorChosen && experience?.activeWorkspace != null) {
+        sector = _storeSector(experience!.activeWorkspace!.sector);
+      }
+    }
     final l10n = AppLocalizations.of(context);
     final copy = StoreCopy.of(context);
     final language = Localizations.localeOf(context).languageCode;
@@ -58,7 +68,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final currency = ref.watch(storeCurrencyProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text(copy.title),
+        title: const Text('Services'),
         actions: [
           DropdownButtonHideUnderline(
             child: DropdownButton<StoreCurrency>(
@@ -83,7 +93,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             label: Text('$cartCount'),
             child: IconButton(
               tooltip: copy.cart,
-              onPressed: () => context.go('/orders/cart'),
+              onPressed: () => context.push('/services/cart'),
               icon: const Icon(Icons.shopping_cart_outlined),
             ),
           ),
@@ -98,10 +108,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
           const SizedBox(height: GvSpacing.md),
           SegmentedButton<bool>(
             segments: [
-              ButtonSegment(
+              const ButtonSegment(
                   value: false,
-                  label: Text(copy.shop),
-                  icon: const Icon(Icons.storefront)),
+                  label: Text('Explore'),
+                  icon: Icon(Icons.storefront)),
               ButtonSegment(
                   value: true,
                   label: Text(copy.orders),
@@ -161,8 +171,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                           child: FilterChip(
                             label: Text(entry.value),
                             selected: sector == entry.key,
-                            onSelected: (_) =>
-                                setState(() => sector = entry.key),
+                            onSelected: (_) => setState(() {
+                              sector = entry.key;
+                              _sectorChosen = true;
+                            }),
                           ),
                         ))
                     .toList(),
@@ -222,7 +234,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                     .map((o) => Padding(
                           padding: const EdgeInsets.only(bottom: GvSpacing.sm),
                           child: GvCard(
-                            onTap: () => context.go('/orders/${o.id}'),
+                            onTap: () =>
+                                context.push('/services/orders/${o.id}'),
                             child: Row(children: [
                               Container(
                                 width: 48,
@@ -284,6 +297,14 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 }
 
+String _storeSector(String value) => switch (value.toUpperCase()) {
+      'AGRICULTURE' || 'AGRO' || 'LIVESTOCK' => 'agro',
+      'ENVIRONMENTAL' || 'ENVIRONMENT' => 'environment',
+      'INFRASTRUCTURE' || 'CONSTRUCTION' => 'infrastructure',
+      'MINING' || 'PORTS_INDUSTRIAL' || 'INDUSTRY' => 'industry',
+      _ => 'all',
+    };
+
 class _CommerceHero extends StatelessWidget {
   const _CommerceHero({required this.copy, required this.onOrders});
   final StoreCopy copy;
@@ -325,7 +346,7 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => GvCard(
         padding: EdgeInsets.zero,
-        onTap: () => context.go('/orders/product/${product.id}'),
+        onTap: () => context.push('/services/product/${product.id}'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: ProductImage(

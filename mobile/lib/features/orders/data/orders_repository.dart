@@ -8,6 +8,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/demo/demo_data.dart';
 import '../../../core/networking/api_client.dart';
 import '../../../integrations/payments/payment_provider.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../domain/commerce.dart';
 import '../domain/product.dart';
 
@@ -26,8 +27,12 @@ class OrdersRepository {
   final AppConfig _config;
   final PaymentProvider _payments;
   final SharedPreferences _preferences;
-  final Map<String, String> _remoteItemIds = {};
-  static const _cartKey = 'gv_shop_cart_id';
+  final Map<String, Map<String, String>> _remoteItemIdsByWorkspace = {};
+
+  String get _workspaceKey => _api.workspaceId ?? 'default';
+  String get _cartKey => 'gv_shop_cart_id::$_workspaceKey';
+  Map<String, String> get _remoteItemIds =>
+      _remoteItemIdsByWorkspace.putIfAbsent(_workspaceKey, () => {});
 
   bool get isDemo => _config.demoMode;
   String get paymentProviderId => _payments.id;
@@ -53,7 +58,9 @@ class OrdersRepository {
 
   Future<List<GvOrder>> orders() async {
     if (isDemo) return DemoData.orders();
-    final response = await _api.raw.get('/shop/orders');
+    // The canonical order API scopes results through X-Workspace-ID. The
+    // legacy shop listing was user-wide and could mix customer workspaces.
+    final response = await _api.raw.get('/orders');
     final rows = response.data as List? ?? const [];
     return rows.whereType<Map>().map((raw) {
       final row = Map<String, dynamic>.from(raw);
@@ -64,8 +71,12 @@ class OrdersRepository {
             DateTime.fromMillisecondsSinceEpoch(0),
         totalCents: (row['total'] as num?)?.toInt() ?? 0,
         currency: (row['currency'] ?? 'AOA').toString(),
-        status: (row['status'] ?? 'created').toString(),
-        paymentStatus: _paymentStatus('${row['status'] ?? ''}'),
+        status:
+            (row['fulfilment_status'] ?? row['status'] ?? 'created').toString(),
+        paymentStatus:
+            (row['payment_status'] ?? _paymentStatus('${row['status'] ?? ''}'))
+                .toString()
+                .toLowerCase(),
         items: ['$count ${count == 1 ? 'item' : 'items'}'],
       );
     }).toList();
@@ -182,7 +193,11 @@ final ordersRepositoryProvider = Provider<OrdersRepository>(
     preferences: ref.watch(sharedPrefsProvider),
   ),
 );
-final catalogueProvider = FutureProvider<List<GvProduct>>(
-    (ref) => ref.watch(ordersRepositoryProvider).catalogue());
-final ordersProvider = FutureProvider<List<GvOrder>>(
-    (ref) => ref.watch(ordersRepositoryProvider).orders());
+final catalogueProvider = FutureProvider<List<GvProduct>>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(ordersRepositoryProvider).catalogue();
+});
+final ordersProvider = FutureProvider<List<GvOrder>>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(ordersRepositoryProvider).orders();
+});

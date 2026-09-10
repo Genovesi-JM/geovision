@@ -46,7 +46,7 @@ class InvitationDestination {
         kind: json['kind'] as String? ?? 'workspace',
         organizationId: json['organization_id'] as String? ?? '',
         workspaceId: json['workspace_id'] as String? ?? '',
-        path: json['path'] as String? ?? '/portal',
+        path: json['path'] as String? ?? '/home',
         targetId: json['target_id'] as String?,
       );
 }

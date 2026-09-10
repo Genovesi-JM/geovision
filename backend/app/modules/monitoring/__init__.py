@@ -23,7 +23,13 @@ definition = DomainModule(
             "monitoring",
             "app.routers.iot",
             190,
-            secondary_owners=("actions", "assets", "audit", "reports"),
+            secondary_owners=(
+                "actions",
+                "assets",
+                "audit",
+                "organizations",
+                "reports",
+            ),
         ),
         RouterMount(
             "monitoring.mobile",

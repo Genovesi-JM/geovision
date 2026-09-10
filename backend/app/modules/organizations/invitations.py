@@ -193,7 +193,25 @@ def validate_target(
     elif target_type is InvitationTargetType.SERVICE_RESULT:
         target = db.get(MobileServiceRequest, target_id)
         site = db.get(Site, target.site_id) if target and target.site_id else None
-        valid = bool(target and site and site.company_id == organization_id)
+        canonical_site = (
+            db.query(Asset)
+            .filter(
+                Asset.legacy_source == "site",
+                Asset.legacy_source_id == site.id,
+                Asset.organization_id == organization_id,
+                Asset.workspace_id == workspace_id,
+                Asset.status != "archived",
+            )
+            .one_or_none()
+            if site is not None
+            else None
+        )
+        valid = bool(
+            target
+            and site
+            and site.company_id == organization_id
+            and canonical_site is not None
+        )
     else:  # pragma: no cover - enum validation rejects this at the API boundary.
         valid = False
     if not valid:

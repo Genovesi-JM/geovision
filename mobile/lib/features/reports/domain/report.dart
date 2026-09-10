@@ -27,9 +27,12 @@ class GvReport {
   factory GvReport.fromJson(Map<String, dynamic> j) => GvReport(
         id: j['id'].toString(),
         title: (j['title'] ?? j['name'] ?? '').toString(),
-        siteName: (j['site_name'] ?? '').toString(),
-        type: (j['type'] ?? j['document_type'] ?? 'summary').toString(),
-        createdAt: DateTime.tryParse('${j['created_at'] ?? ''}') ??
+        siteName: (j['site_name'] ?? j['asset_name'] ?? j['asset_id'] ?? '')
+            .toString(),
+        type: (j['report_type'] ?? j['type'] ?? j['document_type'] ?? 'summary')
+            .toString(),
+        createdAt: DateTime.tryParse(
+                '${j['published_at'] ?? j['created_at'] ?? ''}') ??
             DateTime.now().toUtc(),
         sizeBytes: (j['size_bytes'] as num?)?.toInt() ??
             (j['file_size_bytes'] as num?)?.toInt() ??

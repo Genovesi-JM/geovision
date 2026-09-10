@@ -3,53 +3,29 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/widgets/sync_banner.dart';
+import '../features/account/presentation/customer_context_widgets.dart';
 import '../l10n/app_localizations.dart';
 import 'providers.dart';
 
-/// Customer shell focused on the five actions that fit reliably on a phone.
-/// Secondary destinations remain one tap away from the More area.
+/// Exactly five durable customer destinations. Each tab owns a navigator so
+/// switching tabs preserves its contextual back stack.
 class AppShell extends ConsumerWidget {
-  const AppShell({super.key, required this.child});
-  final Widget child;
+  const AppShell({super.key, required this.navigationShell});
 
-  static const _tabs = [
-    '/portal',
-    '/sites',
-    '/orders',
-    '/alerts',
-    '/account',
-  ];
-
-  int _indexFor(String location) {
-    if (location.startsWith('/account') ||
-        location.startsWith('/work') ||
-        location.startsWith('/reports') ||
-        location.startsWith('/guides') ||
-        location.startsWith('/notifications') ||
-        location.startsWith('/notification-preferences') ||
-        location.startsWith('/assets') ||
-        location.startsWith('/actions') ||
-        location.startsWith('/services')) {
-      return 4;
-    }
-    for (var i = 0; i < _tabs.length; i++) {
-      if (location.startsWith(_tabs[i])) return i;
-    }
-    return 0;
-  }
+  final StatefulNavigationShell navigationShell;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final location = GoRouterState.of(context).matchedLocation;
-    final index = _indexFor(location);
     final online = ref.watch(connectivityStatusProvider).value ?? true;
     final text = AppLocalizations.of(context);
+    final location = GoRouterState.of(context).uri.path;
 
     return Scaffold(
       body: Column(
         children: [
           SafeArea(bottom: false, child: SyncBanner(online: online)),
-          Expanded(child: child),
+          const CustomerWorkspaceBar(),
+          Expanded(child: navigationShell),
         ],
       ),
       floatingActionButton: location == '/assistant'
@@ -57,39 +33,47 @@ class AppShell extends ConsumerWidget {
           : FloatingActionButton.small(
               heroTag: 'gaia-assistant',
               tooltip: 'GAIA',
-              onPressed: () => context.go('/assistant'),
+              onPressed: () => context.push('/assistant'),
               child: const Icon(Icons.auto_awesome),
             ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        currentIndex: index,
-        selectedFontSize: 9,
-        unselectedFontSize: 9,
-        selectedItemColor: const Color(0xFF22C55E), // brand green (--accent)
+        currentIndex: navigationShell.currentIndex,
+        selectedFontSize: 10,
+        unselectedFontSize: 10,
+        selectedItemColor: const Color(0xFF22C55E),
         unselectedItemColor: const Color(0xFF64748B),
         backgroundColor: const Color(0xFF020617),
-        onTap: (i) => context.go(_tabs[i]),
+        onTap: (index) => navigationShell.goBranch(
+          index,
+          initialLocation: index == navigationShell.currentIndex,
+        ),
         items: [
           BottomNavigationBarItem(
-              icon: const Icon(Icons.dashboard_outlined),
-              activeIcon: const Icon(Icons.dashboard),
-              label: text.navPortal),
+            icon: const Icon(Icons.home_outlined),
+            activeIcon: const Icon(Icons.home),
+            label: text.navHome,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.terrain_outlined),
-              activeIcon: const Icon(Icons.terrain),
-              label: text.navAssets),
+            icon: const Icon(Icons.terrain_outlined),
+            activeIcon: const Icon(Icons.terrain),
+            label: text.navAssets,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.storefront_outlined),
-              activeIcon: const Icon(Icons.storefront),
-              label: text.navStore),
+            icon: const Icon(Icons.task_alt_outlined),
+            activeIcon: const Icon(Icons.task_alt),
+            label: text.navActions,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.notifications_outlined),
-              activeIcon: const Icon(Icons.notifications),
-              label: text.navAlerts),
+            icon: const Icon(Icons.design_services_outlined),
+            activeIcon: const Icon(Icons.design_services),
+            label: text.navServices,
+          ),
           BottomNavigationBarItem(
-              icon: const Icon(Icons.grid_view_outlined),
-              activeIcon: const Icon(Icons.grid_view),
-              label: text.navMore),
+            icon: const Icon(Icons.grid_view_outlined),
+            activeIcon: const Icon(Icons.grid_view),
+            label: text.navMore,
+          ),
         ],
       ),
     );

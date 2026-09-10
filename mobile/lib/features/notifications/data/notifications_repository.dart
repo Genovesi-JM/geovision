@@ -177,9 +177,10 @@ class NotificationsRepository implements NotificationsGateway {
         'ASSET' => '/assets/${notification.targetId}',
         'REPORT' => '/reports/${notification.targetId}',
         'ACTION' => '/actions/${notification.targetId}',
-        'ORDER' || 'SHIPMENT' => '/orders/${notification.targetId}',
+        'ORDER' || 'SHIPMENT' => '/services/orders/${notification.targetId}',
         'SERVICE' => '/services/${notification.targetId}',
-        'INVITATION' => '/portal',
+        'SERVICE_RESULT' => '/work/${notification.targetId}',
+        'INVITATION' => '/home',
         _ => '',
       };
       final target = NotificationTarget(

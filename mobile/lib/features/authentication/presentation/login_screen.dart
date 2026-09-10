@@ -44,7 +44,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     res.when(
-      ok: (_) => context.go(widget.returnTo ?? '/portal'),
+      ok: (_) => context.go(widget.returnTo ?? '/home'),
       err: (f) => setState(() => _error = f.message),
     );
   }
@@ -164,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   OutlinedButton.icon(
                     onPressed: () {
                       ref.read(authControllerProvider.notifier).enterDemo();
-                      context.go('/portal');
+                      context.go('/home');
                     },
                     icon: const Icon(Icons.play_circle_outline),
                     label: Text(l10n.continueDemo),

@@ -64,7 +64,8 @@ class AlertDetailScreen extends ConsumerWidget {
                     Expanded(child: Text(a.location!)),
                     if (a.siteId != null)
                       TextButton(
-                        onPressed: () => context.go('/sites/${a.siteId}/map'),
+                        onPressed: () =>
+                            context.push('/assets/${a.siteId}/map'),
                         child: Text(copy.viewOnMap),
                       ),
                   ]),

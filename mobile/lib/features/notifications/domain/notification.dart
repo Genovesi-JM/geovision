@@ -154,10 +154,11 @@ bool isSafeNotificationAppPath(String path) {
       path.startsWith('//')) {
     return false;
   }
-  if (path == '/portal') return true;
+  if (path == '/home' || path == '/portal') return true;
   return RegExp(
-    r'^/(?:assets|reports|actions|orders|services)/[A-Za-z0-9_-]+$',
-  ).hasMatch(path);
+        r'^/(?:assets|reports|actions|orders|services|work)/[A-Za-z0-9._:-]+$',
+      ).hasMatch(path) ||
+      RegExp(r'^/services/orders/[A-Za-z0-9._:-]+$').hasMatch(path);
 }
 
 /// Verifies that a server-resolved path matches both the target type and id.
@@ -165,15 +166,19 @@ bool isSafeNotificationAppPath(String path) {
 bool isSafeNotificationTarget(NotificationTarget target) {
   if (!target.hasSafeAppPath) return false;
   final expected = switch (target.type) {
-    'ASSET' => '/assets/${target.id}',
-    'REPORT' => '/reports/${target.id}',
-    'ACTION' => '/actions/${target.id}',
-    'ORDER' || 'SHIPMENT' => '/orders/${target.id}',
-    'SERVICE' => '/services/${target.id}',
-    'INVITATION' => '/portal',
+    'ASSET' => {'/assets/${target.id}'},
+    'REPORT' => {'/reports/${target.id}'},
+    'ACTION' => {'/actions/${target.id}'},
+    'ORDER' || 'SHIPMENT' => {
+        '/services/orders/${target.id}',
+        '/orders/${target.id}',
+      },
+    'SERVICE' => {'/services/${target.id}'},
+    'SERVICE_RESULT' => {'/work/${target.id}'},
+    'INVITATION' => {'/home', '/portal'},
     _ => null,
   };
-  return expected != null && target.appPath == expected;
+  return expected != null && expected.contains(target.appPath);
 }
 
 class NotificationContextDetails {

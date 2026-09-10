@@ -225,7 +225,7 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(copy.added(site.name))),
       );
-      context.go('/sites/${site.id}');
+      context.go('/assets/${site.id}');
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

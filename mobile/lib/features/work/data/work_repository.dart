@@ -6,6 +6,7 @@ import '../../../core/demo/demo_data.dart';
 import '../../../core/networking/api_client.dart';
 import '../../../core/networking/connectivity_service.dart';
 import '../../../core/storage/offline_queue.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../domain/service_request.dart';
 
 /// Work / service requests. New requests are enqueued durably; if offline they
@@ -18,13 +19,31 @@ class WorkRepository {
   final ConnectivityService _connectivity;
   final AppConfig _config;
 
-  final _local = <ServiceRequest>[];
+  final _local = <String, List<ServiceRequest>>{};
 
-  List<ServiceRequest> _pendingFromQueue() => _queue
-      .readAll()
-      .where((a) => a.type == 'service_request')
-      .map((a) => ServiceRequest.fromJson({...a.payload, 'pending_sync': true}))
-      .toList();
+  String get _workspaceKey => _api.workspaceId ?? 'default';
+  List<ServiceRequest> get _currentLocal =>
+      _local.putIfAbsent(_workspaceKey, () => []);
+
+  List<ServiceRequest> _pendingFromQueue() {
+    final workspaceId = _api.workspaceId;
+    return _queue
+        .readAll()
+        .where((action) {
+          if (action.type != 'service_request') return false;
+          final queuedWorkspace = action.payload['workspace_id']?.toString();
+          // Legacy unscoped entries cannot safely be attributed once a
+          // workspace is selected, so keep them queued but do not display
+          // them under an arbitrary customer workspace.
+          if (workspaceId == null) return queuedWorkspace == null;
+          return queuedWorkspace == workspaceId;
+        })
+        .map((action) => ServiceRequest.fromJson({
+              ...action.payload,
+              'pending_sync': true,
+            }))
+        .toList();
+  }
 
   Future<List<ServiceRequest>> getRequests() async {
     final base =
@@ -39,7 +58,24 @@ class WorkRepository {
         return [..._pendingFromQueue(), ...list];
       } catch (_) {/* fall through to local */}
     }
-    return [..._pendingFromQueue(), ..._local, ...base];
+    return [..._pendingFromQueue(), ..._currentLocal, ...base];
+  }
+
+  Future<ServiceRequest?> getRequest(String id) async {
+    if (_config.demoMode) {
+      final items = [..._currentLocal, ...DemoData.serviceRequests()];
+      for (final item in items) {
+        if (item.id == id) return item;
+      }
+      return null;
+    }
+    final pending = _pendingFromQueue();
+    for (final item in pending) {
+      if (item.id == id) return item;
+    }
+    final response = await _api.raw.get('/mobile/service-requests/$id');
+    return ServiceRequest.fromJson(
+        Map<String, dynamic>.from(response.data as Map));
   }
 
   Future<ServiceRequest> submit({
@@ -60,6 +96,7 @@ class WorkRepository {
       'status': 'submitted',
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'attachments': attachments,
+      if (_api.workspaceId case final workspaceId?) 'workspace_id': workspaceId,
     };
 
     final online = await _connectivity.isOnline;
@@ -77,7 +114,7 @@ class WorkRepository {
     // Demo or offline: persist locally / enqueue.
     if (_config.demoMode) {
       final req = ServiceRequest.fromJson(payload);
-      _local.insert(0, req);
+      _currentLocal.insert(0, req);
       return req;
     }
     await _queue.enqueue('service_request', payload);
@@ -94,5 +131,14 @@ final workRepositoryProvider = Provider<WorkRepository>((ref) => WorkRepository(
       ref.watch(appConfigProvider),
     ));
 
-final serviceRequestsProvider = FutureProvider<List<ServiceRequest>>(
-    (ref) => ref.watch(workRepositoryProvider).getRequests());
+final serviceRequestsProvider =
+    FutureProvider<List<ServiceRequest>>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(workRepositoryProvider).getRequests();
+});
+
+final serviceRequestDetailProvider =
+    FutureProvider.family<ServiceRequest?, String>((ref, id) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(workRepositoryProvider).getRequest(id);
+});

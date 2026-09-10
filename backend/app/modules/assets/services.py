@@ -490,6 +490,7 @@ def synchronize_legacy_site(
     site: Site,
     *,
     actor_user_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> Asset:
     """Mirror the legacy Site facade into the generic Asset table."""
 
@@ -498,13 +499,15 @@ def synchronize_legacy_site(
         asset = Asset(
             id=_compatible_asset_id(db, "site", site.id),
             organization_id=site.company_id,
-            workspace_id=_legacy_workspace_id(db, site.company_id),
+            workspace_id=workspace_id or _legacy_workspace_id(db, site.company_id),
             legacy_source="site",
             legacy_source_id=site.id,
             created_by_user_id=actor_user_id,
             created_at=site.created_at or utc_now(),
         )
     asset.organization_id = site.company_id
+    if workspace_id is not None:
+        asset.workspace_id = workspace_id
     asset.sector = normalize_sector(site.sector or "AGRICULTURE")
     asset.asset_type = "SITE"
     asset.name = site.name

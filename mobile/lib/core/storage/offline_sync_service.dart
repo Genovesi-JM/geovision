@@ -39,12 +39,23 @@ class OfflineSyncService {
     try {
       final actions = _queue.readAll();
       for (final action in actions) {
+        final queuedWorkspace = action.payload['workspace_id']?.toString();
+        final activeWorkspace = _api.workspaceId;
+        if (queuedWorkspace != activeWorkspace ||
+            (activeWorkspace != null && queuedWorkspace == null)) {
+          // Never replay an action into a workspace other than the one where
+          // it was created. Legacy unscoped entries remain queued for manual
+          // recovery rather than being guessed into a tenant.
+          continue;
+        }
         try {
           switch (action.type) {
             case 'service_request':
+              final payload = Map<String, dynamic>.from(action.payload)
+                ..remove('workspace_id');
               await _api.raw.post(
                 '/mobile/service-requests',
-                data: action.payload,
+                data: payload,
               );
               break;
             default:

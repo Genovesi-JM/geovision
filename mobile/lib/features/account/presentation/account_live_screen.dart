@@ -178,13 +178,13 @@ class _AccountBody extends StatelessWidget {
                     icon: Icons.location_on_outlined,
                     value: '${data.sites}',
                     label: _t(language, 'Locais', 'Sites', 'Sitios', 'Sites'),
-                    onTap: () => context.go('/sites')),
+                    onTap: () => context.go('/assets')),
                 _ActionMetric(
                     icon: Icons.local_shipping_outlined,
                     value: '${data.activeOrders}',
                     label: _t(language, 'Pedidos ativos', 'Active orders',
                         'Pedidos activos', 'Commandes actives'),
-                    onTap: () => context.go('/orders')),
+                    onTap: () => context.go('/services')),
                 _ActionMetric(
                     icon: Icons.work_outline,
                     value: '${data.activeRequests}',
@@ -196,7 +196,7 @@ class _AccountBody extends StatelessWidget {
                     value: '${data.orders}',
                     label: _t(language, 'Total de pedidos', 'Total orders',
                         'Total pedidos', 'Total commandes'),
-                    onTap: () => context.go('/orders')),
+                    onTap: () => context.go('/services')),
               ],
             ),
             if (data.recentOrders.isNotEmpty) ...[
@@ -213,7 +213,7 @@ class _AccountBody extends StatelessWidget {
               const SizedBox(height: GvSpacing.sm),
               for (final order in data.recentOrders)
                 GvCard(
-                  onTap: () => context.go('/orders/${order.id}'),
+                  onTap: () => context.push('/services/orders/${order.id}'),
                   child: Row(children: [
                     const Icon(Icons.inventory_2_outlined,
                         color: GvColors.accentCyan),

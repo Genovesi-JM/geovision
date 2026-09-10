@@ -4,6 +4,7 @@ import '../../../app/providers.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/networking/api_client.dart';
 import '../domain/account_overview.dart';
+import 'customer_experience_repository.dart';
 
 class AccountOverviewRepository {
   const AccountOverviewRepository(this._api, this._config);
@@ -52,5 +53,8 @@ final accountOverviewRepositoryProvider = Provider<AccountOverviewRepository>(
     (ref) => AccountOverviewRepository(
         ref.watch(apiClientProvider), ref.watch(appConfigProvider)));
 
-final accountOverviewProvider = FutureProvider.autoDispose<AccountOverview>(
-    (ref) => ref.watch(accountOverviewRepositoryProvider).load());
+final accountOverviewProvider =
+    FutureProvider.autoDispose<AccountOverview>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(accountOverviewRepositoryProvider).load();
+});

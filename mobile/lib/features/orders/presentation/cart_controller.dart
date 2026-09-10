@@ -5,13 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
+import '../../account/data/customer_experience_repository.dart';
 
 class CartController extends StateNotifier<List<CartLine>> {
-  CartController([this._repository, this._ref]) : super(const []) {
+  CartController([this._repository, this._ref, this.workspaceId])
+      : super(const []) {
     unawaited(_hydrate());
   }
   final OrdersRepository? _repository;
   final Ref? _ref;
+  final String? workspaceId;
 
   void add(GvProduct product) {
     final index = state.indexWhere((line) => line.product.id == product.id);
@@ -126,7 +129,15 @@ class CartController extends StateNotifier<List<CartLine>> {
 }
 
 final cartProvider = StateNotifierProvider<CartController, List<CartLine>>(
-  (ref) => CartController(ref.watch(ordersRepositoryProvider), ref),
+  (ref) {
+    final workspaceId =
+        ref.watch(customerExperienceProvider).valueOrNull?.activeWorkspaceId;
+    return CartController(
+      ref.watch(ordersRepositoryProvider),
+      ref,
+      workspaceId,
+    );
+  },
 );
 
 final cartSyncProvider = StateProvider<AsyncValue<void>>(

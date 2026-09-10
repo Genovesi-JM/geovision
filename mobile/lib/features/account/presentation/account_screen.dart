@@ -14,6 +14,7 @@ import '../../../core/widgets/gv_section_header.dart';
 import '../../authentication/presentation/auth_controller.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../authentication/presentation/registration_copy.dart';
+import '../data/customer_experience_repository.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -29,6 +30,9 @@ class AccountScreen extends ConsumerWidget {
     final language = ref.watch(localeProvider).languageCode.toUpperCase();
     final text = AppLocalizations.of(context);
     final accountCopy = RegistrationCopy.of(context);
+    final experience = ref.watch(customerExperienceProvider).valueOrNull;
+    bool has(String capability) =>
+        experience?.hasCapability(capability) == true;
 
     return Scaffold(
       appBar: AppBar(title: Text(text.navMore)),
@@ -113,50 +117,37 @@ class AccountScreen extends ConsumerWidget {
             ),
           ],
           const SizedBox(height: GvSpacing.md),
-          FilledButton.icon(
-            onPressed: () => context.go('/account-live'),
-            icon: const Icon(Icons.podcasts),
-            label: Text(text.liveAccount),
-          ),
-          const SizedBox(height: GvSpacing.md),
           GvSectionHeader(title: text.operationsTools),
           _Group(children: [
             _Tile(
-                icon: Icons.add_task_outlined,
-                label: text.requestService,
-                onTap: () => context.go('/work')),
-            _Tile(
-                icon: Icons.notifications_outlined,
-                label: text.notificationSettings,
-                onTap: () => context.go('/notification-preferences')),
-            _Tile(
-                icon: Icons.description_outlined,
-                label: text.reports,
-                onTap: () => context.go('/reports')),
-            _Tile(
-                icon: Icons.shopping_bag_outlined,
-                label: text.storeOrdersPayments,
-                onTap: () => context.go('/orders')),
-            _Tile(
                 icon: Icons.notifications_active_outlined,
                 label: 'Notifications',
-                onTap: () => context.go('/notifications')),
-            _Tile(
-                icon: Icons.payments_outlined,
-                label: text.paymentMethods,
-                onTap: () => context.go('/payment-methods')),
-            _Tile(
-                icon: Icons.sensors,
-                label: text.devices,
-                onTap: () => context.go('/devices')),
-            _Tile(
-                icon: Icons.menu_book_outlined,
-                label: text.visualGuides,
-                onTap: () => context.go('/guides')),
-            _Tile(
-                icon: Icons.language,
-                label: '${text.language} ($language)',
-                onTap: () => _selectLanguage(context, ref)),
+                onTap: () => context.push('/notifications')),
+            if (has('reports'))
+              _Tile(
+                  icon: Icons.description_outlined,
+                  label: text.reports,
+                  onTap: () => context.push('/reports')),
+            if (has('devices'))
+              _Tile(
+                  icon: Icons.sensors,
+                  label: text.devices,
+                  onTap: () => context.push('/devices')),
+            if (has('team'))
+              _Tile(
+                  icon: Icons.group_outlined,
+                  label: 'Team',
+                  onTap: () => context.push('/team')),
+            if (has('billing'))
+              _Tile(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Billing',
+                  onTap: () => context.push('/account-live')),
+            if (has('settings'))
+              _Tile(
+                  icon: Icons.settings_outlined,
+                  label: 'Settings',
+                  onTap: () => context.push('/settings')),
           ]),
           const SizedBox(height: GvSpacing.md),
           GvSectionHeader(title: text.helpAndSettings),
@@ -164,8 +155,12 @@ class AccountScreen extends ConsumerWidget {
             _Tile(
                 icon: Icons.auto_awesome,
                 label: text.gaiaAssistant,
-                onTap: () => context.go('/assistant')),
-            _Tile(icon: Icons.security, label: text.security, onTap: () {}),
+                onTap: () => context.push('/assistant')),
+            if (!has('settings'))
+              _Tile(
+                  icon: Icons.language,
+                  label: '${text.language} ($language)',
+                  onTap: () => _selectLanguage(context, ref)),
             _Tile(
                 icon: Icons.privacy_tip_outlined,
                 label: text.privacy,
@@ -175,10 +170,11 @@ class AccountScreen extends ConsumerWidget {
                 icon: Icons.gavel_outlined,
                 label: text.terms,
                 onTap: () => _openUrl(context, _termsUrl, text.linkOpenFailed)),
-            _Tile(
-                icon: Icons.support_agent,
-                label: text.contactSupport,
-                onTap: () => context.go('/support')),
+            if (has('support'))
+              _Tile(
+                  icon: Icons.support_agent,
+                  label: text.contactSupport,
+                  onTap: () => context.push('/support')),
           ]),
           const SizedBox(height: GvSpacing.md),
           if (session.isDemo)

@@ -34,8 +34,30 @@ class ApiClient {
   final Dio _refreshDio;
   final _log = const AppLogger('ApiClient');
   Future<bool>? _refreshInFlight;
+  String? _workspaceId;
 
   Dio get raw => _dio;
+  String? get workspaceId => _workspaceId;
+
+  /// Applies the customer-selected workspace to every subsequent API call.
+  ///
+  /// The backend remains authoritative: this is a context selector, never a
+  /// frontend authorization decision. Invalid values fail before becoming an
+  /// HTTP header so a malformed deep link cannot influence tenant scope.
+  void selectWorkspace(String? workspaceId) {
+    final normalized = workspaceId?.trim();
+    if (normalized != null &&
+        normalized.isNotEmpty &&
+        !RegExp(r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$').hasMatch(normalized)) {
+      throw ArgumentError.value(workspaceId, 'workspaceId');
+    }
+    _workspaceId = normalized == null || normalized.isEmpty ? null : normalized;
+    if (_workspaceId == null) {
+      _dio.options.headers.remove('X-Workspace-ID');
+    } else {
+      _dio.options.headers['X-Workspace-ID'] = _workspaceId;
+    }
+  }
 
   InterceptorsWrapper _authInterceptor() => InterceptorsWrapper(
         onRequest: (options, handler) async {

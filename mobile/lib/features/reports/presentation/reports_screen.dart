@@ -10,7 +10,9 @@ import '../../../l10n/app_localizations.dart';
 import '../data/reports_repository.dart';
 
 class ReportsScreen extends ConsumerWidget {
-  const ReportsScreen({super.key});
+  const ReportsScreen({super.key, this.assetId});
+
+  final String? assetId;
 
   IconData _icon(String type) {
     switch (type) {
@@ -29,7 +31,9 @@ class ReportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(reportsProvider);
+    final async = assetId == null
+        ? ref.watch(reportsProvider)
+        : ref.watch(assetReportsProvider(assetId!));
     return Scaffold(
       appBar: AppBar(title: Text(AppLocalizations.of(context).reports)),
       body: async.when(

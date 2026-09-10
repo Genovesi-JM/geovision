@@ -7,13 +7,14 @@ import uuid
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import or_
+from sqlalchemy import and_, false, or_
 from sqlalchemy.orm import Session
 
 from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import (
     Account,
+    AccountMember,
     AuditLog,
     CatalogItem,
     Company,
@@ -600,34 +601,124 @@ def apply_payment_state(
     return True
 
 
-def customer_can_view(order: Order, user: User) -> bool:
-    if str(order.user_id or "") == str(user.id):
-        return True
+def _customer_order_scope_filter(db: Session, user: User):
+    """Build the selected-workspace boundary for canonical customer orders.
+
+    Old orders may not have a workspace.  They remain visible only where the
+    missing scope has one possible interpretation; once an organization has
+    multiple active workspaces, organization-only rows fail closed.
+    """
+
     context = getattr(user, "_authorization_context", None)
     permissions = frozenset(getattr(context, "permissions", frozenset()))
     active_organization_id = getattr(context, "active_organization_id", None)
-    return bool(
-        "billing:read" in permissions
-        and active_organization_id
-        and active_organization_id == (order.organization_id or order.company_id)
+    active_workspace_id = getattr(context, "active_workspace_id", None)
+    owner_filter = Order.user_id == user.id
+
+    # Users with no canonical customer context keep access to their own
+    # genuinely legacy, unscoped orders.  A workspace-bound row is never
+    # exposed without an authenticated selected workspace.
+    if not active_organization_id and not active_workspace_id:
+        return and_(owner_filter, Order.workspace_id.is_(None))
+    if not active_organization_id:
+        return false()
+    if not active_workspace_id:
+        return and_(
+            owner_filter,
+            Order.workspace_id.is_(None),
+            or_(
+                Order.organization_id.is_(None),
+                Order.organization_id == active_organization_id,
+            ),
+            or_(
+                Order.company_id.is_(None),
+                Order.company_id == active_organization_id,
+            ),
+        )
+
+    organization_consistent = and_(
+        or_(
+            Order.organization_id.is_(None),
+            Order.organization_id == active_organization_id,
+        ),
+        or_(
+            Order.company_id.is_(None),
+            Order.company_id == active_organization_id,
+        ),
+    )
+    eligibility = owner_filter
+    if "billing:read" in permissions:
+        eligibility = or_(
+            eligibility,
+            Order.organization_id == active_organization_id,
+            Order.company_id == active_organization_id,
+        )
+
+    active_organization_workspaces = (
+        db.query(Account.id)
+        .filter(
+            Account.organization_id == active_organization_id,
+            Account.status == "active",
+        )
+        .limit(2)
+        .all()
+    )
+    sole_organization_workspace = active_organization_workspaces == [
+        (active_workspace_id,)
+    ]
+    accessible_workspaces = (
+        db.query(AccountMember.account_id)
+        .join(Account, Account.id == AccountMember.account_id)
+        .filter(
+            AccountMember.user_id == user.id,
+            AccountMember.status == "active",
+            Account.status == "active",
+        )
+        .limit(2)
+        .all()
+    )
+    sole_accessible_workspace = accessible_workspaces == [(active_workspace_id,)]
+
+    scoped_workspace_filters = [Order.workspace_id == active_workspace_id]
+    if sole_organization_workspace:
+        scoped_workspace_filters.append(
+            and_(
+                Order.workspace_id.is_(None),
+                or_(
+                    Order.organization_id == active_organization_id,
+                    Order.company_id == active_organization_id,
+                ),
+            )
+        )
+    scope_filters = [
+        and_(organization_consistent, or_(*scoped_workspace_filters))
+    ]
+    if sole_accessible_workspace:
+        # Some pre-workspace orders carry an organization snapshot which no
+        # longer has a membership relation.  Ownership plus exactly one
+        # accessible workspace is the only non-ambiguous compatibility map.
+        scope_filters.append(
+            and_(owner_filter, Order.workspace_id.is_(None))
+        )
+    return and_(eligibility, or_(*scope_filters))
+
+
+def customer_can_view(order: Order, user: User, *, db: Session) -> bool:
+    return (
+        db.query(Order.id)
+        .filter(
+            Order.id == order.id,
+            _customer_order_scope_filter(db, user),
+        )
+        .first()
+        is not None
     )
 
 
 def customer_orders(db: Session, user: User, *, limit: int = 100) -> list[Order]:
-    context = getattr(user, "_authorization_context", None)
-    permissions = frozenset(getattr(context, "permissions", frozenset()))
-    active_organization_id = getattr(context, "active_organization_id", None)
-    filters = [Order.user_id == user.id]
-    if "billing:read" in permissions and active_organization_id:
-        filters.extend(
-            [
-                Order.organization_id == active_organization_id,
-                Order.company_id == active_organization_id,
-            ]
-        )
     return (
         db.query(Order)
-        .filter(or_(*filters))
+        .filter(_customer_order_scope_filter(db, user))
         .order_by(Order.created_at.desc(), Order.id.desc())
         .limit(limit)
         .all()

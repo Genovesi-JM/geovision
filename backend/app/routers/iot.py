@@ -10,12 +10,13 @@ from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import StreamingResponse, Response
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.deps import get_current_user
+from app.deps import get_authorization_context, get_current_user
 from app.integrations.identity.internal import InternalIdentityProvider
 from app.iot.events import event_hub
 from app.iot.registry import valid_unit
@@ -60,13 +61,14 @@ from app.models import (
     User,
     Company,
 )
-from app.modules.identity.domain import TokenUse
+from app.modules.identity.domain import AuthorizationContext, TokenUse
 from app.modules.identity.services import IdentityService
 from app.modules.organizations.services import (
     OrganizationAccessError,
     authorize_organization,
     get_user_company_id,
 )
+from app.modules.organizations.domain import permission_granted
 
 _get_user_company_id = get_user_company_id
 
@@ -493,9 +495,42 @@ def list_devices(user: User = Depends(get_current_user), db: Session = Depends(g
 
 
 @mobile_router.get("/devices")
-def mobile_devices(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    company_id = _company_id(user, db)
-    return {"items": [_device_payload(db, row) for row in db.query(IotDevice).filter(IotDevice.company_id == company_id).order_by(IotDevice.name).all()]}
+def mobile_devices(
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    if (
+        not context.active_organization_id
+        or not context.active_workspace_id
+        or (not context.workspace_role and not context.organization_role)
+        or not permission_granted(context.permissions, "asset:read")
+    ):
+        raise HTTPException(status_code=403, detail="Mobile device access denied")
+    asset_ids = db.query(Asset.id).filter(
+        Asset.organization_id == context.active_organization_id,
+        Asset.workspace_id == context.active_workspace_id,
+        Asset.status != "archived",
+    )
+    site_ids = db.query(Asset.legacy_source_id).filter(
+        Asset.organization_id == context.active_organization_id,
+        Asset.workspace_id == context.active_workspace_id,
+        Asset.legacy_source == "site",
+        Asset.legacy_source_id.is_not(None),
+        Asset.status != "archived",
+    )
+    rows = (
+        db.query(IotDevice)
+        .filter(
+            IotDevice.company_id == context.active_organization_id,
+            or_(
+                IotDevice.core_asset_id.in_(asset_ids),
+                IotDevice.site_id.in_(site_ids),
+            ),
+        )
+        .order_by(IotDevice.name)
+        .all()
+    )
+    return {"items": [_device_payload(db, row) for row in rows]}
 
 
 @router.get("/devices/{device_id}")

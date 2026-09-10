@@ -135,17 +135,18 @@ class NotificationContextScreen extends ConsumerWidget {
       };
 
   static String _collectionPath(String type) => switch (type) {
-        'ASSET' => '/sites',
+        'ASSET' => '/assets',
         'REPORT' => '/reports',
-        'ACTION' || 'SERVICE' => '/work',
-        _ => '/portal',
+        'ACTION' => '/actions',
+        'SERVICE' => '/services',
+        _ => '/home',
       };
 
   static String _collectionLabel(String type) => switch (type) {
         'ASSET' => 'All assets',
         'REPORT' => 'All reports',
-        'ACTION' => 'All work',
+        'ACTION' => 'All actions',
         'SERVICE' => 'All services',
-        _ => 'Back to portal',
+        _ => 'Back to home',
       };
 }

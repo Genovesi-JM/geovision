@@ -7,6 +7,7 @@ import '../../../core/networking/api_client.dart';
 import '../../../core/networking/connectivity_service.dart';
 import '../../../core/networking/data_envelope.dart';
 import '../../../core/storage/local_store.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../domain/alert.dart';
 
 class AlertsRepository {
@@ -15,7 +16,7 @@ class AlertsRepository {
   final LocalStore _store;
   final ConnectivityService _connectivity;
   final AppConfig _config;
-  static const _ns = 'alerts';
+  String get _namespace => 'alerts::${_api.workspaceId ?? 'default'}';
 
   final _localState = <String, GvAlert>{};
 
@@ -23,7 +24,7 @@ class AlertsRepository {
     if (_config.demoMode) {
       final list =
           DemoData.alerts().map((a) => _localState[a.id] ?? a).toList();
-      await _store.writeJson(_ns, list.map((e) => e.toJson()).toList());
+      await _store.writeJson(_namespace, list.map((e) => e.toJson()).toList());
       return DataEnvelope(
           value: list, syncedAt: DateTime.now(), fromCache: false);
     }
@@ -34,7 +35,8 @@ class AlertsRepository {
         final list = raw
             .map((e) => GvAlert.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
-        await _store.writeJson(_ns, list.map((e) => e.toJson()).toList());
+        await _store.writeJson(
+            _namespace, list.map((e) => e.toJson()).toList());
         return DataEnvelope(
             value: list, syncedAt: DateTime.now(), fromCache: false);
       } catch (_) {
@@ -45,7 +47,7 @@ class AlertsRepository {
   }
 
   DataEnvelope<List<GvAlert>> _fromCache() {
-    final cached = _store.readJson(_ns);
+    final cached = _store.readJson(_namespace);
     if (cached == null) {
       return const DataEnvelope(value: [], syncedAt: null, fromCache: true);
     }
@@ -77,5 +79,7 @@ final alertsRepositoryProvider =
           ref.watch(appConfigProvider),
         ));
 
-final alertsProvider = FutureProvider<DataEnvelope<List<GvAlert>>>(
-    (ref) => ref.watch(alertsRepositoryProvider).getAlerts());
+final alertsProvider = FutureProvider<DataEnvelope<List<GvAlert>>>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(alertsRepositoryProvider).getAlerts();
+});

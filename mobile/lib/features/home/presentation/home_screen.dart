@@ -8,301 +8,222 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_section_header.dart';
 import '../../../core/widgets/gv_states.dart';
-import '../../../core/widgets/kpi_card.dart';
-import '../../../core/widgets/quick_action.dart';
-import '../../../core/widgets/severity_chip.dart';
-import '../../../l10n/app_localizations.dart';
-import '../../sites/presentation/kpi_labels.dart';
-import '../../authentication/presentation/auth_controller.dart';
-import '../../authentication/presentation/registration_copy.dart';
-import '../../alerts/presentation/alert_copy.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../data/home_repository.dart';
+import '../domain/home_summary.dart';
 
-class PortalScreen extends ConsumerWidget {
-  const PortalScreen({super.key});
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summary = ref.watch(homeSummaryProvider);
-    final l10n = AppLocalizations.of(context);
-    final alertCopy = AlertCopy.of(context);
-    final profile = ref.watch(authControllerProvider).profile;
-    final accountCopy = RegistrationCopy.of(context);
-
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Home'),
+        actions: [
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: () => context.push('/notifications'),
+            icon: const Icon(Icons.notifications_outlined),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async => ref.refresh(homeSummaryProvider.future),
         child: summary.when(
-          loading: () => GvLoading(label: l10n.loadingSummary),
-          error: (e, _) => GvErrorState(
-              message: '$e', onRetry: () => ref.refresh(homeSummaryProvider)),
-          data: (s) => ListView(
-            padding: const EdgeInsets.all(GvSpacing.lg),
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(s.organisation,
-                            style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: GvColors.textPrimary)),
-                        if (s.selectedSite != null)
-                          Text(s.selectedSite!.name,
-                              style: const TextStyle(
-                                  color: GvColors.accentCyan, fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                  if (s.lastSyncedAt != null)
-                    Text(DateFormat.Hm().format(s.lastSyncedAt!.toLocal()),
-                        style: const TextStyle(
-                            color: GvColors.textMuted, fontSize: 11)),
-                ],
-              ),
-              const SizedBox(height: GvSpacing.lg),
-              if (profile != null) ...[
-                GvCard(
-                  child: Row(children: [
-                    const Icon(Icons.tune, color: GvColors.accentGreen),
-                    const SizedBox(width: GvSpacing.md),
-                    Expanded(
-                        child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(accountCopy.profile(profile.customerType),
-                            style:
-                                const TextStyle(fontWeight: FontWeight.w800)),
-                        Text(
-                            profile.sectors.map(accountCopy.sector).join(' · '),
-                            style: const TextStyle(
-                                color: GvColors.textSecondary, fontSize: 12)),
-                      ],
-                    )),
-                  ]),
-                ),
-                const SizedBox(height: GvSpacing.md),
-              ],
-              GvSectionHeader(title: l10n.quickActions),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 4,
-                mainAxisSpacing: GvSpacing.sm,
-                crossAxisSpacing: GvSpacing.sm,
-                childAspectRatio: 0.82,
-                children: _quickActions(context, l10n,
-                    profile?.dashboardProfile, s.selectedSite?.id),
-              ),
-              const SizedBox(height: GvSpacing.md),
-              GvSectionHeader(
-                title: l10n.criticalAlerts,
-                action: TextButton(
-                    onPressed: () => context.go('/alerts'),
-                    child: Text(l10n.viewAll)),
-              ),
-              if (s.criticalAlerts.isEmpty)
-                GvCard(
-                    child: Text(l10n.noCriticalAlerts,
-                        style: const TextStyle(color: GvColors.textSecondary)))
-              else
-                ...s.criticalAlerts.take(3).map((a) => Padding(
-                      padding: const EdgeInsets.only(bottom: GvSpacing.sm),
-                      child: GvCard(
-                        onTap: () => context.go('/alerts/${a.id}'),
-                        child: Row(
-                          children: [
-                            SeverityChip(severityFromString(a.severity)),
-                            const SizedBox(width: GvSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(alertCopy.title(a),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w700)),
-                                  Text(a.location ?? '',
-                                      style: const TextStyle(
-                                          color: GvColors.textMuted,
-                                          fontSize: 12)),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right,
-                                color: GvColors.textMuted),
-                          ],
-                        ),
-                      ),
-                    )),
-              const SizedBox(height: GvSpacing.md),
-              if (s.selectedSite != null &&
-                  s.selectedSite!.kpis.isNotEmpty) ...[
-                GvSectionHeader(
-                  title: l10n.kpiSummary,
-                  action: TextButton(
-                      onPressed: () =>
-                          context.go('/sites/${s.selectedSite!.id}'),
-                      child: Text(l10n.siteDetail)),
-                ),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  mainAxisSpacing: GvSpacing.sm,
-                  crossAxisSpacing: GvSpacing.sm,
-                  childAspectRatio: 1.5,
-                  children: s.selectedSite!.kpis
-                      .take(4)
-                      .map((k) => KpiCard(
-                            label: localizedKpiLabel(
-                                l10n, k.definitionId, k.label),
-                            value: k.value.toString(),
-                            unit: k.unit,
-                            status: kpiStatusFromString(k.status),
-                            trend: k.trend == 'up'
-                                ? KpiTrend.up
-                                : k.trend == 'down'
-                                    ? KpiTrend.down
-                                    : KpiTrend.stable,
-                            spark: k.spark,
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(height: GvSpacing.md),
-              ],
-              GvSectionHeader(title: l10n.activeOperations),
-              if (s.activeRequests.isEmpty)
-                GvCard(
-                    child: Text(l10n.noActiveOperations,
-                        style: const TextStyle(color: GvColors.textSecondary)))
-              else
-                ...s.activeRequests.take(3).map((r) => Padding(
-                      padding: const EdgeInsets.only(bottom: GvSpacing.sm),
-                      child: GvCard(
-                        child: Row(
-                          children: [
-                            const Icon(Icons.flight_takeoff,
-                                color: GvColors.accentSky, size: 20),
-                            const SizedBox(width: GvSpacing.md),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('${r.siteName} · ${r.status}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600)),
-                                  if (r.pendingSync)
-                                    Text(l10n.pendingSync,
-                                        style: const TextStyle(
-                                            color: GvColors.medium,
-                                            fontSize: 11)),
-                                ],
-                              ),
-                            ),
-                            Text('${r.progressPercent}%',
-                                style: const TextStyle(
-                                    color: GvColors.accentGreen)),
-                          ],
-                        ),
-                      ),
-                    )),
-              const SizedBox(height: GvSpacing.md),
-              GvSectionHeader(
-                title: l10n.deviceHealth,
-                action: Text(
-                    '${s.onlineDevices}/${s.totalDevices} ${l10n.deviceOnline.toLowerCase()}',
-                    style: const TextStyle(
-                        color: GvColors.accentGreen, fontSize: 12)),
-              ),
-              if (s.latestReport != null)
-                GvCard(
-                  onTap: () => context.go('/reports'),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.picture_as_pdf_outlined,
-                          color: GvColors.accentCyan),
-                      const SizedBox(width: GvSpacing.md),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(l10n.latestReport,
-                                style: const TextStyle(
-                                    color: GvColors.textMuted, fontSize: 11)),
-                            Text(s.latestReport!.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right,
-                          color: GvColors.textMuted),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: GvSpacing.xxl),
-            ],
+          loading: () =>
+              const GvLoading(label: 'Loading what needs attention…'),
+          error: (_, __) => GvErrorState(
+            message: 'Your operational summary could not be loaded.',
+            onRetry: () => ref.invalidate(homeSummaryProvider),
           ),
+          data: (data) => _HomeContent(data: data),
         ),
       ),
     );
   }
+}
 
-  List<Widget> _quickActions(BuildContext context, AppLocalizations l10n,
-      String? dashboard, String? siteId) {
-    QuickAction action(String id) => switch (id) {
-          'map' => QuickAction(
-              icon: Icons.map_outlined,
-              label: l10n.siteMap,
-              onTap: () => siteId == null
-                  ? context.go('/sites')
-                  : context.go('/sites/$siteId/map')),
-          'devices' => QuickAction(
-              icon: Icons.sensors_outlined,
-              label: l10n.devices,
-              onTap: () => context.go('/devices')),
-          'work' => QuickAction(
-              icon: Icons.add_task_outlined,
-              label: l10n.requestService,
-              onTap: () => context.go('/work')),
-          'reports' => QuickAction(
-              icon: Icons.description_outlined,
-              label: l10n.reports,
-              onTap: () => context.go('/reports')),
-          'store' => QuickAction(
-              icon: Icons.storefront_outlined,
-              label: l10n.navStore,
-              onTap: () => context.go('/orders')),
-          'alerts' => QuickAction(
-              icon: Icons.warning_amber,
-              label: l10n.navAlerts,
-              onTap: () => context.go('/alerts')),
-          'drones' => QuickAction(
-              icon: Icons.flight_takeoff_outlined,
-              label: 'Drones',
-              onTap: () => context.go('/drones')),
-          _ => QuickAction(
-              icon: Icons.terrain_outlined,
-              label: l10n.navAssets,
-              onTap: () => context.go('/sites')),
-        };
+/// Compatibility name retained for callers compiled against the old portal.
+class PortalScreen extends HomeScreen {
+  const PortalScreen({super.key});
+}
 
-    final ids = switch (dashboard) {
-      'home' || 'device' => ['sites', 'devices', 'alerts', 'store'],
-      'farm' => ['map', 'devices', 'drones', 'alerts'],
-      'construction' => ['map', 'devices', 'drones', 'reports'],
-      'environment' => ['map', 'devices', 'drones', 'reports'],
-      'industry' => ['map', 'devices', 'drones', 'reports'],
-      'enterprise' => ['map', 'devices', 'drones', 'alerts'],
-      _ => ['map', 'sites', 'devices', 'work'],
-    };
-    return ids.map(action).toList();
+class _HomeContent extends ConsumerWidget {
+  const _HomeContent({required this.data});
+  final HomeSummary data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final capabilities = ref.watch(customerExperienceProvider).valueOrNull;
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(GvSpacing.lg),
+      children: [
+        Text(data.organizationName,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+        if (data.workspaceName.isNotEmpty)
+          Text(data.workspaceName,
+              style: const TextStyle(color: GvColors.accentCyan)),
+        const SizedBox(height: GvSpacing.lg),
+        Semantics(
+          container: true,
+          label:
+              '${data.attention.needsAttention} items need attention. ${data.attention.scheduled} scheduled.',
+          child: GvCard(
+            child: Row(children: [
+              _AttentionCount(
+                  value: data.attention.critical,
+                  label: 'Critical',
+                  color: GvColors.critical),
+              _AttentionCount(
+                  value: data.attention.attention,
+                  label: 'Attention',
+                  color: GvColors.high),
+              _AttentionCount(
+                  value: data.attention.scheduled,
+                  label: 'Scheduled',
+                  color: GvColors.medium),
+            ]),
+          ),
+        ),
+        const SizedBox(height: GvSpacing.lg),
+        const GvSectionHeader(title: 'What needs your attention now?'),
+        if (data.priorityItems.isEmpty)
+          const GvEmpty(
+            message: 'Nothing needs your attention right now.',
+            icon: Icons.task_alt,
+          )
+        else
+          ...data.priorityItems.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: GvSpacing.sm),
+                child: _PriorityCard(item: item),
+              )),
+        if (data.latestResult case final result?) ...[
+          const SizedBox(height: GvSpacing.md),
+          const GvSectionHeader(title: 'Latest result'),
+          GvCard(
+            onTap: result.appPath == null
+                ? null
+                : () => context.push(result.appPath!),
+            child: Row(children: [
+              const Icon(Icons.fact_check_outlined,
+                  color: GvColors.accentGreen),
+              const SizedBox(width: GvSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(result.title,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(result.summary,
+                        style: const TextStyle(
+                            color: GvColors.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: GvColors.textMuted),
+            ]),
+          ),
+        ],
+        const SizedBox(height: GvSpacing.lg),
+        const GvSectionHeader(title: 'Continue'),
+        Wrap(
+          spacing: GvSpacing.sm,
+          runSpacing: GvSpacing.sm,
+          children: [
+            if (capabilities?.hasCapability('assets') == true)
+              ActionChip(
+                avatar: const Icon(Icons.landscape_outlined, size: 18),
+                label: const Text('Assets'),
+                onPressed: () => context.go('/assets'),
+              ),
+            if (capabilities?.hasCapability('actions') == true)
+              ActionChip(
+                avatar: const Icon(Icons.task_alt_outlined, size: 18),
+                label: const Text('Actions'),
+                onPressed: () => context.go('/actions'),
+              ),
+            if (capabilities?.hasCapability('services') == true)
+              ActionChip(
+                avatar: const Icon(Icons.design_services_outlined, size: 18),
+                label: const Text('Services'),
+                onPressed: () => context.go('/services'),
+              ),
+          ],
+        ),
+        const SizedBox(height: GvSpacing.lg),
+        Text(
+          'Updated ${DateFormat.Hm().format(data.updatedAt.toLocal())}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: GvColors.textMuted, fontSize: 11),
+        ),
+      ],
+    );
   }
+}
+
+class _AttentionCount extends StatelessWidget {
+  const _AttentionCount(
+      {required this.value, required this.label, required this.color});
+  final int value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+        child: Column(children: [
+          Text('$value',
+              style: TextStyle(
+                  color: color, fontSize: 24, fontWeight: FontWeight.w800)),
+          Text(label,
+              style:
+                  const TextStyle(color: GvColors.textSecondary, fontSize: 11)),
+        ]),
+      );
+}
+
+class _PriorityCard extends StatelessWidget {
+  const _PriorityCard({required this.item});
+  final HomePriorityItem item;
+
+  Color get _color => switch (item.severity) {
+        'critical' => GvColors.critical,
+        'scheduled' => GvColors.medium,
+        _ => GvColors.high,
+      };
+
+  @override
+  Widget build(BuildContext context) => GvCard(
+        onTap: item.appPath == null ? null : () => context.push(item.appPath!),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 10,
+            height: 10,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: GvSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title,
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 3),
+                Text(item.summary,
+                    style: const TextStyle(
+                        color: GvColors.textSecondary, fontSize: 12)),
+                if (item.dueAt case final due?)
+                  Text(
+                      'Due ${DateFormat.MMMd().add_Hm().format(due.toLocal())}',
+                      style: const TextStyle(
+                          color: GvColors.textMuted, fontSize: 11)),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: GvColors.textMuted),
+        ]),
+      );
 }

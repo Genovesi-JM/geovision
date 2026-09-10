@@ -35,7 +35,7 @@ class SiteDetailScreen extends ConsumerWidget {
           ),
           IconButton(
             icon: const Icon(Icons.map_outlined),
-            onPressed: () => context.go('/sites/$siteId/map'),
+            onPressed: () => context.push('/assets/$siteId/map'),
           ),
         ],
       ),

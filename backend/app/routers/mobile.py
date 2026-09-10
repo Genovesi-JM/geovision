@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.deps import get_current_user
+from app.deps import get_authorization_context, get_current_user
 from app.models import (
     AccountEvent,
     Company,
@@ -31,6 +31,25 @@ from app.modules.missions.services import (
     synchronize_legacy_drone_mission,
 )
 from app.modules.analytics.kpi_catalog import get_kpis_for_sectors
+from app.modules.identity.domain import AuthorizationContext
+from app.modules.operations.mobile_schemas import (
+    MobileActionBucketsOut,
+    MobileExperienceOut,
+    MobileHomeOut,
+    MobileServiceRequestOut,
+)
+from app.modules.operations.mobile_services import (
+    MobileExperienceError,
+    get_mobile_site,
+    get_mobile_service_request,
+    list_mobile_service_requests,
+    list_mobile_sites,
+    mobile_action_buckets,
+    mobile_experience,
+    mobile_home,
+    mobile_service_result,
+    require_mobile_workspace,
+)
 
 _get_user_company_id = get_user_company_id
 from app.core.time import utc_now
@@ -64,6 +83,70 @@ _MOBILE_KPI_SECTORS = {
 }
 
 
+def _mobile_error(exc: MobileExperienceError) -> HTTPException:
+    status_code = (
+        status.HTTP_404_NOT_FOUND
+        if exc.code
+        in {
+            "asset_not_found",
+            "service_request_not_found",
+            "site_not_found",
+            "workspace_not_found",
+        }
+        else status.HTTP_403_FORBIDDEN
+    )
+    return HTTPException(status_code=status_code, detail=str(exc))
+
+
+@router.get("/experience", response_model=MobileExperienceOut)
+def customer_mobile_experience(
+    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+) -> MobileExperienceOut:
+    """Return server-authorized navigation and all accessible workspaces."""
+
+    return mobile_experience(db, user=user, context=context)
+
+
+@router.get("/home", response_model=MobileHomeOut)
+def customer_mobile_home(
+    priority_limit: int = Query(default=20, ge=1, le=100),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+) -> MobileHomeOut:
+    """Answer what needs the selected workspace's attention now."""
+
+    try:
+        return mobile_home(
+            db,
+            context=context,
+            priority_limit=priority_limit,
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+
+
+@router.get("/actions", response_model=MobileActionBucketsOut)
+def customer_mobile_actions(
+    asset_id: str | None = Query(default=None, min_length=1, max_length=36),
+    per_bucket_limit: int = Query(default=100, ge=1, le=500),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+) -> MobileActionBucketsOut:
+    """Project the unified Action API into customer-facing work buckets."""
+
+    try:
+        return mobile_action_buckets(
+            db,
+            context=context,
+            per_bucket_limit=per_bucket_limit,
+            asset_id=asset_id,
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+
+
 def _site_kpis(site: Site) -> list[dict[str, Any]]:
     kpi_sector = _MOBILE_KPI_SECTORS.get(normalize_public_sector(site.sector))
     if not kpi_sector:
@@ -95,19 +178,13 @@ def _site_payload(site: Site) -> dict[str, Any]:
 
 @router.get("/sites")
 def list_sites(
-    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
-    if not company_id:
-        return []
-    sites = (
-        db.query(Site)
-        .filter(Site.company_id == company_id)
-        .order_by(Site.updated_at.desc())
-        .all()
-    )
-    return [_site_payload(site) for site in sites]
+    try:
+        return [_site_payload(site) for site in list_mobile_sites(db, context=context)]
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
 
 
 class SiteCreate(BaseModel):
@@ -133,13 +210,18 @@ class SiteCreate(BaseModel):
 def create_site(
     payload: SiteCreate,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
     """Create a site inside the authenticated customer's organisation."""
-    company_id = _get_user_company_id(user, db)
-    company = db.get(Company, company_id) if company_id else None
-    if not company:
-        raise HTTPException(status_code=403, detail="Organisation not found")
+    try:
+        workspace, company = require_mobile_workspace(
+            db,
+            context=context,
+            permission="asset:create",
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
 
     current = db.query(Site).filter(Site.company_id == company.id).count()
     if current >= company.max_sites:
@@ -165,7 +247,12 @@ def create_site(
     )
     db.add(site)
     db.flush()
-    synchronize_legacy_site(db, site, actor_user_id=user.id)
+    synchronize_legacy_site(
+        db,
+        site,
+        actor_user_id=user.id,
+        workspace_id=workspace.id,
+    )
     company.current_sites = current + 1
     publish_account_event(
         db,
@@ -190,7 +277,11 @@ class ServiceRequestCreate(BaseModel):
     attachments: list[str] = Field(default_factory=list, max_length=20)
 
 
-def _request_payload(item: MobileServiceRequest) -> dict[str, Any]:
+def _request_payload(
+    item: MobileServiceRequest,
+    *,
+    result: Any = None,
+) -> dict[str, Any]:
     try:
         attachments = json.loads(item.attachments_json or "[]")
     except (TypeError, json.JSONDecodeError):
@@ -207,33 +298,82 @@ def _request_payload(item: MobileServiceRequest) -> dict[str, Any]:
         "attachments": attachments,
         "assigned_team": item.assigned_team,
         "created_at": item.created_at.isoformat(),
+        "updated_at": item.updated_at.isoformat(),
+        "result": result,
     }
 
 
-@router.get("/service-requests")
+@router.get("/service-requests", response_model=list[MobileServiceRequestOut])
 def list_service_requests(
-    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    items = (
-        db.query(MobileServiceRequest)
-        .filter(MobileServiceRequest.user_id == user.id)
-        .order_by(MobileServiceRequest.created_at.desc())
-        .all()
-    )
-    return [_request_payload(item) for item in items]
+    try:
+        return [
+            _request_payload(item)
+            for item in list_mobile_service_requests(db, context=context)
+        ]
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
 
 
-@router.post("/service-requests", status_code=status.HTTP_201_CREATED)
+@router.get(
+    "/service-requests/{request_id}",
+    response_model=MobileServiceRequestOut,
+)
+def read_service_request(
+    request_id: str,
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    """Read an existing service result within the selected workspace."""
+
+    try:
+        item = get_mobile_service_request(
+            db,
+            context=context,
+            request_id=request_id,
+        )
+        return _request_payload(
+            item,
+            result=mobile_service_result(
+                db,
+                context=context,
+                request=item,
+            ),
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+
+
+@router.post(
+    "/service-requests",
+    response_model=MobileServiceRequestOut,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_service_request(
     payload: ServiceRequestCreate,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
-    site = db.get(Site, payload.site_id)
-    if not site or not company_id or site.company_id != company_id:
-        raise HTTPException(status_code=404, detail="Site not found")
+    try:
+        site = get_mobile_site(
+            db,
+            context=context,
+            site_id=payload.site_id,
+            permission="workspace:contribute",
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+    # A pre-Phase-5 site can be safely adopted only when the authorization
+    # service established that this is the organization's sole workspace.
+    synchronize_legacy_site(
+        db,
+        site,
+        actor_user_id=user.id,
+        workspace_id=context.active_workspace_id,
+    )
     item = MobileServiceRequest(
         user_id=user.id,
         site_id=site.id,
@@ -244,16 +384,15 @@ def create_service_request(
         attachments_json=json.dumps(payload.attachments),
     )
     db.add(item)
-    if company_id:
-        publish_account_event(
-            db,
-            company_id=company_id,
-            event_type="service_request.created",
-            resource_type="service_request",
-            resource_id=item.id,
-            title=f"Pedido de serviço recebido: {site.name}",
-            payload={"status": item.status, "urgency": item.urgency},
-        )
+    publish_account_event(
+        db,
+        company_id=context.active_organization_id,
+        event_type="service_request.created",
+        resource_type="service_request",
+        resource_id=item.id,
+        title=f"Pedido de serviço recebido: {site.name}",
+        payload={"status": item.status, "urgency": item.urgency},
+    )
     db.commit()
     db.refresh(item)
     return _request_payload(item)

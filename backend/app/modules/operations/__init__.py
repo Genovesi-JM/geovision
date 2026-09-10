@@ -42,7 +42,16 @@ definition = DomainModule(
             "operations",
             "app.routers.mobile",
             170,
-            secondary_owners=("actions", "assets", "audit", "billing", "missions"),
+            secondary_owners=(
+                "actions",
+                "assets",
+                "audit",
+                "billing",
+                "missions",
+                "orders",
+                "organizations",
+                "reports",
+            ),
         ),
         RouterMount(
             "operations.construction",

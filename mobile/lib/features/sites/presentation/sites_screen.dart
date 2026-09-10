@@ -43,7 +43,7 @@ class SitesScreen extends ConsumerWidget {
           IconButton(
             tooltip: _siteText(language, 'Adicionar local', 'Add site',
                 'Añadir sitio', 'Ajouter un site'),
-            onPressed: () => context.go('/sites/new'),
+            onPressed: () => context.push('/assets/new'),
             icon: const Icon(Icons.add_location_alt_outlined),
           ),
           const SizedBox(width: GvSpacing.sm),
@@ -117,7 +117,7 @@ class SitesScreen extends ConsumerWidget {
                         itemBuilder: (c, i) {
                           final s = sites[i];
                           return GvCard(
-                            onTap: () => context.go('/sites/${s.id}'),
+                            onTap: () => context.push('/assets/${s.id}'),
                             child: Row(
                               children: [
                                 Container(

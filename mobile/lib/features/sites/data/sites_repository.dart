@@ -7,6 +7,7 @@ import '../../../core/networking/api_client.dart';
 import '../../../core/networking/connectivity_service.dart';
 import '../../../core/networking/data_envelope.dart';
 import '../../../core/storage/local_store.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../domain/sector.dart';
 import '../domain/site.dart';
 
@@ -20,13 +21,16 @@ class SitesRepository {
   final ConnectivityService _connectivity;
   final AppConfig _config;
 
-  static const _ns = 'sites';
-  final List<Site> _demoAdded = [];
+  final Map<String, List<Site>> _demoAdded = {};
+
+  String get _namespace => 'sites::${_api.workspaceId ?? 'default'}';
+  List<Site> get _currentDemoAdded =>
+      _demoAdded.putIfAbsent(_api.workspaceId ?? 'default', () => []);
 
   Future<DataEnvelope<List<Site>>> getSites() async {
     if (_config.demoMode) {
-      final sites = [..._demoAdded, ...DemoData.sites()];
-      await _store.writeJson(_ns, sites.map((e) => e.toJson()).toList());
+      final sites = [..._currentDemoAdded, ...DemoData.sites()];
+      await _store.writeJson(_namespace, sites.map((e) => e.toJson()).toList());
       return DataEnvelope(
           value: sites, syncedAt: DateTime.now(), fromCache: false);
     }
@@ -38,7 +42,8 @@ class SitesRepository {
         final list = (res.data as List)
             .map((e) => Site.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
-        await _store.writeJson(_ns, list.map((e) => e.toJson()).toList());
+        await _store.writeJson(
+            _namespace, list.map((e) => e.toJson()).toList());
         return DataEnvelope(
             value: list, syncedAt: DateTime.now(), fromCache: false);
       } catch (_) {
@@ -49,7 +54,7 @@ class SitesRepository {
   }
 
   DataEnvelope<List<Site>> _fromCache() {
-    final cached = _store.readJson(_ns);
+    final cached = _store.readJson(_namespace);
     if (cached == null) {
       return const DataEnvelope(value: [], syncedAt: null, fromCache: true);
     }
@@ -104,7 +109,7 @@ class SitesRepository {
         'total_hectares': areaHectares ?? 0,
         'open_alerts': 0,
       });
-      _demoAdded.insert(0, site);
+      _currentDemoAdded.insert(0, site);
       return site;
     }
 
@@ -113,10 +118,10 @@ class SitesRepository {
     }
     final response = await _api.raw.post('/mobile/sites', data: payload);
     final site = Site.fromJson((response.data as Map).cast<String, dynamic>());
-    final cached = _store.readJson(_ns);
+    final cached = _store.readJson(_namespace);
     final rows =
         cached?.data is List ? List<dynamic>.from(cached!.data as List) : [];
-    await _store.writeJson(_ns, [site.toJson(), ...rows]);
+    await _store.writeJson(_namespace, [site.toJson(), ...rows]);
     return site;
   }
 }
@@ -129,11 +134,16 @@ final sitesRepositoryProvider =
           ref.watch(appConfigProvider),
         ));
 
-final sitesProvider = FutureProvider<DataEnvelope<List<Site>>>(
-    (ref) => ref.watch(sitesRepositoryProvider).getSites());
+final sitesProvider = FutureProvider<DataEnvelope<List<Site>>>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(sitesRepositoryProvider).getSites();
+});
 
-final siteDetailProvider = FutureProvider.family<Site?, String>(
-    (ref, id) => ref.watch(sitesRepositoryProvider).getSite(id));
+final siteDetailProvider =
+    FutureProvider.family<Site?, String>((ref, id) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(sitesRepositoryProvider).getSite(id);
+});
 
 /// Currently selected site (defaults to the first).
 final selectedSiteIdProvider = StateProvider<String?>((ref) => null);

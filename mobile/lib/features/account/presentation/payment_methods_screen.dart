@@ -73,7 +73,7 @@ class PaymentMethodsScreen extends StatelessWidget {
         ),
         const SizedBox(height: GvSpacing.lg),
         FilledButton.icon(
-            onPressed: () => context.go('/orders'),
+            onPressed: () => context.go('/services'),
             icon: const Icon(Icons.storefront),
             label: Text(copy.openStore)),
       ]),

@@ -26,7 +26,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 context.go('/assistant?from=store&product=$productId'),
             icon: const Icon(Icons.auto_awesome)),
         IconButton(
-            onPressed: () => context.go('/orders/cart'),
+            onPressed: () => context.push('/services/cart'),
             icon: const Icon(Icons.shopping_cart_outlined))
       ]),
       body: catalogue.when(
@@ -130,7 +130,7 @@ class _ProductBody extends ConsumerWidget {
       FilledButton.icon(
           onPressed: () {
             ref.read(cartProvider.notifier).add(product);
-            context.go('/orders/cart');
+            context.push('/services/cart');
           },
           icon: const Icon(Icons.add_shopping_cart),
           label: Text(copy.addToCart)),

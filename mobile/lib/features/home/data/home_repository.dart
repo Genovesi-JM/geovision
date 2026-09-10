@@ -1,60 +1,70 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/demo/demo_data.dart';
-import '../../alerts/data/alerts_repository.dart';
-import '../../devices/data/devices_repository.dart';
-import '../../reports/data/reports_repository.dart';
-import '../../sites/data/sites_repository.dart';
-import '../../sites/domain/site.dart';
-import '../../work/data/work_repository.dart';
+import '../../../app/providers.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/networking/api_client.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../domain/home_summary.dart';
 
 class HomeRepository {
-  HomeRepository(this._ref);
-  final Ref _ref;
+  const HomeRepository(this._api, this._config);
+  final ApiClient _api;
+  final AppConfig _config;
 
-  Future<HomeSummary> load(String? selectedSiteId) async {
-    final sitesEnv = await _ref.read(sitesRepositoryProvider).getSites();
-    final alertsEnv = await _ref.read(alertsRepositoryProvider).getAlerts();
-    final requests = await _ref.read(workRepositoryProvider).getRequests();
-    final reports = await _ref.read(reportsRepositoryProvider).getReports();
-    final devices = await _ref.read(devicesRepositoryProvider).getDevices();
-
-    final sites = sitesEnv.value;
-    Site? site;
-    if (sites.isNotEmpty) {
-      site = sites.first;
-      if (selectedSiteId != null) {
-        for (final s in sites) {
-          if (s.id == selectedSiteId) {
-            site = s;
-            break;
-          }
-        }
-      }
-    }
-
-    return HomeSummary(
-      organisation: DemoData.organisation,
-      selectedSite: site,
-      criticalAlerts: alertsEnv.value
-          .where((a) =>
-              (a.severity == 'critical' || a.severity == 'high') && !a.resolved)
-          .toList(),
-      activeRequests: requests.where((r) => r.status != 'completed').toList(),
-      latestReport: reports.isNotEmpty ? reports.first : null,
-      onlineDevices: devices.where((d) => d.status == 'online').length,
-      totalDevices: devices.length,
-      lastSyncedAt: sitesEnv.syncedAt,
-      fromCache: sitesEnv.fromCache,
-    );
+  Future<HomeSummary> load() async {
+    if (_config.demoMode) return _demo();
+    final response = await _api.raw.get('/mobile/home');
+    return HomeSummary.fromJson(
+        Map<String, dynamic>.from(response.data as Map));
   }
+
+  HomeSummary _demo() => HomeSummary(
+        workspaceId: _api.workspaceId ?? 'demo-workspace-farm',
+        organizationName: 'Fazenda Kilombo Agro',
+        workspaceName: _api.workspaceId == 'demo-workspace-infrastructure'
+            ? 'Luanda Infrastructure'
+            : 'Kilombo Farm',
+        attention: const HomeAttention(
+          critical: 1,
+          attention: 2,
+          scheduled: 1,
+          completedRecent: 1,
+          activeServices: 1,
+          offlineDevices: 1,
+        ),
+        priorityItems: const [
+          HomePriorityItem(
+            id: 'home-action-critical',
+            targetType: 'ACTION',
+            targetId: 'action-demo-critical',
+            title: 'Irrigation failure needs a decision',
+            summary: 'Inspect the Block A pump before the next cycle.',
+            severity: 'critical',
+          ),
+          HomePriorityItem(
+            id: 'home-action-scheduled',
+            targetType: 'ACTION',
+            targetId: 'action-demo-scheduled',
+            title: 'Field inspection scheduled',
+            summary: 'GeoVision Field Team · tomorrow at 09:00',
+            severity: 'scheduled',
+          ),
+        ],
+        latestResult: HomeResult(
+          targetType: 'REPORT',
+          targetId: 'rp-1',
+          title: 'NDVI Health Report — Kilombo North',
+          summary: 'Published result from the latest multispectral survey.',
+          completedAt: DateTime(2026, 9, 9),
+        ),
+        updatedAt: DateTime.now().toUtc(),
+      );
 }
 
-final homeRepositoryProvider =
-    Provider<HomeRepository>((ref) => HomeRepository(ref));
+final homeRepositoryProvider = Provider<HomeRepository>((ref) =>
+    HomeRepository(ref.watch(apiClientProvider), ref.watch(appConfigProvider)));
 
-final homeSummaryProvider = FutureProvider<HomeSummary>((ref) {
-  final id = ref.watch(selectedSiteIdProvider);
-  return ref.watch(homeRepositoryProvider).load(id);
+final homeSummaryProvider = FutureProvider<HomeSummary>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(homeRepositoryProvider).load();
 });

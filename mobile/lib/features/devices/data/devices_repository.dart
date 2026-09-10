@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../integrations/iot/iot_provider.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../domain/device.dart';
 
 class DevicesRepository {
@@ -19,5 +20,7 @@ class DevicesRepository {
 
 final devicesRepositoryProvider = Provider<DevicesRepository>(
     (ref) => DevicesRepository(ref.watch(iotProviderProvider)));
-final devicesProvider = FutureProvider<List<GvDevice>>(
-    (ref) => ref.watch(devicesRepositoryProvider).getDevices());
+final devicesProvider = FutureProvider<List<GvDevice>>((ref) async {
+  await ref.watch(customerExperienceProvider.future);
+  return ref.watch(devicesRepositoryProvider).getDevices();
+});

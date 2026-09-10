@@ -99,8 +99,8 @@ class OrderDetailScreen extends ConsumerWidget {
                           ])),
                       const SizedBox(height: 14),
                       FilledButton.icon(
-                          onPressed: () =>
-                              context.go('/orders/${order.id}/tracking'),
+                          onPressed: () => context
+                              .push('/services/orders/${order.id}/tracking'),
                           icon: const Icon(Icons.map_outlined),
                           label: Text(copy.trackDelivery)),
                     ],

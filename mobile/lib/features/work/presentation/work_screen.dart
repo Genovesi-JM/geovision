@@ -71,6 +71,7 @@ class WorkScreen extends ConsumerWidget {
                     (t) => t.name == r.type,
                     orElse: () => ServiceType.inspection);
                 return GvCard(
+                  onTap: () => context.push('/work/${r.id}'),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
+import '../../../core/routing/customer_routes.dart';
+import '../../account/data/customer_experience_repository.dart';
 import '../data/invitations_repository.dart';
 import '../domain/invitation.dart';
 
@@ -71,37 +73,51 @@ class _InvitationAcceptScreenState
         .read(invitationsRepositoryProvider)
         .accept(_token.text.trim());
     if (!mounted) return;
-    result.when(
-      ok: (destination) {
+    await result.when<Future<void>>(
+      ok: (destination) async {
+        final path = CustomerRoutes.forInvitation(
+          kind: destination.kind,
+          targetId: destination.targetId,
+          path: destination.path,
+        );
+        if (path == null) {
+          setState(() {
+            _error = 'This invitation destination is not supported.';
+            _loading = false;
+          });
+          return;
+        }
+        if (destination.workspaceId.isNotEmpty) {
+          try {
+            await ref.read(customerExperienceProvider.future);
+          } catch (_) {
+            // The explicit selection below performs the authoritative check.
+          }
+          final switched = await ref
+              .read(customerExperienceProvider.notifier)
+              .switchWorkspace(destination.workspaceId);
+          if (!switched) {
+            if (!mounted) return;
+            setState(() {
+              _error = 'The invited workspace could not be opened.';
+              _loading = false;
+            });
+            return;
+          }
+        }
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Invitation accepted.')),
         );
-        context.go(_mobilePath(destination));
+        context.go(path);
       },
-      err: (failure) => setState(() {
-        _error = failure.message;
-        _loading = false;
-      }),
+      err: (failure) async {
+        setState(() {
+          _error = failure.message;
+          _loading = false;
+        });
+      },
     );
-  }
-
-  String _mobilePath(InvitationDestination destination) {
-    switch (destination.kind) {
-      case 'order':
-        return destination.targetId == null
-            ? '/orders'
-            : '/orders/${destination.targetId}';
-      case 'service_result':
-        return '/work';
-      case 'report':
-        return '/reports';
-      case 'asset':
-        // Generic Asset detail is introduced with the unified asset UI. Until
-        // then the sites view is the safe cross-sector landing surface.
-        return '/sites';
-      default:
-        return '/portal';
-    }
   }
 
   @override

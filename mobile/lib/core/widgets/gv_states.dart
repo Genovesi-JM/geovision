@@ -8,17 +8,24 @@ class GvLoading extends StatelessWidget {
   const GvLoading({super.key, this.label});
   final String? label;
   @override
-  Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(color: GvColors.accentCyan),
-            if (label != null) ...[
-              const SizedBox(height: GvSpacing.md),
-              Text(label!,
-                  style: const TextStyle(color: GvColors.textSecondary)),
-            ],
-          ],
+  Widget build(BuildContext context) => Semantics(
+        container: true,
+        liveRegion: true,
+        label: label ?? 'Loading',
+        child: ExcludeSemantics(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: GvColors.accentCyan),
+                if (label != null) ...[
+                  const SizedBox(height: GvSpacing.md),
+                  Text(label!,
+                      style: const TextStyle(color: GvColors.textSecondary)),
+                ],
+              ],
+            ),
+          ),
         ),
       );
 }
@@ -29,18 +36,25 @@ class GvEmpty extends StatelessWidget {
   final String message;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(GvSpacing.xl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 48, color: GvColors.textMuted),
-              const SizedBox(height: GvSpacing.md),
-              Text(message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GvColors.textSecondary)),
-            ],
+  Widget build(BuildContext context) => Semantics(
+        container: true,
+        liveRegion: true,
+        label: message,
+        child: ExcludeSemantics(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(GvSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 48, color: GvColors.textMuted),
+                  const SizedBox(height: GvSpacing.md),
+                  Text(message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: GvColors.textSecondary)),
+                ],
+              ),
+            ),
           ),
         ),
       );
@@ -58,22 +72,28 @@ class GvErrorState extends StatelessWidget {
         message.contains('RequestOptions') ||
         message.contains('StackTrace');
     final visibleMessage = technical ? l10n.deviceError : message;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(GvSpacing.xl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: GvColors.high),
-            const SizedBox(height: GvSpacing.md),
-            Text(visibleMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: GvColors.textSecondary)),
-            if (onRetry != null) ...[
-              const SizedBox(height: GvSpacing.lg),
-              FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Error. $visibleMessage',
+      explicitChildNodes: true,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(GvSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: GvColors.high),
+              const SizedBox(height: GvSpacing.md),
+              Text(visibleMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: GvColors.textSecondary)),
+              if (onRetry != null) ...[
+                const SizedBox(height: GvSpacing.lg),
+                FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

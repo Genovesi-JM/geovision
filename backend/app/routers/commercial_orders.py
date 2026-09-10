@@ -209,7 +209,7 @@ def get_my_order_progress(
     db: Session = Depends(get_db),
 ):
     order = db.get(Order, order_id)
-    if order is None or not customer_can_view(order, user):
+    if order is None or not customer_can_view(order, user, db=db):
         raise HTTPException(status_code=404, detail="Order not found")
     return customer_order_progress(db, order)
 
@@ -223,7 +223,7 @@ def cancel_my_order(
     order = (
         db.query(Order).filter(Order.id == order_id).with_for_update().one_or_none()
     )
-    if order is None or not customer_can_view(order, user):
+    if order is None or not customer_can_view(order, user, db=db):
         raise HTTPException(status_code=404, detail="Order not found")
     try:
         transition_order(
@@ -249,7 +249,7 @@ def get_my_order(
     db: Session = Depends(get_db),
 ):
     order = db.get(Order, order_id)
-    if order is None or not customer_can_view(order, user):
+    if order is None or not customer_can_view(order, user, db=db):
         raise HTTPException(status_code=404, detail="Order not found")
     return order_detail(order)
 
