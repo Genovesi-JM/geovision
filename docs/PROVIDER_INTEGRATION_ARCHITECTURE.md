@@ -128,11 +128,86 @@ backfill can be considered after those ownership boundaries are established.
 | Asset management | `AssetManagementProvider` | Typed and mapping-compatible synchronization requests use a required idempotency key; Seequent, generic mine-enterprise, SAP EAM, IBM Maximo, Dynamics 365 Asset Management, and customer-CMMS selections remain fail-closed scaffolds, with a deterministic local/test contract fake |
 | Construction systems | `ConstructionProvider` | Autodesk APS, Procore, Bentley iTwin, and Trimble have fail-closed scaffolds plus a local contract fake |
 | Maritime systems | `MaritimeProvider` | Typed and mapping-compatible context contract plus a deterministic local/test fake; MarineTraffic, Kpler, and Puertos del Estado are explicit fail-closed scaffolds with no live I/O |
+| Customer-owned integration control plane | `IntegrationConnection` registry | Durable tenant/workspace/member scope, rollout flags, secret references, normalized sync runs/events, resilience state, health, audit and outbox events are implemented; only the deterministic local/test workflow is approved |
 
 The words “port” and “adapter” describe code boundaries, not commercial or
 operational readiness. A provider is live only after credentials, external
 accounts, provider-specific verification, and the owning phase's release gates
 have passed.
+
+## Tenant connection registry and rollout control
+
+Phase 32 adds a durable control plane around the four enterprise families:
+construction, asset management, GIS and maritime. `IntegrationConnection`
+retains the provider code, authoritative organization and optional
+workspace/member scope, allowlisted capabilities, non-secret configuration,
+canonical secret references, health and resilience state. Normalized sync runs
+and events keep GeoVision resource UUIDs separate from opaque external
+references and retain only a request digest rather than a raw payload. The
+registry does not make any provider a system of record.
+
+All administration routes are authenticated and use the canonical
+authorization context. Read operations require `organization:read`; connection,
+sync, health and rollout mutations require `organization:manage`. A selected
+workspace is carried by `X-Workspace-ID`, and inaccessible tenant or member
+scopes return a non-disclosing 404. Member connections are visible only to that
+member. Shared organization connections still bind every run, event, retry and
+idempotency key to the selected workspace. Mutable records use atomic
+version-qualified writes. Responses expose
+configured booleans and safe error codes for connections, never connection
+settings, endpoints, secret references, resolved credentials or raw provider
+responses. Flag projections may retain their non-secret Azure configuration
+reference, ETag and configuration-version provenance.
+
+Integration flags use the plural canonical name:
+
+```text
+geovision.integrations.<family>.<provider>
+```
+
+Resolution is member override, then workspace override, then the read-only
+Azure App Configuration evaluator, then deny. The registry API independently
+checks authorization, membership, a current integration-capable organization
+subscription, connection lifecycle and the operation-specific capability; each
+consuming product module must also enforce any narrower workspace/module
+entitlement. A flag cannot grant any of them. Azure targeting uses only
+canonical organization/workspace/user UUID keys. Cold-start failure denies
+access, a failed refresh may use a bounded last-known-good snapshot, and an
+expired snapshot denies access.
+
+The Agriculture, Infrastructure, Environmental, Mining and Ports HTTP modules
+consume their `geovision.sectors.<sector>` decision for the current workspace
+member and combine it with their existing workspace/module gate. Local systems
+with no configured rollout source preserve the established enabled-by-default
+baseline; after Azure is configured, an unavailable or absent decision denies.
+The evaluator accepts the provisioned store's mixed snapshot by selecting only
+reviewed GeoVision feature-flag entries and ignoring unrelated configuration.
+
+Credential and webhook fields accept only canonical Azure Key Vault HTTPS
+references:
+
+```text
+https://<vault-name>.vault.azure.net/secrets/<secret-name>[/<version>]
+```
+
+The deployed factory uses managed identity for read-only App Configuration and
+Key Vault access. The Azure template supplies the App Configuration endpoint
+and the least-privilege data-reader/secrets-user roles. This is portable runtime
+wiring, not proof that a customer flag, secret or provider account has been
+verified. The registry never stores resolved secret values.
+Registry-specific validation responses also remove rejected input, validator
+context and attacker-controlled field names so malformed credential attempts
+cannot be echoed to a client.
+
+Only `fake` is enabled by the verified admin workflow, and deployed profiles
+reject it. Every named provider stays disabled until the exact customer account,
+credentials, sandbox, scopes, mapping, external idempotency behavior, rate and
+licence terms, contract tests and release approval are recorded. Disconnecting
+clears GeoVision's secret references and cancels pending work but preserves
+completed sync and GeoVision-owned domain history; external credentials must be
+revoked at the provider and vault as a separate operator action. See
+[`INTEGRATION_CONNECTION_REGISTRY.md`](INTEGRATION_CONNECTION_REGISTRY.md) for
+the API and operator runbook.
 
 ## Current adapters and compatibility facades
 
@@ -240,24 +315,29 @@ Seequent is a named unavailable scaffold. `SEEQUENT_CLIENT_ID` and
 the pair is complete; missing credentials yield `provider_not_configured`, and
 a complete pair still yields `adapter_unavailable`. The scaffold imports no
 vendor SDK and performs no request. `mine_enterprise` is always unavailable
-until Phase 32 supplies a persistent provider registry, a concrete customer
-selection, an approved sandbox, and a reviewed authentication contract; this
-phase deliberately invents no generic credential or endpoint settings.
+even though the Phase 32 registry can now record a concrete customer selection.
+It still requires approved credentials, a sandbox, a reviewed authentication
+and mapping contract, provider-side idempotency, and provider-specific tests;
+the global factory deliberately invents no generic credential or endpoint
+settings.
 
 SAP EAM, IBM Maximo, Dynamics 365 Asset Management, and customer CMMS are also
 named unavailable scaffolds. They use the existing typed, idempotent asset-sync
 contract but perform no request and introduce no work-order persistence,
 endpoint, SDK, or credential field. Their configuration is customer/workspace
-specific: Phase 32 must establish the encrypted integration registry, tenant
-ownership, provider account, approved sandbox, authentication method, field
-mapping, and provider-side idempotency before any live write is implemented.
+specific. The durable secret-reference-only registry establishes tenant
+ownership and lifecycle, but no live write may be implemented until the exact
+provider account, approved sandbox, authentication method, field mapping and
+provider-side idempotency behavior are verified.
 
 Existing capability boundaries remain authoritative: Bentley iTwin project
 synchronization stays behind `ConstructionProvider`, Bentley Reality Modeling
 stays behind `ProcessingProvider`, and ArcGIS plus MITECO stay behind
 `GISProvider`. The asset-management factory rejects those provider names rather
 than duplicating their clients or implying interchangeable capabilities. No
-database migration or generic external-reference table is introduced.
+generic polymorphic domain-reference table or enterprise work-order model is
+introduced; Phase 32 sync events record only normalized resource UUIDs and
+opaque external references within one connection ledger.
 
 ### Maritime context scaffolds
 
@@ -280,7 +360,8 @@ fixture names even when a factory override requests one.
 
 MarineTraffic and Kpler selections return `provider_not_configured`. API
 entitlement, customer scope, rate terms, authentication, a sandbox, and the
-per-workspace Phase 32 registry must be approved before a live adapter exists.
+per-workspace registry selection must all be approved before a live adapter
+exists. Creating the registry row alone leaves the provider blocked.
 No global API-key field is provided. AIS is supplementary context and must never
 be used as collision-avoidance, navigation, port-control, security, or safety
 authority.
@@ -413,8 +494,9 @@ The optional credential fields are server-side and redacted from settings
 representations and safe diagnostics. Factories reduce them to a boolean and do
 not retain the values. External provider project, model, hub, and layer IDs are
 data references, not configuration or GeoVision identities. Phase 28 adds no
-generic provider/reference persistence; the provider-account registry and its
-ownership/backfill rules remain Phase 32 work.
+generic provider/reference persistence. Phase 32 later adds a tenant-scoped
+connection and sync ledger, but deliberately does not turn opaque provider
+values into GeoVision identities or backfill the legacy connector tables.
 
 A live adapter requires a real customer account and sandbox, reviewed OAuth
 scopes and callback flow, verified tenant/project authorization, vendor-specific
@@ -443,8 +525,9 @@ selection must not be described as connectivity checks.
 
 The initial Phase 2 boundary did not implement these later capabilities.
 Durable messaging, processing jobs, payment lifecycle consolidation,
-satellite/weather ingestion and the provider-neutral Odoo integration are now
-implemented by their owning phases. Cloud infrastructure activation, live Odoo
-and notification-provider cutovers, full legacy identity/session retirement,
-credential-key rotation and notification-log lifecycle management remain
-deferred to their documented human gates.
+satellite/weather ingestion, the provider-neutral Odoo integration, and the
+tenant integration registry are now implemented by their owning phases. Live
+named enterprise adapters, customer credential/sandbox verification, production
+App Configuration and Key Vault smoke tests, full legacy identity/session
+retirement, credential-key rotation and notification-log lifecycle management
+remain deferred to their documented human gates.

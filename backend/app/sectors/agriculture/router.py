@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.deps import get_authorization_context, get_current_user
+from app.integrations.registry import get_feature_flag_evaluator
+from app.integrations.registry.sector_rollout import sector_rollout_enabled
 from app.models import Asset, User
 from app.modules.analytics.services import asset_kpi_payloads
 from app.modules.assets.services import AssetAccessError, get_asset
@@ -37,6 +39,15 @@ from app.sectors.agriculture.services import (
 router = APIRouter(tags=["agriculture"])
 
 
+def _rollout_enabled(db: Session, context: AuthorizationContext) -> bool:
+    return sector_rollout_enabled(
+        db,
+        context=context,
+        sector=SECTOR,
+        evaluator=get_feature_flag_evaluator(),
+    )
+
+
 def _asset(
     db: Session,
     context: AuthorizationContext,
@@ -45,7 +56,7 @@ def _asset(
     write: bool,
 ) -> Asset:
     try:
-        return get_asset(
+        asset = get_asset(
             db,
             context=context,
             asset_id=asset_id,
@@ -54,11 +65,16 @@ def _asset(
     except AssetAccessError as exc:
         status = 404 if exc.code == "asset_not_found" else 403
         raise HTTPException(status_code=status, detail=str(exc)) from exc
+    if not _rollout_enabled(db, context):
+        raise HTTPException(status_code=403, detail="Agriculture rollout is disabled")
+    return asset
 
 
 def _agriculture_error(exc: AgricultureError) -> HTTPException:
     return HTTPException(
-        status_code=409 if exc.code in {"sector_mismatch", "asset_type_unsupported"} else 400,
+        status_code=409
+        if exc.code in {"sector_mismatch", "asset_type_unsupported"}
+        else 400,
         detail=str(exc),
     )
 
@@ -68,11 +84,12 @@ def _agriculture_error(exc: AgricultureError) -> HTTPException:
     response_model=AgricultureCapabilitiesOut,
 )
 def agriculture_capabilities(
-    _context: AuthorizationContext = Depends(get_authorization_context),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
 ):
     return {
         "sector": SECTOR,
-        "enabled": True,
+        "enabled": _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,
         "analysis_schema": ANALYSIS_SCHEMA,
         "asset_types": sorted(SUPPORTED_ASSET_TYPES),

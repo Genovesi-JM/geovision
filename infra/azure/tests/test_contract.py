@@ -40,6 +40,28 @@ class AzureTemplateContractTests(unittest.TestCase):
         unknown = configured_names - settings_names
         self.assertEqual(unknown, set(), f"unknown backend settings: {sorted(unknown)}")
 
+    def test_app_configuration_endpoint_is_wired_to_every_runtime(self) -> None:
+        environment = (AZURE_ROOT / "environment.bicep").read_text()
+        applications = (AZURE_ROOT / "modules/container-apps.bicep").read_text()
+        app_configuration = (AZURE_ROOT / "modules/app-configuration.bicep").read_text()
+
+        applications_block = environment[
+            environment.index("module applications") : environment.index("output acrName")
+        ]
+        app_configuration_block = environment[
+            environment.index("module appConfiguration") : environment.index(
+                "module access"
+            )
+        ]
+        self.assertIn(
+            "appConfigurationEndpoint: appConfiguration.outputs.endpoint",
+            applications_block,
+        )
+        self.assertNotIn("appConfigurationEndpoint:", app_configuration_block)
+        self.assertIn("param appConfigurationEndpoint string", applications)
+        self.assertIn("name: 'AZURE_APP_CONFIGURATION_ENDPOINT'", applications)
+        self.assertNotIn("param appConfigurationEndpoint", app_configuration)
+
     def test_service_bus_namespace_is_a_bare_hostname(self) -> None:
         template = (AZURE_ROOT / "modules/service-bus.bicep").read_text()
         self.assertIn("${serviceBus.name}.servicebus.windows.net", template)
@@ -52,7 +74,9 @@ class AzureTemplateContractTests(unittest.TestCase):
         root_template = (AZURE_ROOT / "main.bicep").read_text()
         apps_template = (AZURE_ROOT / "modules/container-apps.bicep").read_text()
         self.assertIn("param deployApplications bool = false", root_template)
-        self.assertIn("param deployMigrationJob bool = deployApplications", root_template)
+        self.assertIn(
+            "param deployMigrationJob bool = deployApplications", root_template
+        )
         self.assertIn("if (deployApplications)", apps_template)
         self.assertIn("if (deployMigrationJob)", apps_template)
 
@@ -103,7 +127,7 @@ class AzureTemplateContractTests(unittest.TestCase):
     def test_provider_registration_is_an_explicit_bootstrap(self) -> None:
         deploy_helper = (AZURE_ROOT / "deploy.sh").read_text()
         self.assertIn("--register-providers", deploy_helper)
-        self.assertIn('AZURE_REGISTER_PROVIDERS:-false', deploy_helper)
+        self.assertIn("AZURE_REGISTER_PROVIDERS:-false", deploy_helper)
         self.assertLess(
             deploy_helper.index('mode}" == "register-providers'),
             deploy_helper.index("GEOVISION_POSTGRES_ADMIN_PASSWORD"),
@@ -134,8 +158,12 @@ class AzureTemplateContractTests(unittest.TestCase):
                 "GEOVISION_SECRET_KEY",
                 "GEOVISION_ENCRYPTION_KEY",
             ):
-                self.assertIn(f"readEnvironmentVariable('{environment_name}')", parameters)
-            self.assertNotRegex(parameters, r"param (secretKey|encryptionKey) = '[^']+'")
+                self.assertIn(
+                    f"readEnvironmentVariable('{environment_name}')", parameters
+                )
+            self.assertNotRegex(
+                parameters, r"param (secretKey|encryptionKey) = '[^']+'"
+            )
 
 
 if __name__ == "__main__":

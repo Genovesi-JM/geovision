@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.deps import get_authorization_context, get_current_user
+from app.integrations.registry import get_feature_flag_evaluator
+from app.integrations.registry.sector_rollout import sector_rollout_enabled
 from app.models import Asset, User
 from app.modules.analytics.services import asset_kpi_payloads
 from app.modules.assets.services import AssetAccessError, get_asset
@@ -40,6 +42,15 @@ from app.sectors.mining.services import (
 router = APIRouter(tags=["mining"])
 
 
+def _rollout_enabled(db: Session, context: AuthorizationContext) -> bool:
+    return sector_rollout_enabled(
+        db,
+        context=context,
+        sector=SECTOR,
+        evaluator=get_feature_flag_evaluator(),
+    )
+
+
 def _asset(
     db: Session,
     context: AuthorizationContext,
@@ -48,7 +59,7 @@ def _asset(
     write: bool,
 ) -> Asset:
     try:
-        return get_asset(
+        asset = get_asset(
             db,
             context=context,
             asset_id=asset_id,
@@ -57,6 +68,9 @@ def _asset(
     except AssetAccessError as exc:
         status = 404 if exc.code == "asset_not_found" else 403
         raise HTTPException(status_code=status, detail=str(exc)) from exc
+    if not _rollout_enabled(db, context):
+        raise HTTPException(status_code=403, detail="Mining rollout is disabled")
+    return asset
 
 
 def _mining_error(exc: MiningError) -> HTTPException:
@@ -73,7 +87,8 @@ def mining_capabilities(
 ):
     return {
         "sector": SECTOR,
-        "enabled": mining_enabled_for_context(db, context=context),
+        "enabled": mining_enabled_for_context(db, context=context)
+        and _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,
         "analysis_schema": ANALYSIS_SCHEMA,
         "asset_types": sorted(SUPPORTED_ASSET_TYPES),

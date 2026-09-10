@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.deps import get_authorization_context, get_current_user
+from app.integrations.registry import get_feature_flag_evaluator
+from app.integrations.registry.sector_rollout import sector_rollout_enabled
 from app.models import Asset, User
 from app.modules.analytics.services import asset_kpi_payloads
 from app.modules.assets.services import AssetAccessError, get_asset
@@ -40,6 +42,15 @@ from app.sectors.infrastructure.services import (
 router = APIRouter(tags=["infrastructure"])
 
 
+def _rollout_enabled(db: Session, context: AuthorizationContext) -> bool:
+    return sector_rollout_enabled(
+        db,
+        context=context,
+        sector=SECTOR,
+        evaluator=get_feature_flag_evaluator(),
+    )
+
+
 def _asset(
     db: Session,
     context: AuthorizationContext,
@@ -48,7 +59,7 @@ def _asset(
     write: bool,
 ) -> Asset:
     try:
-        return get_asset(
+        asset = get_asset(
             db,
             context=context,
             asset_id=asset_id,
@@ -57,6 +68,11 @@ def _asset(
     except AssetAccessError as exc:
         status = 404 if exc.code == "asset_not_found" else 403
         raise HTTPException(status_code=status, detail=str(exc)) from exc
+    if not _rollout_enabled(db, context):
+        raise HTTPException(
+            status_code=403, detail="Infrastructure rollout is disabled"
+        )
+    return asset
 
 
 def _infrastructure_error(exc: InfrastructureError) -> HTTPException:
@@ -74,7 +90,8 @@ def infrastructure_capabilities(
 ):
     return {
         "sector": SECTOR,
-        "enabled": infrastructure_enabled_for_context(db, context=context),
+        "enabled": infrastructure_enabled_for_context(db, context=context)
+        and _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,
         "analysis_schema": ANALYSIS_SCHEMA,
         "asset_types": sorted(SUPPORTED_ASSET_TYPES),
@@ -90,7 +107,11 @@ def infrastructure_capabilities(
             }
             for item in KPI_DEFINITIONS
         ],
-        "map_layer_kinds": ["ASSET_BOUNDARY", "OBSERVATION_ZONE", *sorted(SUPPORTED_DATASET_TYPES)],
+        "map_layer_kinds": [
+            "ASSET_BOUNDARY",
+            "OBSERVATION_ZONE",
+            *sorted(SUPPORTED_DATASET_TYPES),
+        ],
         "comparison_kinds": ["SURVEY_2D", "SURFACE_3D", "THERMAL_2D"],
         "evidence_guardrails": [
             "Only explicitly validated and versioned analysis is accepted.",
@@ -115,7 +136,9 @@ def infrastructure_evaluate(
 ):
     asset = _asset(db, context, asset_id, write=True)
     try:
-        evaluation = evaluate_infrastructure(db, asset=asset, actor=user, as_of=payload.as_of)
+        evaluation = evaluate_infrastructure(
+            db, asset=asset, actor=user, as_of=payload.as_of
+        )
         db.commit()
         return {
             "asset_id": asset.id,

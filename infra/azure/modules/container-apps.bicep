@@ -8,6 +8,7 @@ param logAnalyticsCustomerId string
 @secure()
 param logAnalyticsSharedKey string
 param applicationInsightsConnectionString string
+param appConfigurationEndpoint string
 param identityResourceId string
 param identityClientId string
 param registryServer string
@@ -89,6 +90,10 @@ var commonEnvironment = [
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
     value: applicationInsightsConnectionString
+  }
+  {
+    name: 'AZURE_APP_CONFIGURATION_ENDPOINT'
+    value: appConfigurationEndpoint
   }
   {
     name: 'FRONTEND_BASE'

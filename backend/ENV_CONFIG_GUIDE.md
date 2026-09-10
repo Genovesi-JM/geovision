@@ -180,6 +180,81 @@ three-attempt default. The general event worker has its own bounded
 claim/retry/dead-letter settings documented in
 [`docs/DURABLE_EVENTS.md`](../docs/DURABLE_EVENTS.md).
 
+## Tenant integration registry and Azure rollout control
+
+Phase 32 adds durable customer-owned connection records independently of the
+global compatibility selectors below. A connection is bound to an organization
+and may be narrowed to one workspace or member. The database stores non-secret
+settings and secret *references* only. Do not add SAP, Maximo, Dynamics,
+customer-CMMS, construction, GIS or maritime credentials to this environment
+file.
+
+Integration rollout keys use the plural canonical namespace:
+
+```text
+geovision.integrations.<family>.<provider>
+```
+
+The API resolves a selected member override first, then its workspace override,
+then Azure App Configuration, and finally denies. The registry API separately
+checks authorization, workspace membership, a current integration-capable
+organization subscription, enabled connection state and the operation-specific
+connection capability. Each consuming product module must still enforce any
+narrower workspace/module entitlement. Neither an environment setting nor a
+feature flag grants access by itself.
+
+An integration-capable organization must be `active` or `trial` with effective
+tier `professional`, `growth`, `scale`, `enterprise` or `custom`. A persisted
+`CompanyEntitlement` takes precedence over the compatibility subscription-plan
+field; an explicitly expired entitlement fails closed.
+
+```dotenv
+AZURE_APP_CONFIGURATION_ENDPOINT=
+INTEGRATION_FEATURE_FLAG_REFRESH_SECONDS=300
+INTEGRATION_FEATURE_FLAG_MAX_STALENESS_SECONDS=3600
+INTEGRATION_FEATURE_FLAG_STARTUP_TIMEOUT_SECONDS=5
+```
+
+Leave `AZURE_APP_CONFIGURATION_ENDPOINT` empty to use the fail-closed evaluator.
+When set, it must be the canonical HTTPS origin for an Azure App Configuration
+store (`https://<name>.azconfig.io`) with no user information, port, path, query
+or fragment. The runtime uses `DefaultAzureCredential`; the Azure deployment
+passes the endpoint and grants its user-assigned identity App Configuration Data
+Reader. `AZURE_MANAGED_IDENTITY_CLIENT_ID`, already used by other Azure
+adapters, selects that identity when present. No App Configuration connection
+string or access key is accepted.
+
+The evaluator refreshes no more often than the configured interval. A
+cold-start failure or a snapshot older than the maximum staleness denies access;
+a refresh failure may use the last-known-good snapshot only within that bound.
+Target exclusions win over inclusions and percentage rollout is deterministic
+for canonical organization/workspace/user UUIDs. The startup timeout bounds the
+provider's first read; it does not make a remote flag a readiness dependency.
+
+Connection credential and webhook references accepted by the admin API must be
+canonical Azure Key Vault HTTPS URLs:
+
+```text
+https://<vault-name>.vault.azure.net/secrets/<secret-name>[/<version>]
+```
+
+Do not use `vault://`, `keyvault://`, `env://`, a secret value, a URL containing
+credentials, or a signed URL. In deployed profiles the read-only secret-store
+factory uses the same managed identity and `SecretClient`; the Azure template
+grants Key Vault Secrets User. Prefer a versioned reference, grant access only
+to reviewed vaults/secrets, and rotate or revoke the external secret separately
+from GeoVision. A registry disconnect clears stored references and pending work
+but cannot revoke the provider account or Key Vault secret and never deletes
+GeoVision-owned history.
+
+Only deterministic `fake` connections are enabled by the currently verified
+admin workflow, and all fake providers are rejected in staging and production.
+The Azure SDK composition and infrastructure roles are implemented, but live
+App Configuration reads, registry-secret resolution and every named provider
+still require a staging smoke test and the provider-specific customer account,
+sandbox, scopes, mapping, idempotency, quota/licence and approval gates. See
+[`docs/INTEGRATION_CONNECTION_REGISTRY.md`](../docs/INTEGRATION_CONNECTION_REGISTRY.md).
+
 ## Provider selection
 
 These variables declare the intended provider capability without exposing its
@@ -228,7 +303,9 @@ Asset management accepts `none`/`null`, local/test `fake`/`deterministic`,
 an explicit unavailable scaffold. Seequent records only whether its credential
 pair is complete. The other enterprise selections have no global credentials
 or invented endpoints and remain unavailable until a concrete customer scope,
-approved sandbox, mapping contract, and Phase 32 registry exist.
+approved sandbox, mapping contract and provider-specific live adapter are
+verified. A Phase 32 registry row records scope and readiness; it does not make
+the named selection live.
 
 Maritime accepts `none`/`null`, local/test `fake`/`deterministic`,
 `marinetraffic`, `kpler`, or `puertos_del_estado`. The deterministic fixture
@@ -270,10 +347,11 @@ associated with authoritative GeoVision UUIDs; they are not configuration and
 never become primary IDs. Bentley iTwin stays behind `ConstructionProvider`,
 Bentley Reality Modeling behind `ProcessingProvider`, and ArcGIS/MITECO behind
 `GISProvider`; the asset-management factory does not duplicate them. AEMET,
-Copernicus, and MITECO also remain independent of the maritime boundary. No
-generic provider registry or persistent external-reference table is created in
-this phase, and no SAP, Maximo, Dynamics, customer-CMMS, MarineTraffic, Kpler,
-or Puertos credential belongs in the global environment file.
+Copernicus, and MITECO also remain independent of the maritime boundary. The
+tenant registry stores normalized connection/sync state but no generic domain
+mapping and no resolved credentials. No SAP, Maximo, Dynamics, customer-CMMS,
+MarineTraffic, Kpler or Puertos credential belongs in the global environment
+file.
 
 In addition to the signing and encryption guards, identity, processing,
 satellite, weather, construction, GIS, asset-management, and maritime selector

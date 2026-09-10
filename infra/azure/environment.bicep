@@ -194,6 +194,7 @@ module applications './modules/container-apps.bicep' = {
     logAnalyticsCustomerId: monitoring.outputs.logAnalyticsCustomerId
     logAnalyticsSharedKey: monitoring.outputs.logAnalyticsSharedKey
     applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
+    appConfigurationEndpoint: appConfiguration.outputs.endpoint
     identityResourceId: identity.outputs.id
     identityClientId: identity.outputs.clientId
     registryServer: registry.outputs.loginServer

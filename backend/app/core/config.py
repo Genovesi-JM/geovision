@@ -51,6 +51,7 @@ _URL_FIELDS = frozenset(
         "paypal_return_url",
         "s3_endpoint_url",
         "azure_storage_account_url",
+        "azure_app_configuration_endpoint",
         "nodeodm_base_url",
         "copernicus_stac_base_url",
         "aemet_base_url",
@@ -198,9 +199,7 @@ class Settings(BaseSettings):
     processing_worker_in_process: bool = False
     processing_worker_poll_seconds: float = Field(default=5.0, gt=0, le=300)
     processing_worker_batch_size: int = Field(default=5, ge=1, le=50)
-    processing_worker_claim_timeout_seconds: int = Field(
-        default=1800, ge=60, le=86400
-    )
+    processing_worker_claim_timeout_seconds: int = Field(default=1800, ge=60, le=86400)
     processing_default_max_retries: int = Field(default=3, ge=0, le=20)
     processing_retry_initial_seconds: float = Field(default=10.0, ge=0, le=3600)
     processing_retry_max_seconds: float = Field(default=900.0, ge=0, le=86400)
@@ -325,6 +324,17 @@ class Settings(BaseSettings):
     azure_storage_account_key: Optional[str] = Field(default=None, repr=False)
     azure_managed_identity_client_id: Optional[str] = None
 
+    # Read-only rollout configuration. Authorization, entitlement, and an
+    # active connection remain separate mandatory gates.
+    azure_app_configuration_endpoint: Optional[str] = None
+    integration_feature_flag_refresh_seconds: int = Field(default=300, ge=1, le=3600)
+    integration_feature_flag_max_staleness_seconds: int = Field(
+        default=3600, ge=1, le=86400
+    )
+    integration_feature_flag_startup_timeout_seconds: int = Field(
+        default=5, ge=1, le=30
+    )
+
     # ERP integration. GeoVision remains the system of record.
     erp_provider: str = "mock"
     erpnext_base_url: Optional[str] = Field(default=None, repr=False)
@@ -371,15 +381,9 @@ class Settings(BaseSettings):
     smtp_timeout_seconds: float = Field(default=15.0, gt=0)
     notification_worker_poll_seconds: float = Field(default=5.0, gt=0, le=300)
     notification_worker_batch_size: int = Field(default=50, ge=1, le=500)
-    notification_worker_claim_timeout_seconds: int = Field(
-        default=300, ge=30, le=3600
-    )
-    notification_worker_retry_base_seconds: float = Field(
-        default=30.0, ge=0, le=3600
-    )
-    notification_worker_retry_max_seconds: float = Field(
-        default=3600.0, ge=0, le=86400
-    )
+    notification_worker_claim_timeout_seconds: int = Field(default=300, ge=30, le=3600)
+    notification_worker_retry_base_seconds: float = Field(default=30.0, ge=0, le=3600)
+    notification_worker_retry_max_seconds: float = Field(default=3600.0, ge=0, le=86400)
     notification_delivery_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
     azure_notification_hubs_namespace: Optional[str] = None
     azure_notification_hubs_hub_name: Optional[str] = None
@@ -537,7 +541,9 @@ class Settings(BaseSettings):
     def normalize_log_level(cls, value: Any) -> str:
         normalized = str(value or "INFO").strip().upper()
         if normalized not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
-            raise ValueError("LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR, or CRITICAL")
+            raise ValueError(
+                "LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR, or CRITICAL"
+            )
         return normalized
 
     @field_validator("observability_exporter", mode="before")
@@ -583,7 +589,9 @@ class Settings(BaseSettings):
         if isinstance(value, (list, tuple, set)):
             value = ",".join(str(item) for item in value)
         return ",".join(
-            dict.fromkeys(item.strip() for item in str(value).split(",") if item.strip())
+            dict.fromkeys(
+                item.strip() for item in str(value).split(",") if item.strip()
+            )
         )
 
     @field_validator("copernicus_allowed_download_hosts", mode="before")
@@ -614,7 +622,9 @@ class Settings(BaseSettings):
             if not email:
                 continue
             if any(character in email for character in "\r\n") or "@" not in email:
-                raise ValueError("ADMIN_EMAILS must contain comma-separated email addresses")
+                raise ValueError(
+                    "ADMIN_EMAILS must contain comma-separated email addresses"
+                )
             emails.append(email)
         return ",".join(dict.fromkeys(emails))
 
@@ -664,6 +674,29 @@ class Settings(BaseSettings):
         normalized = str(value).strip()
         return normalized or None
 
+    @field_validator("azure_app_configuration_endpoint", mode="before")
+    @classmethod
+    def normalize_app_configuration_endpoint(cls, value: Any) -> Optional[str]:
+        if value is None or not str(value).strip():
+            return None
+        normalized = str(value).strip().rstrip("/")
+        parsed = urlsplit(normalized)
+        if (
+            parsed.scheme != "https"
+            or not parsed.hostname
+            or not parsed.hostname.endswith(".azconfig.io")
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.port is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ValueError(
+                "AZURE_APP_CONFIGURATION_ENDPOINT must be a canonical Azure HTTPS origin"
+            )
+        return normalized
+
     @model_validator(mode="after")
     def validate_security_profile(self) -> "Settings":
         if (
@@ -672,13 +705,17 @@ class Settings(BaseSettings):
             and self.env is not self.legacy_environment
         ):
             raise ValueError("ENV and ENVIRONMENT must not select different profiles")
-        self.env = (
-            self.env
-            or self.legacy_environment
-            or RuntimeEnvironment.DEVELOPMENT
-        )
+        self.env = self.env or self.legacy_environment or RuntimeEnvironment.DEVELOPMENT
         if self.paypal_mode not in {"sandbox", "live"}:
             raise ValueError("PAYPAL_MODE must be 'sandbox' or 'live'")
+        if (
+            self.integration_feature_flag_max_staleness_seconds
+            < self.integration_feature_flag_refresh_seconds
+        ):
+            raise ValueError(
+                "INTEGRATION_FEATURE_FLAG_MAX_STALENESS_SECONDS must be greater "
+                "than or equal to INTEGRATION_FEATURE_FLAG_REFRESH_SECONDS"
+            )
         if self.report_narrative_provider not in {
             "deterministic",
             "mock",
@@ -688,7 +725,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 "REPORT_NARRATIVE_PROVIDER must be deterministic, mock, azure_openai, or openai"
             )
-        if self.queue_provider not in {"database", "in_memory", "azure_service_bus", "null"}:
+        if self.queue_provider not in {
+            "database",
+            "in_memory",
+            "azure_service_bus",
+            "null",
+        }:
             raise ValueError(
                 "QUEUE_PROVIDER must be database, in_memory, azure_service_bus, or null"
             )
@@ -717,7 +759,10 @@ class Settings(BaseSettings):
                 "PROCESSING_RETRY_MAX_SECONDS must be greater than or equal to "
                 "PROCESSING_RETRY_INITIAL_SECONDS"
             )
-        if self.intelligence_retry_max_seconds < self.intelligence_retry_initial_seconds:
+        if (
+            self.intelligence_retry_max_seconds
+            < self.intelligence_retry_initial_seconds
+        ):
             raise ValueError(
                 "INTELLIGENCE_RETRY_MAX_SECONDS must be greater than or equal to "
                 "INTELLIGENCE_RETRY_INITIAL_SECONDS"
@@ -790,9 +835,7 @@ class Settings(BaseSettings):
             "sentinel",
         }
         if self.satellite_provider not in satellite_providers:
-            raise ValueError(
-                "SATELLITE_PROVIDER must be none, fake, or copernicus"
-            )
+            raise ValueError("SATELLITE_PROVIDER must be none, fake, or copernicus")
         weather_providers = {
             "none",
             "null",
@@ -807,7 +850,10 @@ class Settings(BaseSettings):
             raise ValueError(
                 "WEATHER_PROVIDER must be none, fake, aemet, or the Azure Maps scaffold"
             )
-        if self.weather_provider in {"aemet", "aemet_opendata"} and not self.aemet_api_key:
+        if (
+            self.weather_provider in {"aemet", "aemet_opendata"}
+            and not self.aemet_api_key
+        ):
             raise ValueError("AEMET weather requires AEMET_API_KEY")
         construction_providers = {
             "none",
@@ -866,14 +912,19 @@ class Settings(BaseSettings):
                 "MARITIME_PROVIDER must be none, null, fake, deterministic, "
                 "marinetraffic, kpler, or puertos_del_estado"
             )
-        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection):
+        if not re.fullmatch(
+            r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection
+        ):
             raise ValueError("SATELLITE_DEFAULT_COLLECTION is invalid")
         asset_keys = self.satellite_download_asset_key_list
         if self.satellite_download_assets_enabled and not asset_keys:
             raise ValueError(
                 "SATELLITE_DOWNLOAD_ASSET_KEYS is required when asset downloads are enabled"
             )
-        if any(not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,119}", key) for key in asset_keys):
+        if any(
+            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,119}", key)
+            for key in asset_keys
+        ):
             raise ValueError("SATELLITE_DOWNLOAD_ASSET_KEYS contains an invalid key")
         hosts = self.copernicus_download_host_list
         if not hosts or any(
@@ -882,7 +933,9 @@ class Settings(BaseSettings):
             or not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", host)
             for host in hosts
         ):
-            raise ValueError("COPERNICUS_ALLOWED_DOWNLOAD_HOSTS contains an invalid host")
+            raise ValueError(
+                "COPERNICUS_ALLOWED_DOWNLOAD_HOSTS contains an invalid host"
+            )
         for field_name, configured_url in (
             ("COPERNICUS_STAC_BASE_URL", self.copernicus_stac_base_url),
             ("AEMET_BASE_URL", self.aemet_base_url),
@@ -912,8 +965,7 @@ class Settings(BaseSettings):
             or parsed_miteco.password
             or parsed_miteco.query
             or parsed_miteco.fragment
-            or parsed_miteco.path.rstrip("/")
-            != "/geoserver/ogc/features/v1"
+            or parsed_miteco.path.rstrip("/") != "/geoserver/ogc/features/v1"
         ):
             raise ValueError(
                 "MITECO_OGC_FEATURES_BASE_URL must use the reviewed official "
@@ -952,7 +1004,10 @@ class Settings(BaseSettings):
             raise ValueError(
                 "IDENTITY_PROVIDER must be internal, transition, or entra_external_id"
             )
-        if not self.internal_token_issuer.strip() or not self.internal_token_audience.strip():
+        if (
+            not self.internal_token_issuer.strip()
+            or not self.internal_token_audience.strip()
+        ):
             raise ValueError("internal token issuer and audience must not be empty")
 
         entra_required = (
@@ -964,7 +1019,9 @@ class Settings(BaseSettings):
             raise ValueError(
                 "Entra External ID issuer, audience, and tenant ID must be configured together"
             )
-        if self.identity_provider in {"transition", "entra_external_id"} and not all(entra_required):
+        if self.identity_provider in {"transition", "entra_external_id"} and not all(
+            entra_required
+        ):
             raise ValueError(
                 "external IDENTITY_PROVIDER requires Entra issuer, audience, and tenant ID"
             )
@@ -981,10 +1038,14 @@ class Settings(BaseSettings):
                 )
             audience = self.entra_external_id_audience.lower().rstrip("/")
             audience_without_api_prefix = audience.removeprefix("api://")
-            if audience in {
-                _MICROSOFT_GRAPH_APP_ID,
-                _MICROSOFT_GRAPH_RESOURCE,
-            } or audience_without_api_prefix == _MICROSOFT_GRAPH_APP_ID:
+            if (
+                audience
+                in {
+                    _MICROSOFT_GRAPH_APP_ID,
+                    _MICROSOFT_GRAPH_RESOURCE,
+                }
+                or audience_without_api_prefix == _MICROSOFT_GRAPH_APP_ID
+            ):
                 raise ValueError(
                     "ENTRA_EXTERNAL_ID_AUDIENCE must identify the GeoVision API, "
                     "not Microsoft Graph"
@@ -1085,15 +1146,21 @@ class Settings(BaseSettings):
                     "deployed automatic processing requires the configured NodeODM adapter"
                 )
             if self.satellite_provider in {"fake", "deterministic"}:
-                raise ValueError("deployed environments cannot use the fake satellite provider")
+                raise ValueError(
+                    "deployed environments cannot use the fake satellite provider"
+                )
             if self.weather_provider in {"fake", "deterministic"}:
-                raise ValueError("deployed environments cannot use the fake weather provider")
+                raise ValueError(
+                    "deployed environments cannot use the fake weather provider"
+                )
             if self.construction_provider in {"fake", "deterministic"}:
                 raise ValueError(
                     "deployed environments cannot use the fake construction provider"
                 )
             if self.gis_provider in {"fake", "deterministic"}:
-                raise ValueError("deployed environments cannot use the fake GIS provider")
+                raise ValueError(
+                    "deployed environments cannot use the fake GIS provider"
+                )
             if self.asset_management_provider in {"fake", "deterministic"}:
                 raise ValueError(
                     "deployed environments cannot use the fake asset-management provider"
@@ -1161,7 +1228,11 @@ class Settings(BaseSettings):
 
     @property
     def environment_name(self) -> str:
-        return self.env.value if isinstance(self.env, RuntimeEnvironment) else str(self.env)
+        return (
+            self.env.value
+            if isinstance(self.env, RuntimeEnvironment)
+            else str(self.env)
+        )
 
     @property
     def is_production(self) -> bool:
@@ -1178,7 +1249,9 @@ class Settings(BaseSettings):
     @property
     def secret_key_is_insecure(self) -> bool:
         normalized = (self.secret_key or "").strip().lower()
-        return len(normalized) < 32 or any(marker in normalized for marker in _INSECURE_MARKERS)
+        return len(normalized) < 32 or any(
+            marker in normalized for marker in _INSECURE_MARKERS
+        )
 
     @property
     def encryption_key_is_valid(self) -> bool:
@@ -1277,10 +1350,7 @@ class Settings(BaseSettings):
         client_secret: Optional[str],
     ) -> bool:
         return bool(
-            client_id
-            and client_id.strip()
-            and client_secret
-            and client_secret.strip()
+            client_id and client_id.strip() and client_secret and client_secret.strip()
         )
 
     @property
@@ -1390,7 +1460,9 @@ class Settings(BaseSettings):
                 "report_narrative": self.report_narrative_provider,
             },
             "configured": {
-                "google_oauth": bool(self.google_client_id and self.google_client_secret),
+                "google_oauth": bool(
+                    self.google_client_id and self.google_client_secret
+                ),
                 "microsoft_oauth": bool(
                     self.microsoft_client_id and self.microsoft_client_secret
                 ),
@@ -1418,6 +1490,7 @@ class Settings(BaseSettings):
                     self.service_bus_connection_string
                     or self.service_bus_fully_qualified_namespace
                 ),
+                "azure_app_configuration": bool(self.azure_app_configuration_endpoint),
                 "azure_event_grid": bool(
                     self.azure_event_grid_enabled
                     and self.azure_event_grid_webhook_secret
@@ -1431,7 +1504,8 @@ class Settings(BaseSettings):
                     self.processing_provider in {"nodeodm", "opendronemap"}
                     and self.nodeodm_base_url
                 ),
-                "copernicus": self.satellite_provider in {"copernicus", "cdse", "sentinel"},
+                "copernicus": self.satellite_provider
+                in {"copernicus", "cdse", "sentinel"},
                 "aemet": bool(
                     self.weather_provider in {"aemet", "aemet_opendata"}
                     and self.aemet_api_key
@@ -1451,9 +1525,7 @@ class Settings(BaseSettings):
                     and self.erpnext_api_secret
                 ),
                 "odoo": bool(
-                    self.odoo_base_url
-                    and self.odoo_database
-                    and self.odoo_api_key
+                    self.odoo_base_url and self.odoo_database and self.odoo_api_key
                 ),
                 "multicaixa": self.multicaixa_configuration_complete,
                 "stripe": bool(self.stripe_secret_key),

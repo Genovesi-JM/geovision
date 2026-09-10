@@ -31,7 +31,7 @@ instead of treating legacy structures as disposable.
 | R21 | Medium | The default local `.venv` is stale and the shell does not expose Flutter even though Flutter is installed | Advertised commands fail before tests begin | Use `make baseline`, recreate the backend virtual environment, and keep tool discovery in the verification script |
 | R22 | Medium | Android and iOS builds pass with future plugin migration warnings | A future Flutter upgrade can turn warnings into build failures | Track `package_info_plus` Kotlin and `flutter_secure_storage` Swift Package Manager compatibility before the next SDK upgrade |
 | R23 | Critical | No production backup-restore drill or migration rollback rehearsal is recorded | A structurally correct migration can still cause unrecoverable downtime or data loss | Require a production-like restore, migration dry run, rollback decision and owner sign-off before any live schema cutover |
-| R24 | High | Connector and integration credential fields now use the canonical encryption helper and deployed profiles require a valid Fernet key, but free-form metadata and endpoint/base/webhook URLs remain plaintext, historical rows may contain plaintext, local/dev can retain explicit `plain:` values, and only one active encryption key is supported | Secrets embedded in unrestricted fields remain exposed; operators can assume every legacy value is encrypted; replacing or losing the key can make encrypted credentials unavailable | Forbid secrets in metadata/URLs, inventory and migrate confirmed plaintext under backup and verification, protect and back up the active key, design an audited rotation/re-encryption procedure, and consolidate overlapping persistence models before activating enterprise connectors |
+| R24 | High | The Phase 32 `IntegrationConnection` registry accepts canonical Key Vault HTTPS references and non-secret settings, but legacy `Connector`/`Integration` rows remain separate compatibility stores whose credential fields use one Fernet key while free-form metadata and URLs remain plaintext; historical rows may contain plaintext or local/dev `plain:` values | A registry rollout can leave old secret-bearing writers active; secrets embedded in unrestricted legacy fields remain exposed; replacing or losing the single Fernet key can make legacy ciphertext unavailable | Route new customer-owned connections through the secret-reference-only registry; forbid secrets in metadata/URLs; inventory and migrate confirmed legacy rows one connection at a time under backup, reconciliation and rollback; protect the current Fernet key and retire legacy writers only after deployed-client parity |
 | R25 | Medium | Phase 7 makes `catalog_items` authoritative and Phase 8 snapshots canonical catalogue lines into orders, while `shop_products` and `products` remain cart/client compatibility data | A legacy writer or failed projection could still make pre-checkout price, publication, or stock fields inconsistent | Route staff changes through `/catalog/internal`, monitor projection parity, compare prices again at checkout, retain immutable order snapshots, and retire old write/cart projections only after deployed clients migrate |
 | R26 | High | The enterprise prototype persisted raw provider callback payloads; Phase 8 preserves that table as `legacy_payment_webhook_events` while all new callbacks use a digest-only ledger | Historical payloads may contain personal or provider-sensitive data beyond the required retention period | Restrict table access now; inventory/classify rows, define legal retention, export only required evidence, then securely purge raw payloads with Phase 25 audit approval and a verified backup/restore plan |
 | R27 | High | Phase 9 stores private contractor/supplier contacts, qualifications, insurance, licences, quality notes and cost-bearing assignments in GeoVision | A broad customer/staff query, unsafe metadata field, or backup/export could expose personal data, internal margins, or another customer's operational details | Keep resource APIs internal, contractor views allowlisted and assignment-scoped, reject credentials in metadata, audit changes, restrict database/export access, define retention and document-access controls, and review live privacy/legal requirements before onboarding contractors |
@@ -46,6 +46,7 @@ instead of treating legacy structures as disposable.
 | R36 | High | External narrative generation and report publication can amplify an invented, rounded, weakly sourced or cross-tenant claim | A customer could act on a false number or receive evidence that was never approved for them | Keep deterministic generation as default; freeze and hash an authorized context; reject unknown output fields, evidence IDs and all provider-authored numeric literals; inject exact numbers only in the renderer; require QA/review/publication permissions, tenant filtering, audit/outbox events and Gate 15 before any live model |
 | R37 | High | Phase 20 adds durable SMTP/Azure Notification Hubs delivery, encrypted platform tokens, backend-managed Azure installations and a Flutter native-channel boundary, but signed iOS/Android host handlers, live SMTP/APNs/FCM accounts, physical-device behavior, quotas and provider-side deduplication are not verified; installation identifiers remain operational personal data | A missing/misconfigured host or provider can delay/drop customer messages, dead endpoints can accumulate, or a crash after provider acceptance can cause a duplicate; weak endpoint lifecycle/retention can expose routing metadata | Keep the durable inbox authoritative; require Gate 16 before live activation; implement/test the signed host channels, encrypt and digest platform tokens, restrict and retain endpoint/delivery data deliberately, monitor due age/retries/stale claims/dead letters/suppressions, reauthorize every target on tap, and reconcile uncertain outcomes rather than blind requeue |
 | R38 | High | Phase 21 implements the Odoo 19 JSON-2 adapter, narrow external-reference/status projection and signed callback receipts, but no live Odoo Custom plan/database, reviewed bridge addon, bot ACLs, API key, callback signer or Angolan accounting configuration has been validated | A broad bridge or bot can expose/corrupt multiple companies; a missing idempotency constraint can duplicate documents; a bad callback/cutover can overwrite status projections, and an expired three-month key can silently stop synchronization | Require Gate 17; allowlist bridge fields/resources, audit ACLs/record rules/company access, prove idempotency and callback replay/mapping checks, rotate keys before expiry, validate fiscal workflows, monitor/reconcile queues and retain provider-pinned rollback |
+| R39 | High | Phase 32 implements a tenant-scoped registry, deterministic fake workflow, Azure App Configuration/Key Vault managed-identity composition, resilience state and redacted audit/outbox events, but no customer rollout flag, registry credential or named enterprise provider has passed a live staging gate | A registry row, `healthy` fixture result or configured flag can be mistaken for customer authorization or live vendor readiness; a bad rollout target, stale flag snapshot, excessive vault access, uncertain external retry or incomplete disconnect can expose data, duplicate writes or retain provider access | Keep every named provider disabled until customer authorization, approved credentials/sandbox/scopes/contracts, mapping and provider-side idempotency tests pass; use plural `geovision.integrations.<family>.<provider>` flags, least-privilege managed identity and canonical Key Vault HTTPS references; monitor flag/health/circuit/retry/dead-letter state; revoke provider/vault access externally on disconnect; rehearse PostgreSQL migration and rollback |
 
 ## Controls that already reduce risk
 
@@ -549,3 +550,39 @@ without a compatibility plan.
 - **Introduced and controlled:** R38 and Gate 17 record the remaining Odoo Custom
   plan, bridge-addon review, bot permissions, API-key rotation, callback signer,
   fiscal validation, staging recovery and live cutover work.
+
+## Phase 32 outcome
+
+- **Reduced:** R19, because the four enterprise provider families now have one
+  durable, tenant-scoped administrative registry with explicit capability,
+  configuration, health and lifecycle projections. Only the deterministic fake
+  is approved, and deployed profiles reject it; named vendors remain visibly
+  blocked rather than becoming live through configuration alone.
+- **Reduced:** R24 for new customer-owned connections, because credential and
+  webhook inputs accept canonical Azure Key Vault HTTPS references and API
+  responses expose only configured booleans. Resolved secrets, raw sync payloads
+  and provider errors are excluded from connection projections, audit and
+  outbox payloads. Legacy `Connector`/`Integration` remediation remains active.
+- **Contained:** Workspace/member rollout risk, because persisted member
+  overrides precede workspace overrides, Azure App Configuration is read-only,
+  mixed stores ignore unrelated configuration, and absence, cold-start failure
+  or expired state fails closed. Atomic version-qualified override writes avoid
+  lost rollout decisions. Authorization, membership, current organization
+  entitlement, connection lifecycle and the operation-specific capability
+  remain separate gates. All five sector HTTP modules and generic sector-report
+  generation combine rollout decisions with their narrower workspace/module
+  entitlement.
+- **Contained:** Provider failure and replay risk, because normalized runs and
+  events persist a workspace-qualified idempotency key and request digest,
+  apply bounded attempts, due retries, rate limits and a serialized availability
+  circuit, and preserve safe error state without making provider IDs
+  authoritative. Shared organization connections cannot expose or retry another
+  workspace's ledger, and member connections are visible only to their member.
+- **Contained:** Disconnect and data-loss risk, because disconnect clears secret
+  references and terminalizes pending work without deleting completed sync or
+  GeoVision-owned history. External account and Key Vault revocation remains an
+  explicit operator step.
+- **Introduced and controlled:** R39 records the remaining live App
+  Configuration/Key Vault smoke tests, production-like PostgreSQL migration
+  rehearsal and provider-specific credential, sandbox, mapping, idempotency,
+  quota/licence and approval gates.

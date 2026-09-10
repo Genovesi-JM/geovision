@@ -27,6 +27,11 @@ website/app implementation discussion.
 - Advanced predictive AI before sufficient field data exists.
 - Energy and power monitoring. The prototype definition may remain on standby, but it is
   not listed, provisionable, recommended, or sold as part of the current offer.
+- The tenant integration registry, rollout controls, and named construction,
+  asset-management, GIS, and maritime provider scaffolds. These are internal
+  platform capabilities, not a promise that any customer-owned provider is
+  connected; each named provider remains blocked pending its own approved
+  account, credentials, sandbox, contract, and live verification.
 
 ## Add or complete
 

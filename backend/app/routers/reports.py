@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.deps import get_authorization_context, get_current_user
 from app.integrations.narrative import create_narrative_provider
+from app.integrations.registry import get_feature_flag_evaluator
+from app.integrations.registry.sector_rollout import sector_rollout_enabled
 from app.models import Asset, User
 from app.modules.identity.domain import AuthorizationContext
 from app.modules.reports.domain import ReportError, ReportStatus
@@ -38,12 +40,21 @@ from app.modules.reports.services import (
 
 router = APIRouter(tags=["reports"])
 
+_ROLLOUT_SECTORS = {
+    "AGRICULTURE",
+    "ENVIRONMENTAL",
+    "INFRASTRUCTURE",
+    "MINING",
+    "PORTS_INDUSTRIAL",
+}
+
 
 def _http_error(exc: ReportError) -> HTTPException:
     if exc.code in {"report_not_found", "acquisition_not_found"}:
         code = 404
     elif exc.code in {
         "report_access_denied",
+        "sector_rollout_disabled",
         "specialist_review_required",
     }:
         code = 403
@@ -75,6 +86,16 @@ def create_asset_report(
             asset=db.get(Asset, asset_id),
             permission="report:generate",
         )
+        if asset.sector in _ROLLOUT_SECTORS and not sector_rollout_enabled(
+            db,
+            context=context,
+            sector=asset.sector,
+            evaluator=get_feature_flag_evaluator(),
+        ):
+            raise ReportError(
+                "sector_rollout_disabled",
+                "Sector report generation is disabled for this workspace member",
+            )
         report, created = generate_report(
             db,
             actor=user,
@@ -93,7 +114,9 @@ def create_asset_report(
         raise _http_error(exc) from exc
     except RuntimeError as exc:
         db.rollback()
-        raise HTTPException(status_code=503, detail="Report generation is unavailable") from exc
+        raise HTTPException(
+            status_code=503, detail="Report generation is unavailable"
+        ) from exc
 
 
 @router.get("/reports", response_model=ReportListOut)
@@ -117,7 +140,9 @@ def list_reports(
         return {"items": [report_payload(row) for row in rows], "total": len(rows)}
     except (ReportError, ValueError) as exc:
         raise _http_error(
-            exc if isinstance(exc, ReportError) else ReportError("invalid_status", str(exc))
+            exc
+            if isinstance(exc, ReportError)
+            else ReportError("invalid_status", str(exc))
         ) from exc
 
 
@@ -243,7 +268,9 @@ def download_published_report(
     except ReportError as exc:
         db.rollback()
         raise _http_error(exc) from exc
-    safe_filename = re.sub(r"[^A-Za-z0-9._-]+", "-", filename).strip("-") or "report.pdf"
+    safe_filename = (
+        re.sub(r"[^A-Za-z0-9._-]+", "-", filename).strip("-") or "report.pdf"
+    )
     return StreamingResponse(
         BytesIO(content),
         media_type="application/pdf",

@@ -78,6 +78,20 @@ class EventNames:
     ERP_SYNC_COMPLETED = "erp.sync_completed"
     ERP_SYNC_FAILED = "erp.sync_failed"
 
+    INTEGRATION_CONNECTION_CREATED = "integration.connection.created"
+    INTEGRATION_CONNECTION_UPDATED = "integration.connection.updated"
+    INTEGRATION_CONNECTION_ENABLED = "integration.connection.enabled"
+    INTEGRATION_CONNECTION_DISABLED = "integration.connection.disabled"
+    INTEGRATION_CONNECTION_DISCONNECTED = "integration.connection.disconnected"
+    INTEGRATION_SYNC_REQUESTED = "integration.sync_requested"
+    INTEGRATION_SYNC_STARTED = "integration.sync_started"
+    INTEGRATION_SYNC_SUCCEEDED = "integration.sync_succeeded"
+    INTEGRATION_SYNC_FAILED = "integration.sync_failed"
+    INTEGRATION_RETRY_SCHEDULED = "integration.retry_scheduled"
+    INTEGRATION_DEAD_LETTERED = "integration.dead_lettered"
+    INTEGRATION_CIRCUIT_OPENED = "integration.circuit_opened"
+    INTEGRATION_CIRCUIT_CLOSED = "integration.circuit_closed"
+
 
 CANONICAL_EVENT_NAMES = frozenset(
     value
