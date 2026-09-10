@@ -634,37 +634,276 @@ class ContactMethod(Base):
 # â”€â”€ KPI Definitions and Values â”€â”€
 
 class KpiDefinition(Base):
-    """Per-sector KPI definitions."""
+    """Versioned, provider-neutral KPI definition registered by a sector module."""
     __tablename__ = "kpi_definitions"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     sector: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # agro, mining, etc.
     key: Mapped[str] = mapped_column(String(100), nullable=False)                # ndvi_avg, ore_grade, etc.
     label: Mapped[str] = mapped_column(String(200), nullable=False)              # Human-readable name
+    # ``label`` remains the legacy field. ``name`` is the canonical API value.
+    name: Mapped[str] = mapped_column(
+        String(200), nullable=False, default="", server_default=""
+    )
     unit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)       # %, ha, ton, etc.
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    calculator: Mapped[str] = mapped_column(
+        String(160), nullable=False, default="legacy", server_default="legacy"
+    )
+    calculator_version: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="legacy-1", server_default="legacy-1"
+    )
+    importance: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="TECHNICAL", server_default="TECHNICAL", index=True
+    )
+    display_format_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    status_policy_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
     icon: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)      # CSS icon class
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "importance IN ('PRIMARY', 'SECONDARY', 'TECHNICAL')",
+            name="ck_kpi_definition_importance",
+        ),
+        Index(
+            "ix_kpi_definitions_sector_key_version",
+            "sector",
+            "key",
+            "calculator_version",
+        ),
+    )
 
 
 class KpiValue(Base):
-    """Actual KPI measurements per site/dataset."""
+    """Immutable KPI measurement with provenance and historical comparison data."""
     __tablename__ = "kpi_values"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     kpi_definition_id: Mapped[str] = mapped_column(String(36), ForeignKey("kpi_definitions.id", ondelete="CASCADE"), nullable=False, index=True)
     account_id: Mapped[str] = mapped_column(String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=True, index=True
+    )
     site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
     dataset_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    mission_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     value: Mapped[str] = mapped_column(String(500), nullable=False)              # String to support numeric + text KPIs
     numeric_value: Mapped[Optional[float]] = mapped_column(Numeric(14, 4), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="UNKNOWN", server_default="UNKNOWN", index=True
+    )
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default="0")
+    measured_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False, index=True)
+    source: Mapped[str] = mapped_column(
+        String(160), nullable=False, default="legacy", server_default="legacy"
+    )
+    algorithm_version: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="legacy-1", server_default="legacy-1"
+    )
+    provenance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    is_baseline: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0", index=True
+    )
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     definition = relationship("KpiDefinition")
-    account = relationship("Account")
+    account = relationship("Account", foreign_keys=[account_id])
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('GOOD', 'WATCH', 'WARNING', 'CRITICAL', 'UNKNOWN')",
+            name="ck_kpi_value_status",
+        ),
+        CheckConstraint(
+            "confidence >= 0 AND confidence <= 1",
+            name="ck_kpi_value_confidence",
+        ),
+        Index(
+            "ix_kpi_values_asset_definition_measured",
+            "asset_id",
+            "kpi_definition_id",
+            "measured_at",
+        ),
+    )
+
+
+class Observation(Base):
+    """A structured, traceable finding produced from a dataset or measurement."""
+
+    __tablename__ = "observations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    mission_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    dataset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    observation_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    severity: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="INFO", server_default="INFO", index=True
+    )
+    geometry_geojson: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    value_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    numeric_value: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    unit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0, server_default="0")
+    source: Mapped[str] = mapped_column(String(160), nullable=False)
+    algorithm_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    algorithm_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    provenance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    validation_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="UNVALIDATED", server_default="UNVALIDATED", index=True
+    )
+    validated_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    validated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "severity IN ('INFO', 'WATCH', 'WARNING', 'CRITICAL')",
+            name="ck_observation_severity",
+        ),
+        CheckConstraint(
+            "validation_status IN ('UNVALIDATED', 'NEEDS_REVIEW', 'VALIDATED', 'REJECTED')",
+            name="ck_observation_validation_status",
+        ),
+        CheckConstraint(
+            "confidence >= 0 AND confidence <= 1",
+            name="ck_observation_confidence",
+        ),
+        Index("ix_observations_asset_detected", "asset_id", "detected_at"),
+        Index(
+            "ix_observations_asset_validation_severity",
+            "asset_id",
+            "validation_status",
+            "severity",
+        ),
+    )
+
+
+class Action(Base):
+    """A customer-visible recommendation or assigned follow-up with an outcome."""
+
+    __tablename__ = "intelligence_actions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source_observation_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("observations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    source_rule_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    source_rule_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    priority: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="MEDIUM", server_default="MEDIUM", index=True
+    )
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="OPEN", server_default="OPEN", index=True
+    )
+    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    assigned_to_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    recommended_catalog_item_id: Mapped[Optional[str]] = mapped_column(
+        String(50), ForeignKey("catalog_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    recommendation_refs_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    outcome_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    deduplication_key: Mapped[str] = mapped_column(String(240), nullable=False)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    completed_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL')",
+            name="ck_intelligence_action_priority",
+        ),
+        CheckConstraint(
+            "status IN ('OPEN', 'IN_PROGRESS', 'COMPLETED', 'DISMISSED', 'CANCELLED')",
+            name="ck_intelligence_action_status",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_intelligence_action_version"),
+        UniqueConstraint(
+            "organization_id",
+            "deduplication_key",
+            name="uq_intelligence_action_org_deduplication",
+        ),
+        Index(
+            "ix_intelligence_actions_asset_status_priority",
+            "asset_id",
+            "status",
+            "priority",
+        ),
+    )
 
 
 # â”€â”€ Audit Log â”€â”€

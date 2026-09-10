@@ -157,3 +157,24 @@ how to confirm · what the automation does afterwards.
   maintenance worker, and alert on rejected ingress, receipt latency/volume,
   offline devices, edge queue depth/drops and command failures. Remote actuator
   control stays disabled per device until its separate supervised approval.
+
+## 14. Sector KPI, observation and action validation
+
+- **Reason:** The shared engine enforces provenance, confidence, validation,
+  thresholds, versioning and outcomes, but code alone cannot approve agronomic,
+  engineering, environmental, mining or port decision rules.
+- **Action:** For each sector registration, nominate an accountable subject
+  expert; approve representative training/validation datasets, units,
+  thresholds, baselines, geography/season/asset applicability, confidence
+  calibration, false-positive/negative tolerance, customer wording and the
+  actions that may be recommended automatically. Record the exact algorithm
+  version and rollback trigger.
+- **Where:** GeoVision staging, controlled source datasets, the algorithm/model
+  register and operational review; never in client-side constants or prompts.
+- **Confirm:** Golden datasets reproduce expected KPI/status results; blind
+  review covers boundary values and missing/low-confidence inputs; every
+  observation remains visibly validated or unvalidated; action recommendations
+  are safe, reversible where applicable and link only to GeoVision offers.
+- **After:** Enable only the approved sector calculator/rule versions, monitor
+  drift and alert/action outcomes, and return affected KPIs to `UNKNOWN` if
+  provenance, source quality or calibration falls outside the approved scope.

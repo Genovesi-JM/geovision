@@ -47,6 +47,13 @@ actions, and reports; device telemetry/offline state; and ERP synchronization.
 Names are lowercase dotted facts such as `dataset.file_uploaded`. Requested work
 uses an explicit `*.requested` suffix.
 
+The Phase 17 engine writes each KPI measurement and `kpi.updated`, each
+observation and `observation.created`, and each generated Action and
+`action.requested` in the same caller transaction. Completing an Action writes
+its structured outcome and `action.completed` atomically. Event payloads carry
+only GeoVision IDs, status/provenance identifiers and timestamps—not raster
+values, unrestricted metadata or credentials.
+
 Consumers insert an `event_consumer_receipts` row before applying database
 effects. The receipt and effects share one transaction and the pair
 `(consumer_name, event_id)` is unique. Azure Service Bus is deliberately treated

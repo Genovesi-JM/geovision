@@ -69,9 +69,10 @@ legacy `/products` and `/admin/products` routes during cutover:
   `gv_marketplace_sector` key once and writes `gv_catalog_sector` thereafter.
 
 The historical `marketplace` recommendation action value remains only as a
-serialized compatibility alias until Phase 17 migrates action contracts. It
-means “open the GeoVision catalogue”; it never means route work or money to an
-external seller.
+serialized compatibility alias for older IoT clients. New intelligence Actions
+use `recommended_catalog_item_id` plus typed recommendation references. Both
+mean “open a GeoVision-owned catalogue item”; neither can route work or money
+to an external seller.
 
 ## Downstream hooks
 

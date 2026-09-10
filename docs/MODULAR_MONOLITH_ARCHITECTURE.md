@@ -159,9 +159,9 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Missions | Provider-neutral drone, satellite, IoT, manual-inspection, and third-party acquisitions share one asset history; drone details and legacy mobile/inspection routes are compatibility extensions |
 | Datasets | Asset/mission-linked metadata, lifecycle, tenant-safe streaming/signed uploads, immutable file identity, and local/S3/Azure storage adapters are implemented |
 | Processing | Durable source/output-linked jobs, quality/retry states, an independent worker, deterministic fake and NodeODM adapter are implemented; paid vendor adapters remain explicit scaffolds |
-| Analytics | KPI catalogue, risk calculations and AI explanation endpoints exist; numeric truth remains structured |
+| Analytics | Versioned sector calculator/rule registries, immutable KPI history, provenance-safe observations/alerts, comparisons and normalized Asset summaries are implemented; AI remains explanation-only |
 | Monitoring | Provider-mapped IoT devices, canonical assignments, versioned telemetry receipts, safe offline replay, alerts, live events and watchdog behavior coexist with durable cached satellite/weather acquisitions, normalized provenance and independent workers |
-| Actions | Recommendations, commands and assignments exist across compatibility facades; Phase 17 owns the aggregate |
+| Actions | Generic source-linked recommendations, priorities, assignments, GeoVision catalogue references, optimistic lifecycle transitions, outcomes and durable events are implemented; IoT recommendation/command routes remain compatibility facades |
 | Reports | PDF/document/deliverable behavior exists across facades; Phase 19 owns report workflow and publication |
 | Notifications | Contact routes, email and IoT notification adapters exist; Phase 20 owns durable delivery |
 | Billing | Every payment operation uses the module-owned provider port; tenant-derived payment truth, irreversible transitions, refunds, and digest-only idempotent webhook receipts are implemented |
@@ -171,7 +171,12 @@ cross-domain compatibility facade until its later phase extracts the service.
 customer membership policy and legacy company lookup without email-based
 authorization. `app/modules/assets/services.py` owns cross-sector hierarchy,
 spatial normalization, tenant filtering, archive policy, and legacy Site/IoT
-mirroring. `app/modules/analytics/kpi_catalog.py` owns KPI selection.
+mirroring. `app/modules/analytics/domain.py` owns the versioned calculator/rule
+registry and status/comparison rules; `app/modules/analytics/services.py` owns
+KPI and observation persistence. `app/modules/actions/services.py` owns
+recommendation deduplication, assignment and outcomes. The older
+`app/modules/analytics/kpi_catalog.py` remains a read-only compatibility
+catalogue until the Phase 22 clients move to Asset intelligence responses.
 Compatibility routers call these services instead of importing other routers.
 
 ## Sector boundaries

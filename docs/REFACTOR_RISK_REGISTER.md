@@ -41,6 +41,7 @@ instead of treating legacy structures as disposable.
 | R31 | High | Phase 14 adds durable processing jobs, a deterministic fake and NodeODM integration, but live photogrammetry compute capacity and measurement quality are not validated; the initial NodeODM output path reads a bounded archive into worker memory | A live node can exhaust memory/CPU/storage, a technically valid output can still be operationally inaccurate, or raising safety limits can destabilize workers | Keep automatic processing off until staging capacity and representative accuracy tests pass; pin/review the processor image, monitor queues/resources, retain NEEDS_REVIEW, and implement streamed/chunked transfer before larger workloads |
 | R32 | High | Phase 15 adds Copernicus and AEMET adapters, durable cached acquisitions and normalized provenance, but live credentials, provider quotas/licences, coverage and source interpretation are not validated | Provider outages or limits can create data gaps and costs, sparse stations/cloudy scenes can mislead users, or source data can be presented as a validated sector conclusion | Keep live providers behind Gate 12; review licence/attribution and budgets, validate representative assets and source quality, monitor failures/cache/storage, preserve provenance and require sector-specific interpretation before customer claims |
 | R33 | High | Phase 16 adds provider-mapped devices, canonical assignment history, IoT Hub/Event Grid ingestion, offline replay and safe sample edge rules, but no physical FieldBox/ESP32 or live Azure subscription has been commissioned | Bad clocks, exhausted flash/SD media, duplicate provider registrations, lost queue rows, weak webhook routing, or an incorrectly wired actuator can create monitoring gaps or unsafe physical behavior | Keep cloud ingress and remote control off until Gate 13; validate exact device mappings, secrets/network restrictions, clocks, queue limits/wear, replay ordering, physical interlocks and acknowledgements on representative hardware; alert on rejects, offline devices and edge depth |
+| R34 | High | Phase 17 provides a versioned KPI/observation/action engine, but sector thresholds, algorithms, confidence calibration and baseline selection are not yet scientifically or operationally approved | A technically valid calculation can be presented as safe, validated or actionable outside its evidence, geography, season, asset type or algorithm version | Keep missing/weak evidence `UNKNOWN`, preserve validation and provenance, activate only reviewed sector registrations, require Gate 14 before live decision claims, monitor version changes and never let narrative AI supply measurements or silent diagnoses |
 
 ## Controls that already reduce risk
 
@@ -437,3 +438,21 @@ without a compatibility plan.
 - **Introduced and controlled:** R33 records the remaining physical wiring,
   clock, storage wear/capacity, live Azure routing/security and field-safety
   work. Remote control and IoT Hub ingress remain disabled until Gate 13.
+
+## Phase 17 outcome
+
+- **Reduced:** R18, because frontends now have one Asset-scoped response for
+  current, previous, baseline, change, status, confidence, measurement time and
+  source. Status thresholds and historical comparison remain server-side.
+- **Contained:** Cross-sector coupling, because Agriculture, Infrastructure,
+  Environmental, Mining and Ports/Industrial register versioned calculators and
+  rules without modifying the core engine or adding sector-only Asset fields.
+- **Contained:** Weak-evidence risk, because observations preserve confidence,
+  validation state, algorithm version, geometry and mission/dataset provenance;
+  rejected findings are excluded from default alert/summary counts.
+- **Contained:** Duplicate/stale work, because generated actions use durable
+  source/rule identities, tenant-scoped idempotency and optimistic lifecycle
+  versions. Completion requires a structured, audited outcome.
+- **Introduced and controlled:** R34 records the remaining expert validation,
+  calibration, representative-dataset and algorithm-governance work. No sector
+  calculator is considered live merely because the common engine can run it.
