@@ -1,6 +1,6 @@
 import uuid
 
-from app.models import RefreshTokenFamily, User
+from app.models import Account, MobileServiceRequest, RefreshTokenFamily, User
 
 
 def _register(client, email):
@@ -68,6 +68,59 @@ def test_delete_account_removes_user_and_blocks_reuse_of_token(client, db_sessio
     assert again.status_code == 201, again.text
 
 
+def test_delete_account_removes_keyed_service_request_before_personal_workspace(
+    client,
+    db_session,
+):
+    email = f"del-request-{uuid.uuid4().hex[:8]}@example.com"
+    body = _register(client, email)
+    headers = {"Authorization": f"Bearer {body['access_token']}"}
+
+    site = client.post(
+        "/mobile/sites",
+        headers=headers,
+        json={
+            "name": "Deletion regression site",
+            "sector": "agro",
+            "country": "Angola",
+            "province": "Huambo",
+            "municipality": "Caala",
+            "latitude": -12.85,
+            "longitude": 15.56,
+            "area_hectares": 12,
+        },
+    )
+    assert site.status_code == 201, site.text
+    created = client.post(
+        "/mobile/service-requests",
+        headers={**headers, "Idempotency-Key": f"delete-{uuid.uuid4()}"},
+        json={
+            "site_id": site.json()["id"],
+            "site_name": site.json()["name"],
+            "type": "inspection",
+            "urgency": "normal",
+            "description": "Delete this keyed request with its owner",
+            "attachments": [],
+        },
+    )
+    assert created.status_code == 201, created.text
+    request_id = created.json()["id"]
+    workspace_id = created.json()["workspace_id"]
+
+    deleted = client.request(
+        "DELETE",
+        "/auth/account",
+        headers=headers,
+        json={"password": "strong-pass-123"},
+    )
+    assert deleted.status_code == 200, deleted.text
+
+    db_session.expire_all()
+    assert db_session.get(User, body["user"]["id"]) is None
+    assert db_session.get(MobileServiceRequest, request_id) is None
+    assert db_session.get(Account, workspace_id) is None
+
+
 def test_delete_account_requires_auth(client):
     assert client.request("DELETE", "/auth/account").status_code == 401
 
@@ -89,7 +142,10 @@ def test_delete_account_rejects_wrong_password_when_supplied(client):
     headers = {"Authorization": f"Bearer {body['access_token']}"}
 
     bad = client.request(
-        "DELETE", "/auth/account", headers=headers, json={"password": "not-the-password"}
+        "DELETE",
+        "/auth/account",
+        headers=headers,
+        json={"password": "not-the-password"},
     )
     assert bad.status_code == 403, bad.text
     # Account survived the rejected attempt.

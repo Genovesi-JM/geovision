@@ -1133,11 +1133,13 @@ class Settings(BaseSettings):
                     "Deployed Azure IoT Hub ingress requires AZURE_IOT_HUB_NAME and "
                     "a 32+ character AZURE_IOT_HUB_WEBHOOK_SECRET"
                 )
+            if self.processing_provider in {"fake", "deterministic"}:
+                raise ValueError(
+                    "deployed environments cannot use the fake processing provider"
+                )
             if self.processing_auto_create_enabled and self.processing_provider in {
                 "none",
                 "null",
-                "fake",
-                "deterministic",
                 "pix4d",
                 "autodesk_reality_capture",
                 "bentley_reality_modeling",

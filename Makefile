@@ -7,7 +7,7 @@ BACKEND := backend
 
 help:
 	@echo "GeoVision make targets:"
-	@echo "  make baseline      Run non-mutating backend, web and Flutter baseline checks"
+	@echo "  make baseline      Run backend, web and Flutter baseline validation"
 	@echo "  make autodev       Run the full Mac build/verify loop (START_AUTODEV_MAC.command)"
 	@echo "  make setup         Prepare and start the local IoT stack"
 	@echo "  make dev           Start the GeoVision IoT Docker stack"

@@ -7,7 +7,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
-from app.models import ContractorAssignment, OperationalCapability, OperationsContractor, User
+from app.models import (
+    ContractorAssignment,
+    MobileServiceRequest,
+    OperationalCapability,
+    OperationsContractor,
+    User,
+)
 from app.modules.operations.domain import OperationsResourceError
 from app.modules.operations.auth import OperationsStaff
 from app.modules.operations.schemas import (
@@ -24,7 +30,10 @@ from app.modules.operations.schemas import (
     ContractorSelfProfileOut,
     ContractorSelfUpdate,
     ContractorUpdate,
+    ServiceRequestLinkOut,
+    ServiceRequestLinkUpdate,
 )
+from app.modules.operations.mobile_services import link_mobile_service_request
 from app.modules.operations.services import (
     assignment_internal,
     assignment_restricted,
@@ -53,12 +62,20 @@ def _raise_resource_error(exc: OperationsResourceError) -> None:
         "order_not_found": status.HTTP_404_NOT_FOUND,
         "assignment_not_found": status.HTTP_404_NOT_FOUND,
         "job_not_found": status.HTTP_404_NOT_FOUND,
+        "service_request_not_found": status.HTTP_404_NOT_FOUND,
+        "workspace_not_found": status.HTTP_404_NOT_FOUND,
+        "asset_not_found": status.HTTP_404_NOT_FOUND,
+        "report_not_found": status.HTTP_404_NOT_FOUND,
         "contractor_access_denied": status.HTTP_403_FORBIDDEN,
         "capability_exists": status.HTTP_409_CONFLICT,
         "contractor_exists": status.HTTP_409_CONFLICT,
         "contractor_user_exists": status.HTTP_409_CONFLICT,
         "version_conflict": status.HTTP_409_CONFLICT,
         "invalid_assignment_transition": status.HTTP_409_CONFLICT,
+        "invalid_service_request_transition": status.HTTP_409_CONFLICT,
+        "invalid_service_request_progress": status.HTTP_409_CONFLICT,
+        "service_request_link_mismatch": status.HTTP_409_CONFLICT,
+        "report_not_ready": status.HTTP_409_CONFLICT,
     }.get(exc.code, status.HTTP_422_UNPROCESSABLE_ENTITY)
     raise HTTPException(
         status_code=status_code,
@@ -407,6 +424,52 @@ def staff_update_assignment(
         db.commit()
         db.refresh(row)
         return assignment_internal(row)
+    except OperationsResourceError as exc:
+        db.rollback()
+        _raise_resource_error(exc)
+
+
+def _service_request_link_out(row: MobileServiceRequest) -> ServiceRequestLinkOut:
+    return ServiceRequestLinkOut(
+        id=row.id,
+        organization_id=row.organization_id or "",
+        workspace_id=row.workspace_id or "",
+        user_id=row.user_id,
+        site_id=row.site_id,
+        asset_id=row.asset_id,
+        order_id=row.order_id,
+        report_id=row.report_id,
+        status=row.status,
+        progress_percent=row.progress_percent,
+        assigned_team=row.assigned_team,
+        lifecycle_version=row.lifecycle_version,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+    )
+
+
+@router.patch(
+    "/service-requests/{request_id}",
+    response_model=ServiceRequestLinkOut,
+)
+def staff_link_service_request(
+    request_id: str,
+    data: ServiceRequestLinkUpdate,
+    actor: OperationsStaff,
+    db: Session = Depends(get_db),
+):
+    """Attach verified commercial and report IDs to a customer request."""
+
+    try:
+        row = link_mobile_service_request(
+            db,
+            actor=actor,
+            request_id=request_id,
+            data=data,
+        )
+        db.commit()
+        db.refresh(row)
+        return _service_request_link_out(row)
     except OperationsResourceError as exc:
         db.rollback()
         _raise_resource_error(exc)

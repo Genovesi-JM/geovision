@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 import hashlib
 import json
 import uuid
-from typing import Any
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -18,6 +17,7 @@ from app.core.event_names import EventNames
 from app.core.events import DomainEvent
 from app.core.time import utc_now
 from app.models import (
+    Account,
     AccountMember,
     Action,
     Asset,
@@ -36,7 +36,8 @@ from app.models import (
     Report,
     User,
 )
-from app.modules.organizations.domain import MembershipStatus
+from app.modules.organizations.domain import MembershipStatus, WorkspaceStatus
+from app.modules.organizations.services import sole_active_workspace_id
 from app.services.event_outbox import enqueue_domain_event
 
 from .domain import NotificationSeverity, severity_allows
@@ -60,6 +61,9 @@ class NotificationIntent:
     aggregation_key: str | None = None
     preferred_recipient_user_id: str | None = None
     fallback_to_scope: bool = False
+    # None keeps the normal notification policy. IoT rules supply an explicit
+    # set so a log/inbox-only rule cannot silently opt into external delivery.
+    delivery_channels: frozenset[str] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,9 +91,38 @@ def _email_provider(config: Settings = settings) -> str:
 
 def _severity(value: str | None) -> str:
     normalized = str(value or "INFO").strip().upper()
-    aliases = {"LOW": "INFO", "MEDIUM": "WATCH", "HIGH": "WARNING", "URGENT": "CRITICAL"}
+    aliases = {
+        "LOW": "INFO",
+        "MEDIUM": "WATCH",
+        "HIGH": "WARNING",
+        "URGENT": "CRITICAL",
+    }
     normalized = aliases.get(normalized, normalized)
-    return normalized if normalized in {item.value for item in NotificationSeverity} else "INFO"
+    return (
+        normalized
+        if normalized in {item.value for item in NotificationSeverity}
+        else "INFO"
+    )
+
+
+def _active_event_workspace(
+    db: Session,
+    *,
+    organization_id: str,
+    workspace_id: str | None,
+) -> str | None:
+    """Resolve workspace-owned events without fanning legacy NULL scope across an org."""
+
+    if workspace_id:
+        workspace = db.get(Account, workspace_id)
+        if (
+            workspace is None
+            or workspace.organization_id != organization_id
+            or workspace.status != WorkspaceStatus.ACTIVE.value
+        ):
+            return None
+        return workspace.id
+    return sole_active_workspace_id(db, organization_id)
 
 
 def _recipients(
@@ -129,9 +162,16 @@ def _intent_from_event(db: Session, event: DomainEvent) -> NotificationIntent | 
         report = db.get(Report, str(payload.get("report_id") or event.aggregate_id))
         if report is None or report.status != "PUBLISHED":
             return None
-        return NotificationIntent(
+        workspace_id = _active_event_workspace(
+            db,
             organization_id=report.organization_id,
             workspace_id=report.workspace_id,
+        )
+        if workspace_id is None:
+            return None
+        return NotificationIntent(
+            organization_id=report.organization_id,
+            workspace_id=workspace_id,
             category="REPORT",
             notification_type="report.results_ready",
             title="Your results are ready",
@@ -144,9 +184,16 @@ def _intent_from_event(db: Session, event: DomainEvent) -> NotificationIntent | 
         action = db.get(Action, str(payload.get("action_id") or event.aggregate_id))
         if action is None or action.status not in {"OPEN", "IN_PROGRESS"}:
             return None
-        return NotificationIntent(
+        workspace_id = _active_event_workspace(
+            db,
             organization_id=action.organization_id,
             workspace_id=action.workspace_id,
+        )
+        if workspace_id is None:
+            return None
+        return NotificationIntent(
+            organization_id=action.organization_id,
+            workspace_id=workspace_id,
             category="ACTION",
             notification_type="action.review_requested",
             title=action.title,
@@ -159,52 +206,126 @@ def _intent_from_event(db: Session, event: DomainEvent) -> NotificationIntent | 
             fallback_to_scope=True,
         )
     if event.name == EventNames.DEVICE_OFFLINE_DETECTED:
-        device = db.get(IotDevice, str(payload.get("device_id") or event.aggregate_id))
-        if device is None:
+        device_id = str(payload.get("device_id") or event.aggregate_id or "")
+        organization_id = str(payload.get("organization_id") or "")
+        workspace_id = str(payload.get("workspace_id") or "")
+        asset_id = str(payload.get("asset_id") or "")
+        device = db.get(IotDevice, device_id) if device_id else None
+        asset = db.get(Asset, asset_id) if asset_id else None
+        if (
+            device is None
+            or asset is None
+            or not organization_id
+            or not workspace_id
+            or device.company_id != organization_id
+            or asset.organization_id != organization_id
+            or asset.workspace_id != workspace_id
+        ):
             return None
-        asset = db.get(Asset, device.core_asset_id) if device.core_asset_id else None
+        resolved_workspace_id = _active_event_workspace(
+            db,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+        )
+        if resolved_workspace_id is None:
+            return None
         return NotificationIntent(
-            organization_id=device.company_id,
-            workspace_id=asset.workspace_id if asset else None,
+            organization_id=organization_id,
+            workspace_id=resolved_workspace_id,
             category="DEVICE",
             notification_type="device.offline",
             title="Device offline",
             body="A field device stopped reporting. Open the asset to review its status.",
             severity="WARNING",
-            target_type="ASSET" if asset else "NONE",
-            target_id=asset.id if asset else None,
+            target_type="ASSET",
+            target_id=asset.id,
             aggregation_key=f"device:{device.id}:offline",
         )
     if event.name == EventNames.DEVICE_ALERT_TRIGGERED:
-        alert = db.get(IotAlert, str(payload.get("alert_id") or event.aggregate_id))
-        device = db.get(IotDevice, alert.device_id) if alert else None
-        asset = db.get(Asset, device.core_asset_id) if device and device.core_asset_id else None
-        if alert is None or device is None:
+        alert_id = str(payload.get("alert_id") or event.aggregate_id or "")
+        device_id = str(payload.get("device_id") or "")
+        organization_id = str(payload.get("organization_id") or "")
+        workspace_id = str(payload.get("workspace_id") or "")
+        asset_id = str(payload.get("asset_id") or "")
+        alert = db.get(IotAlert, alert_id) if alert_id else None
+        device = db.get(IotDevice, device_id) if device_id else None
+        asset = db.get(Asset, asset_id) if asset_id else None
+        if (
+            alert is None
+            or device is None
+            or asset is None
+            or not organization_id
+            or not workspace_id
+            or alert.device_id != device.id
+            or alert.company_id != organization_id
+            or device.company_id != organization_id
+            or asset.organization_id != organization_id
+            or asset.workspace_id != workspace_id
+        ):
             return None
+        resolved_workspace_id = _active_event_workspace(
+            db,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+        )
+        if resolved_workspace_id is None:
+            return None
+        configured_channels = payload.get("notification_channels", [])
+        if not isinstance(configured_channels, list):
+            configured_channels = []
+        delivery_channels = frozenset(
+            str(channel).strip().lower()
+            for channel in configured_channels
+            if str(channel).strip().lower() in {"email", "push"}
+        )
         return NotificationIntent(
-            organization_id=alert.company_id,
-            workspace_id=asset.workspace_id if asset else None,
+            organization_id=organization_id,
+            workspace_id=resolved_workspace_id,
             category="DEVICE",
             notification_type="device.alert_triggered",
-            title="Critical field alert" if _severity(alert.severity) == "CRITICAL" else "Field alert",
+            title="Critical field alert"
+            if _severity(alert.severity) == "CRITICAL"
+            else "Field alert",
             body=alert.message[:500],
             severity=_severity(alert.severity),
-            target_type="ASSET" if asset else "NONE",
-            target_id=asset.id if asset else None,
+            target_type="ASSET",
+            target_id=asset.id,
             aggregation_key=f"device:{device.id}:alert:{alert.rule_id}",
+            delivery_channels=delivery_channels,
         )
     if event.name in {EventNames.ORDER_CREATED, EventNames.ORDER_STATE_CHANGED}:
         order = db.get(Order, str(payload.get("order_id") or event.aggregate_id))
         organization_id = (order.organization_id or order.company_id) if order else None
-        if order is None or not organization_id or payload.get("customer_visible") is False:
+        if (
+            order is None
+            or not organization_id
+            or payload.get("customer_visible") is False
+        ):
             return None
-        target_state = str(payload.get("to") or order.fulfilment_status).replace("_", " ").lower()
-        return NotificationIntent(
+        workspace_id = _active_event_workspace(
+            db,
             organization_id=organization_id,
             workspace_id=order.workspace_id,
+        )
+        if workspace_id is None:
+            return None
+        target_state = (
+            str(payload.get("to") or order.fulfilment_status).replace("_", " ").lower()
+        )
+        return NotificationIntent(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
             category="ORDER",
-            notification_type=("order.created" if event.name == EventNames.ORDER_CREATED else "order.status_updated"),
-            title=("Order received" if event.name == EventNames.ORDER_CREATED else "Order status updated"),
+            notification_type=(
+                "order.created"
+                if event.name == EventNames.ORDER_CREATED
+                else "order.status_updated"
+            ),
+            title=(
+                "Order received"
+                if event.name == EventNames.ORDER_CREATED
+                else "Order status updated"
+            ),
             body=f"Your GeoVision order is {target_state}.",
             severity="INFO",
             target_type="ORDER",
@@ -220,12 +341,21 @@ def _intent_from_event(db: Session, event: DomainEvent) -> NotificationIntent | 
         organization_id = (order.organization_id or order.company_id) if order else None
         if job is None or order is None or not organization_id:
             return None
+        workspace_id = _active_event_workspace(
+            db,
+            organization_id=organization_id,
+            workspace_id=order.workspace_id,
+        )
+        if workspace_id is None:
+            return None
         scheduled = event.name == EventNames.FULFILMENT_JOB_SCHEDULE_CHANGED
         return NotificationIntent(
             organization_id=organization_id,
-            workspace_id=order.workspace_id,
+            workspace_id=workspace_id,
             category="SERVICE",
-            notification_type="service.schedule_updated" if scheduled else "service.status_updated",
+            notification_type="service.schedule_updated"
+            if scheduled
+            else "service.status_updated",
             title="Service schedule updated" if scheduled else "Service status updated",
             body=(
                 "Your GeoVision service schedule changed."
@@ -245,9 +375,16 @@ def _intent_from_event(db: Session, event: DomainEvent) -> NotificationIntent | 
         organization_id = (order.organization_id or order.company_id) if order else None
         if order is None or not organization_id:
             return None
-        return NotificationIntent(
+        workspace_id = _active_event_workspace(
+            db,
             organization_id=organization_id,
             workspace_id=order.workspace_id,
+        )
+        if workspace_id is None:
+            return None
+        return NotificationIntent(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
             category="SHIPMENT",
             notification_type="shipment.status_updated",
             title="Shipment status updated",
@@ -258,8 +395,12 @@ def _intent_from_event(db: Session, event: DomainEvent) -> NotificationIntent | 
             preferred_recipient_user_id=order.user_id,
         )
     if event.name == EventNames.INVITATION_CREATED:
-        invitation = db.get(Invitation, str(payload.get("invitation_id") or event.aggregate_id))
-        membership = db.get(CompanyUser, invitation.membership_id) if invitation else None
+        invitation = db.get(
+            Invitation, str(payload.get("invitation_id") or event.aggregate_id)
+        )
+        membership = (
+            db.get(CompanyUser, invitation.membership_id) if invitation else None
+        )
         if invitation is None or membership is None or not membership.user_id:
             return None
         return NotificationIntent(
@@ -317,6 +458,7 @@ def _queue_user_deliveries(
     notification: Notification,
     user: User,
     config: Settings,
+    delivery_channels: frozenset[str] | None = None,
 ) -> int:
     preference = effective_preference(
         db,
@@ -333,6 +475,7 @@ def _queue_user_deliveries(
         email_provider != "disabled"
         and above_minimum
         and (preference is None or preference.email_enabled)
+        and (delivery_channels is None or "email" in delivery_channels)
     )
     _queue_delivery(
         db,
@@ -355,7 +498,11 @@ def _queue_user_deliveries(
         .order_by(NotificationEndpoint.id.asc())
         .all()
     )
-    push_enabled = above_minimum and (preference is None or preference.push_enabled)
+    push_enabled = (
+        above_minimum
+        and (preference is None or preference.push_enabled)
+        and (delivery_channels is None or "push" in delivery_channels)
+    )
     for endpoint in endpoints:
         _queue_delivery(
             db,
@@ -427,8 +574,11 @@ def _materialize_for_user(
             db.query(Notification)
             .filter(
                 Notification.organization_id == intent.organization_id,
+                Notification.workspace_id == intent.workspace_id,
                 Notification.recipient_key == recipient_key,
                 Notification.aggregation_key == intent.aggregation_key,
+                Notification.target_type == intent.target_type,
+                Notification.target_id == intent.target_id,
                 Notification.aggregation_window_ends_at.is_not(None),
                 Notification.aggregation_window_ends_at >= now,
             )
@@ -474,7 +624,9 @@ def _materialize_for_user(
         occurrence_count=1,
         first_occurred_at=now,
         last_occurred_at=now,
-        aggregation_window_ends_at=(now + AGGREGATION_WINDOW if intent.aggregation_key else None),
+        aggregation_window_ends_at=(
+            now + AGGREGATION_WINDOW if intent.aggregation_key else None
+        ),
         created_at=created_at,
         updated_at=created_at,
     )
@@ -489,7 +641,11 @@ def _materialize_for_user(
         )
     )
     suppressed = _queue_user_deliveries(
-        db, notification=row, user=user, config=config
+        db,
+        notification=row,
+        user=user,
+        config=config,
+        delivery_channels=intent.delivery_channels,
     )
     db.add(
         AuditLog(
@@ -530,11 +686,7 @@ def materialize_notification_event(
     )
     # Assignment may point to internal staff. Fall back to the customer scope
     # instead of leaking customer notifications to an unrelated assignee.
-    if (
-        not users
-        and intent.preferred_recipient_user_id
-        and intent.fallback_to_scope
-    ):
+    if not users and intent.preferred_recipient_user_id and intent.fallback_to_scope:
         users = _recipients(
             db,
             organization_id=intent.organization_id,

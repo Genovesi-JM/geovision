@@ -74,6 +74,44 @@ deployment or close any human gate in `HUMAN_GATES.md`.
 - [ ] Customer payloads and logs contain no internal cost, provider cost,
   contribution, margin, token, key, or connection-string fields.
 
+## Phase 33 end-to-end closure evidence
+
+- [ ] `scripts/verify_phase33.sh` passed for the exact commit. Preserve its
+  output and treat every warning about absent PostgreSQL/PostGIS or staging
+  inputs as open evidence, not a pass for that gate.
+- [ ] On a freshly migrated disposable database,
+  `backend/scripts/seed_phase33_demo.py --confirm-synthetic-demo` was run twice
+  to prove idempotency. Agriculture, Infrastructure, Environmental, Mining, and
+  Ports/Industrial each have clearly marked synthetic Asset, mission, dataset,
+  KPI, observation, action, and report history visible through customer-safe
+  projections. No credential was created, reset, or printed.
+- [ ] One service request was followed through canonical organization,
+  workspace, Asset, order, fulfilment job, private assignment, acquisition,
+  upload, dataset, processing, KPI/observation/action, reviewed publication, and
+  report links. A retried create after a lost response reused its idempotency key
+  and did not create another request or downstream commercial record, including
+  after its legacy Site was renamed or deleted. Self-service account deletion
+  also removed the keyed request before deleting an empty personal Workspace.
+- [ ] The intended customer accepted a one-time invitation, received only
+  recipient-bound inbox items, opened the authorized typed destination, and saw
+  the result in both service-request and order history. Replay, tampering,
+  revocation, expiry, and foreign-scope opens were rejected.
+- [ ] Duplicate and out-of-order IoT envelopes, durable projection retry, offline
+  detection/recovery, KPI/observation/action materialization, notification, and
+  customer Asset visibility were exercised without duplicate decisions. Record
+  which watchdog worker owned offline detection.
+- [ ] Cross-organization denial, two accessible workspaces in one organization,
+  an unauthorized workspace, and two contractor assignments were exercised.
+  Customer reads stayed in the selected workspace, and a contractor could not
+  enumerate another assignment, customer membership, margin, credential, or
+  internal Operations data. Legacy mobile drone listing, registration, mission
+  creation, and approval also denied a same-Organization foreign Workspace and
+  denied viewer writes.
+- [ ] `scripts/staging_smoke.sh` passed with an approved short-lived customer
+  token and selected workspace. If
+  `GEOVISION_STAGING_FOREIGN_WORKSPACE_ID` was not supplied, record the
+  cross-workspace staging check as missing rather than complete.
+
 ## Background workers and integrations
 
 - [ ] Event worker revision is healthy; pending age, retries, delivery attempts,

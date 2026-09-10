@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
@@ -87,7 +88,8 @@ class WorkRepository {
     List<String> attachments = const [],
   }) async {
     final payload = {
-      'id': DateTime.now().microsecondsSinceEpoch.toString(),
+      'id':
+          'mobile-${DateTime.now().microsecondsSinceEpoch}-${siteId.hashCode.abs()}',
       'type': type.name,
       'site_id': siteId,
       'site_name': siteName,
@@ -102,8 +104,13 @@ class WorkRepository {
     final online = await _connectivity.isOnline;
     if (!_config.demoMode && online) {
       try {
-        final res =
-            await _api.raw.post('/mobile/service-requests', data: payload);
+        final res = await _api.raw.post(
+          '/mobile/service-requests',
+          data: payload,
+          options: Options(
+            headers: {'Idempotency-Key': payload['id']},
+          ),
+        );
         return ServiceRequest.fromJson(
             (res.data as Map).cast<String, dynamic>());
       } catch (_) {

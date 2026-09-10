@@ -7,6 +7,7 @@ import re
 import uuid
 from typing import Any
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.event_names import EventNames
@@ -26,7 +27,10 @@ from app.models import (
 )
 from app.modules.audit.services import record_audit_event
 from app.modules.assets.domain import AssetValidationError, normalize_geometry
-from app.modules.assets.services import synchronize_legacy_iot_asset, synchronize_legacy_site
+from app.modules.assets.services import (
+    synchronize_legacy_iot_asset,
+    synchronize_legacy_site,
+)
 from app.modules.missions.domain import (
     AcquisitionError,
     AcquisitionState,
@@ -41,6 +45,7 @@ from app.modules.missions.schemas import (
     InternalAcquisitionCreate,
     InternalAcquisitionUpdate,
 )
+from app.modules.organizations.services import sole_active_workspace_id
 from app.services.event_outbox import enqueue_domain_event
 
 
@@ -167,7 +172,8 @@ def _normalize_capture_area(value: dict[str, Any] | None) -> str | None:
         raise AcquisitionError("invalid_capture_area", str(exc)) from exc
     if normalized and normalized["type"] not in {"Polygon", "MultiPolygon"}:
         raise AcquisitionError(
-            "invalid_capture_area", "Drone capture area must be a Polygon or MultiPolygon"
+            "invalid_capture_area",
+            "Drone capture area must be a Polygon or MultiPolygon",
         )
     return _json(normalized) if normalized else None
 
@@ -198,7 +204,8 @@ def _validate_links(
             or (job.asset_id and job.asset_id != asset.id)
         ):
             raise AcquisitionError(
-                "job_asset_mismatch", "Fulfilment job does not belong to this asset/order"
+                "job_asset_mismatch",
+                "Fulfilment job does not belong to this asset/order",
             )
 
 
@@ -209,7 +216,9 @@ def _upsert_drone_details(
     data: DroneDetailsInput,
 ) -> DroneAcquisitionDetail:
     if acquisition.acquisition_type != AcquisitionType.DRONE.value:
-        raise AcquisitionError("invalid_modality", "Drone details require a DRONE acquisition")
+        raise AcquisitionError(
+            "invalid_modality", "Drone details require a DRONE acquisition"
+        )
     if data.aircraft_id:
         aircraft = db.get(DroneAircraft, data.aircraft_id)
         if aircraft is None or aircraft.company_id != acquisition.organization_id:
@@ -230,7 +239,9 @@ def _upsert_drone_details(
             or original.asset_id != acquisition.asset_id
             or original.id == acquisition.id
         ):
-            raise AcquisitionError("reflight_not_found", "Original drone acquisition was not found")
+            raise AcquisitionError(
+                "reflight_not_found", "Original drone acquisition was not found"
+            )
     detail = _drone_detail(db, acquisition.id)
     if detail is None:
         detail = DroneAcquisitionDetail(
@@ -258,7 +269,13 @@ def create_acquisition(
     asset: Asset,
     data: AcquisitionCreate | InternalAcquisitionCreate,
     internal: bool,
+    workspace_id: str | None = None,
 ) -> Acquisition:
+    if workspace_id is not None and asset.workspace_id not in {None, workspace_id}:
+        raise AcquisitionError(
+            "workspace_mismatch", "Asset does not belong to this workspace"
+        )
+    selected_workspace_id = workspace_id or asset.workspace_id
     order_id = getattr(data, "order_id", None) if internal else None
     job_id = getattr(data, "fulfilment_job_id", None) if internal else None
     if job_id and not order_id:
@@ -274,7 +291,7 @@ def create_acquisition(
         id=acquisition_id,
         acquisition_number=f"GVAQ-{now.year}-{acquisition_id.split('-')[0].upper()}",
         organization_id=asset.organization_id,
-        workspace_id=asset.workspace_id,
+        workspace_id=selected_workspace_id,
         asset_id=asset.id,
         order_id=order_id,
         fulfilment_job_id=job_id,
@@ -283,7 +300,9 @@ def create_acquisition(
         description=data.description,
         state=AcquisitionState.DRAFT.value,
         provider_code=provider_code,
-        provider_reference=(getattr(data, "provider_reference", None) if internal else None),
+        provider_reference=(
+            getattr(data, "provider_reference", None) if internal else None
+        ),
         provenance_json=_json(
             _initial_provenance(
                 data,
@@ -307,7 +326,8 @@ def create_acquisition(
         details = data.drone_details
         if not internal and (details.operator_user_id or details.contractor_id):
             raise AcquisitionError(
-                "assignment_forbidden", "Customers cannot assign internal acquisition resources"
+                "assignment_forbidden",
+                "Customers cannot assign internal acquisition resources",
             )
         _upsert_drone_details(db, acquisition=acquisition, data=details)
     _audit(
@@ -358,16 +378,22 @@ def _public_value(value: Any) -> Any:
     return value
 
 
-def _drone_payload(db: Session, acquisition: Acquisition, *, internal: bool) -> dict | None:
+def _drone_payload(
+    db: Session, acquisition: Acquisition, *, internal: bool
+) -> dict | None:
     detail = _drone_detail(db, acquisition.id)
     if detail is None:
         return None
     payload = {
         "aircraft_id": detail.aircraft_id,
         "payload_reference": detail.payload_reference,
-        "mission_requirements": _public_value(_object(detail.mission_requirements_json)),
+        "mission_requirements": _public_value(
+            _object(detail.mission_requirements_json)
+        ),
         "capture_area": (
-            _object(detail.capture_area_geojson) if detail.capture_area_geojson else None
+            _object(detail.capture_area_geojson)
+            if detail.capture_area_geojson
+            else None
         ),
         "flight_metadata": _public_value(_object(detail.flight_metadata_json)),
         "reflight_of_acquisition_id": detail.reflight_of_acquisition_id,
@@ -440,9 +466,13 @@ def list_acquisitions(
     if organization_id:
         query = query.filter(Acquisition.organization_id == organization_id)
     if workspace_id:
-        query = query.filter(
-            (Acquisition.workspace_id == workspace_id) | (Acquisition.workspace_id.is_(None))
-        )
+        workspace_filters = [Acquisition.workspace_id == workspace_id]
+        if (
+            organization_id
+            and sole_active_workspace_id(db, organization_id) == workspace_id
+        ):
+            workspace_filters.append(Acquisition.workspace_id.is_(None))
+        query = query.filter(or_(*workspace_filters))
     if asset_id:
         query = query.filter(Acquisition.asset_id == asset_id)
     if acquisition_type:
@@ -471,12 +501,16 @@ def update_acquisition(
         AcquisitionState.CANCELLED.value,
         AcquisitionState.FAILED.value,
     }:
-        raise AcquisitionError("acquisition_locked", "Terminal acquisition cannot be edited")
+        raise AcquisitionError(
+            "acquisition_locked", "Terminal acquisition cannot be edited"
+        )
     if not internal and acquisition.state not in {
         AcquisitionState.DRAFT.value,
         AcquisitionState.PLANNED.value,
     }:
-        raise AcquisitionError("acquisition_locked", "Acquisition can no longer be edited")
+        raise AcquisitionError(
+            "acquisition_locked", "Acquisition can no longer be edited"
+        )
     changed = data.model_dump(exclude_unset=True, mode="json")
     changed.pop("expected_version", None)
     clear_schedule = bool(changed.pop("clear_schedule", False))
@@ -493,7 +527,9 @@ def update_acquisition(
         acquisition.provider_reference = changed.pop("provider_reference")
     if clear_schedule:
         if acquisition.state == AcquisitionState.SCHEDULED.value:
-            raise AcquisitionError("schedule_locked", "A scheduled acquisition needs a window")
+            raise AcquisitionError(
+                "schedule_locked", "A scheduled acquisition needs a window"
+            )
         acquisition.scheduled_start = None
         acquisition.scheduled_end = None
     for field in ("title", "description", "scheduled_start", "scheduled_end"):
@@ -543,23 +579,32 @@ def transition_acquisition(
         and current in {AcquisitionState.DRAFT, AcquisitionState.PLANNED}
     ):
         raise AcquisitionError(
-            "state_forbidden", "GeoVision Operations controls this acquisition transition"
+            "state_forbidden",
+            "GeoVision Operations controls this acquisition transition",
         )
     require_acquisition_transition(current.value, target.value)
-    if target in {
-        AcquisitionState.CANCELLED,
-        AcquisitionState.FAILED,
-        AcquisitionState.NEEDS_REFLIGHT,
-    } and not (data.reason or "").strip():
+    if (
+        target
+        in {
+            AcquisitionState.CANCELLED,
+            AcquisitionState.FAILED,
+            AcquisitionState.NEEDS_REFLIGHT,
+        }
+        and not (data.reason or "").strip()
+    ):
         raise AcquisitionError("reason_required", f"{target.value} requires a reason")
     if target == AcquisitionState.SCHEDULED and not (
         acquisition.scheduled_start and acquisition.scheduled_end
     ):
-        raise AcquisitionError("schedule_required", "A scheduled acquisition needs a window")
+        raise AcquisitionError(
+            "schedule_required", "A scheduled acquisition needs a window"
+        )
     if target == AcquisitionState.NEEDS_REFLIGHT and (
         acquisition.acquisition_type != AcquisitionType.DRONE.value
     ):
-        raise AcquisitionError("invalid_reflight", "Only a drone acquisition can need reflight")
+        raise AcquisitionError(
+            "invalid_reflight", "Only a drone acquisition can need reflight"
+        )
     now = utc_now()
     acquisition.state = target.value
     if target == AcquisitionState.IN_PROGRESS and acquisition.started_at is None:
@@ -572,7 +617,9 @@ def transition_acquisition(
     if target == AcquisitionState.NEEDS_REFLIGHT:
         detail = _drone_detail(db, acquisition.id)
         if detail is None:
-            detail = DroneAcquisitionDetail(acquisition_id=acquisition.id, created_at=now)
+            detail = DroneAcquisitionDetail(
+                acquisition_id=acquisition.id, created_at=now
+            )
         detail.reflight_reason = data.reason
         detail.updated_at = now
         db.add(detail)
@@ -657,7 +704,9 @@ def _legacy_asset_for_site(db: Session, site_id: str, actor_id: str | None) -> A
 def synchronize_legacy_drone_mission(
     db: Session, mission: DroneMission, *, actor: User | None = None
 ) -> Acquisition:
-    asset = _legacy_asset_for_site(db, mission.site_id, actor.id if actor else mission.created_by)
+    asset = _legacy_asset_for_site(
+        db, mission.site_id, actor.id if actor else mission.created_by
+    )
     acquisition = (
         db.query(Acquisition)
         .filter(
@@ -669,7 +718,9 @@ def synchronize_legacy_drone_mission(
     now = utc_now()
     if acquisition is None:
         acquisition_id = str(
-            uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:acquisition:drone_mission:{mission.id}")
+            uuid.uuid5(
+                uuid.NAMESPACE_URL, f"geovision:acquisition:drone_mission:{mission.id}"
+            )
         )
         acquisition = Acquisition(
             id=acquisition_id,
@@ -706,7 +757,10 @@ def synchronize_legacy_drone_mission(
         }
     )
     acquisition.metadata_json = _json(
-        {"legacy_mission_type": mission.mission_type, "route": _array(mission.route_json)}
+        {
+            "legacy_mission_type": mission.mission_type,
+            "route": _array(mission.route_json),
+        }
     )
     acquisition.updated_at = mission.updated_at or now
     acquisition.updated_by_user_id = actor.id if actor else mission.created_by
@@ -759,9 +813,13 @@ def synchronize_legacy_inspection(
     if generic_asset is None:
         legacy_asset = db.get(IotAsset, inspection.asset_id)
         if legacy_asset is None:
-            raise AcquisitionError("asset_not_found", "Legacy inspection asset was not found")
+            raise AcquisitionError(
+                "asset_not_found", "Legacy inspection asset was not found"
+            )
         generic_asset = synchronize_legacy_iot_asset(
-            db, legacy_asset, actor_user_id=actor.id if actor else inspection.inspected_by
+            db,
+            legacy_asset,
+            actor_user_id=actor.id if actor else inspection.inspected_by,
         )
     acquisition = (
         db.query(Acquisition)
@@ -774,7 +832,10 @@ def synchronize_legacy_inspection(
     now = inspection.created_at or utc_now()
     if acquisition is None:
         acquisition_id = str(
-            uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:acquisition:asset_inspection:{inspection.id}")
+            uuid.uuid5(
+                uuid.NAMESPACE_URL,
+                f"geovision:acquisition:asset_inspection:{inspection.id}",
+            )
         )
         acquisition = Acquisition(
             id=acquisition_id,
@@ -831,15 +892,31 @@ def acquisition_for_legacy(
 ) -> Acquisition | None:
     return (
         db.query(Acquisition)
-        .filter(Acquisition.legacy_source == source, Acquisition.legacy_source_id == source_id)
+        .filter(
+            Acquisition.legacy_source == source,
+            Acquisition.legacy_source_id == source_id,
+        )
         .one_or_none()
     )
 
 
-def asset_acquisition_outputs(db: Session, asset_id: str) -> list[dict[str, Any]]:
+def asset_acquisition_outputs(
+    db: Session,
+    asset_id: str,
+    *,
+    organization_id: str | None = None,
+    workspace_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Common sector-facing output feed with no capture-resource dependency."""
 
-    rows = list_acquisitions(db, asset_id=asset_id, chronological=True, limit=10_000)
+    rows = list_acquisitions(
+        db,
+        organization_id=organization_id,
+        workspace_id=workspace_id,
+        asset_id=asset_id,
+        chronological=True,
+        limit=10_000,
+    )
     outputs: list[dict[str, Any]] = []
     for row in rows:
         references = _array(row.output_refs_json)

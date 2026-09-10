@@ -6,16 +6,19 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.time import utc_now
 from app.deps import get_authorization_context, get_current_user
 from app.models import (
+    Acquisition,
     AccountEvent,
-    Company,
+    Asset,
     DroneAircraft,
     DroneMission,
     MobileServiceRequest,
@@ -24,7 +27,7 @@ from app.models import (
     Site,
     User,
 )
-from app.modules.organizations.services import get_user_company_id
+from app.modules.organizations.services import sole_active_workspace_id
 from app.modules.assets.services import synchronize_legacy_site
 from app.modules.missions.services import (
     acquisition_for_legacy,
@@ -40,6 +43,7 @@ from app.modules.operations.mobile_schemas import (
 )
 from app.modules.operations.mobile_services import (
     MobileExperienceError,
+    create_mobile_service_request,
     get_mobile_site,
     get_mobile_service_request,
     list_mobile_service_requests,
@@ -50,9 +54,6 @@ from app.modules.operations.mobile_services import (
     mobile_service_result,
     require_mobile_workspace,
 )
-
-_get_user_company_id = get_user_company_id
-from app.core.time import utc_now
 from app.services.erp_sync import publish_account_event
 from app.account_profiles import normalize_public_sector
 
@@ -84,17 +85,17 @@ _MOBILE_KPI_SECTORS = {
 
 
 def _mobile_error(exc: MobileExperienceError) -> HTTPException:
-    status_code = (
-        status.HTTP_404_NOT_FOUND
-        if exc.code
-        in {
-            "asset_not_found",
-            "service_request_not_found",
-            "site_not_found",
-            "workspace_not_found",
-        }
-        else status.HTTP_403_FORBIDDEN
-    )
+    if exc.code in {
+        "asset_not_found",
+        "service_request_not_found",
+        "site_not_found",
+        "workspace_not_found",
+    }:
+        status_code = status.HTTP_404_NOT_FOUND
+    elif exc.code == "idempotency_conflict":
+        status_code = status.HTTP_409_CONFLICT
+    else:
+        status_code = status.HTTP_403_FORBIDDEN
     return HTTPException(status_code=status_code, detail=str(exc))
 
 
@@ -237,9 +238,7 @@ def create_site(
         sector=payload.sector,
         country=payload.country.strip(),
         province=payload.province.strip() if payload.province else None,
-        municipality=(
-            payload.municipality.strip() if payload.municipality else None
-        ),
+        municipality=(payload.municipality.strip() if payload.municipality else None),
         latitude=payload.latitude,
         longitude=payload.longitude,
         area_hectares=payload.area_hectares,
@@ -257,6 +256,7 @@ def create_site(
     publish_account_event(
         db,
         company_id=company.id,
+        workspace_id=workspace.id,
         event_type="site.created",
         resource_type="site",
         resource_id=site.id,
@@ -288,6 +288,11 @@ def _request_payload(
         attachments = []
     return {
         "id": item.id,
+        "organization_id": item.organization_id,
+        "workspace_id": item.workspace_id,
+        "asset_id": item.asset_id,
+        "order_id": item.order_id,
+        "report_id": item.report_id,
         "site_id": item.site_id or "",
         "site_name": item.site_name,
         "type": item.request_type,
@@ -297,6 +302,7 @@ def _request_payload(
         "progress_percent": item.progress_percent,
         "attachments": attachments,
         "assigned_team": item.assigned_team,
+        "lifecycle_version": item.lifecycle_version,
         "created_at": item.created_at.isoformat(),
         "updated_at": item.updated_at.isoformat(),
         "result": result,
@@ -310,7 +316,10 @@ def list_service_requests(
 ):
     try:
         return [
-            _request_payload(item)
+            _request_payload(
+                item,
+                result=mobile_service_result(db, context=context, request=item),
+            )
             for item in list_mobile_service_requests(db, context=context)
         ]
     except MobileExperienceError as exc:
@@ -353,48 +362,37 @@ def read_service_request(
 )
 def create_service_request(
     payload: ServiceRequestCreate,
+    response: Response,
     user: User = Depends(get_current_user),
     context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(
+        default=None,
+        alias="Idempotency-Key",
+        min_length=8,
+        max_length=160,
+    ),
 ):
     try:
-        site = get_mobile_site(
+        item, replayed = create_mobile_service_request(
             db,
+            actor=user,
             context=context,
             site_id=payload.site_id,
-            permission="workspace:contribute",
+            request_type=payload.type,
+            urgency=payload.urgency,
+            description=payload.description,
+            attachments=payload.attachments,
+            idempotency_key=idempotency_key,
         )
+        db.commit()
+        db.refresh(item)
     except MobileExperienceError as exc:
+        db.rollback()
         raise _mobile_error(exc) from exc
-    # A pre-Phase-5 site can be safely adopted only when the authorization
-    # service established that this is the organization's sole workspace.
-    synchronize_legacy_site(
-        db,
-        site,
-        actor_user_id=user.id,
-        workspace_id=context.active_workspace_id,
-    )
-    item = MobileServiceRequest(
-        user_id=user.id,
-        site_id=site.id,
-        site_name=site.name,
-        request_type=payload.type,
-        urgency=payload.urgency,
-        description=payload.description,
-        attachments_json=json.dumps(payload.attachments),
-    )
-    db.add(item)
-    publish_account_event(
-        db,
-        company_id=context.active_organization_id,
-        event_type="service_request.created",
-        resource_type="service_request",
-        resource_id=item.id,
-        title=f"Pedido de serviço recebido: {site.name}",
-        payload={"status": item.status, "urgency": item.urgency},
-    )
-    db.commit()
-    db.refresh(item)
+    if replayed:
+        response.status_code = status.HTTP_200_OK
+        response.headers["Idempotency-Replayed"] = "true"
     return _request_payload(item)
 
 
@@ -425,16 +423,134 @@ def _aircraft_payload(item: DroneAircraft) -> dict[str, Any]:
     }
 
 
+def _drone_workspace(
+    db: Session,
+    *,
+    context: AuthorizationContext,
+    permission: str,
+) -> tuple[str, str, bool]:
+    """Resolve a customer Workspace before touching legacy drone resources."""
+
+    try:
+        workspace, company = require_mobile_workspace(
+            db,
+            context=context,
+            permission=permission,
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+    return (
+        workspace.id,
+        company.id,
+        sole_active_workspace_id(db, company.id) == workspace.id,
+    )
+
+
+def _drone_site(
+    db: Session,
+    *,
+    context: AuthorizationContext,
+    site_id: str,
+    permission: str,
+) -> Site:
+    try:
+        return get_mobile_site(
+            db,
+            context=context,
+            site_id=site_id,
+            permission=permission,
+        )
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+
+
+def _aircraft_is_in_workspace(
+    db: Session,
+    *,
+    context: AuthorizationContext,
+    aircraft: DroneAircraft,
+    organization_id: str,
+    sole_workspace: bool,
+) -> bool:
+    if aircraft.company_id != organization_id:
+        return False
+    if aircraft.site_id is None:
+        # Aircraft created before Workspace ownership can be adopted only while
+        # the Organization has one unambiguous active Workspace.
+        return sole_workspace
+    try:
+        get_mobile_site(
+            db,
+            context=context,
+            site_id=aircraft.site_id,
+            permission="asset:read",
+        )
+    except MobileExperienceError:
+        return False
+    return True
+
+
+def _mission_acquisition_scope(
+    db: Session,
+    *,
+    context: AuthorizationContext,
+    mission: DroneMission,
+    sole_workspace: bool,
+) -> tuple[Acquisition | None, bool]:
+    """Revalidate a legacy mission's canonical Workspace projection."""
+
+    acquisition = acquisition_for_legacy(
+        db,
+        source="drone_mission",
+        source_id=mission.id,
+    )
+    if acquisition is None:
+        return None, True
+    asset = db.get(Asset, acquisition.asset_id)
+    workspace_id = context.active_workspace_id
+    organization_id = context.active_organization_id
+
+    def workspace_matches(value: str | None) -> bool:
+        return value == workspace_id or (value is None and sole_workspace)
+
+    valid = bool(
+        workspace_id
+        and organization_id
+        and acquisition.organization_id == organization_id
+        and workspace_matches(acquisition.workspace_id)
+        and asset is not None
+        and asset.organization_id == organization_id
+        and workspace_matches(asset.workspace_id)
+        and asset.status != "archived"
+        and asset.legacy_source == "site"
+        and asset.legacy_source_id == mission.site_id
+    )
+    return acquisition, valid
+
+
 @router.get("/drones")
 def list_drones(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
-    if not company_id:
-        raise HTTPException(status_code=403, detail="Organisation not found")
+    _, organization_id, sole_workspace = _drone_workspace(
+        db,
+        context=context,
+        permission="asset:read",
+    )
+    try:
+        site_ids = {site.id for site in list_mobile_sites(db, context=context)}
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+    filters = [DroneAircraft.site_id.in_(site_ids)]
+    if sole_workspace:
+        filters.append(DroneAircraft.site_id.is_(None))
     rows = (
         db.query(DroneAircraft)
-        .filter(DroneAircraft.company_id == company_id)
+        .filter(
+            DroneAircraft.company_id == organization_id,
+            or_(*filters),
+        )
         .order_by(DroneAircraft.updated_at.desc())
         .all()
     )
@@ -444,20 +560,44 @@ def list_drones(
 @router.post("/drones", status_code=status.HTTP_201_CREATED)
 def register_drone(
     payload: AircraftCreate,
-    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
-    if not company_id:
-        raise HTTPException(status_code=403, detail="Organisation not found")
-    site = db.get(Site, payload.site_id) if payload.site_id else None
-    if payload.site_id and (not site or site.company_id != company_id):
-        raise HTTPException(status_code=404, detail="Site not found")
+    workspace_id, organization_id, sole_workspace = _drone_workspace(
+        db,
+        context=context,
+        permission="workspace:contribute",
+    )
+    site = None
+    if payload.site_id:
+        site = _drone_site(
+            db,
+            context=context,
+            site_id=payload.site_id,
+            permission="workspace:contribute",
+        )
+        asset = synchronize_legacy_site(
+            db,
+            site,
+            actor_user_id=context.user_id,
+            workspace_id=workspace_id,
+        )
+        if (
+            asset.organization_id != organization_id
+            or asset.workspace_id != workspace_id
+            or asset.status == "archived"
+        ):
+            raise HTTPException(status_code=404, detail="Site not found")
+    elif not sole_workspace:
+        raise HTTPException(
+            status_code=409,
+            detail="A site is required when an organisation has multiple workspaces",
+        )
     canonical = payload.model.strip()
     sdk_supported = canonical in DJI_AUTOMATION_SUPPORT
     item = DroneAircraft(
-        company_id=company_id,
-        site_id=payload.site_id,
+        company_id=organization_id,
+        site_id=site.id if site else None,
         name=payload.name.strip(),
         model=canonical,
         serial_number=payload.serial_number,
@@ -518,42 +658,80 @@ def _mission_payload(
 
 @router.get("/drone-missions")
 def list_drone_missions(
-    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
+    _, organization_id, sole_workspace = _drone_workspace(
+        db,
+        context=context,
+        permission="asset:read",
+    )
+    try:
+        site_ids = {site.id for site in list_mobile_sites(db, context=context)}
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
     rows = (
         db.query(DroneMission)
-        .filter(DroneMission.company_id == company_id)
+        .filter(
+            DroneMission.company_id == organization_id,
+            DroneMission.site_id.in_(site_ids),
+        )
         .order_by(DroneMission.updated_at.desc())
         .all()
-    ) if company_id else []
-    return [
-        _mission_payload(
-            row,
-            (
-                linked.id
-                if (linked := acquisition_for_legacy(
-                    db, source="drone_mission", source_id=row.id
-                ))
-                else None
-            ),
+    )
+    payloads: list[dict[str, Any]] = []
+    for row in rows:
+        acquisition, valid = _mission_acquisition_scope(
+            db,
+            context=context,
+            mission=row,
+            sole_workspace=sole_workspace,
         )
-        for row in rows
-    ]
+        if valid:
+            payloads.append(
+                _mission_payload(row, acquisition.id if acquisition else None)
+            )
+    return payloads
 
 
 @router.post("/drone-missions", status_code=status.HTTP_201_CREATED)
 def create_drone_mission(
     payload: MissionCreate,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
-    site = db.get(Site, payload.site_id)
-    aircraft = db.get(DroneAircraft, payload.aircraft_id)
-    if not company_id or not site or site.company_id != company_id:
+    workspace_id, organization_id, sole_workspace = _drone_workspace(
+        db,
+        context=context,
+        permission="workspace:contribute",
+    )
+    site = _drone_site(
+        db,
+        context=context,
+        site_id=payload.site_id,
+        permission="workspace:contribute",
+    )
+    asset = synchronize_legacy_site(
+        db,
+        site,
+        actor_user_id=user.id,
+        workspace_id=workspace_id,
+    )
+    if (
+        asset.organization_id != organization_id
+        or asset.workspace_id != workspace_id
+        or asset.status == "archived"
+    ):
         raise HTTPException(status_code=404, detail="Site not found")
-    if not aircraft or aircraft.company_id != company_id:
+    aircraft = db.get(DroneAircraft, payload.aircraft_id)
+    if not aircraft or not _aircraft_is_in_workspace(
+        db,
+        context=context,
+        aircraft=aircraft,
+        organization_id=organization_id,
+        sole_workspace=sole_workspace,
+    ):
         raise HTTPException(status_code=404, detail="Aircraft not found")
     if not aircraft.sdk_supported:
         raise HTTPException(
@@ -561,7 +739,7 @@ def create_drone_mission(
             detail="This aircraft supports media import only; automated missions require a supported SDK aircraft.",
         )
     item = DroneMission(
-        company_id=company_id,
+        company_id=organization_id,
         site_id=site.id,
         aircraft_id=aircraft.id,
         created_by=user.id,
@@ -596,18 +774,61 @@ def approve_drone_mission(
     mission_id: str,
     payload: MissionApproval,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
+    workspace_id, organization_id, sole_workspace = _drone_workspace(
+        db,
+        context=context,
+        permission="workspace:operate",
+    )
     item = db.get(DroneMission, mission_id)
-    if not item or item.company_id != company_id:
+    if not item or item.company_id != organization_id:
+        raise HTTPException(status_code=404, detail="Mission not found")
+    site = _drone_site(
+        db,
+        context=context,
+        site_id=item.site_id,
+        permission="workspace:operate",
+    )
+    asset = synchronize_legacy_site(
+        db,
+        site,
+        actor_user_id=user.id,
+        workspace_id=workspace_id,
+    )
+    if (
+        asset.organization_id != organization_id
+        or asset.workspace_id != workspace_id
+        or asset.status == "archived"
+    ):
+        raise HTTPException(status_code=404, detail="Mission not found")
+    _, valid_acquisition = _mission_acquisition_scope(
+        db,
+        context=context,
+        mission=item,
+        sole_workspace=sole_workspace,
+    )
+    if not valid_acquisition:
         raise HTTPException(status_code=404, detail="Mission not found")
     checklist = payload.model_dump()
     if not all(checklist.values()):
-        raise HTTPException(status_code=409, detail="Every safety check must be confirmed")
+        raise HTTPException(
+            status_code=409, detail="Every safety check must be confirmed"
+        )
     aircraft = db.get(DroneAircraft, item.aircraft_id)
-    if not aircraft or not aircraft.sdk_supported:
-        raise HTTPException(status_code=409, detail="Aircraft cannot execute automated missions")
+    if not aircraft or not _aircraft_is_in_workspace(
+        db,
+        context=context,
+        aircraft=aircraft,
+        organization_id=organization_id,
+        sole_workspace=sole_workspace,
+    ):
+        raise HTTPException(status_code=404, detail="Aircraft not found")
+    if not aircraft.sdk_supported:
+        raise HTTPException(
+            status_code=409, detail="Aircraft cannot execute automated missions"
+        )
     item.checklist_json = json.dumps(checklist)
     item.status = "approved_for_provider_handoff"
     acquisition = synchronize_legacy_drone_mission(db, item, actor=user)
@@ -625,8 +846,15 @@ def _event_payload(item: AccountEvent) -> dict[str, Any]:
         data = json.loads(item.payload_json or "{}")
     except (TypeError, json.JSONDecodeError):
         data = {}
+    if isinstance(data, dict):
+        # Account events are customer-visible. Internal actor identifiers are
+        # useful in the audit log, not in the mobile projection.
+        data.pop("actor_user_id", None)
+    else:
+        data = {}
     return {
         "id": item.id,
+        "workspace_id": item.workspace_id,
         "type": item.event_type,
         "resource_type": item.resource_type,
         "resource_id": item.resource_id,
@@ -636,46 +864,87 @@ def _event_payload(item: AccountEvent) -> dict[str, Any]:
     }
 
 
+def _scoped_account_events_query(
+    db: Session,
+    *,
+    context: AuthorizationContext,
+):
+    workspace, company = require_mobile_workspace(
+        db,
+        context=context,
+        permission="workspace:read",
+    )
+    return db.query(AccountEvent).filter(
+        AccountEvent.company_id == company.id,
+        AccountEvent.workspace_id == workspace.id,
+    )
+
+
 @router.get("/account/overview")
 def account_overview(
-    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    """Tenant-isolated, customer-visible account snapshot for the mobile app."""
-    company_id = _get_user_company_id(user, db)
-    company = db.get(Company, company_id) if company_id else None
-    if not company:
-        raise HTTPException(status_code=403, detail="Organisation not found")
+    """Workspace-isolated, customer-visible account snapshot for mobile."""
+
+    try:
+        workspace, company = require_mobile_workspace(
+            db,
+            context=context,
+            permission="workspace:read",
+        )
+        requests = list_mobile_service_requests(db, context=context)
+        sites = list_mobile_sites(db, context=context)
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
 
     orders = (
         db.query(Order)
-        .filter((Order.company_id == company.id) | (Order.user_id == user.id))
+        .filter(
+            Order.workspace_id == workspace.id,
+            or_(
+                Order.organization_id == company.id,
+                and_(
+                    Order.organization_id.is_(None),
+                    Order.company_id == company.id,
+                ),
+            ),
+        )
         .order_by(Order.updated_at.desc())
         .limit(20)
         .all()
     )
     payments = (
         db.query(Payment)
-        .filter(Payment.company_id == company.id)
+        .join(Order, Order.id == Payment.order_id)
+        .filter(
+            Order.workspace_id == workspace.id,
+            or_(
+                Order.organization_id == company.id,
+                and_(
+                    Order.organization_id.is_(None),
+                    Order.company_id == company.id,
+                ),
+            ),
+            or_(
+                Payment.organization_id == company.id,
+                and_(
+                    Payment.organization_id.is_(None),
+                    Payment.company_id == company.id,
+                ),
+            ),
+        )
         .order_by(Payment.updated_at.desc())
         .limit(20)
         .all()
     )
-    requests = (
-        db.query(MobileServiceRequest)
-        .filter(MobileServiceRequest.user_id == user.id)
-        .order_by(MobileServiceRequest.updated_at.desc())
-        .limit(20)
-        .all()
-    )
-    sites = db.query(Site).filter(Site.company_id == company.id).count()
     outstanding = sum(
         int(payment.amount)
         for payment in payments
         if payment.status not in {"paid", "completed", "confirmed", "refunded"}
     )
     latest = max(
-        [company.updated_at]
+        [workspace.updated_at]
         + [item.updated_at for item in orders]
         + [item.updated_at for item in payments]
         + [item.updated_at for item in requests]
@@ -690,15 +959,27 @@ def account_overview(
         "financial": {
             "currency": "AOA",
             "outstanding_cents": outstanding,
-            "paid_payments": sum(1 for p in payments if p.status in {"paid", "completed", "confirmed"}),
-            "pending_payments": sum(1 for p in payments if p.status not in {"paid", "completed", "confirmed", "refunded"}),
+            "paid_payments": sum(
+                1 for p in payments if p.status in {"paid", "completed", "confirmed"}
+            ),
+            "pending_payments": sum(
+                1
+                for p in payments
+                if p.status not in {"paid", "completed", "confirmed", "refunded"}
+            ),
         },
         "activity": {
-            "sites": sites,
+            "sites": len(sites),
             "orders": len(orders),
-            "active_orders": sum(1 for o in orders if o.status not in {"completed", "cancelled", "refunded"}),
+            "active_orders": sum(
+                1
+                for o in orders
+                if o.status not in {"completed", "cancelled", "refunded"}
+            ),
             "service_requests": len(requests),
-            "active_requests": sum(1 for r in requests if r.status not in {"completed", "cancelled"}),
+            "active_requests": sum(
+                1 for r in requests if r.status not in {"completed", "cancelled"}
+            ),
         },
         "recent_orders": [
             {
@@ -719,13 +1000,13 @@ def account_overview(
 def account_events(
     after: datetime | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
-    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    company_id = _get_user_company_id(user, db)
-    if not company_id:
-        raise HTTPException(status_code=403, detail="Organisation not found")
-    query = db.query(AccountEvent).filter(AccountEvent.company_id == company_id)
+    try:
+        query = _scoped_account_events_query(db, context=context)
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
     if after:
         query = query.filter(AccountEvent.created_at > after)
     rows = query.order_by(AccountEvent.created_at.desc()).limit(limit).all()
@@ -735,21 +1016,21 @@ def account_events(
 @router.get("/account/stream")
 def account_stream(
     after: datetime | None = Query(default=None),
-    user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
     """SSE feed with heartbeat; mobile uses polling fallback after disconnects."""
-    company_id = _get_user_company_id(user, db)
-    if not company_id:
-        raise HTTPException(status_code=403, detail="Organisation not found")
+    try:
+        scoped_query = _scoped_account_events_query(db, context=context)
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
 
     async def generate():
         cursor = after or utc_now()
         yield "event: ready\ndata: {}\n\n"
         while True:
             rows = (
-                db.query(AccountEvent)
-                .filter(AccountEvent.company_id == company_id, AccountEvent.created_at > cursor)
+                scoped_query.filter(AccountEvent.created_at > cursor)
                 .order_by(AccountEvent.created_at.asc())
                 .limit(100)
                 .all()

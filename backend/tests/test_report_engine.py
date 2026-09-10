@@ -7,13 +7,16 @@ import uuid
 
 import pytest
 
+from app.core.tokens import create_user_access_token
 from app.integrations.storage.local import LocalObjectStorageProvider
 from app.models import (
     Account,
+    AccountMember,
     Action,
     Asset,
     AuditLog,
     Company,
+    CompanyUser,
     Dataset,
     DatasetFile,
     EventOutbox,
@@ -303,6 +306,149 @@ def _storage(tmp_path) -> StorageService:
     )
 
 
+def _published_report(
+    db_session,
+    *,
+    organization: Company,
+    workspace_id: str | None,
+    actor: User,
+    asset: Asset,
+    title: str,
+) -> Report:
+    now = datetime(2026, 9, 10, 10)
+    report = Report(
+        id=_id(),
+        organization_id=organization.id,
+        workspace_id=workspace_id,
+        asset_id=asset.id,
+        report_type="ASSET_INTELLIGENCE",
+        title=title,
+        template_version="1.0.0",
+        revision=1,
+        status="PUBLISHED",
+        qa_level="AUTO_APPROVED",
+        context_schema_version="geovision.report-context.v1",
+        context_json="{}",
+        context_sha256="a" * 64,
+        narrative_provider="deterministic",
+        narrative_model_version="geovision-deterministic-v1.0.0",
+        narrative_schema_version="geovision.report-narrative.v1",
+        narrative_json="{}",
+        provenance_json="{}",
+        qa_result_json="{}",
+        generation_key=f"route-test:{_id()}",
+        generated_at=now,
+        approved_at=now,
+        published_at=now,
+        created_by_user_id=actor.id,
+        lifecycle_version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(report)
+    db_session.flush()
+    return report
+
+
+def test_report_routes_quarantine_legacy_null_scope_in_multi_workspace_org(
+    client,
+    db_session,
+):
+    organization, workspace_a, actor, legacy_asset, _, _, _ = _fixture(db_session)
+    workspace_b = Account(
+        id=_id(),
+        organization_id=organization.id,
+        name="Report workspace B",
+        sector_focus="agro",
+        entity_type="business",
+        customer_type="business",
+        dashboard_profile="farm",
+    )
+    workspace_b_asset = Asset(
+        id=_id(),
+        organization_id=organization.id,
+        workspace_id=workspace_b.id,
+        sector="AGRICULTURE",
+        asset_type="FIELD",
+        name="Workspace B field",
+        status="active",
+        metadata_json="{}",
+        created_by_user_id=actor.id,
+        updated_by_user_id=actor.id,
+    )
+    legacy_asset.workspace_id = None
+    db_session.add_all((workspace_b, workspace_b_asset))
+    db_session.flush()
+    db_session.add_all(
+        (
+            CompanyUser(
+                id=_id(),
+                company_id=organization.id,
+                user_id=actor.id,
+                email=actor.email,
+                role="viewer",
+                is_active=True,
+                status="active",
+            ),
+            AccountMember(
+                account_id=workspace_b.id,
+                user_id=actor.id,
+                role="viewer",
+                status="active",
+            ),
+        )
+    )
+    legacy_report = _published_report(
+        db_session,
+        organization=organization,
+        workspace_id=None,
+        actor=actor,
+        asset=legacy_asset,
+        title="Ambiguous legacy report",
+    )
+    workspace_b_report = _published_report(
+        db_session,
+        organization=organization,
+        workspace_id=workspace_b.id,
+        actor=actor,
+        asset=workspace_b_asset,
+        title="Workspace B report",
+    )
+    db_session.commit()
+
+    token = create_user_access_token(
+        user_id=actor.id,
+        email=actor.email,
+        role=actor.role,
+        auth_generation=actor.auth_generation,
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Workspace-ID": workspace_b.id,
+    }
+
+    listing = client.get("/reports", headers=headers)
+    assert listing.status_code == 200, listing.text
+    report_ids = {row["id"] for row in listing.json()["items"]}
+    assert workspace_b_report.id in report_ids
+    assert legacy_report.id not in report_ids
+
+    detail = client.get(f"/reports/{legacy_report.id}", headers=headers)
+    assert detail.status_code == 404, detail.text
+    download = client.get(
+        f"/reports/{legacy_report.id}/download",
+        headers=headers,
+    )
+    assert download.status_code == 404, download.text
+
+    explicit_detail = client.get(
+        f"/reports/{workspace_b_report.id}",
+        headers=headers,
+    )
+    assert explicit_detail.status_code == 200, explicit_detail.text
+    assert explicit_detail.json()["id"] == workspace_b_report.id
+
+
 def test_context_excludes_unvalidated_low_confidence_and_storage_locations(db_session):
     _, _, _, asset, eligible, validated, unvalidated = _fixture(db_session)
     built = ReportContextBuilder().build(db_session, asset=asset)
@@ -326,7 +472,9 @@ def test_narrative_rejects_unknown_fields_numbers_and_evidence():
         "limitations": [],
     }
     with pytest.raises(ReportError, match="unsupported structured response"):
-        validate_narrative({**base, "unknown": True}, evidence_ids=frozenset({"kpi:known"}))
+        validate_narrative(
+            {**base, "unknown": True}, evidence_ids=frozenset({"kpi:known"})
+        )
     with pytest.raises(ReportError, match="numeric literals"):
         validate_narrative(
             {**base, "executive_summary": "The value is 9000."},
@@ -346,9 +494,7 @@ class _UnavailableNarrative:
         raise RuntimeError("provider outage with secret-like diagnostic")
 
 
-def test_generation_falls_back_stores_exact_pdf_and_is_idempotent(
-    db_session, tmp_path
-):
+def test_generation_falls_back_stores_exact_pdf_and_is_idempotent(db_session, tmp_path):
     _, _, actor, asset, eligible, _, _ = _fixture(db_session)
     request = ReportGenerateRequest(
         report_type="AGRICULTURE_INTELLIGENCE",
@@ -424,7 +570,12 @@ def test_review_publication_permissions_audit_and_events(db_session, tmp_path):
     customer = _customer_context(actor, organization, workspace)
 
     with pytest.raises(ReportError):
-        authorize_asset(context=customer, asset=asset, permission="report:generate")
+        authorize_asset(
+            db_session,
+            context=customer,
+            asset=asset,
+            permission="report:generate",
+        )
     with pytest.raises(ReportError):
         get_authorized_report(db_session, context=customer, report_id=report.id)
 
@@ -440,9 +591,10 @@ def test_review_publication_permissions_audit_and_events(db_session, tmp_path):
     db_session.commit()
     assert report.status == "PUBLISHED"
     assert report.lifecycle_version == 4
-    assert get_authorized_report(
-        db_session, context=customer, report_id=report.id
-    ).id == report.id
+    assert (
+        get_authorized_report(db_session, context=customer, report_id=report.id).id
+        == report.id
+    )
 
     actions = {
         row.action
@@ -459,7 +611,10 @@ def test_review_publication_permissions_audit_and_events(db_session, tmp_path):
     events = {
         row.event_type
         for row in db_session.query(EventOutbox)
-        .filter(EventOutbox.aggregate_type == "report", EventOutbox.aggregate_id == report.id)
+        .filter(
+            EventOutbox.aggregate_type == "report",
+            EventOutbox.aggregate_id == report.id,
+        )
         .all()
     }
     assert {
@@ -484,9 +639,7 @@ def test_mission_report_propagates_source_provider_and_versions_to_publication(
         title="Versioned inspection mission",
         state="COMPLETED",
         provider_code="flight-provider",
-        provenance_json=json.dumps(
-            {"adapter_version": "flight-adapter-2.1.0"}
-        ),
+        provenance_json=json.dumps({"adapter_version": "flight-adapter-2.1.0"}),
         created_by_user_id=actor.id,
         updated_by_user_id=actor.id,
         created_at=datetime(2026, 9, 10, 7),

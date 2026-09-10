@@ -24,6 +24,7 @@ from app.modules.assets.domain import (
 )
 from app.modules.identity.domain import AuthorizationContext
 from app.modules.organizations.domain import permission_granted
+from app.modules.organizations.services import sole_active_workspace_id
 
 
 class AssetAccessError(ValueError):
@@ -97,6 +98,21 @@ def _require_context(
     return context.active_organization_id, context.active_workspace_id
 
 
+def _workspace_scope_matches(
+    db: Session,
+    *,
+    organization_id: str,
+    row_workspace_id: str | None,
+    selected_workspace_id: str,
+) -> bool:
+    """Resolve legacy NULL scope only when the organization has one workspace."""
+
+    return row_workspace_id == selected_workspace_id or (
+        row_workspace_id is None
+        and sole_active_workspace_id(db, organization_id) == selected_workspace_id
+    )
+
+
 def _apply_geometry(asset: Asset, geometry: Mapping[str, Any] | None) -> None:
     normalized = normalize_geometry(geometry)
     asset.geometry_geojson = (
@@ -135,7 +151,12 @@ def _validate_parent(
     if (
         parent is None
         or parent.organization_id != organization_id
-        or parent.workspace_id not in {None, workspace_id}
+        or not _workspace_scope_matches(
+            db,
+            organization_id=organization_id,
+            row_workspace_id=parent.workspace_id,
+            selected_workspace_id=workspace_id,
+        )
         or parent.status == AssetStatus.ARCHIVED.value
     ):
         raise AssetAccessError("parent_not_found", "Parent asset was not found")
@@ -144,9 +165,13 @@ def _validate_parent(
     cursor = parent
     while cursor is not None:
         if cursor.id in seen:
-            raise AssetAccessError("hierarchy_cycle", "Asset hierarchy cannot contain a cycle")
+            raise AssetAccessError(
+                "hierarchy_cycle", "Asset hierarchy cannot contain a cycle"
+            )
         seen.add(cursor.id)
-        cursor = db.get(Asset, cursor.parent_asset_id) if cursor.parent_asset_id else None
+        cursor = (
+            db.get(Asset, cursor.parent_asset_id) if cursor.parent_asset_id else None
+        )
     return parent
 
 
@@ -239,7 +264,12 @@ def get_asset(
     if (
         asset is None
         or asset.organization_id != organization_id
-        or asset.workspace_id not in {None, workspace_id}
+        or not _workspace_scope_matches(
+            db,
+            organization_id=organization_id,
+            row_workspace_id=asset.workspace_id,
+            selected_workspace_id=workspace_id,
+        )
     ):
         raise AssetAccessError("asset_not_found", "Asset was not found")
     return asset
@@ -261,18 +291,20 @@ def list_assets(
     limit: int = 100,
     offset: int = 0,
 ) -> list[Asset]:
-    active_organization_id, active_workspace_id = _require_context(context, "asset:read")
+    active_organization_id, active_workspace_id = _require_context(
+        context, "asset:read"
+    )
     if organization_id is not None and organization_id != active_organization_id:
         raise AssetAccessError("asset_access_denied", "Asset access denied")
     if workspace_id is not None and workspace_id != active_workspace_id:
         raise AssetAccessError("asset_access_denied", "Asset access denied")
 
+    workspace_filters = [Asset.workspace_id == active_workspace_id]
+    if sole_active_workspace_id(db, active_organization_id) == active_workspace_id:
+        workspace_filters.append(Asset.workspace_id.is_(None))
     query = db.query(Asset).filter(
         Asset.organization_id == active_organization_id,
-        or_(
-            Asset.workspace_id == active_workspace_id,
-            Asset.workspace_id.is_(None),
-        ),
+        or_(*workspace_filters),
     )
     if parent_asset_id is not None:
         query = query.filter(Asset.parent_asset_id == parent_asset_id)
@@ -441,7 +473,9 @@ def asset_payload(db: Session, asset: Asset) -> dict[str, Any]:
         "bbox": bbox,
         "center": center,
         "metadata": _json_object(asset.metadata_json),
-        "children_count": db.query(Asset).filter(Asset.parent_asset_id == asset.id).count(),
+        "children_count": db.query(Asset)
+        .filter(Asset.parent_asset_id == asset.id)
+        .count(),
         "legacy_source": asset.legacy_source,
         "legacy_source_id": asset.legacy_source_id,
         "archived_at": asset.archived_at,
@@ -513,9 +547,12 @@ def synchronize_legacy_site(
     asset.name = site.name
     asset.description = site.description
     asset.status = "active" if site.is_active else "inactive"
-    asset.location_label = ", ".join(
-        part for part in (site.municipality, site.province, site.country) if part
-    ) or None
+    asset.location_label = (
+        ", ".join(
+            part for part in (site.municipality, site.province, site.country) if part
+        )
+        or None
+    )
     asset.metadata_json = _json_dump(
         {
             "legacy": {
@@ -523,7 +560,9 @@ def synchronize_legacy_site(
                 "country": site.country,
                 "province": site.province,
                 "municipality": site.municipality,
-                "area_hectares": float(site.area_hectares) if site.area_hectares is not None else None,
+                "area_hectares": float(site.area_hectares)
+                if site.area_hectares is not None
+                else None,
             }
         }
     )
@@ -552,7 +591,9 @@ def synchronize_legacy_iot_asset(
         asset = Asset(
             id=_compatible_asset_id(db, "iot_asset", legacy_asset.id),
             organization_id=legacy_asset.company_id,
-            workspace_id=parent.workspace_id if parent else _legacy_workspace_id(db, legacy_asset.company_id),
+            workspace_id=parent.workspace_id
+            if parent
+            else _legacy_workspace_id(db, legacy_asset.company_id),
             legacy_source="iot_asset",
             legacy_source_id=legacy_asset.id,
             created_by_user_id=actor_user_id,
@@ -569,7 +610,9 @@ def synchronize_legacy_iot_asset(
     asset.metadata_json = _json_dump(metadata)
     asset.updated_by_user_id = actor_user_id
     asset.updated_at = utc_now()
-    _apply_geometry(asset, point_geometry(legacy_asset.latitude, legacy_asset.longitude))
+    _apply_geometry(
+        asset, point_geometry(legacy_asset.latitude, legacy_asset.longitude)
+    )
     db.add(asset)
     db.flush()
     return asset

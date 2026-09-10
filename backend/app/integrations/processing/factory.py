@@ -10,8 +10,14 @@ def create_processing_provider(
     config: Settings = settings,
     provider_name: str | None = None,
 ) -> ProcessingProvider:
-    name = provider_name or config.processing_provider
+    name = (
+        (provider_name or config.processing_provider).strip().lower().replace("-", "_")
+    )
     if name in {"fake", "deterministic"}:
+        if config.is_deployed:
+            from .unavailable import UnavailableProcessingProvider
+
+            return UnavailableProcessingProvider("fake")
         from .fake import DeterministicProcessingProvider
 
         return DeterministicProcessingProvider()

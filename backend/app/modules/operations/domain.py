@@ -50,6 +50,20 @@ class JobState(str, Enum):
     FAILED = "FAILED"
 
 
+class ServiceRequestStatus(str, Enum):
+    """Customer-visible service lifecycle states persisted by Operations."""
+
+    SUBMITTED = "submitted"
+    SCHEDULED = "scheduled"
+    IN_FIELD = "in_field"
+    PROCESSING = "processing"
+    RESULTS_READY = "results_ready"
+    DELIVERED = "delivered"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    REJECTED = "rejected"
+
+
 STANDARD_JOB_TYPES = frozenset(
     {
         "FLIGHT_CAPTURE",
@@ -146,6 +160,59 @@ _ASSIGNMENT_TRANSITIONS = {
 }
 
 
+_SERVICE_REQUEST_TRANSITIONS = {
+    ServiceRequestStatus.SUBMITTED: frozenset(
+        {
+            ServiceRequestStatus.SCHEDULED,
+            ServiceRequestStatus.IN_FIELD,
+            ServiceRequestStatus.PROCESSING,
+            ServiceRequestStatus.RESULTS_READY,
+            ServiceRequestStatus.DELIVERED,
+            ServiceRequestStatus.COMPLETED,
+            ServiceRequestStatus.CANCELLED,
+            ServiceRequestStatus.REJECTED,
+        }
+    ),
+    ServiceRequestStatus.SCHEDULED: frozenset(
+        {
+            ServiceRequestStatus.IN_FIELD,
+            ServiceRequestStatus.PROCESSING,
+            ServiceRequestStatus.RESULTS_READY,
+            ServiceRequestStatus.DELIVERED,
+            ServiceRequestStatus.COMPLETED,
+            ServiceRequestStatus.CANCELLED,
+            ServiceRequestStatus.REJECTED,
+        }
+    ),
+    ServiceRequestStatus.IN_FIELD: frozenset(
+        {
+            ServiceRequestStatus.PROCESSING,
+            ServiceRequestStatus.RESULTS_READY,
+            ServiceRequestStatus.DELIVERED,
+            ServiceRequestStatus.COMPLETED,
+            ServiceRequestStatus.CANCELLED,
+            ServiceRequestStatus.REJECTED,
+        }
+    ),
+    ServiceRequestStatus.PROCESSING: frozenset(
+        {
+            ServiceRequestStatus.RESULTS_READY,
+            ServiceRequestStatus.DELIVERED,
+            ServiceRequestStatus.COMPLETED,
+            ServiceRequestStatus.CANCELLED,
+            ServiceRequestStatus.REJECTED,
+        }
+    ),
+    ServiceRequestStatus.RESULTS_READY: frozenset(
+        {ServiceRequestStatus.DELIVERED, ServiceRequestStatus.COMPLETED}
+    ),
+    ServiceRequestStatus.DELIVERED: frozenset({ServiceRequestStatus.COMPLETED}),
+    ServiceRequestStatus.COMPLETED: frozenset(),
+    ServiceRequestStatus.CANCELLED: frozenset(),
+    ServiceRequestStatus.REJECTED: frozenset(),
+}
+
+
 class OperationsResourceError(ValueError):
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -188,6 +255,27 @@ def require_job_transition(current: str, target: str) -> None:
         raise OperationsResourceError(
             "invalid_job_transition",
             f"Fulfilment job cannot move from {current_state.value} to {target_state.value}",
+        )
+
+
+def require_service_request_transition(current: str, target: str) -> None:
+    """Reject lifecycle regressions and changes away from terminal states."""
+
+    try:
+        current_status = ServiceRequestStatus(current)
+        target_status = ServiceRequestStatus(target)
+    except ValueError as exc:
+        raise OperationsResourceError(
+            "invalid_service_request_status",
+            "Service request status is not supported",
+        ) from exc
+    if target_status == current_status:
+        return
+    if target_status not in _SERVICE_REQUEST_TRANSITIONS[current_status]:
+        raise OperationsResourceError(
+            "invalid_service_request_transition",
+            "Service request cannot move "
+            f"from {current_status.value} to {target_status.value}",
         )
 
 
@@ -303,6 +391,7 @@ __all__ = [
     "JobPriority",
     "JobState",
     "OperationsResourceError",
+    "ServiceRequestStatus",
     "STANDARD_JOB_TYPES",
     "contractor_safe_documents",
     "contractor_safe_mapping",
@@ -311,4 +400,5 @@ __all__ = [
     "reject_sensitive_keys",
     "require_assignment_transition",
     "require_job_transition",
+    "require_service_request_transition",
 ]

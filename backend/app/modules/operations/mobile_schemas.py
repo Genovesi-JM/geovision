@@ -108,6 +108,11 @@ class MobileServiceResultOut(BaseModel):
 
 class MobileServiceRequestOut(BaseModel):
     id: str
+    organization_id: str | None = None
+    workspace_id: str | None = None
+    asset_id: str | None = None
+    order_id: str | None = None
+    report_id: str | None = None
     site_id: str
     site_name: str
     type: str
@@ -117,6 +122,7 @@ class MobileServiceRequestOut(BaseModel):
     progress_percent: int
     attachments: list[str] = Field(default_factory=list)
     assigned_team: str | None = None
+    lifecycle_version: int = Field(ge=1)
     created_at: datetime
     updated_at: datetime
     result: MobileServiceResultOut | None = None

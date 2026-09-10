@@ -84,6 +84,10 @@ class PortalAssetTreeNodeOut(BaseModel):
     sector: str
     asset_type: str
     status: str
+    synthetic: bool = False
+    synthetic_marker: str | None = None
+    synthetic_notice: str | None = None
+    source: str | None = None
     children: list["PortalAssetTreeNodeOut"] = Field(default_factory=list)
 
 
@@ -130,6 +134,10 @@ class PortalKpiCardOut(BaseModel):
     confidence: float | None = None
     measured_at: datetime | None = None
     change_percent: float | None = None
+    synthetic: bool = False
+    synthetic_marker: str | None = None
+    synthetic_notice: str | None = None
+    source: str | None = None
 
 
 class PortalAssetSummaryItemOut(BaseModel):
@@ -155,6 +163,10 @@ class PortalAssetSummaryItemOut(BaseModel):
     unvalidated_observation_count: int = Field(default=0, ge=0)
     latest_observation_at: datetime | None = None
     destination: PortalTargetOut
+    synthetic: bool = False
+    synthetic_marker: str | None = None
+    synthetic_notice: str | None = None
+    source: str | None = None
 
 
 class PortalAssetTotalsOut(BaseModel):

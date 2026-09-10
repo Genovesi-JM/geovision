@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
+import re
 from typing import Any
 
 from sqlalchemy import and_, or_
@@ -17,6 +18,45 @@ from app.core.integration import (
 from app.core.time import utc_now
 from app.models import AccountEvent, ErpExternalReference, IntegrationOutbox
 from app.modules.orders.ports import ERPProvider, as_erp_write_result
+
+
+_ACCOUNT_EVENT_SENSITIVE_KEY = re.compile(
+    r"(^|_)(authorization|cookie|credential|password|passwd|secret|token|"
+    r"access_token|refresh_token|api_key|private_key|connection_string|sas_key|"
+    r"signature|client_secret)s?($|_)",
+    re.IGNORECASE,
+)
+
+
+def _reject_sensitive_account_event_payload(
+    value: object,
+    *,
+    path: str = "payload",
+) -> None:
+    """Keep credential-shaped fields out of customer-visible account history."""
+
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            normalized = re.sub(r"[^A-Za-z0-9]+", "_", str(key)).strip("_")
+            normalized = re.sub(
+                r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])",
+                "_",
+                normalized,
+            )
+            if _ACCOUNT_EVENT_SENSITIVE_KEY.search(normalized):
+                raise ValueError(
+                    f"{path} cannot contain credential-like key '{key}'"
+                )
+            _reject_sensitive_account_event_payload(
+                nested,
+                path=f"{path}.{key}",
+            )
+    elif isinstance(value, (list, tuple)):
+        for index, nested in enumerate(value):
+            _reject_sensitive_account_event_payload(
+                nested,
+                path=f"{path}[{index}]",
+            )
 
 
 def enqueue_erp_event(
@@ -76,19 +116,23 @@ def publish_account_event(
     db: Session,
     *,
     company_id: str,
+    workspace_id: str | None = None,
     event_type: str,
     resource_type: str,
     resource_id: str | None,
     title: str,
     payload: dict[str, Any] | None = None,
 ) -> AccountEvent:
+    safe_payload = payload or {}
+    _reject_sensitive_account_event_payload(safe_payload)
     event = AccountEvent(
         company_id=company_id,
+        workspace_id=workspace_id,
         event_type=event_type,
         resource_type=resource_type,
         resource_id=resource_id,
         title=title,
-        payload_json=json.dumps(payload or {}, default=str),
+        payload_json=json.dumps(safe_payload, default=str),
     )
     db.add(event)
     return event

@@ -82,6 +82,7 @@ def create_asset_report(
 ):
     try:
         asset = authorize_asset(
+            db,
             context=context,
             asset=db.get(Asset, asset_id),
             permission="report:generate",

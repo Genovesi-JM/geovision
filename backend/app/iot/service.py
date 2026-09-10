@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Callable
@@ -9,20 +10,21 @@ from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.iot.notifications import notification_adapters
+from app.iot.intelligence import IotIntelligenceResult, materialize_iot_intelligence
 from app.iot.registry import valid_unit
 from app.iot.schemas import MeasurementValue, TelemetryEnvelope
 from app.iot.security import secret_matches, timestamp_is_fresh
 from app.core.config import settings
 from app.core.event_names import EventNames
+from app.core.observability import get_logger, log_event
 from app.models import (
+    Asset,
     DeviceCredential,
     IotAlert,
     IotAlertRule,
     IotCommand,
     IotDevice,
     SensorChannel,
-    Site,
     TelemetryReceipt,
     TelemetryReading,
 )
@@ -33,6 +35,7 @@ from app.services.event_outbox import enqueue_domain_event
 # "decide" layer of detect → decide → act → confirm.
 IRRIGATION_TRIGGER_PCT = 25.0
 IRRIGATION_TARGET_PCT = 40.0
+logger = get_logger(__name__)
 
 
 def json_value(value: str | None, fallback):
@@ -56,7 +59,10 @@ def active_credential(db: Session, device: IotDevice) -> DeviceCredential | None
         .filter(
             DeviceCredential.device_id == device.id,
             DeviceCredential.status == "active",
-            (DeviceCredential.expires_at.is_(None) | (DeviceCredential.expires_at > now)),
+            (
+                DeviceCredential.expires_at.is_(None)
+                | (DeviceCredential.expires_at > now)
+            ),
         )
         .order_by(DeviceCredential.issued_at.desc())
         .first()
@@ -86,20 +92,34 @@ def _naive_utc(value: datetime) -> datetime:
     return value
 
 
-def _recorded_at(envelope: TelemetryEnvelope, now: datetime) -> tuple[datetime, datetime | None]:
+def _recorded_at(
+    envelope: TelemetryEnvelope, now: datetime
+) -> tuple[datetime, datetime | None]:
     recorded_at = _naive_utc(envelope.timestamp)
     queued_at = _naive_utc(envelope.queued_at) if envelope.queued_at else None
     if envelope.replayed_from_edge:
         if queued_at is None:
-            raise HTTPException(status_code=422, detail="Store-and-forward queued_at is required")
+            raise HTTPException(
+                status_code=422, detail="Store-and-forward queued_at is required"
+            )
         if queued_at < recorded_at - timedelta(seconds=5):
-            raise HTTPException(status_code=422, detail="queued_at cannot precede the measurement")
-        if queued_at > now + timedelta(minutes=5) or recorded_at > now + timedelta(minutes=5):
-            raise HTTPException(status_code=422, detail="Telemetry timestamp is in the future")
+            raise HTTPException(
+                status_code=422, detail="queued_at cannot precede the measurement"
+            )
+        if queued_at > now + timedelta(minutes=5) or recorded_at > now + timedelta(
+            minutes=5
+        ):
+            raise HTTPException(
+                status_code=422, detail="Telemetry timestamp is in the future"
+            )
         if recorded_at < now - timedelta(days=settings.iot_store_forward_max_age_days):
-            raise HTTPException(status_code=422, detail="Store-and-forward telemetry exceeds retention")
+            raise HTTPException(
+                status_code=422, detail="Store-and-forward telemetry exceeds retention"
+            )
     elif not timestamp_is_fresh(recorded_at):
-        raise HTTPException(status_code=422, detail="Telemetry timestamp is outside the accepted window")
+        raise HTTPException(
+            status_code=422, detail="Telemetry timestamp is outside the accepted window"
+        )
     return recorded_at, queued_at
 
 
@@ -120,32 +140,52 @@ def _mark_contact(db: Session, device: IotDevice, *, remote_ip: str | None) -> N
     db.commit()
 
 
-def _health_snapshot(readings: list[dict], current_battery: float | None) -> tuple[float | None, str]:
+def _health_snapshot(
+    readings: list[dict], current_battery: float | None
+) -> tuple[float | None, str]:
     battery = current_battery
     for reading in readings:
-        if reading["channel"] == "battery" and isinstance(reading["value"], (int, float)):
+        if reading["channel"] == "battery" and isinstance(
+            reading["value"], (int, float)
+        ):
             battery = max(0.0, min(100.0, float(reading["value"])))
     qualities = {str(reading["quality"]) for reading in readings}
-    if "sensor_error" in qualities or "bad" in qualities or (battery is not None and battery < 10):
+    if (
+        "sensor_error" in qualities
+        or "bad" in qualities
+        or (battery is not None and battery < 10)
+    ):
         return battery, "critical"
     if "uncertain" in qualities or (battery is not None and battery < 25):
         return battery, "degraded"
     return battery, "healthy"
 
 
-def _comparison(operator: str, value: float, threshold: float, previous: float | None) -> bool:
-    if operator == "gt": return value > threshold
-    if operator == "gte": return value >= threshold
-    if operator == "lt": return value < threshold
-    if operator == "lte": return value <= threshold
-    if operator == "eq": return value == threshold
-    if operator == "ne": return value != threshold
-    if operator == "rapid_rise": return previous is not None and value - previous >= threshold
-    if operator == "rapid_fall": return previous is not None and previous - value >= threshold
+def _comparison(
+    operator: str, value: float, threshold: float, previous: float | None
+) -> bool:
+    if operator == "gt":
+        return value > threshold
+    if operator == "gte":
+        return value >= threshold
+    if operator == "lt":
+        return value < threshold
+    if operator == "lte":
+        return value <= threshold
+    if operator == "eq":
+        return value == threshold
+    if operator == "ne":
+        return value != threshold
+    if operator == "rapid_rise":
+        return previous is not None and value - previous >= threshold
+    if operator == "rapid_fall":
+        return previous is not None and previous - value >= threshold
     return False
 
 
-def _evaluate_alerts(db: Session, device: IotDevice, reading: TelemetryReading, previous: float | None) -> list[dict]:
+def _evaluate_alerts(
+    db: Session, device: IotDevice, reading: TelemetryReading, previous: float | None
+) -> list[dict]:
     if reading.numeric_value is None:
         return []
     rules = (
@@ -161,11 +201,31 @@ def _evaluate_alerts(db: Session, device: IotDevice, reading: TelemetryReading, 
     )
     events: list[dict] = []
     for rule in rules:
+        try:
+            configured_channels = json.loads(rule.notification_channels_json or "[]")
+        except (TypeError, ValueError):
+            configured_channels = []
+        if not isinstance(configured_channels, list):
+            configured_channels = []
+        notification_channels = [
+            str(channel).strip().lower()
+            for channel in configured_channels
+            if str(channel).strip().lower()
+            in {"log", "email", "telegram", "push", "sms", "whatsapp"}
+        ]
         now = utc_now()
-        triggered = _comparison(rule.operator, reading.numeric_value, rule.threshold, previous)
+        triggered = _comparison(
+            rule.operator, reading.numeric_value, rule.threshold, previous
+        )
         open_alert = (
             db.query(IotAlert)
-            .filter(IotAlert.rule_id == rule.id, IotAlert.device_id == device.id, IotAlert.status.in_(["pending", "triggered", "notified", "acknowledged", "assigned"]))
+            .filter(
+                IotAlert.rule_id == rule.id,
+                IotAlert.device_id == device.id,
+                IotAlert.status.in_(
+                    ["pending", "triggered", "notified", "acknowledged", "assigned"]
+                ),
+            )
             .order_by(IotAlert.opened_at.desc())
             .first()
         )
@@ -176,11 +236,17 @@ def _evaluate_alerts(db: Session, device: IotDevice, reading: TelemetryReading, 
                 .order_by(IotAlert.opened_at.desc())
                 .first()
             )
-            if recent and (now - recent.opened_at).total_seconds() < rule.cooldown_seconds:
+            if (
+                recent
+                and (now - recent.opened_at).total_seconds() < rule.cooldown_seconds
+            ):
                 continue
             alert = IotAlert(
-                company_id=device.company_id, device_id=device.id, rule_id=rule.id,
-                channel=reading.channel, value=reading.numeric_value,
+                company_id=device.company_id,
+                device_id=device.id,
+                rule_id=rule.id,
+                channel=reading.channel,
+                value=reading.numeric_value,
                 severity=rule.severity,
                 message=f"{rule.name}: {reading.channel}={reading.numeric_value:g} {reading.unit or ''}".strip(),
                 status="pending" if rule.sustained_seconds else "triggered",
@@ -188,23 +254,40 @@ def _evaluate_alerts(db: Session, device: IotDevice, reading: TelemetryReading, 
             db.add(alert)
             db.flush()
             open_alert = alert
-        if triggered and open_alert and open_alert.status == "pending" and (now - open_alert.opened_at).total_seconds() >= rule.sustained_seconds:
+        if (
+            triggered
+            and open_alert
+            and open_alert.status == "pending"
+            and (now - open_alert.opened_at).total_seconds() >= rule.sustained_seconds
+        ):
             open_alert.status = "triggered"
         if triggered and open_alert and open_alert.status == "triggered":
             open_alert.value = reading.numeric_value
-            event = {"type": "alert.triggered", "id": open_alert.id, "severity": open_alert.severity, "message": open_alert.message}
-            for channel in json_value(rule.notification_channels_json, ["log"]):
-                adapter = notification_adapters.get(channel)
-                try:
-                    if adapter: adapter.send(event)
-                except RuntimeError:
-                    continue
+            event = {
+                "type": "alert.triggered",
+                "id": open_alert.id,
+                "severity": open_alert.severity,
+                "message": open_alert.message,
+                "channel": reading.channel,
+                "value": reading.numeric_value,
+                "unit": reading.unit,
+                # Snapshot the operator's delivery choice with the immutable
+                # trigger event. An empty/invalid value remains inbox-only.
+                "notification_channels": notification_channels,
+            }
             open_alert.status = "notified"
             events.append(event)
         elif not triggered and open_alert:
             open_alert.status = "resolved"
             open_alert.resolved_at = now
-            events.append({"type": "alert.resolved", "id": open_alert.id, "severity": open_alert.severity, "message": open_alert.message})
+            events.append(
+                {
+                    "type": "alert.resolved",
+                    "id": open_alert.id,
+                    "severity": open_alert.severity,
+                    "message": open_alert.message,
+                }
+            )
     return events
 
 
@@ -228,22 +311,53 @@ def _evaluate_irrigation(db: Session, device: IotDevice) -> list[dict]:
     tank = latest.get("tank_level")
     tank_ok = not isinstance(tank, (int, float)) or tank > 5
     # Don't stack commands: wait for the current one to be delivered/acted.
-    if db.query(IotCommand.id).filter(IotCommand.device_id == device.id, IotCommand.status.in_(["queued", "delivered"])).first():
+    if (
+        db.query(IotCommand.id)
+        .filter(
+            IotCommand.device_id == device.id,
+            IotCommand.status.in_(["queued", "delivered"]),
+        )
+        .first()
+    ):
         return []
 
     def enqueue(name: str, reason: str) -> dict:
-        db.add(IotCommand(
-            company_id=device.company_id, device_id=device.id, requested_by="system-auto-irrig",
-            correlation_id=str(uuid.uuid4()), name=name, arguments_json="{}", reason=reason,
-            fail_safe_state="off", expires_at=utc_now() + timedelta(seconds=300),
-        ))
+        db.add(
+            IotCommand(
+                company_id=device.company_id,
+                device_id=device.id,
+                requested_by="system-auto-irrig",
+                correlation_id=str(uuid.uuid4()),
+                name=name,
+                arguments_json="{}",
+                reason=reason,
+                fail_safe_state="off",
+                expires_at=utc_now() + timedelta(seconds=300),
+            )
+        )
         db.flush()
-        return {"type": "automation.irrigation", "action": name, "device_id": device.id, "reason": reason, "soil_moisture": soil}
+        return {
+            "type": "automation.irrigation",
+            "action": name,
+            "device_id": device.id,
+            "reason": reason,
+            "soil_moisture": soil,
+        }
 
     if soil < IRRIGATION_TRIGGER_PCT and not valve_open and safety_ok and tank_ok:
-        return [enqueue("low_voltage_valve_open", f"Auto-irrigation: soil {soil:g}% below {IRRIGATION_TRIGGER_PCT:g}%")]
+        return [
+            enqueue(
+                "low_voltage_valve_open",
+                f"Auto-irrigation: soil {soil:g}% below {IRRIGATION_TRIGGER_PCT:g}%",
+            )
+        ]
     if valve_open and soil >= IRRIGATION_TARGET_PCT:
-        return [enqueue("low_voltage_valve_close", f"Auto-irrigation: soil {soil:g}% recovered to target")]
+        return [
+            enqueue(
+                "low_voltage_valve_close",
+                f"Auto-irrigation: soil {soil:g}% recovered to target",
+            )
+        ]
     return []
 
 
@@ -259,7 +373,24 @@ def ingest_telemetry(
 ) -> dict:
     now = utc_now()
     if not _device_identity_matches(device, envelope):
-        raise HTTPException(status_code=422, detail="Telemetry device_id does not match the authenticated device")
+        raise HTTPException(
+            status_code=422,
+            detail="Telemetry device_id does not match the authenticated device",
+        )
+
+    # Serialize a device's production stream before duplicate and ordering
+    # checks. Otherwise concurrent requests can both consider themselves the
+    # newest packet and create duplicate alert/projection effects.
+    if db.get_bind().dialect.name == "postgresql":
+        locked_device = (
+            db.query(IotDevice)
+            .filter(IotDevice.id == device.id)
+            .with_for_update()
+            .one_or_none()
+        )
+        if locked_device is None:
+            raise HTTPException(status_code=404, detail="Device not found")
+        device = locked_device
 
     existing_receipt = (
         db.query(TelemetryReceipt)
@@ -302,11 +433,17 @@ def ingest_telemetry(
             "accepted": True,
             "duplicate": True,
             "stored": 0,
-            "message_id": existing_receipt.message_id if existing_receipt else envelope.message_id,
+            "message_id": existing_receipt.message_id
+            if existing_receipt
+            else envelope.message_id,
             "receipt_id": existing_receipt.id if existing_receipt else None,
-            "out_of_order": existing_receipt.out_of_order if existing_receipt else False,
+            "out_of_order": existing_receipt.out_of_order
+            if existing_receipt
+            else False,
             "replayed_from_edge": (
-                existing_receipt.replayed_from_edge if existing_receipt else envelope.replayed_from_edge
+                existing_receipt.replayed_from_edge
+                if existing_receipt
+                else envelope.replayed_from_edge
             ),
         }
 
@@ -331,14 +468,27 @@ def ingest_telemetry(
                 },
             )
 
-    recent_count = db.query(TelemetryReading.id).filter(
-        TelemetryReading.device_id == device.id,
-        TelemetryReading.received_at >= utc_now() - timedelta(minutes=1),
-    ).count()
-    if recent_count >= settings.iot_max_messages_per_minute * max(len(envelope.measurements), 1):
-        raise HTTPException(status_code=429, detail="Device telemetry rate limit exceeded")
+    recent_count = (
+        db.query(TelemetryReading.id)
+        .filter(
+            TelemetryReading.device_id == device.id,
+            TelemetryReading.received_at >= utc_now() - timedelta(minutes=1),
+        )
+        .count()
+    )
+    if recent_count >= settings.iot_max_messages_per_minute * max(
+        len(envelope.measurements), 1
+    ):
+        raise HTTPException(
+            status_code=429, detail="Device telemetry rate limit exceeded"
+        )
 
-    channels = {row.key: row for row in db.query(SensorChannel).filter(SensorChannel.device_id == device.id, SensorChannel.enabled.is_(True)).all()}
+    channels = {
+        row.key: row
+        for row in db.query(SensorChannel)
+        .filter(SensorChannel.device_id == device.id, SensorChannel.enabled.is_(True))
+        .all()
+    }
     unknown = sorted(set(envelope.measurements) - set(channels))
     if unknown:
         raise HTTPException(status_code=422, detail={"unknown_channels": unknown})
@@ -346,7 +496,9 @@ def ingest_telemetry(
     latest_receipt = (
         db.query(TelemetryReceipt)
         .filter(TelemetryReceipt.device_id == device.id)
-        .order_by(TelemetryReceipt.recorded_at.desc(), TelemetryReceipt.received_at.desc())
+        .order_by(
+            TelemetryReceipt.recorded_at.desc(), TelemetryReceipt.received_at.desc()
+        )
         .first()
     )
     out_of_order = bool(latest_receipt and recorded_at < latest_receipt.recorded_at)
@@ -384,7 +536,71 @@ def ingest_telemetry(
         ),
     )
     db.add(receipt)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Provider identities can race across devices, while SQLite cannot use
+        # the PostgreSQL device-row lock. Roll back before inspecting the
+        # winning durable identity and return only a proven duplicate.
+        device_id = device.id
+        provider_code = device.provider_code
+        db.rollback()
+        device = db.get(IotDevice, device_id)
+        duplicate = (
+            db.query(TelemetryReceipt)
+            .filter(
+                TelemetryReceipt.device_id == device_id,
+                TelemetryReceipt.message_id == envelope.message_id,
+            )
+            .one_or_none()
+        )
+        if duplicate is not None and device is not None:
+            _mark_contact(db, device, remote_ip=remote_ip)
+            return {
+                "accepted": True,
+                "duplicate": True,
+                "stored": 0,
+                "message_id": duplicate.message_id,
+                "receipt_id": duplicate.id,
+                "out_of_order": duplicate.out_of_order,
+                "replayed_from_edge": duplicate.replayed_from_edge,
+            }
+        if provider_message_id:
+            provider_conflict = (
+                db.query(TelemetryReceipt)
+                .filter(
+                    TelemetryReceipt.provider_code == provider_code,
+                    TelemetryReceipt.provider_message_id == provider_message_id,
+                )
+                .one_or_none()
+            )
+            if provider_conflict is not None:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "code": "provider_message_conflict",
+                        "message": "The provider event identity is already bound to another device",
+                    },
+                )
+        if envelope.stream_id is not None and envelope.sequence is not None:
+            sequence_conflict = (
+                db.query(TelemetryReceipt)
+                .filter(
+                    TelemetryReceipt.device_id == device_id,
+                    TelemetryReceipt.stream_id == envelope.stream_id,
+                    TelemetryReceipt.sequence == envelope.sequence,
+                )
+                .one_or_none()
+            )
+            if sequence_conflict is not None:
+                raise HTTPException(
+                    status_code=409,
+                    detail={
+                        "code": "telemetry_sequence_conflict",
+                        "message": "The stream sequence is already bound to another message",
+                    },
+                )
+        raise
 
     reading_payloads = []
     alert_events: list[dict] = []
@@ -393,11 +609,15 @@ def ingest_telemetry(
         value, supplied_unit, quality, metadata = _normalize_value(raw)
         unit = supplied_unit if supplied_unit is not None else channel.unit
         if unit != channel.unit or not valid_unit(channel.measurement_type, unit):
-            raise HTTPException(status_code=422, detail=f"Invalid unit for channel {key}")
+            raise HTTPException(
+                status_code=422, detail=f"Invalid unit for channel {key}"
+            )
         numeric = text = boolean = None
         if channel.data_type == "number":
             if isinstance(value, bool) or not isinstance(value, (int, float)):
-                raise HTTPException(status_code=422, detail=f"Channel {key} requires a number")
+                raise HTTPException(
+                    status_code=422, detail=f"Channel {key} requires a number"
+                )
             numeric = float(value)
             if channel.minimum is not None and numeric < channel.minimum:
                 quality = "bad"
@@ -405,7 +625,9 @@ def ingest_telemetry(
                 quality = "bad"
         elif channel.data_type == "boolean":
             if not isinstance(value, bool):
-                raise HTTPException(status_code=422, detail=f"Channel {key} requires a boolean")
+                raise HTTPException(
+                    status_code=422, detail=f"Channel {key} requires a boolean"
+                )
             boolean = value
             numeric = 1.0 if value else 0.0
         else:
@@ -413,17 +635,29 @@ def ingest_telemetry(
 
         previous_row = (
             db.query(TelemetryReading)
-            .filter(TelemetryReading.device_id == device.id, TelemetryReading.channel == key)
+            .filter(
+                TelemetryReading.device_id == device.id, TelemetryReading.channel == key
+            )
             .order_by(TelemetryReading.recorded_at.desc())
             .first()
         )
         row = TelemetryReading(
-            receipt_id=receipt.id, device_id=device.id, company_id=device.company_id,
-            site_id=device.site_id, core_asset_id=device.core_asset_id,
-            message_id=envelope.message_id, channel=key, numeric_value=numeric,
-            text_value=text, boolean_value=boolean, unit=unit, quality=quality,
-            sequence=envelope.sequence, protocol_version=envelope.protocol_version,
-            source=source, recorded_at=recorded_at,
+            receipt_id=receipt.id,
+            device_id=device.id,
+            company_id=device.company_id,
+            site_id=device.site_id,
+            core_asset_id=device.core_asset_id,
+            message_id=envelope.message_id,
+            channel=key,
+            numeric_value=numeric,
+            text_value=text,
+            boolean_value=boolean,
+            unit=unit,
+            quality=quality,
+            sequence=envelope.sequence,
+            protocol_version=envelope.protocol_version,
+            source=source,
+            recorded_at=recorded_at,
             metadata_json=json.dumps(
                 {
                     **envelope.metadata,
@@ -446,7 +680,9 @@ def ingest_telemetry(
                     previous_row.numeric_value if previous_row else None,
                 )
             )
-        reading_payloads.append({"channel": key, "value": value, "unit": unit, "quality": quality})
+        reading_payloads.append(
+            {"channel": key, "value": value, "unit": unit, "quality": quality}
+        )
 
     automation_events = [] if out_of_order else _evaluate_irrigation(db, device)
 
@@ -465,25 +701,70 @@ def ingest_telemetry(
             reading_payloads,
             device.battery_percent,
         )
-        latitude = envelope.location.latitude if envelope.location else next(
-            (
-                float(row["value"])
-                for row in reading_payloads
-                if row["channel"] == "latitude" and isinstance(row["value"], (int, float))
-            ),
-            None,
+        latitude = (
+            envelope.location.latitude
+            if envelope.location
+            else next(
+                (
+                    float(row["value"])
+                    for row in reading_payloads
+                    if row["channel"] == "latitude"
+                    and isinstance(row["value"], (int, float))
+                ),
+                None,
+            )
         )
-        longitude = envelope.location.longitude if envelope.location else next(
-            (
-                float(row["value"])
-                for row in reading_payloads
-                if row["channel"] == "longitude" and isinstance(row["value"], (int, float))
-            ),
-            None,
+        longitude = (
+            envelope.location.longitude
+            if envelope.location
+            else next(
+                (
+                    float(row["value"])
+                    for row in reading_payloads
+                    if row["channel"] == "longitude"
+                    and isinstance(row["value"], (int, float))
+                ),
+                None,
+            )
         )
         if latitude is not None and longitude is not None:
             device.last_latitude = latitude
             device.last_longitude = longitude
+    if out_of_order:
+        intelligence = IotIntelligenceResult(False, reason="out_of_order")
+    else:
+        # Preserve authenticated raw telemetry even if its derived customer
+        # projection fails. Flush raw state first, then isolate the projection
+        # behind a database savepoint.
+        db.flush()
+        try:
+            with db.begin_nested():
+                intelligence = materialize_iot_intelligence(
+                    db,
+                    device=device,
+                    receipt=receipt,
+                    readings=reading_payloads,
+                    alert_events=alert_events,
+                    measured_at=recorded_at,
+                )
+        except Exception as exc:  # noqa: BLE001 - intentional failure boundary
+            intelligence = IotIntelligenceResult(False, reason="projection_failed")
+            log_event(
+                logger,
+                logging.WARNING,
+                "iot.intelligence_projection.failed",
+                device_id=device.id,
+                receipt_id=receipt.id,
+                error_type=type(exc).__name__,
+            )
+    event_asset = (
+        db.get(Asset, receipt.core_asset_id) if receipt.core_asset_id else None
+    )
+    event_workspace_id = (
+        event_asset.workspace_id
+        if event_asset is not None and event_asset.organization_id == device.company_id
+        else None
+    )
     enqueue_domain_event(
         db,
         name=EventNames.DEVICE_TELEMETRY_RECEIVED,
@@ -496,8 +777,9 @@ def ingest_telemetry(
             "device_id": device.id,
             "device_uid": device.public_id,
             "organization_id": device.company_id,
+            "workspace_id": event_workspace_id,
             "site_id": device.site_id,
-            "asset_id": device.core_asset_id,
+            "asset_id": receipt.core_asset_id,
             "message_id": envelope.message_id,
             "receipt_id": receipt.id,
             "protocol_version": envelope.protocol_version,
@@ -508,6 +790,11 @@ def ingest_telemetry(
             "source": source,
             "channels": [reading["channel"] for reading in reading_payloads],
             "alert_ids": [event["id"] for event in alert_events],
+            "intelligence_materialized": intelligence.materialized,
+            "intelligence_reason": intelligence.reason,
+            "kpi_value_ids": list(intelligence.kpi_value_ids),
+            "observation_ids": list(intelligence.observation_ids),
+            "action_ids": list(intelligence.action_ids),
         },
     )
     for alert_event in alert_events:
@@ -529,22 +816,35 @@ def ingest_telemetry(
                 "alert_id": alert_id,
                 "device_id": device.id,
                 "organization_id": device.company_id,
-                "asset_id": device.core_asset_id,
+                "workspace_id": event_workspace_id,
+                "asset_id": receipt.core_asset_id,
                 "severity": alert_event.get("severity"),
+                "notification_channels": alert_event.get("notification_channels", []),
             },
         )
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        return {"accepted": True, "duplicate": True, "stored": 0, "message_id": envelope.message_id}
+        # Receipt identity races are handled at their insertion boundary above.
+        # Never disguise an unrelated projection/outbox constraint failure as a
+        # successfully accepted duplicate.
+        raise
 
     event = {
-        "type": "telemetry", "device_id": device.id, "device_uid": device.public_id,
-        "message_id": envelope.message_id, "at": recorded_at.isoformat() + "Z",
-        "receipt_id": receipt.id, "asset_id": device.core_asset_id,
-        "out_of_order": out_of_order, "replayed_from_edge": envelope.replayed_from_edge,
-        "readings": reading_payloads, "alerts": alert_events, "automation": automation_events,
+        "type": "telemetry",
+        "device_id": device.id,
+        "device_uid": device.public_id,
+        "message_id": envelope.message_id,
+        "at": recorded_at.isoformat() + "Z",
+        "receipt_id": receipt.id,
+        "asset_id": device.core_asset_id,
+        "out_of_order": out_of_order,
+        "replayed_from_edge": envelope.replayed_from_edge,
+        "readings": reading_payloads,
+        "alerts": alert_events,
+        "automation": automation_events,
+        "intelligence": intelligence.payload(),
     }
     if publish:
         publish(device.id, event)
@@ -562,15 +862,42 @@ def ingest_telemetry(
         "out_of_order": out_of_order,
         "replayed_from_edge": envelope.replayed_from_edge,
         "automation": automation_events,
+        "intelligence": intelligence.payload(),
     }
 
 
 def latest_readings(db: Session, device: IotDevice) -> list[dict]:
     result = []
-    channel_keys = [row[0] for row in db.query(SensorChannel.key).filter(SensorChannel.device_id == device.id).all()]
+    channel_keys = [
+        row[0]
+        for row in db.query(SensorChannel.key)
+        .filter(SensorChannel.device_id == device.id)
+        .all()
+    ]
     for key in channel_keys:
-        row = db.query(TelemetryReading).filter(TelemetryReading.device_id == device.id, TelemetryReading.channel == key).order_by(TelemetryReading.recorded_at.desc()).first()
+        row = (
+            db.query(TelemetryReading)
+            .filter(
+                TelemetryReading.device_id == device.id, TelemetryReading.channel == key
+            )
+            .order_by(TelemetryReading.recorded_at.desc())
+            .first()
+        )
         if row:
-            value = row.boolean_value if row.boolean_value is not None else row.numeric_value if row.numeric_value is not None else row.text_value
-            result.append({"channel": key, "value": value, "unit": row.unit, "quality": row.quality, "at": row.recorded_at.isoformat() + "Z"})
+            value = (
+                row.boolean_value
+                if row.boolean_value is not None
+                else row.numeric_value
+                if row.numeric_value is not None
+                else row.text_value
+            )
+            result.append(
+                {
+                    "channel": key,
+                    "value": value,
+                    "unit": row.unit,
+                    "quality": row.quality,
+                    "at": row.recorded_at.isoformat() + "Z",
+                }
+            )
     return result

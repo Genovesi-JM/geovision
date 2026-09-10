@@ -27,6 +27,7 @@ from app.models import (
 from app.modules.audit.services import record_audit_event
 from app.modules.identity.domain import AuthorizationContext
 from app.modules.organizations.domain import permission_granted
+from app.modules.organizations.services import sole_active_workspace_id
 from app.modules.reports.context_builder import ReportContextBuilder
 from app.modules.reports.domain import (
     ReportError,
@@ -120,14 +121,10 @@ def _build_provenance(
             else {}
         )
         is_first_party = (
-            (
-                not acquisition.provider_code
-                or acquisition.provider_code.startswith("geovision")
-                or acquisition.legacy_source in {"drone_mission", "asset_inspection"}
-            )
-            and acquisition.acquisition_type
-            in {"DRONE", "IOT", "MANUAL_INSPECTION"}
-        )
+            not acquisition.provider_code
+            or acquisition.provider_code.startswith("geovision")
+            or acquisition.legacy_source in {"drone_mission", "asset_inspection"}
+        ) and acquisition.acquisition_type in {"DRONE", "IOT", "MANUAL_INSPECTION"}
         provider_version = _source_version(acquisition_provenance)
         sources.append(
             {
@@ -139,11 +136,7 @@ def _build_provenance(
                 ),
                 "version": (
                     provider_version
-                    or (
-                        "geovision-acquisition-v1.0.0"
-                        if is_first_party
-                        else None
-                    )
+                    or ("geovision-acquisition-v1.0.0" if is_first_party else None)
                 ),
                 "version_basis": (
                     "provider_or_adapter"
@@ -156,7 +149,9 @@ def _build_provenance(
         if not isinstance(item, Mapping):
             continue
         item_provenance = item.get("provenance")
-        item_provenance = item_provenance if isinstance(item_provenance, Mapping) else {}
+        item_provenance = (
+            item_provenance if isinstance(item_provenance, Mapping) else {}
+        )
         sources.append(
             {
                 "kind": "dataset",
@@ -552,7 +547,9 @@ def generate_report(
     narrative_provider: NarrativeProvider | None = None,
     storage: StorageService | None = None,
 ) -> tuple[Report, bool]:
-    acquisition = db.get(Acquisition, data.acquisition_id) if data.acquisition_id else None
+    acquisition = (
+        db.get(Acquisition, data.acquisition_id) if data.acquisition_id else None
+    )
     if data.acquisition_id and acquisition is None:
         raise ReportError(
             "acquisition_not_found", "Acquisition was not found for this asset"
@@ -631,7 +628,9 @@ def generate_report(
         title=(data.title or _default_title(asset, data.report_type)).strip()[:240],
         template_version=data.template_version,
         revision=_next_revision(db, asset.id, data.report_type),
-        status=(ReportStatus.APPROVED.value if auto_approved else ReportStatus.DRAFT.value),
+        status=(
+            ReportStatus.APPROVED.value if auto_approved else ReportStatus.DRAFT.value
+        ),
         qa_level=qa_level.value,
         context_schema_version=str(built.context["schema_version"]),
         context_json=built.canonical_json,
@@ -743,6 +742,7 @@ def _is_internal(context: AuthorizationContext) -> bool:
 
 
 def authorize_asset(
+    db: Session,
     *,
     context: AuthorizationContext,
     asset: Asset | None,
@@ -756,7 +756,14 @@ def authorize_asset(
         not context.active_organization_id
         or not context.active_workspace_id
         or asset.organization_id != context.active_organization_id
-        or asset.workspace_id not in {None, context.active_workspace_id}
+        or (
+            asset.workspace_id != context.active_workspace_id
+            and not (
+                asset.workspace_id is None
+                and sole_active_workspace_id(db, asset.organization_id)
+                == context.active_workspace_id
+            )
+        )
     ):
         raise ReportError("report_not_found", "Report resource was not found")
     return asset
@@ -777,7 +784,15 @@ def get_authorized_report(
         return report
     if (
         report.organization_id != context.active_organization_id
-        or report.workspace_id not in {None, context.active_workspace_id}
+        or (
+            report.workspace_id != context.active_workspace_id
+            and not (
+                report.workspace_id is None
+                and context.active_workspace_id is not None
+                and sole_active_workspace_id(db, report.organization_id)
+                == context.active_workspace_id
+            )
+        )
         or (not include_unpublished and report.status != ReportStatus.PUBLISHED.value)
     ):
         raise ReportError("report_not_found", "Report was not found")
@@ -798,16 +813,21 @@ def list_authorized_reports(
     query = db.query(Report)
     if _is_internal(context):
         if context.active_organization_id:
-            query = query.filter(Report.organization_id == context.active_organization_id)
+            query = query.filter(
+                Report.organization_id == context.active_organization_id
+            )
     else:
         if not context.active_organization_id or not context.active_workspace_id:
             raise ReportError("report_access_denied", "Report access denied")
+        workspace_filters = [Report.workspace_id == context.active_workspace_id]
+        if (
+            sole_active_workspace_id(db, context.active_organization_id)
+            == context.active_workspace_id
+        ):
+            workspace_filters.append(Report.workspace_id.is_(None))
         query = query.filter(
             Report.organization_id == context.active_organization_id,
-            or_(
-                Report.workspace_id == context.active_workspace_id,
-                Report.workspace_id.is_(None),
-            ),
+            or_(*workspace_filters),
             Report.status == ReportStatus.PUBLISHED.value,
         )
     if asset_id:
@@ -824,9 +844,7 @@ def list_authorized_reports(
 
 def _check_version(report: Report, expected: int | None) -> None:
     if expected is not None and report.lifecycle_version != expected:
-        raise ReportError(
-            "version_conflict", "Report changed since it was last read"
-        )
+        raise ReportError("version_conflict", "Report changed since it was last read")
 
 
 def submit_report(
@@ -868,8 +886,9 @@ def approve_report(
     note: str | None = None,
 ) -> Report:
     _check_version(report, expected_version)
-    if report.qa_level == ReportQALevel.SPECIALIST_REVIEW.value and not permission_granted(
-        context.permissions, "analytics:review"
+    if (
+        report.qa_level == ReportQALevel.SPECIALIST_REVIEW.value
+        and not permission_granted(context.permissions, "analytics:review")
     ):
         raise ReportError(
             "specialist_review_required",

@@ -1,7 +1,14 @@
-import json
+import pytest
 
 from app.database import SessionLocal
-from app.models import AccountEvent, CompanyUser, IntegrationOutbox, Order, Payment
+from app.models import (
+    Account,
+    AccountEvent,
+    CompanyUser,
+    IntegrationOutbox,
+    Order,
+    Payment,
+)
 from app.services.erp_sync import enqueue_erp_event, process_pending, publish_account_event
 
 
@@ -26,9 +33,33 @@ def test_account_overview_is_customer_scoped(client):
     company_id = _company_id()
     db = SessionLocal()
     try:
-        owned = Payment(company_id=company_id, order_id="owned", amount=125000, currency="AOA", provider="mock", status="pending")
+        workspace_id = (
+            db.query(Account.id)
+            .filter(Account.organization_id == company_id)
+            .one()[0]
+        )
+        order = Order(
+            id="owned",
+            company_id=company_id,
+            organization_id=company_id,
+            workspace_id=workspace_id,
+            order_type="SERVICE",
+            fulfilment_status="DRAFT",
+            payment_status="PENDING",
+            status="pending",
+            currency="AOA",
+        )
+        owned = Payment(
+            company_id=company_id,
+            organization_id=company_id,
+            order_id=order.id,
+            amount=125000,
+            currency="AOA",
+            provider="mock",
+            status="pending",
+        )
         foreign = Payment(company_id="another-company", order_id="foreign", amount=999999, currency="AOA", provider="mock", status="pending")
-        db.add_all([owned, foreign])
+        db.add_all([order, owned, foreign])
         db.commit()
     finally:
         db.close()
@@ -46,7 +77,20 @@ def test_account_events_are_tenant_isolated(client):
     company_id = _company_id()
     db = SessionLocal()
     try:
-        publish_account_event(db, company_id=company_id, event_type="order.updated", resource_type="order", resource_id="one", title="Owned")
+        workspace_id = (
+            db.query(Account.id)
+            .filter(Account.organization_id == company_id)
+            .one()[0]
+        )
+        publish_account_event(
+            db,
+            company_id=company_id,
+            workspace_id=workspace_id,
+            event_type="order.updated",
+            resource_type="order",
+            resource_id="one",
+            title="Owned",
+        )
         publish_account_event(db, company_id="another-company", event_type="order.updated", resource_type="order", resource_id="two", title="Foreign")
         db.commit()
     finally:
@@ -57,6 +101,50 @@ def test_account_events_are_tenant_isolated(client):
     titles = [item["title"] for item in response.json()]
     assert "Owned" in titles
     assert "Foreign" not in titles
+
+
+@pytest.mark.parametrize(
+    "unsafe_key",
+    ["accessToken", "apiKey", "clientSecret", "connectionString"],
+)
+def test_account_event_rejects_credential_shaped_payload_fields(unsafe_key):
+    db = SessionLocal()
+    try:
+        company_id = _company_id()
+        workspace_id = (
+            db.query(Account.id)
+            .filter(Account.organization_id == company_id)
+            .one()[0]
+        )
+        before = db.query(AccountEvent).count()
+        with pytest.raises(ValueError, match="credential-like key"):
+            publish_account_event(
+                db,
+                company_id=company_id,
+                workspace_id=workspace_id,
+                event_type="service_request.updated",
+                resource_type="service_request",
+                resource_id="request-one",
+                title="Unsafe payload",
+                payload={"status": "scheduled", "provider": [{unsafe_key: "secret"}]},
+            )
+        assert db.query(AccountEvent).count() == before
+
+        safe = publish_account_event(
+            db,
+            company_id=company_id,
+            workspace_id=workspace_id,
+            event_type="payment.updated",
+            resource_type="payment",
+            resource_id="payment-one",
+            title="Tokenized payment",
+            payload={"tokenized_amount": 125_000},
+        )
+        db.flush()
+        assert safe.payload_json == '{"tokenized_amount": 125000}'
+    finally:
+        db.rollback()
+        db.close()
 
 
 def test_erp_outbox_is_idempotent_and_mock_processes():

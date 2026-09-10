@@ -6,7 +6,16 @@ from datetime import timedelta
 
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
-from app.models import Account, Asset, Company, CompanyUser, Invitation, User
+from app.models import (
+    Account,
+    Asset,
+    Company,
+    CompanyUser,
+    Document,
+    Invitation,
+    Report,
+    User,
+)
 
 
 def _user(db_session, prefix: str, *, email: str | None = None) -> User:
@@ -199,6 +208,148 @@ def test_preprovisioned_invite_accepts_into_existing_asset_without_recreation(
     assert reused.json()["detail"]["code"] == "invitation_used"
 
 
+def test_workspace_less_invitation_targets_are_quarantined_once_scope_is_ambiguous(
+    client,
+    db_session,
+):
+    owner = _user(db_session, "legacy-target-owner")
+    organization_id, workspace_a = _organization(
+        client,
+        owner,
+        "Legacy target scope",
+    )
+    canonical_asset = _asset(client, owner, workspace_a)
+    legacy_asset = Asset(
+        organization_id=organization_id,
+        workspace_id=None,
+        sector="ENVIRONMENTAL",
+        asset_type="MONITORING_SITE",
+        name="Workspace-less legacy station",
+        status="active",
+        metadata_json="{}",
+    )
+    db_session.add(legacy_asset)
+    db_session.flush()
+
+    def report_for(asset_id: str, workspace_id: str | None, label: str) -> Report:
+        return Report(
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            asset_id=asset_id,
+            report_type="ENVIRONMENTAL_MONITORING",
+            title=label,
+            template_version="1.0.0",
+            revision=1,
+            status="PUBLISHED",
+            published_at=utc_now(),
+            qa_level="HUMAN_REVIEW",
+            context_schema_version="geovision.report-context.v1",
+            context_json="{}",
+            context_sha256=hashlib.sha256(label.encode()).hexdigest(),
+            narrative_provider="deterministic",
+            narrative_schema_version="geovision.report-narrative.v1",
+            narrative_json="{}",
+            qa_result_json="{}",
+            generation_key=f"legacy-target-{uuid.uuid4().hex}",
+        )
+
+    legacy_report = report_for(
+        legacy_asset.id,
+        None,
+        "Workspace-less legacy report",
+    )
+    canonical_report = report_for(
+        canonical_asset["id"],
+        workspace_a,
+        "Canonical workspace A report",
+    )
+    legacy_document = Document(
+        company_id=organization_id,
+        name="Workspace-less legacy document",
+        document_type="report",
+        status="published",
+    )
+    db_session.add_all([legacy_report, canonical_report, legacy_document])
+    db_session.commit()
+
+    # Compatibility is safe while there is only one possible active workspace.
+    for target_type, target_id in (
+        ("asset", legacy_asset.id),
+        ("report", legacy_report.id),
+        ("report", legacy_document.id),
+    ):
+        recipient = _user(db_session, f"single-workspace-{target_type}")
+        issued = _issue(
+            client,
+            owner,
+            organization_id,
+            workspace_a,
+            recipient.email,
+            target_type=target_type,
+            target_id=target_id,
+        )
+        assert issued.status_code == 201
+
+    second = client.post(
+        f"/organizations/{organization_id}/workspaces",
+        headers=_headers(owner, workspace_a),
+        json={
+            "name": "Legacy target second workspace",
+            "customer_type": "business",
+            "sector_focus": "environment",
+            "modules_enabled": ["reports"],
+        },
+    )
+    assert second.status_code == 201, second.text
+    workspace_b = second.json()["id"]
+
+    # No selected workspace may claim a workspace-less target after the
+    # organization becomes ambiguous.
+    for index, (target_type, target_id) in enumerate(
+        (
+            ("asset", legacy_asset.id),
+            ("report", legacy_report.id),
+            ("report", legacy_document.id),
+        )
+    ):
+        recipient = _user(db_session, f"ambiguous-target-{index}")
+        response = client.post(
+            "/invitations",
+            headers=_headers(owner, workspace_a),
+            json={
+                "organization_id": organization_id,
+                "workspace_id": workspace_a,
+                "target_email": recipient.email,
+                "intended_role": "viewer",
+                "target_type": target_type,
+                "target_id": target_id,
+            },
+        )
+        assert response.status_code == 404
+
+    # Canonical targets cannot cross between two workspaces in the same tenant.
+    for index, (target_type, target_id) in enumerate(
+        (
+            ("asset", canonical_asset["id"]),
+            ("report", canonical_report.id),
+        )
+    ):
+        recipient = _user(db_session, f"cross-workspace-target-{index}")
+        response = client.post(
+            "/invitations",
+            headers=_headers(owner, workspace_b),
+            json={
+                "organization_id": organization_id,
+                "workspace_id": workspace_b,
+                "target_email": recipient.email,
+                "intended_role": "viewer",
+                "target_type": target_type,
+                "target_id": target_id,
+            },
+        )
+        assert response.status_code == 404
+
+
 def test_tampered_mismatched_expired_and_revoked_tokens_fail_closed(client, db_session):
     owner = _user(db_session, "secure-owner")
     recipient = _user(db_session, "secure-recipient")
@@ -324,6 +475,36 @@ def test_inviter_permissions_target_isolation_and_role_escalation_are_guarded(
     )
     assert secret_metadata.status_code == 400
     assert secret_metadata.json()["detail"]["code"] == "secret_metadata_rejected"
+
+    for unsafe_key in ("accessToken", "clientSecret"):
+        camel_case_secret = client.post(
+            "/invitations",
+            headers=_headers(owner_a, workspace_a),
+            json={
+                "organization_id": org_a,
+                "workspace_id": workspace_a,
+                "target_email": recipient.email,
+                "intended_role": "member",
+                "metadata": {"provider": [{unsafe_key: "must-not-be-stored"}]},
+            },
+        )
+        assert camel_case_secret.status_code == 400
+        assert camel_case_secret.json()["detail"]["code"] == (
+            "secret_metadata_rejected"
+        )
+
+    tokenized_metadata = client.post(
+        "/invitations",
+        headers=_headers(owner_a, workspace_a),
+        json={
+            "organization_id": org_a,
+            "workspace_id": workspace_a,
+            "target_email": recipient.email,
+            "intended_role": "member",
+            "metadata": {"tokenized_amount": 125_000},
+        },
+    )
+    assert tokenized_metadata.status_code == 201, tokenized_metadata.text
 
 
 def test_intent_first_onboarding_contract_has_no_account_type_choice(client, db_session):

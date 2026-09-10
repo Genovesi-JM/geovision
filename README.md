@@ -1,6 +1,13 @@
-# GeoVision — Developer runbook
+# GeoVision developer runbook
 
 Curto guia para correr a app localmente, executar testes e o smoke e2e.
+
+## Start here
+
+The [engineering guide](docs/README.md) is the current documentation index.
+It links the Phase 33 architecture, entity map, exact permissions, event and
+provider catalogues, onboarding flows, extension guides, limitations, and
+release evidence.
 
 ## Refactor baseline
 
@@ -38,14 +45,16 @@ history, and internal lifecycle contracts are in the
 supplier qualification, contractor capabilities, Operations assignment, and
 least-privilege contractor access are defined in the
 [Operations resources guide](docs/OPERATIONS_RESOURCES.md). Run
-the non-mutating baseline suite with:
+the baseline validation suite with:
 
 ```bash
 make baseline
 ```
 
 Set `GEOVISION_BASELINE_BUILDS=1` to include Android and iOS simulator debug
-builds. This check does not switch branches or rewrite project status files.
+builds. The script does not switch branches or intentionally rewrite source,
+but Flutter/CocoaPods may refresh generated files or native dependency locks;
+run release evidence in a clean checkout and inspect `git status` afterwards.
 
 Prerequisitos
 - macOS / Linux / Windows com WSL
@@ -66,11 +75,16 @@ python3 -m venv .venv
 ./.venv/bin/python -m pip install --upgrade pip
 if [ -f requirements.txt ]; then ./.venv/bin/pip install -r requirements.txt; fi
 
-# arrancar a API (uvicorn)
-./.venv/bin/python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010
+# aplicar a única cadeia Alembic e executar o bootstrap de referência
+./.venv/bin/python start.py migrate
+
+# arrancar a API depois de a migração terminar com sucesso
+./.venv/bin/python start.py serve --skip-migrations
 ```
 
 Verifique depois `http://127.0.0.1:8010/health` — deve responder `{"status":"ok"}`.
+O arranque directo com `uvicorn app.main:app` não é o caminho de preparação da
+base de dados; use-o apenas depois de aplicar as migrações e o bootstrap acima.
 
 2) Frontend — servir ficheiros estáticos
 
@@ -83,10 +97,17 @@ python3 -m http.server 8001
 
 Abra `http://127.0.0.1:8001/login.html` no browser (importante: abrir via http, não `file://`).
 
-3) Credenciais demo
+3) Conta local e dados sintéticos
 
-- Admin: `teste@admin.com` / `123456` → `admin.html`
-- Cliente: `teste@clientes.com` / `123456` → `dashboard.html`
+O repositório não instala credenciais demo fixas. Crie uma conta de cliente pelo
+fluxo de registo, ou configure `ADMIN_EMAILS` e uma `ADMIN_PASSWORD` forte no
+ficheiro local `backend/.env` antes de voltar a executar `start.py migrate`.
+Nunca reutilize uma palavra-passe de teste num ambiente partilhado ou
+implantado.
+
+Para anexar uma conta local existente ao portefólio sintético explícito dos
+cinco sectores, siga o [guia de engenharia](docs/README.md#synthetic-five-sector-workspace).
+O seed não cria, altera nem mostra credenciais.
 
 4) Testes backend (pytest)
 
@@ -109,12 +130,24 @@ backend/.venv/bin/python -m pip install playwright
 backend/.venv/bin/python -m playwright install --with-deps
 
 # executar o smoke check que abre o login, submete credenciais e valida resposta
+export GEOVISION_SMOKE_EMAIL='conta-local-existente@example.com'
+read -r -s -p 'GeoVision smoke password: ' GEOVISION_SMOKE_PASSWORD
+export GEOVISION_SMOKE_PASSWORD
 backend/.venv/bin/python scripts/playwright_check.py
 ```
 
+O script recusa executar sem estas variáveis, não imprime a palavra-passe nem o
+corpo da resposta de autenticação, e usa apenas a conta local que o operador
+escolheu para o teste.
+
 6) CI
 
-Há uma workflow em `.github/workflows/ci.yml` que executa `pytest` e o `scripts/playwright_check.py` em push/PR (usa Playwright Python). Se preferir Node Playwright / pa11y, instale Node e ajuste o workflow para incluir `actions/setup-node` e `npm install`.
+`.github/workflows/ci.yml` is the authoritative delivery gate. It runs the full
+backend and named security suites, PostgreSQL/PostGIS migration rehearsals,
+correctness lint, dependency and infrastructure checks, a Docker build, Node
+Playwright browser tests, Flutter formatting/analysis/tests, and Android/iOS
+builds. Staging deployment follows only a successful main-branch gate and uses
+migration-first Azure deployment ordering.
 
 7) Troubleshooting rápido
 
@@ -124,9 +157,9 @@ Há uma workflow em `.github/workflows/ci.yml` que executa `pytest` e o `scripts
   - Confirme que o backend está a correr em `127.0.0.1:8010` ou ajuste `API_BASE` em `assets/js/config.js` / `index.html`.
   - O projeto tem um fallback inline para o formulário em `login.html` para garantir que o submit funciona mesmo que outros scripts não carreguem.
 
-8) Sugestões de melhorias
+8) Release and staging
 
-- Aceda a `.github/workflows/ci.yml` para ver como o CI valida o fluxo.
-- Para UX, pode aumentar o tempo de redirect para deixar a mensagem de sucesso visível (arquivos: `assets/js/auth.mjs` e `assets/js/auth.js`).
-
-Se quiser, eu atualizo o README com mais detalhes (ex.: criação de DB/migrations, variáveis de ambiente, ou um script `make dev`).
+Use `docs/RELEASE_CHECKLIST.md` as the evidence record. A workflow file or
+successful local run is not proof of production readiness; record the exact
+commit, immutable image digest, migration execution, staging URL, authorization
+smokes, worker health, external provider gates, reviewer, and rollback digest.

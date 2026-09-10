@@ -16,7 +16,9 @@ from app.core.event_names import EventNames
 from app.core.integration import IntegrationResult
 from app.core.time import utc_now
 from app.integrations.processing.fake import DeterministicProcessingProvider
+from app.integrations.processing.factory import create_processing_provider
 from app.integrations.processing.nodeodm import NodeODMProcessingProvider
+from app.integrations.processing.unavailable import UnavailableProcessingProvider
 from app.integrations.storage.local import LocalObjectStorageProvider
 from app.models import (
     Account,
@@ -33,6 +35,7 @@ from app.models import (
     User,
 )
 from app.modules.processing.ports import ProviderArtifact
+from app.modules.processing.domain import ProcessingJobError
 from app.modules.processing.schemas import ProcessingJobCreate
 from app.modules.processing.services import (
     create_processing_job,
@@ -147,7 +150,9 @@ def _source_dataset(db, tmp_path: Path, *, image_count: int = 2):
 
 
 def _run_to_provider_completion(db, job: ProcessingJob, storage, provider, config):
-    resolver = lambda _: provider
+    def resolver(_):
+        return provider
+
     submitted = run_processing_cycle(
         db,
         worker_id="processing-test-worker",
@@ -312,9 +317,12 @@ def test_unversioned_processor_is_stopped_for_review(db_session, tmp_path):
     assert outcome["needs_review"] == 1
     assert job.status == "NEEDS_REVIEW"
     assert job.error_code == "processor_version_missing"
-    assert db_session.query(ProviderUsage).filter(
-        ProviderUsage.processing_job_id == job.id
-    ).count() == 0
+    assert (
+        db_session.query(ProviderUsage)
+        .filter(ProviderUsage.processing_job_id == job.id)
+        .count()
+        == 0
+    )
 
 
 def test_missing_output_requires_review_and_operator_retry_is_recoverable(
@@ -490,7 +498,9 @@ def test_nodeodm_adapter_submits_polls_cancels_and_normalizes_without_sdk():
     assert submission.value.processor_name == "odm"
     assert submission.value.processor_version == "3.5"
     assert len(seen_headers) == 1
-    assert provider.status(submission.value.external_reference).value.state == "COMPLETED"
+    assert (
+        provider.status(submission.value.external_reference).value.state == "COMPLETED"
+    )
     raw = provider.retrieve_outputs(submission.value.external_reference)
     assert raw.ok and raw.value is not None
     normalized = provider.normalize_outputs(
@@ -530,9 +540,37 @@ def test_processing_configuration_fails_closed_and_redacts_nodeodm_token():
             processing_provider="nodeodm",
             nodeodm_base_url="http://nodeodm.internal:3000",
         )
-    with pytest.raises(ValueError, match="automatic processing"):
+    with pytest.raises(ValueError, match="fake processing provider"):
         Settings(
             **production_values,
             processing_provider="fake",
-            processing_auto_create_enabled=True,
+        )
+
+
+def test_deployed_processing_rejects_explicit_deterministic_fixture(
+    db_session, tmp_path
+):
+    actor, source, _ = _source_dataset(db_session, tmp_path)
+    production = Settings(
+        _env_file=None,
+        env="prod",
+        secret_key="processing-production-secret-key-000001",
+        encryption_key=base64.urlsafe_b64encode(b"p" * 32).decode(),
+        frontend_base="https://geovision.example",
+        backend_base="https://api.geovision.example",
+    )
+
+    provider = create_processing_provider(production, provider_name="fake")
+    assert isinstance(provider, UnavailableProcessingProvider)
+    with pytest.raises(ProcessingJobError, match="disabled in deployed environments"):
+        create_processing_job(
+            db_session,
+            actor=actor,
+            config=production,
+            data=ProcessingJobCreate(
+                source_dataset_ids=[source.id],
+                requested_outputs=["ORTHOMOSAIC"],
+                provider="deterministic",
+                idempotency_key=f"processing-deployed-{uuid.uuid4().hex}",
+            ),
         )

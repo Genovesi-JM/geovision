@@ -8,9 +8,9 @@ contracts after re-checking the selected workspace boundary.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime
+from collections.abc import Iterable, Mapping
 import json
-from typing import Any, Iterable
+from typing import Any
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Query, Session
@@ -182,6 +182,35 @@ def _json_list(value: str | None) -> list[str]:
     return result
 
 
+def _synthetic_label(
+    value: str | Mapping[str, Any] | None,
+    *,
+    source: str | None = None,
+) -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        parsed: Mapping[str, Any] = value
+    else:
+        try:
+            candidate = json.loads(value or "{}")
+        except (TypeError, ValueError):
+            candidate = {}
+        parsed = candidate if isinstance(candidate, Mapping) else {}
+    marker = parsed.get("demo_seed")
+    if not isinstance(marker, Mapping) or marker.get("synthetic") is not True:
+        return {
+            "synthetic": False,
+            "synthetic_marker": None,
+            "synthetic_notice": None,
+            "source": source,
+        }
+    return {
+        "synthetic": True,
+        "synthetic_marker": str(marker.get("marker") or "") or None,
+        "synthetic_notice": str(marker.get("notice") or "") or None,
+        "source": source,
+    }
+
+
 def _customer_workspace(
     db: Session,
     context: AuthorizationContext,
@@ -333,6 +362,10 @@ def _asset_tree(assets: Iterable[Asset]) -> list[dict[str, Any]]:
             "sector": asset.sector,
             "asset_type": asset.asset_type,
             "status": asset.status,
+            **_synthetic_label(
+                asset.metadata_json,
+                source=asset.legacy_source,
+            ),
             "children": nested,
         }
 
@@ -483,8 +516,12 @@ def _capability_flags(
     content: dict[str, int],
     subscription: dict[str, Any],
 ) -> dict[PortalCapability, bool]:
-    can = lambda permission: permission_granted(context.permissions, permission)
-    module = lambda capability: bool(modules.intersection(_MODULES.get(capability, ())))
+    def can(permission: str) -> bool:
+        return permission_granted(context.permissions, permission)
+
+    def module(capability: PortalCapability) -> bool:
+        return bool(modules.intersection(_MODULES.get(capability, ())))
+
     advanced_active = subscription["status"] != "expired"
     plan = str(subscription["tier"] or subscription["plan"]).casefold()
     integration_plan = plan in {"professional", "growth", "scale", "enterprise", "custom"}
@@ -676,6 +713,10 @@ def _kpi_card(item: dict[str, Any]) -> dict[str, Any]:
         "confidence": item["confidence"],
         "measured_at": item["measured_at"],
         "change_percent": item["change_percent"],
+        **_synthetic_label(
+            item.get("provenance"),
+            source=item.get("source"),
+        ),
     }
 
 
@@ -764,6 +805,10 @@ def _asset_summary_item(
         ),
         "latest_observation_at": observations[0].detected_at if observations else None,
         "destination": {"target_type": "ASSET", "target_id": asset.id},
+        **_synthetic_label(
+            asset.metadata_json,
+            source=asset.legacy_source,
+        ),
     }
 
 
@@ -905,6 +950,10 @@ def portal_map_layers(
                 "asset_type": asset.asset_type,
                 "status": asset.status,
                 "parent_asset_id": asset.parent_asset_id,
+                **_synthetic_label(
+                    asset.metadata_json,
+                    source=asset.legacy_source,
+                ),
             },
         )
         if feature:
@@ -935,6 +984,10 @@ def portal_map_layers(
                 "severity": observation.severity,
                 "confidence": float(observation.confidence),
                 "detected_at": observation.detected_at.isoformat(),
+                **_synthetic_label(
+                    observation.provenance_json,
+                    source=observation.source,
+                ),
             },
         )
         if feature:

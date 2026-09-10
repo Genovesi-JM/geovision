@@ -1,12 +1,13 @@
 # GeoVision modular monolith architecture
 
-This document defines the backend module boundaries established in Phases 1
-and 2 of the GeoVision refactor. The application remains one FastAPI deployable
-with one primary database and separately runnable workers as they are
-introduced. The purpose of these boundaries is to make ownership, provider
-isolation, and dependency direction explicit without breaking the working API
-or duplicating persisted models. Provider contract details are documented in
-[the provider integration architecture](PROVIDER_INTEGRATION_ARCHITECTURE.md).
+This document defines the backend module boundaries after the Phase 33
+restructure. The application remains one FastAPI deployable with one primary
+database and separately runnable workers. The purpose of these boundaries is
+to make ownership, provider isolation, and dependency direction explicit
+without duplicating identity, Asset, intelligence, order, or report models.
+Provider contract details are documented in
+[the provider integration architecture](PROVIDER_INTEGRATION_ARCHITECTURE.md),
+and the canonical data graph is in [entity relationships](ENTITY_RELATIONSHIPS.md).
 
 ## Runtime and composition
 
@@ -164,8 +165,8 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Datasets | Asset/mission-linked metadata, lifecycle, tenant-safe streaming/signed uploads, immutable file identity, and local/S3/Azure storage adapters are implemented |
 | Processing | Durable source/output-linked jobs, quality/retry states, an independent worker, deterministic fake and NodeODM adapter are implemented; paid vendor adapters remain explicit scaffolds |
 | Analytics | Versioned sector calculator/rule registries, immutable KPI history, provenance-safe observations/alerts, comparisons and normalized Asset summaries are implemented; AI remains explanation-only |
-| Monitoring | Provider-mapped IoT devices, canonical assignments, versioned telemetry receipts, safe offline replay, alerts, live events and watchdog behavior coexist with durable cached satellite/weather acquisitions, normalized provenance and independent workers |
-| Actions | Generic source-linked recommendations, priorities, assignments, GeoVision catalogue references, optimistic lifecycle transitions, outcomes and durable events are implemented; IoT recommendation/command routes remain compatibility facades |
+| Monitoring | Provider-mapped IoT devices, canonical assignments, versioned telemetry receipts, safe offline replay, alerts, live events and watchdog behavior coexist with durable cached satellite/weather acquisitions, normalized provenance and independent workers. In-order linked telemetry projects numeric readings to common technical KPIs and new alerts to common observations/actions; raw receipts remain authoritative. |
+| Actions | Generic source-linked recommendations, priorities, assignments, GeoVision catalogue references, optimistic lifecycle transitions, outcomes and durable events are implemented; IoT alerts now create common customer-visible actions while legacy IoT recommendation/command routes remain compatibility facades |
 | Reports | Versioned immutable contexts, strict optional narrative, deterministic fallback, QA levels, PDF Dataset artifacts, review/approval/publication/supersession, customer visibility and durable audit/events are implemented; legacy Document routes are published-only compatibility facades |
 | Notifications | Recipient-bound contextual inbox, preferences, encrypted platform tokens, event aggregation, safe target resolution, Flutter native push channels, backend-managed Azure installations, and independent durable SMTP/push delivery are implemented; signed host/provider activation requires Gate 16 |
 | Billing | Every payment operation uses the module-owned provider port; tenant-derived payment truth, irreversible transitions, refunds, and digest-only idempotent webhook receipts are implemented |
@@ -217,14 +218,16 @@ versioned intelligence interfaces.
 | Package | Activation phase | Compatibility notes |
 |---|---:|---|
 | `sectors/agriculture` | 18 | Enabled with source-fused KPIs, cautious rules, map layers and structured report context; legacy identifiers remain accepted |
-| `sectors/infrastructure` | 28 | Existing infrastructure and construction behavior remains unchanged |
-| `sectors/environmental` | 29 | Existing `environment` and `ambiental` identifiers remain unchanged |
-| `sectors/mining` | 30 | Existing mining/industry normalization remains unchanged |
-| `sectors/ports` | 31 | Boundary exists, but no public Ports behavior is activated yet |
+| `sectors/infrastructure` | 28 | Enabled with construction/progress KPIs, cautious rules, maps, reports, and synthetic fixtures |
+| `sectors/environmental` | 29 | Enabled; existing `environment` and `ambiental` identifiers remain compatible |
+| `sectors/mining` | 30 | Enabled; existing mining/industry normalization remains compatible |
+| `sectors/ports` | 31 | Enabled with Ports/Industrial KPIs, inspections, maps, reports, and synthetic fixtures |
 
-Agriculture is enabled in Phase 18; the remaining four packages stay disabled
-until their activation phases. Sector routes are composed explicitly alongside
-domain/integration routes, and common modules never import sector packages.
+All five packages are enabled and can coexist on the same common data model.
+Sector routes are composed explicitly alongside domain/integration routes, and
+common modules never import sector packages. Member/workspace rollout may deny
+a sector after Azure App Configuration is configured; an absent external
+rollout source preserves the reviewed local baseline.
 
 ## HTTP compatibility ownership
 
@@ -243,17 +246,20 @@ Important compatibility details intentionally retained:
   registering them now would add or break public behavior.
 - FastAPI health and readiness routes remain at `/health` and `/ready`.
 
-The Phase 0 contract contains 204 application HTTP method/path pairs and one
-WebSocket path. Tests hash the complete sorted set, including hidden legacy
-aliases, and reject duplicate method/path registration.
+The executable architecture test fingerprints the complete sorted set of
+application HTTP method/path pairs and the WebSocket path, including hidden
+legacy aliases, and rejects duplicate method/path registration. The count and
+digest are compatibility snapshots rather than API-design targets;
+intentional route changes must update that test evidence in the same commit.
 
 ## Worker boundary
 
-`app/workers/lifecycle.py` owns startup and shutdown of the existing MQTT bridge
-and device watchdog. They still run inside each API process for compatibility.
-This boundary does not imply that in-process execution is production-safe at
-multiple replicas; Phase 13 and Phase 16 must introduce durable/distributed
-coordination before scaling them horizontally.
+`app/workers/lifecycle.py` owns optional local startup and shutdown of the MQTT
+bridge, device watchdog, and convenience event/processing/intelligence loops.
+The worker loops and watchdog default off in the API. MQTT remains a
+compatibility transport. Running the watchdog or broker subscription inside
+multiple API replicas is not production-safe; a live IoT deployment needs one
+explicit owner or distributed coordination.
 
 The event, ERP and notification workers are independent deployed processes. The
 event worker delivers registered domain facts through idempotent consumer
@@ -292,5 +298,8 @@ For a new capability:
 7. Have HTTP and worker transports call the same public service.
 8. Add negative tenant/permission tests when data is workspace-scoped.
 9. Add an Alembic migration for every persisted schema change.
-10. Update route-contract expectations only when a later phase intentionally
-   adds, deprecates or removes a public route.
+10. Update route-contract expectations only when an intentional change adds,
+    deprecates, or removes a public route.
+
+For concrete extension checklists, use
+[Extending GeoVision safely](EXTENDING_GEOVISION.md).

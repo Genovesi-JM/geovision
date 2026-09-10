@@ -14,22 +14,25 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import (
     Account,
     AccountMember,
+    Acquisition,
     Asset,
     Company,
     CompanyUser,
     Document,
+    EventOutbox,
     Invitation,
     MobileServiceRequest,
     Order,
     Report,
-    Site,
     User,
 )
 from app.modules.audit.services import record_audit_event
+from app.modules.notifications.materializer import materialize_notification_event
 from app.modules.organizations.domain import MembershipStatus, WorkspaceStatus
 from app.modules.organizations.invitation_schemas import (
     InvitationDestination,
@@ -42,14 +45,18 @@ from app.modules.organizations.services import (
     OrganizationAccessError,
     authorize_organization,
 )
+from app.services.event_outbox import event_from_row
 
 
 TOKEN_BYTES = 32
 INVITATION_METADATA_MAX_BYTES = 8 * 1024
 _SECRET_KEY = re.compile(
-    r"(^|[_-])(password|passwd|secret|token|api[_-]?key|private[_-]?key|credential)s?($|[_-])",
+    r"(^|_)(authorization|cookie|credential|password|passwd|secret|token|"
+    r"access_token|refresh_token|api_key|private_key|connection_string|sas_key|"
+    r"signature|client_secret)s?($|_)",
     re.IGNORECASE,
 )
+_SERVICE_RESULT_STATUSES = frozenset({"results_ready", "delivered", "completed"})
 
 
 class InvitationError(RuntimeError):
@@ -71,7 +78,13 @@ def token_digest(token: str) -> str:
 def _contains_secret_key(value: object) -> bool:
     if isinstance(value, dict):
         for key, nested in value.items():
-            if _SECRET_KEY.search(str(key)) or _contains_secret_key(nested):
+            normalized = re.sub(r"[^A-Za-z0-9]+", "_", str(key)).strip("_")
+            normalized = re.sub(
+                r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])",
+                "_",
+                normalized,
+            )
+            if _SECRET_KEY.search(normalized) or _contains_secret_key(nested):
                 return True
     elif isinstance(value, list):
         return any(_contains_secret_key(item) for item in value)
@@ -141,6 +154,27 @@ def _validate_workspace(
     return workspace
 
 
+def _legacy_target_scope_is_unambiguous(
+    db: Session,
+    *,
+    organization_id: str,
+    workspace_id: str,
+) -> bool:
+    """Permit a workspace-less target only for the sole active workspace."""
+
+    active_workspace_ids = [
+        row[0]
+        for row in db.query(Account.id)
+        .filter(
+            Account.organization_id == organization_id,
+            Account.status == WorkspaceStatus.ACTIVE.value,
+        )
+        .limit(2)
+        .all()
+    ]
+    return active_workspace_ids == [workspace_id]
+
+
 def validate_target(
     db: Session,
     *,
@@ -167,15 +201,51 @@ def validate_target(
             target
             and target.organization_id == organization_id
             and target.status != "archived"
-            and target.workspace_id in (None, workspace_id)
+            and (
+                target.workspace_id == workspace_id
+                or (
+                    target.workspace_id is None
+                    and _legacy_target_scope_is_unambiguous(
+                        db,
+                        organization_id=organization_id,
+                        workspace_id=workspace_id,
+                    )
+                )
+            )
         )
     elif target_type is InvitationTargetType.REPORT:
         report = db.get(Report, target_id)
         if report is not None:
+            report_asset = db.get(Asset, report.asset_id)
             valid = bool(
                 report.organization_id == organization_id
-                and report.workspace_id in (None, workspace_id)
+                and (
+                    report.workspace_id == workspace_id
+                    or (
+                        report.workspace_id is None
+                        and _legacy_target_scope_is_unambiguous(
+                            db,
+                            organization_id=organization_id,
+                            workspace_id=workspace_id,
+                        )
+                    )
+                )
                 and report.status == "PUBLISHED"
+                and report.published_at is not None
+                and report_asset
+                and report_asset.organization_id == organization_id
+                and report_asset.status != "archived"
+                and (
+                    report_asset.workspace_id == workspace_id
+                    or (
+                        report_asset.workspace_id is None
+                        and _legacy_target_scope_is_unambiguous(
+                            db,
+                            organization_id=organization_id,
+                            workspace_id=workspace_id,
+                        )
+                    )
+                )
             )
         else:
             # Compatibility is read-only and limited to historical documents
@@ -184,34 +254,60 @@ def validate_target(
             valid = bool(
                 target
                 and target.company_id == organization_id
+                and _legacy_target_scope_is_unambiguous(
+                    db,
+                    organization_id=organization_id,
+                    workspace_id=workspace_id,
+                )
                 and str(target.status or "").lower()
                 in {"approved", "published", "ready", "complete", "completed"}
             )
     elif target_type is InvitationTargetType.ORDER:
         target = db.get(Order, target_id)
-        valid = bool(target and target.company_id == organization_id)
-    elif target_type is InvitationTargetType.SERVICE_RESULT:
-        target = db.get(MobileServiceRequest, target_id)
-        site = db.get(Site, target.site_id) if target and target.site_id else None
-        canonical_site = (
-            db.query(Asset)
-            .filter(
-                Asset.legacy_source == "site",
-                Asset.legacy_source_id == site.id,
-                Asset.organization_id == organization_id,
-                Asset.workspace_id == workspace_id,
-                Asset.status != "archived",
-            )
-            .one_or_none()
-            if site is not None
-            else None
-        )
         valid = bool(
             target
-            and site
-            and site.company_id == organization_id
-            and canonical_site is not None
+            and (target.organization_id or target.company_id) == organization_id
+            and target.workspace_id == workspace_id
         )
+    elif target_type is InvitationTargetType.SERVICE_RESULT:
+        target = db.get(MobileServiceRequest, target_id)
+        if target and target.organization_id is not None:
+            asset = db.get(Asset, target.asset_id) if target.asset_id else None
+            report = db.get(Report, target.report_id) if target.report_id else None
+            acquisition = (
+                db.get(Acquisition, report.acquisition_id)
+                if report and report.acquisition_id
+                else None
+            )
+            order = db.get(Order, target.order_id) if target.order_id else None
+            valid = bool(
+                target.organization_id == organization_id
+                and target.workspace_id == workspace_id
+                and target.status in _SERVICE_RESULT_STATUSES
+                and asset
+                and asset.organization_id == organization_id
+                and asset.workspace_id == workspace_id
+                and asset.status != "archived"
+                and report
+                and report.organization_id == organization_id
+                and report.workspace_id == workspace_id
+                and report.asset_id == asset.id
+                and report.status == "PUBLISHED"
+                and report.published_at is not None
+                and order
+                and (order.organization_id or order.company_id) == organization_id
+                and order.workspace_id == workspace_id
+                and acquisition
+                and acquisition.organization_id == organization_id
+                and acquisition.workspace_id == workspace_id
+                and acquisition.asset_id == asset.id
+                and acquisition.order_id == order.id
+            )
+        else:
+            # A legacy request without an explicit published-report link is
+            # history, not a shareable result. Operations must first adopt it
+            # through an audited canonical repair.
+            valid = False
     else:  # pragma: no cover - enum validation rejects this at the API boundary.
         valid = False
     if not valid:
@@ -421,6 +517,43 @@ def preview_invitation(db: Session, token: str) -> Invitation:
     return invitation
 
 
+def _materialize_ready_service_result_for_new_member(
+    db: Session,
+    *,
+    invitation: Invitation,
+) -> None:
+    """Backfill a published-result notification for a newly accepted member.
+
+    The report event may already have been processed before the invited identity
+    became a workspace member. Re-materializing the immutable event is safe: the
+    notification inbox deduplicates by event and recipient, while the newly
+    admitted user receives the result that the invitation explicitly targeted.
+    """
+
+    if invitation.target_type != InvitationTargetType.SERVICE_RESULT.value:
+        return
+    request = (
+        db.get(MobileServiceRequest, invitation.target_id)
+        if invitation.target_id
+        else None
+    )
+    report = db.get(Report, request.report_id) if request and request.report_id else None
+    if report is None:
+        return
+    event_row = (
+        db.query(EventOutbox)
+        .filter(
+            EventOutbox.event_type == EventNames.REPORT_PUBLISHED,
+            EventOutbox.aggregate_type == "report",
+            EventOutbox.aggregate_id == report.id,
+        )
+        .order_by(EventOutbox.occurred_at.desc(), EventOutbox.id.desc())
+        .first()
+    )
+    if event_row is not None:
+        materialize_notification_event(db, event_from_row(event_row))
+
+
 def accept_invitation(
     db: Session,
     *,
@@ -559,6 +692,14 @@ def accept_invitation(
     invitation.pending_email_key = None
     invitation.accepted_by_user_id = actor.id
     invitation.accepted_at = now
+    # The application's sessions intentionally disable autoflush. Persist the
+    # just-activated organization/workspace memberships before asking the
+    # notification materializer to resolve the event's current recipients.
+    db.flush()
+    _materialize_ready_service_result_for_new_member(
+        db,
+        invitation=invitation,
+    )
     organization.current_users = (
         db.query(CompanyUser)
         .filter(

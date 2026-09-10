@@ -30,6 +30,7 @@ from app.modules.missions.services import (
     update_acquisition,
 )
 from app.modules.organizations.domain import permission_granted
+from app.modules.organizations.services import sole_active_workspace_id
 
 
 router = APIRouter(prefix="/missions", tags=["missions"])
@@ -94,7 +95,21 @@ def _customer_acquisition(
     write: bool,
 ) -> Acquisition:
     row = db.get(Acquisition, acquisition_id)
-    if row is None:
+    organization_id = context.active_organization_id
+    workspace_id = context.active_workspace_id
+    if (
+        row is None
+        or not organization_id
+        or not workspace_id
+        or row.organization_id != organization_id
+        or (
+            row.workspace_id != workspace_id
+            and not (
+                row.workspace_id is None
+                and sole_active_workspace_id(db, organization_id) == workspace_id
+            )
+        )
+    ):
         raise HTTPException(status_code=404, detail="Acquisition not found")
     _customer_asset(db, context, row.asset_id, write=write)
     return row
@@ -147,7 +162,9 @@ def internal_create_acquisition(
         _raise_acquisition_error(exc)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Acquisition conflicts with existing data") from exc
+        raise HTTPException(
+            status_code=409, detail="Acquisition conflicts with existing data"
+        ) from exc
 
 
 @router.get("/internal/{acquisition_id}", response_model=InternalAcquisitionOut)
@@ -170,7 +187,12 @@ def internal_update_acquisition(
     actor: MissionStaff,
     db: Session = Depends(get_db),
 ):
-    row = db.query(Acquisition).filter(Acquisition.id == acquisition_id).with_for_update().one_or_none()
+    row = (
+        db.query(Acquisition)
+        .filter(Acquisition.id == acquisition_id)
+        .with_for_update()
+        .one_or_none()
+    )
     if row is None:
         raise HTTPException(status_code=404, detail="Acquisition not found")
     try:
@@ -183,20 +205,25 @@ def internal_update_acquisition(
         _raise_acquisition_error(exc)
 
 
-@router.patch(
-    "/internal/{acquisition_id}/state", response_model=InternalAcquisitionOut
-)
+@router.patch("/internal/{acquisition_id}/state", response_model=InternalAcquisitionOut)
 def internal_transition_acquisition(
     acquisition_id: str,
     data: AcquisitionStateUpdate,
     actor: MissionStaff,
     db: Session = Depends(get_db),
 ):
-    row = db.query(Acquisition).filter(Acquisition.id == acquisition_id).with_for_update().one_or_none()
+    row = (
+        db.query(Acquisition)
+        .filter(Acquisition.id == acquisition_id)
+        .with_for_update()
+        .one_or_none()
+    )
     if row is None:
         raise HTTPException(status_code=404, detail="Acquisition not found")
     try:
-        transition_acquisition(db, actor=actor, acquisition=row, data=data, internal=True)
+        transition_acquisition(
+            db, actor=actor, acquisition=row, data=data, internal=True
+        )
         db.commit()
         db.refresh(row)
         return acquisition_out(db, row, internal=True)
@@ -212,7 +239,14 @@ def asset_history(
     db: Session = Depends(get_db),
 ):
     _customer_asset(db, context, asset_id, write=False)
-    rows = list_acquisitions(db, asset_id=asset_id, chronological=True, limit=10_000)
+    rows = list_acquisitions(
+        db,
+        organization_id=context.active_organization_id,
+        workspace_id=context.active_workspace_id,
+        asset_id=asset_id,
+        chronological=True,
+        limit=10_000,
+    )
     return [acquisition_out(db, row) for row in rows]
 
 
@@ -223,7 +257,12 @@ def asset_outputs(
     db: Session = Depends(get_db),
 ):
     _customer_asset(db, context, asset_id, write=False)
-    return asset_acquisition_outputs(db, asset_id)
+    return asset_acquisition_outputs(
+        db,
+        asset_id,
+        organization_id=context.active_organization_id,
+        workspace_id=context.active_workspace_id,
+    )
 
 
 @router.get("", response_model=list[AcquisitionOut])
@@ -235,8 +274,10 @@ def my_acquisitions(
     context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    if not context.active_organization_id or not permission_granted(
-        context.permissions, "asset:read"
+    if (
+        not context.active_organization_id
+        or not context.active_workspace_id
+        or not permission_granted(context.permissions, "asset:read")
     ):
         raise HTTPException(status_code=403, detail="Active workspace access required")
     if asset_id:
@@ -262,7 +303,14 @@ def customer_create_acquisition(
 ):
     asset = _customer_asset(db, context, data.asset_id, write=True)
     try:
-        row = create_acquisition(db, actor=user, asset=asset, data=data, internal=False)
+        row = create_acquisition(
+            db,
+            actor=user,
+            asset=asset,
+            data=data,
+            internal=False,
+            workspace_id=context.active_workspace_id,
+        )
         db.commit()
         db.refresh(row)
         return acquisition_out(db, row)
@@ -310,7 +358,9 @@ def customer_transition_acquisition(
 ):
     row = _customer_acquisition(db, context, acquisition_id, write=True)
     try:
-        transition_acquisition(db, actor=user, acquisition=row, data=data, internal=False)
+        transition_acquisition(
+            db, actor=user, acquisition=row, data=data, internal=False
+        )
         db.commit()
         db.refresh(row)
         return acquisition_out(db, row)

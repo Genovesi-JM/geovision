@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 import hashlib
 import json
@@ -212,11 +211,18 @@ def create_processing_job(
     source = _validate_source_scope(sources)
     _validate_fulfilment_link(db, data.fulfilment_job_id, source)
     outputs = normalize_requested_outputs(data.requested_outputs)
-    provider = normalize_provider_code(data.provider or config.processing_provider) or "none"
+    provider = (
+        normalize_provider_code(data.provider or config.processing_provider) or "none"
+    )
     provider = {
         "deterministic": "fake",
         "opendronemap": "nodeodm",
     }.get(provider, provider)
+    if config.is_deployed and provider == "fake":
+        raise ProcessingJobError(
+            "provider_unavailable",
+            "Deterministic processing fixtures are disabled in deployed environments",
+        )
     signature = hashlib.sha256(
         _json(
             {
@@ -301,7 +307,10 @@ def create_processing_job(
         job,
         EventNames.PROCESSING_REQUESTED,
         f"processing:{job.id}:requested:0",
-        {"source_dataset_ids": data.source_dataset_ids, "requested_outputs": list(outputs)},
+        {
+            "source_dataset_ids": data.source_dataset_ids,
+            "requested_outputs": list(outputs),
+        },
     )
     return job
 
@@ -344,7 +353,8 @@ def ensure_automatic_processing_job(
 
 def processing_job_out(job: ProcessingJob) -> dict[str, Any]:
     sources = [
-        link.dataset_id for link in sorted(job.source_links, key=lambda item: item.sequence)
+        link.dataset_id
+        for link in sorted(job.source_links, key=lambda item: item.sequence)
     ]
     outputs = [
         {
@@ -439,7 +449,9 @@ def retry_processing_job(
         )
     job.status = ProcessingJobState.REQUESTED.value
     if provider_code:
-        normalized_provider = normalize_provider_code(provider_code) or job.provider_code
+        normalized_provider = (
+            normalize_provider_code(provider_code) or job.provider_code
+        )
         job.provider_code = {
             "deterministic": "fake",
             "opendronemap": "nodeodm",
@@ -748,9 +760,7 @@ def _submit_job(
         return "needs_review"
     result = provider.submit(
         request,
-        idempotency_key=(
-            f"processing:{job.id}:submission:{job.submission_generation}"
-        ),
+        idempotency_key=(f"processing:{job.id}:submission:{job.submission_generation}"),
     )
     if not result.ok or result.value is None:
         code, message, retryable = _result_failure(result)
@@ -768,12 +778,17 @@ def _submit_job(
     job.provider_job_reference = submission.external_reference
     job.processor_name = str(submission.processor_name or "").strip() or None
     job.processor_version = str(submission.processor_version or "").strip() or None
-    if not job.processor_name or not job.processor_version or job.processor_version.lower() in {
-        "legacy",
-        "legacy-1",
-        "legacy-unversioned",
-        "unknown",
-    }:
+    if (
+        not job.processor_name
+        or not job.processor_version
+        or job.processor_version.lower()
+        in {
+            "legacy",
+            "legacy-1",
+            "legacy-unversioned",
+            "unknown",
+        }
+    ):
         _mark_needs_review(
             db,
             job,
@@ -791,7 +806,9 @@ def _submit_job(
     job.progress_percent = 0.0
     job.stage = "submitted"
     job.submitted_at = job.submitted_at or utc_now()
-    job.next_poll_at = utc_now() + timedelta(seconds=config.processing_worker_poll_seconds)
+    job.next_poll_at = utc_now() + timedelta(
+        seconds=config.processing_worker_poll_seconds
+    )
     job.error_code = None
     job.error_message = None
     job.lifecycle_version += 1
@@ -960,9 +977,7 @@ def _register_output_dataset(
             dataset_id=dataset_id,
             file_id=file_id,
             area=(
-                "derived"
-                if output_type in {"NDVI", "NDRE", "GNDVI"}
-                else "processed"
+                "derived" if output_type in {"NDVI", "NDRE", "GNDVI"} else "processed"
             ),
             filename=output.filename,
         )
@@ -974,9 +989,7 @@ def _register_output_dataset(
             storage_provider=storage.provider_name,
             storage_uri=storage.object_uri(key),
             object_area=(
-                "derived"
-                if output_type in {"NDVI", "NDRE", "GNDVI"}
-                else "processed"
+                "derived" if output_type in {"NDVI", "NDRE", "GNDVI"} else "processed"
             ),
             file_size=len(output.content),
             mime_type=output.content_type,
@@ -1162,7 +1175,9 @@ def _retrieve_and_register(
                     "actual"
                     if job.actual_cost_amount is not None
                     else (
-                        "estimated" if job.estimated_cost_amount is not None else "unpriced"
+                        "estimated"
+                        if job.estimated_cost_amount is not None
+                        else "unpriced"
                     )
                 ),
             },
@@ -1250,14 +1265,18 @@ def _poll_job(
     job.updated_at = utc_now()
     if state == ProcessingJobState.SUBMITTED.value:
         job.status = state
-        job.next_poll_at = utc_now() + timedelta(seconds=config.processing_worker_poll_seconds)
+        job.next_poll_at = utc_now() + timedelta(
+            seconds=config.processing_worker_poll_seconds
+        )
         job.lifecycle_version += 1
         _release(job)
         return "running"
     if state == ProcessingJobState.RUNNING.value:
         job.status = state
         job.started_at = job.started_at or utc_now()
-        job.next_poll_at = utc_now() + timedelta(seconds=config.processing_worker_poll_seconds)
+        job.next_poll_at = utc_now() + timedelta(
+            seconds=config.processing_worker_poll_seconds
+        )
         job.lifecycle_version += 1
         _release(job)
         return "running"
@@ -1384,7 +1403,8 @@ def run_processing_cycle(
                 continue
             provider = provider_resolver(job.provider_code)
             if provider.provider_name != job.provider_code and not (
-                job.provider_code == "deterministic" and provider.provider_name == "fake"
+                job.provider_code == "deterministic"
+                and provider.provider_name == "fake"
             ):
                 _mark_failed(
                     db,

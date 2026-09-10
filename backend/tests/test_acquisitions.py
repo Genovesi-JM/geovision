@@ -4,7 +4,7 @@ import json
 import uuid
 
 from app.core.tokens import create_user_access_token
-from app.models import Acquisition, User
+from app.models import Acquisition, Action, Asset, User
 from app.modules.missions.services import asset_acquisition_outputs
 
 
@@ -229,7 +229,10 @@ def test_lifecycle_reflight_outputs_and_permission_split(client, db_session):
             "outputs": [{"dataset_id": "dataset-1", "type": "dataset"}],
         }
     ]
-    assert asset_acquisition_outputs(db_session, asset["id"])[0]["acquisition_id"] == satellite["id"]
+    assert (
+        asset_acquisition_outputs(db_session, asset["id"])[0]["acquisition_id"]
+        == satellite["id"]
+    )
 
     drone = client.post(
         "/missions/internal",
@@ -272,4 +275,219 @@ def test_lifecycle_reflight_outputs_and_permission_split(client, db_session):
     )
     # The completed state rejects the transition before modality validation.
     assert satellite_reflight.status_code == 409
-    assert db_session.query(Acquisition).filter(Acquisition.asset_id == asset["id"]).count() == 2
+    assert (
+        db_session.query(Acquisition)
+        .filter(Acquisition.asset_id == asset["id"])
+        .count()
+        == 2
+    )
+
+
+def test_customer_acquisition_routes_quarantine_ambiguous_null_workspace_scope(
+    client,
+    db_session,
+):
+    owner, headers_a, asset = _workspace_and_asset(client, db_session)
+    stored_asset = db_session.get(Asset, asset["id"])
+    assert stored_asset is not None
+    organization_id = stored_asset.organization_id
+    workspace_a = stored_asset.workspace_id
+    assert workspace_a is not None
+
+    explicit_a = client.post(
+        "/missions",
+        headers=headers_a,
+        json={
+            "asset_id": asset["id"],
+            "acquisition_type": "DRONE",
+            "title": "Workspace A mission",
+        },
+    )
+    assert explicit_a.status_code == 201, explicit_a.text
+
+    stored_asset.workspace_id = None
+    legacy_null = Acquisition(
+        acquisition_number=f"GVAQ-LEGACY-{uuid.uuid4().hex[:8].upper()}",
+        organization_id=organization_id,
+        workspace_id=None,
+        asset_id=asset["id"],
+        acquisition_type="DRONE",
+        title="Legacy organization-only mission",
+        state="COMPLETED",
+        output_refs_json=json.dumps([{"type": "dataset", "dataset_id": "legacy"}]),
+    )
+    action_a = Action(
+        organization_id=organization_id,
+        workspace_id=workspace_a,
+        asset_id=asset["id"],
+        source_rule_key="scope.regression",
+        source_rule_version="1.0.0",
+        priority="HIGH",
+        title="Workspace A action",
+        description="Must not cross into workspace B",
+        status="OPEN",
+        deduplication_key=f"scope-{uuid.uuid4().hex}",
+    )
+    db_session.add_all([legacy_null, action_a])
+    db_session.commit()
+
+    # A legacy NULL asset and mission remain usable while A is the sole active
+    # workspace. New customer missions still receive explicit scope.
+    sole_list = client.get("/missions", headers=headers_a)
+    assert sole_list.status_code == 200, sole_list.text
+    assert legacy_null.id in {row["id"] for row in sole_list.json()}
+    assert (
+        client.get(f"/missions/{legacy_null.id}", headers=headers_a).status_code == 200
+    )
+    sole_history = client.get(
+        f"/missions/assets/{asset['id']}/history", headers=headers_a
+    )
+    assert sole_history.status_code == 200, sole_history.text
+    assert legacy_null.id in {row["id"] for row in sole_history.json()}
+    sole_outputs = client.get(
+        f"/missions/assets/{asset['id']}/outputs", headers=headers_a
+    )
+    assert sole_outputs.status_code == 200, sole_outputs.text
+    assert legacy_null.id in {row["acquisition_id"] for row in sole_outputs.json()}
+    created_from_legacy = client.post(
+        "/missions",
+        headers=headers_a,
+        json={
+            "asset_id": asset["id"],
+            "acquisition_type": "SATELLITE",
+            "title": "Explicitly scoped from legacy asset",
+        },
+    )
+    assert created_from_legacy.status_code == 201, created_from_legacy.text
+    assert (
+        db_session.get(Acquisition, created_from_legacy.json()["id"]).workspace_id
+        == workspace_a
+    )
+
+    second = client.post(
+        f"/organizations/{organization_id}/workspaces",
+        headers=headers_a,
+        json={
+            "name": "Workspace B",
+            "customer_type": "business",
+            "sector_focus": "environment",
+        },
+    )
+    assert second.status_code == 201, second.text
+    workspace_b = second.json()["id"]
+    headers_b = _headers(owner, workspace_b)
+
+    missions_a = client.get("/missions", headers=headers_a)
+    assert missions_a.status_code == 200, missions_a.text
+    assert explicit_a.json()["id"] in {row["id"] for row in missions_a.json()}
+    assert legacy_null.id not in {row["id"] for row in missions_a.json()}
+    assert (
+        client.get(f"/missions/{legacy_null.id}", headers=headers_a).status_code == 404
+    )
+
+    # The NULL asset can no longer carry explicit A actions or missions into B.
+    assert (
+        client.get(f"/assets/{asset['id']}/actions", headers=headers_b).status_code
+        == 404
+    )
+    assert client.get(f"/actions/{action_a.id}", headers=headers_b).status_code == 404
+    assert (
+        client.patch(
+            f"/actions/{action_a.id}/status",
+            headers=headers_b,
+            json={"status": "IN_PROGRESS", "expected_version": 1},
+        ).status_code
+        == 404
+    )
+    assert db_session.get(Action, action_a.id).status == "OPEN"
+
+    missions_b = client.get("/missions", headers=headers_b)
+    assert missions_b.status_code == 200, missions_b.text
+    assert {explicit_a.json()["id"], legacy_null.id}.isdisjoint(
+        {row["id"] for row in missions_b.json()}
+    )
+    for mission_id in (explicit_a.json()["id"], legacy_null.id):
+        assert (
+            client.get(f"/missions/{mission_id}", headers=headers_b).status_code == 404
+        )
+        assert (
+            client.patch(
+                f"/missions/{mission_id}",
+                headers=headers_b,
+                json={"title": "Cross-workspace overwrite", "expected_version": 1},
+            ).status_code
+            == 404
+        )
+    assert (
+        client.get(
+            f"/missions/assets/{asset['id']}/history", headers=headers_b
+        ).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"/missions/assets/{asset['id']}/outputs", headers=headers_b
+        ).status_code
+        == 404
+    )
+    rejected_dataset = client.post(
+        "/datasets/",
+        headers=headers_b,
+        json={
+            "asset_id": asset["id"],
+            "mission_id": explicit_a.json()["id"],
+            "name": "Cross-workspace dataset",
+            "dataset_type": "MULTISPECTRAL_IMAGES",
+            "source_tool": "manual",
+            "provider": "GeoVision Capture",
+            "capture_time": "2026-09-10T08:00:00Z",
+            "processing_level": "RAW",
+        },
+    )
+    assert rejected_dataset.status_code == 404, rejected_dataset.text
+
+    # Acquisition rows are independently scoped even if bad legacy data ties
+    # an A mission to an otherwise valid B asset.
+    asset_b = client.post(
+        "/assets",
+        headers=headers_b,
+        json={
+            "sector": "MINING",
+            "asset_type": "MINE",
+            "name": "Workspace B mine",
+        },
+    )
+    assert asset_b.status_code == 201, asset_b.text
+    mismatched = Acquisition(
+        acquisition_number=f"GVAQ-MISMATCH-{uuid.uuid4().hex[:8].upper()}",
+        organization_id=organization_id,
+        workspace_id=workspace_a,
+        asset_id=asset_b.json()["id"],
+        acquisition_type="SATELLITE",
+        title="Inconsistent workspace A mission",
+        state="COMPLETED",
+        output_refs_json=json.dumps([{"type": "dataset", "dataset_id": "private-a"}]),
+    )
+    db_session.add(mismatched)
+    db_session.commit()
+    assert (
+        client.get(f"/missions/{mismatched.id}", headers=headers_b).status_code == 404
+    )
+    assert (
+        client.patch(
+            f"/missions/{mismatched.id}",
+            headers=headers_b,
+            json={"title": "Cross-workspace overwrite", "expected_version": 1},
+        ).status_code
+        == 404
+    )
+    scoped_history = client.get(
+        f"/missions/assets/{asset_b.json()['id']}/history", headers=headers_b
+    )
+    assert scoped_history.status_code == 200, scoped_history.text
+    assert mismatched.id not in {row["id"] for row in scoped_history.json()}
+    scoped_outputs = client.get(
+        f"/missions/assets/{asset_b.json()['id']}/outputs", headers=headers_b
+    )
+    assert scoped_outputs.status_code == 200, scoped_outputs.text
+    assert mismatched.id not in {row["acquisition_id"] for row in scoped_outputs.json()}

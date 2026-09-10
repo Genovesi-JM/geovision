@@ -2631,6 +2631,40 @@ class MobileServiceRequest(Base):
         nullable=False,
         index=True,
     )
+    # Canonical ownership and journey links.  These remain nullable so that
+    # requests created before the canonical workspace model can still be
+    # migrated and read through their legacy ``site_id``.  Every new request
+    # is populated by the mobile service boundary.
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    order_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    report_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("reports.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     site_id: Mapped[Optional[str]] = mapped_column(
         String(36),
         ForeignKey("sites.id", ondelete="SET NULL"),
@@ -2645,11 +2679,48 @@ class MobileServiceRequest(Base):
     progress_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     attachments_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
     assigned_team: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    request_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=utc_now, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "lifecycle_version > 0",
+            name="ck_mobile_service_request_version",
+        ),
+        CheckConstraint(
+            "progress_percent >= 0 AND progress_percent <= 100",
+            name="ck_mobile_service_request_progress",
+        ),
+        CheckConstraint(
+            "status IN ('submitted', 'scheduled', 'in_field', 'processing', "
+            "'results_ready', 'delivered', 'completed', 'cancelled', 'rejected')",
+            name="ck_mobile_service_request_status",
+        ),
+        CheckConstraint(
+            "(idempotency_key IS NULL AND request_sha256 IS NULL) "
+            "OR (idempotency_key IS NOT NULL AND organization_id IS NOT NULL "
+            "AND length(request_sha256) = 64)",
+            name="ck_mobile_service_request_idempotency_digest",
+        ),
+        Index(
+            "uq_mobile_service_request_idempotency",
+            "organization_id",
+            "workspace_id",
+            "user_id",
+            "idempotency_key",
+            unique=True,
+            sqlite_where=text("idempotency_key IS NOT NULL"),
+            postgresql_where=text("idempotency_key IS NOT NULL"),
+        ),
     )
 
 
@@ -5945,6 +6016,12 @@ class AccountEvent(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
     resource_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

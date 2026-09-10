@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from app.core.config import settings
 from app.core.event_names import EventNames
 from app.iot.events import event_hub
-from app.models import IotDevice
+from app.models import Asset, IotDevice
 from app.core.time import utc_now
 from app.services.event_outbox import enqueue_domain_event
 
@@ -16,7 +16,14 @@ async def device_watchdog(stop: asyncio.Event) -> None:
     while not stop.is_set():
         device_ids = await asyncio.to_thread(mark_offline_devices)
         for device_id in device_ids:
-            event_hub.publish(device_id, {"type": "device.state", "status": "offline", "reason": "heartbeat_timeout"})
+            event_hub.publish(
+                device_id,
+                {
+                    "type": "device.state",
+                    "status": "offline",
+                    "reason": "heartbeat_timeout",
+                },
+            )
         cycles += 1
         if cycles == 1 or cycles % 10 == 0:
             await asyncio.to_thread(maintain_telemetry)
@@ -30,11 +37,28 @@ async def device_watchdog(stop: asyncio.Event) -> None:
 
 def mark_offline_devices() -> list[str]:
     from app.core import database
+
     db = database.SessionLocal()
     try:
         cutoff = utc_now() - timedelta(seconds=settings.iot_offline_after_seconds)
-        rows = db.query(IotDevice).filter(IotDevice.last_seen_at.is_not(None), IotDevice.last_seen_at < cutoff, IotDevice.status == "online").all()
+        rows = (
+            db.query(IotDevice)
+            .filter(
+                IotDevice.last_seen_at.is_not(None),
+                IotDevice.last_seen_at < cutoff,
+                IotDevice.status == "online",
+            )
+            .all()
+        )
         for device in rows:
+            asset = (
+                db.get(Asset, device.core_asset_id) if device.core_asset_id else None
+            )
+            workspace_id = (
+                asset.workspace_id
+                if asset is not None and asset.organization_id == device.company_id
+                else None
+            )
             device.status = "offline"
             device.connectivity_status = "offline"
             if device.health_status == "healthy":
@@ -51,6 +75,7 @@ def mark_offline_devices() -> list[str]:
                 payload={
                     "device_id": device.id,
                     "organization_id": device.company_id,
+                    "workspace_id": workspace_id,
                     "site_id": device.site_id,
                     "asset_id": device.core_asset_id,
                     "reason": "heartbeat_timeout",
@@ -66,6 +91,7 @@ def mark_offline_devices() -> list[str]:
 def maintain_telemetry() -> None:
     from app.core import database
     from app.iot.maintenance import aggregate_and_retain
+
     db = database.SessionLocal()
     try:
         aggregate_and_retain(db)

@@ -5,7 +5,17 @@ from datetime import timedelta
 
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
-from app.models import Action, Asset, IotDevice, MobileServiceRequest, Order, Report, User
+from app.models import (
+    AccountMember,
+    Acquisition,
+    Action,
+    Asset,
+    IotDevice,
+    MobileServiceRequest,
+    Order,
+    Report,
+    User,
+)
 
 
 def _user(db_session, prefix: str) -> User:
@@ -140,6 +150,109 @@ def _service_request(
     return response.json()
 
 
+def test_mobile_legacy_null_site_and_request_require_one_active_workspace(
+    client,
+    db_session,
+):
+    owner = _user(db_session, "mobile-legacy-null")
+    organization_id, workspace_a = _organization(
+        client,
+        owner,
+        "Mobile legacy NULL scope",
+    )
+    adopted_site = _site(client, owner, workspace_a, "Legacy site to adopt")
+    historical_site = _site(client, owner, workspace_a, "Legacy history site")
+    adopted_asset = (
+        db_session.query(Asset)
+        .filter(
+            Asset.legacy_source == "site",
+            Asset.legacy_source_id == adopted_site["id"],
+        )
+        .one()
+    )
+    historical_asset = (
+        db_session.query(Asset)
+        .filter(
+            Asset.legacy_source == "site",
+            Asset.legacy_source_id == historical_site["id"],
+        )
+        .one()
+    )
+    adopted_asset.workspace_id = None
+    historical_asset.workspace_id = None
+    legacy_request = MobileServiceRequest(
+        user_id=owner.id,
+        organization_id=organization_id,
+        workspace_id=None,
+        asset_id=historical_asset.id,
+        site_id=historical_site["id"],
+        site_name=historical_site["name"],
+        request_type="inspection",
+        urgency="normal",
+        description="Unambiguous pre-workspace request history.",
+        attachments_json="[]",
+    )
+    db_session.add(legacy_request)
+    db_session.commit()
+
+    sole_headers = _headers(owner, workspace_a)
+    sites = client.get("/mobile/sites", headers=sole_headers)
+    assert sites.status_code == 200, sites.text
+    assert {adopted_site["id"], historical_site["id"]}.issubset(
+        {row["id"] for row in sites.json()}
+    )
+    history = client.get("/mobile/service-requests", headers=sole_headers)
+    assert history.status_code == 200, history.text
+    assert legacy_request.id in {row["id"] for row in history.json()}
+
+    adopted_request = _service_request(
+        client,
+        owner,
+        workspace_a,
+        adopted_site,
+        "Adopt this unambiguous legacy site.",
+    )
+    db_session.refresh(adopted_asset)
+    assert adopted_asset.workspace_id == workspace_a
+    assert adopted_request["workspace_id"] == workspace_a
+
+    workspace_b = _add_workspace(
+        client,
+        owner,
+        organization_id,
+        workspace_a,
+        name="Mobile legacy second workspace",
+        modules=["projects", "alerts"],
+    )
+    for headers in (_headers(owner, workspace_a), _headers(owner, workspace_b)):
+        scoped_sites = client.get("/mobile/sites", headers=headers)
+        assert scoped_sites.status_code == 200, scoped_sites.text
+        assert historical_site["id"] not in {row["id"] for row in scoped_sites.json()}
+        scoped_history = client.get("/mobile/service-requests", headers=headers)
+        assert scoped_history.status_code == 200, scoped_history.text
+        assert legacy_request.id not in {row["id"] for row in scoped_history.json()}
+        assert (
+            client.get(
+                f"/mobile/service-requests/{legacy_request.id}",
+                headers=headers,
+            ).status_code
+            == 404
+        )
+        rejected = client.post(
+            "/mobile/service-requests",
+            headers=headers,
+            json={
+                "site_id": historical_site["id"],
+                "site_name": "ignored",
+                "type": "inspection",
+                "urgency": "normal",
+                "description": "Ambiguous legacy site must stay quarantined.",
+                "attachments": [],
+            },
+        )
+        assert rejected.status_code == 404, rejected.text
+
+
 def _action(
     db_session,
     *,
@@ -203,9 +316,15 @@ def test_mobile_experience_honors_workspace_modules_permissions_and_memberships(
     assert body["workspaces"][0]["organization_name"] == "Mobile Experience"
     assert "reports" not in body["capabilities"]
     assert "devices" not in body["capabilities"]
-    assert {"assets", "actions", "services", "team", "billing", "settings", "support"}.issubset(
-        body["capabilities"]
-    )
+    assert {
+        "assets",
+        "actions",
+        "services",
+        "team",
+        "billing",
+        "settings",
+        "support",
+    }.issubset(body["capabilities"])
 
     contextual_site = _site(client, owner, workspace_a, "Connected North Site")
     contextual_asset = (
@@ -217,17 +336,15 @@ def test_mobile_experience_honors_workspace_modules_permissions_and_memberships(
         .one()
     )
     device = IotDevice(
-            public_id=f"gv-phase22-{uuid.uuid4().hex}",
-            company_id=organization_id,
-            site_id=contextual_site["id"],
-            core_asset_id=contextual_asset.id,
-            name="Workspace gateway",
-            token_hash="phase22-token-hash",
-            secret_encrypted="phase22-encrypted-secret",
-        )
-    db_session.add(
-        device
+        public_id=f"gv-phase22-{uuid.uuid4().hex}",
+        company_id=organization_id,
+        site_id=contextual_site["id"],
+        core_asset_id=contextual_asset.id,
+        name="Workspace gateway",
+        token_hash="phase22-token-hash",
+        secret_encrypted="phase22-encrypted-secret",
     )
+    db_session.add(device)
     db_session.commit()
     contextual = client.get(
         "/mobile/experience",
@@ -259,9 +376,7 @@ def test_mobile_experience_honors_workspace_modules_permissions_and_memberships(
     assert viewer_experience.status_code == 200, viewer_experience.text
     assert "team" not in viewer_experience.json()["capabilities"]
     assert "billing" not in viewer_experience.json()["capabilities"]
-    assert {"settings", "support"}.issubset(
-        viewer_experience.json()["capabilities"]
-    )
+    assert {"settings", "support"}.issubset(viewer_experience.json()["capabilities"])
 
     outsider = _user(db_session, "mobile-experience-outsider")
     _, outsider_workspace = _organization(client, outsider, "Other Mobile Tenant")
@@ -377,9 +492,7 @@ def test_mobile_home_and_actions_are_attention_focused_and_asset_scoped(
     )
     assert contextual.status_code == 200, contextual.text
     contextual_ids = {
-        row["id"]
-        for bucket in contextual.json().values()
-        for row in bucket
+        row["id"] for bucket in contextual.json().values() for row in bucket
     }
     assert other.id not in contextual_ids
     assert contextual_ids == {critical.id, attention.id, scheduled.id, completed.id}
@@ -433,10 +546,35 @@ def test_mobile_sites_services_and_service_deep_link_are_workspace_isolated(
         )
         .one()
     )
+    order = Order(
+        user_id=owner.id,
+        company_id=organization_id,
+        organization_id=organization_id,
+        workspace_id=workspace_b,
+        order_type="SERVICE",
+        fulfilment_status="DRAFT",
+        payment_status="PENDING",
+        status="pending",
+        currency="AOA",
+    )
+    db_session.add(order)
+    db_session.flush()
+    acquisition = Acquisition(
+        acquisition_number=f"ACQ-MOBILE-{uuid.uuid4().hex[:16]}",
+        organization_id=organization_id,
+        workspace_id=workspace_b,
+        asset_id=asset_b.id,
+        order_id=order.id,
+        acquisition_type="MANUAL_INSPECTION",
+        title="South Site field inspection",
+    )
+    db_session.add(acquisition)
+    db_session.flush()
     report = Report(
         organization_id=organization_id,
         workspace_id=workspace_b,
         asset_id=asset_b.id,
+        acquisition_id=acquisition.id,
         report_type="FIELD_INSPECTION",
         title="South Site Field Inspection",
         template_version="1.0.0",
@@ -464,6 +602,24 @@ def test_mobile_sites_services_and_service_deep_link_are_workspace_isolated(
     report.status = "PUBLISHED"
     report.published_at = utc_now()
     db_session.commit()
+    admin = db_session.query(User).filter(User.email == "teste@admin.com").one()
+    linked = client.patch(
+        f"/operations/service-requests/{request_b['id']}",
+        headers=_headers(admin),
+        json={
+            "organization_id": organization_id,
+            "workspace_id": workspace_b,
+            "asset_id": asset_b.id,
+            "order_id": order.id,
+            "report_id": report.id,
+            "status": "results_ready",
+            "progress_percent": 100,
+            "assigned_team": "GeoVision Field Operations",
+            "expected_version": request_b["lifecycle_version"],
+        },
+    )
+    assert linked.status_code == 200, linked.text
+    assert linked.json()["report_id"] == report.id
 
     sites_a = client.get("/mobile/sites", headers=_headers(owner, workspace_a))
     sites_b = client.get("/mobile/sites", headers=_headers(owner, workspace_b))
@@ -546,10 +702,9 @@ def test_mobile_sites_services_and_service_deep_link_are_workspace_isolated(
     )
     assert landed.status_code == 200, landed.text
     assert landed.json()["id"] == request_b["id"]
-    # Sharing an asset does not prove that a report was produced by this
-    # request.  Without a durable request-to-report link, fail closed even
-    # when an otherwise visible published report exists on the same asset.
-    assert landed.json()["result"] is None
+    assert landed.json()["order_id"] == order.id
+    assert landed.json()["result"]["report_id"] == report.id
+    assert landed.json()["result"]["asset_id"] == asset_b.id
 
     outsider = _user(db_session, "mobile-services-outsider")
     _, outsider_workspace = _organization(client, outsider, "Unrelated Services Tenant")
@@ -696,6 +851,177 @@ def test_canonical_customer_orders_follow_selected_workspace_and_legacy_ambiguit
         headers=_headers(single_owner, single_workspace),
     )
     assert hidden_after_split.status_code == 200, hidden_after_split.text
-    assert unambiguous_legacy.id not in {
-        row["id"] for row in hidden_after_split.json()
+    assert unambiguous_legacy.id not in {row["id"] for row in hidden_after_split.json()}
+
+
+def test_mobile_drone_routes_respect_workspace_and_write_permissions(
+    client,
+    db_session,
+):
+    owner = _user(db_session, "mobile-drone-owner")
+    organization_id, workspace_a = _organization(
+        client,
+        owner,
+        "Mobile Drone Isolation",
+    )
+    workspace_b = _add_workspace(
+        client,
+        owner,
+        organization_id,
+        workspace_a,
+        name="Mobile Drone South",
+        modules=["projects", "alerts", "store"],
+    )
+    site_a = _site(client, owner, workspace_a, "Drone North Site")
+    site_b = _site(client, owner, workspace_b, "Drone South Site")
+
+    aircraft_a = client.post(
+        "/mobile/drones",
+        headers=_headers(owner, workspace_a),
+        json={
+            "name": "North mapping aircraft",
+            "model": "DJI Mavic 3 Enterprise",
+            "site_id": site_a["id"],
+        },
+    )
+    aircraft_b = client.post(
+        "/mobile/drones",
+        headers=_headers(owner, workspace_b),
+        json={
+            "name": "South mapping aircraft",
+            "model": "DJI Mavic 3 Enterprise",
+            "site_id": site_b["id"],
+        },
+    )
+    assert aircraft_a.status_code == 201, aircraft_a.text
+    assert aircraft_b.status_code == 201, aircraft_b.text
+
+    boundary = [
+        {"lat": -9.54, "lng": 16.34},
+        {"lat": -9.55, "lng": 16.34},
+        {"lat": -9.55, "lng": 16.35},
+    ]
+    mission_a = client.post(
+        "/mobile/drone-missions",
+        headers=_headers(owner, workspace_a),
+        json={
+            "site_id": site_a["id"],
+            "aircraft_id": aircraft_a.json()["id"],
+            "name": "North mapping mission",
+            "boundary": boundary,
+        },
+    )
+    mission_b = client.post(
+        "/mobile/drone-missions",
+        headers=_headers(owner, workspace_b),
+        json={
+            "site_id": site_b["id"],
+            "aircraft_id": aircraft_b.json()["id"],
+            "name": "South mapping mission",
+            "boundary": boundary,
+        },
+    )
+    assert mission_a.status_code == 201, mission_a.text
+    assert mission_b.status_code == 201, mission_b.text
+
+    viewer = _user(db_session, "mobile-drone-viewer")
+    added = client.post(
+        f"/organizations/{organization_id}/members",
+        headers=_headers(owner, workspace_b),
+        json={"email": viewer.email, "user_id": viewer.id, "role": "viewer"},
+    )
+    assert added.status_code == 201, added.text
+    # The compatibility member endpoint currently adds a member to all active
+    # Workspaces. Remove A explicitly so this is a true B-only principal.
+    db_session.query(AccountMember).filter(
+        AccountMember.account_id == workspace_a,
+        AccountMember.user_id == viewer.id,
+    ).delete(synchronize_session=False)
+    db_session.commit()
+    viewer_b = _headers(viewer, workspace_b)
+
+    viewer_aircraft = client.get("/mobile/drones", headers=viewer_b)
+    viewer_missions = client.get("/mobile/drone-missions", headers=viewer_b)
+    assert viewer_aircraft.status_code == 200, viewer_aircraft.text
+    assert viewer_missions.status_code == 200, viewer_missions.text
+    assert {row["id"] for row in viewer_aircraft.json()} == {aircraft_b.json()["id"]}
+    assert {row["id"] for row in viewer_missions.json()} == {mission_b.json()["id"]}
+
+    viewer_register = client.post(
+        "/mobile/drones",
+        headers=viewer_b,
+        json={
+            "name": "Viewer cannot register",
+            "model": "DJI Mavic 3 Enterprise",
+            "site_id": site_b["id"],
+        },
+    )
+    viewer_create = client.post(
+        "/mobile/drone-missions",
+        headers=viewer_b,
+        json={
+            "site_id": site_b["id"],
+            "aircraft_id": aircraft_b.json()["id"],
+            "name": "Viewer cannot create",
+            "boundary": boundary,
+        },
+    )
+    approval = {
+        "pilot_confirmed": True,
+        "airspace_checked": True,
+        "weather_checked": True,
+        "people_clear": True,
+        "aircraft_checked": True,
     }
+    viewer_approve = client.post(
+        f"/mobile/drone-missions/{mission_b.json()['id']}/approve",
+        headers=viewer_b,
+        json=approval,
+    )
+    assert viewer_register.status_code == 403, viewer_register.text
+    assert viewer_create.status_code == 403, viewer_create.text
+    assert viewer_approve.status_code == 403, viewer_approve.text
+
+    owner_b = _headers(owner, workspace_b)
+    owner_aircraft = client.get("/mobile/drones", headers=owner_b)
+    owner_missions = client.get("/mobile/drone-missions", headers=owner_b)
+    assert {row["id"] for row in owner_aircraft.json()} == {aircraft_b.json()["id"]}
+    assert {row["id"] for row in owner_missions.json()} == {mission_b.json()["id"]}
+    assert (
+        client.post(
+            "/mobile/drones",
+            headers=owner_b,
+            json={
+                "name": "Cross-workspace aircraft",
+                "model": "DJI Mavic 3 Enterprise",
+                "site_id": site_a["id"],
+            },
+        ).status_code
+        == 404
+    )
+    assert (
+        client.post(
+            "/mobile/drone-missions",
+            headers=owner_b,
+            json={
+                "site_id": site_a["id"],
+                "aircraft_id": aircraft_a.json()["id"],
+                "name": "Cross-workspace mission",
+                "boundary": boundary,
+            },
+        ).status_code
+        == 404
+    )
+    assert (
+        client.post(
+            f"/mobile/drone-missions/{mission_a.json()['id']}/approve",
+            headers=owner_b,
+            json=approval,
+        ).status_code
+        == 404
+    )
+    db_session.expire_all()
+    acquisition_a = db_session.get(Acquisition, mission_a.json()["acquisition_id"])
+    assert acquisition_a is not None
+    assert acquisition_a.workspace_id == workspace_a
+    assert acquisition_a.state == "DRAFT"

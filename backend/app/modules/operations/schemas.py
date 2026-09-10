@@ -11,6 +11,7 @@ from app.modules.operations.domain import (
     AssignmentStatus,
     ContractorAvailability,
     ContractorStatus,
+    ServiceRequestStatus,
     reject_sensitive_keys,
 )
 
@@ -310,6 +311,48 @@ class AssignmentInternalOut(AssignmentRestrictedOut):
     assigned_by_user_id: str | None
 
 
+class ServiceRequestLinkUpdate(BaseModel):
+    """Internal, tenant-bound progress and durable-link update."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    organization_id: str = Field(min_length=1, max_length=36)
+    workspace_id: str = Field(min_length=1, max_length=36)
+    asset_id: str | None = Field(default=None, max_length=36)
+    order_id: str | None = Field(default=None, max_length=36)
+    report_id: str | None = Field(default=None, max_length=36)
+    status: ServiceRequestStatus | None = None
+    progress_percent: int | None = Field(default=None, ge=0, le=100)
+    assigned_team: str | None = Field(default=None, max_length=200)
+    expected_version: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def has_change(self):
+        scope_fields = {"organization_id", "workspace_id", "expected_version"}
+        if not self.model_fields_set.difference(scope_fields):
+            raise ValueError("At least one service-request field must be updated")
+        if "progress_percent" in self.model_fields_set and self.progress_percent is None:
+            raise ValueError("progress_percent cannot be null")
+        return self
+
+
+class ServiceRequestLinkOut(BaseModel):
+    id: str
+    organization_id: str
+    workspace_id: str
+    user_id: str
+    site_id: str | None
+    asset_id: str | None
+    order_id: str | None
+    report_id: str | None
+    status: str
+    progress_percent: int
+    assigned_team: str | None
+    lifecycle_version: int
+    created_at: datetime
+    updated_at: datetime
+
+
 __all__ = [
     "AssignmentCreate",
     "AssignmentDecision",
@@ -324,4 +367,6 @@ __all__ = [
     "ContractorSelfProfileOut",
     "ContractorSelfUpdate",
     "ContractorUpdate",
+    "ServiceRequestLinkOut",
+    "ServiceRequestLinkUpdate",
 ]

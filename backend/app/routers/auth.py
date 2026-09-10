@@ -15,7 +15,7 @@ import logging
 import re
 import secrets
 import uuid
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import List, Optional
 from urllib.parse import urlencode
 
@@ -50,6 +50,7 @@ from ..models import (
     Company,
     CompanyUser,
     Invitation,
+    MobileServiceRequest,
     OAuthState,
     RefreshTokenFamily,
     RefreshTokenModel,
@@ -143,6 +144,7 @@ def _service_first_profile(
 # Helper functions
 # ═══════════════════════════════════════════════════════════════
 
+
 def _ensure_profile(
     db: Session,
     user: User,
@@ -193,9 +195,7 @@ def _ensure_company(
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
 
     existing_membership = (
-        db.query(CompanyUser)
-        .filter(CompanyUser.user_id == user.id)
-        .first()
+        db.query(CompanyUser).filter(CompanyUser.user_id == user.id).first()
     )
     if existing_membership:
         company = db.get(Company, existing_membership.company_id)
@@ -259,7 +259,9 @@ def _ensure_default_account(
     *,
     commit: bool = True,
 ) -> Account:
-    membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+    membership = (
+        db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+    )
     if membership:
         account = db.query(Account).filter(Account.id == membership.account_id).first()
         if account:
@@ -276,11 +278,15 @@ def _ensure_default_account(
     email = (user.email or "").strip().lower()
     account_name = None
     if profile:
-        account_name = (profile.org_name or profile.company or None)
+        account_name = profile.org_name or profile.company or None
     if not account_name:
-        account_name = (email.split("@")[0] if "@" in email else (email or "geovision")) + " workspace"
+        account_name = (
+            email.split("@")[0] if "@" in email else (email or "geovision")
+        ) + " workspace"
 
-    default_profile = normalize_account_profile("farm", sector_focus=sector_focus or "agro")
+    default_profile = normalize_account_profile(
+        "farm", sector_focus=sector_focus or "agro"
+    )
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
     )
@@ -335,9 +341,11 @@ def _hash_reset_token(token: str) -> str:
 
 
 def _find_user_by_email(db: Session, canonical_email: str) -> User | None:
-    return db.query(User).filter(
-        func.lower(func.trim(User.email)) == canonical_email
-    ).first()
+    return (
+        db.query(User)
+        .filter(func.lower(func.trim(User.email)) == canonical_email)
+        .first()
+    )
 
 
 def _revoke_refresh_family(
@@ -351,9 +359,9 @@ def _revoke_refresh_family(
     if compromised:
         family.compromised_at = family.compromised_at or now
     db.add(family)
-    db.query(RefreshTokenModel).filter(
-        RefreshTokenModel.family_id == family.id
-    ).update({"revoked": True}, synchronize_session=False)
+    db.query(RefreshTokenModel).filter(RefreshTokenModel.family_id == family.id).update(
+        {"revoked": True}, synchronize_session=False
+    )
 
 
 def _create_refresh_token(
@@ -367,6 +375,7 @@ def _create_refresh_token(
     commit: bool = True,
 ) -> str:
     import uuid as _uuid_mod
+
     raw_token = secrets.token_urlsafe(REFRESH_TOKEN_BYTES)
     token_hash = _hash_refresh_token(raw_token)
 
@@ -517,7 +526,9 @@ def _build_auth_response(
     )
     if user is None:
         db.rollback()
-        raise HTTPException(status_code=401, detail="Credentials changed; sign in again")
+        raise HTTPException(
+            status_code=401, detail="Credentials changed; sign in again"
+        )
 
     role = resolve_role(user)
     access_token = issue_session_access_token(user)
@@ -553,6 +564,7 @@ def _build_auth_response(
 # Auth Endpoints
 # ═══════════════════════════════════════════════════════════════
 
+
 @router.post("/register", response_model=AuthResponse, status_code=201)
 def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db)):
     email = (payload.email or "").strip().lower()
@@ -566,11 +578,15 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
             use_cases=payload.use_cases,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     existing = _find_user_by_email(db, email)
     if existing:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+        )
 
     user = User(
         email=email,
@@ -597,15 +613,22 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     account = None
     if account_profile is not None:
         modules = payload.modules_enabled or DEFAULT_MODULES
-        account_name = payload.account_name or payload.org_name or ((payload.full_name or email.split("@")[0]) + " workspace")
-        company = _ensure_company(db, user, account_name, str(account_profile["sector_focus"]))
+        account_name = (
+            payload.account_name
+            or payload.org_name
+            or ((payload.full_name or email.split("@")[0]) + " workspace")
+        )
+        company = _ensure_company(
+            db, user, account_name, str(account_profile["sector_focus"])
+        )
         onboarding_account_id = str(
             uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
         )
         account = Account(
             id=onboarding_account_id,
             organization_id=company.id,
-            name=account_name, sector_focus=str(account_profile["sector_focus"]),
+            name=account_name,
+            sector_focus=str(account_profile["sector_focus"]),
             entity_type=str(account_profile["entity_type"]),
             customer_type=str(account_profile["customer_type"]),
             dashboard_profile=str(account_profile["dashboard_profile"]),
@@ -644,11 +667,22 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     if account is not None:
         db.refresh(account)
 
-    log_audit(db, "register", user_id=user.id, user_email=user.email,
-              resource_type="user", resource_id=user.id, request=request)
+    log_audit(
+        db,
+        "register",
+        user_id=user.id,
+        user_email=user.email,
+        resource_type="user",
+        resource_id=user.id,
+        request=request,
+    )
 
-    return AuthResponse(access_token=access_token, user=user, account=account,
-                        refresh_token=refresh_token)
+    return AuthResponse(
+        access_token=access_token,
+        user=user,
+        account=account,
+        refresh_token=refresh_token,
+    )
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -664,7 +698,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Este email não está registado. Cria uma conta ou usa o login Google/Microsoft."
+            detail="Este email não está registado. Cria uma conta ou usa o login Google/Microsoft.",
         )
 
     if not user.is_active:
@@ -676,15 +710,20 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     if not user.password_hash:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Esta conta foi criada via OAuth. Usa o botão 'Entrar com Google' ou 'Microsoft'."
+            detail="Esta conta foi criada via OAuth. Usa o botão 'Entrar com Google' ou 'Microsoft'.",
         )
 
     if not verify_password(payload.password, user.password_hash):
-        log_audit(db, "login_failed", user_email=email,
-                  details={"reason": "wrong_password"}, request=request)
+        log_audit(
+            db,
+            "login_failed",
+            user_email=email,
+            details={"reason": "wrong_password"},
+            request=request,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password incorreta. Usa 'Esqueceu a senha?' para redefinir."
+            detail="Password incorreta. Usa 'Esqueceu a senha?' para redefinir.",
         )
 
     verified_password_hash = user.password_hash
@@ -702,6 +741,7 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 
 # ── Refresh Token ──
 
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str = Field(min_length=32, max_length=512)
 
@@ -716,9 +756,13 @@ class RefreshTokenResponse(BaseModel):
 def refresh_token_endpoint(payload: RefreshTokenRequest, db: Session = Depends(get_db)):
     token_hash = _hash_refresh_token(payload.refresh_token)
 
-    rt = db.query(RefreshTokenModel).filter(
-        RefreshTokenModel.token_hash == token_hash,
-    ).first()
+    rt = (
+        db.query(RefreshTokenModel)
+        .filter(
+            RefreshTokenModel.token_hash == token_hash,
+        )
+        .first()
+    )
 
     if not rt:
         raise HTTPException(status_code=401, detail="Invalid or revoked refresh token")
@@ -743,7 +787,9 @@ def refresh_token_endpoint(payload: RefreshTokenRequest, db: Session = Depends(g
         logger.info("refresh_token result=rejected code=family_expired")
         _revoke_refresh_family(db, family, compromised=False)
         db.commit()
-        raise HTTPException(status_code=401, detail="External reauthentication required")
+        raise HTTPException(
+            status_code=401, detail="External reauthentication required"
+        )
 
     if rt.revoked:
         logger.warning("refresh_token result=rejected code=reuse_detected")
@@ -821,7 +867,9 @@ def refresh_token_endpoint(payload: RefreshTokenRequest, db: Session = Depends(g
         db.commit()
     except Exception as exc:
         db.rollback()
-        raise HTTPException(status_code=503, detail="Could not rotate refresh token") from exc
+        raise HTTPException(
+            status_code=503, detail="Could not rotate refresh token"
+        ) from exc
 
     return RefreshTokenResponse(access_token=new_access, refresh_token=new_refresh)
 
@@ -834,7 +882,11 @@ def logout(
 ):
     if payload and payload.refresh_token:
         token_hash = _hash_refresh_token(payload.refresh_token)
-        rt = db.query(RefreshTokenModel).filter(RefreshTokenModel.token_hash == token_hash).first()
+        rt = (
+            db.query(RefreshTokenModel)
+            .filter(RefreshTokenModel.token_hash == token_hash)
+            .first()
+        )
         if rt:
             family = db.get(RefreshTokenFamily, rt.family_id)
             if family is not None:
@@ -846,6 +898,7 @@ def logout(
 
 # ── Current User ──
 
+
 @router.get("/me", tags=["auth"])
 def get_current_user(
     request: Request,
@@ -856,7 +909,6 @@ def get_current_user(
     auth_context = getattr(request.state, "authorization_context", None)
     if not isinstance(auth_context, AuthorizationContext):
         raise HTTPException(status_code=401, detail="Identity context unavailable")
-    email = (user.email or "").strip().lower()
     profile = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
     account = (
         db.get(Account, auth_context.active_workspace_id)
@@ -871,22 +923,34 @@ def get_current_user(
         "full_name": getattr(profile, "full_name", None) or "",
         "phone": getattr(profile, "phone", None),
         "role": resolve_role(user),
-        "company": getattr(profile, "company", None) or getattr(profile, "org_name", None) or "",
+        "company": getattr(profile, "company", None)
+        or getattr(profile, "org_name", None)
+        or "",
         "account_id": getattr(account, "id", "") if account else "",
         "account_name": getattr(account, "name", "") if account else "",
-        "customer_type": getattr(account, "customer_type", "farm") if account else "farm",
-        "dashboard_profile": getattr(account, "dashboard_profile", "farm") if account else "farm",
+        "customer_type": getattr(account, "customer_type", "farm")
+        if account
+        else "farm",
+        "dashboard_profile": getattr(account, "dashboard_profile", "farm")
+        if account
+        else "farm",
         "sector_focus": getattr(account, "sector_focus", "agro") if account else "agro",
-        "use_cases": json.loads(getattr(account, "use_cases", None) or "[]") if account else [],
-        "account": ({
-            "id": account.id,
-            "name": account.name,
-            "org_name": getattr(account, "org_name", None),
-            "customer_type": getattr(account, "customer_type", "farm"),
-            "dashboard_profile": getattr(account, "dashboard_profile", "farm"),
-            "sector_focus": getattr(account, "sector_focus", "agro"),
-            "use_cases": json.loads(getattr(account, "use_cases", None) or "[]"),
-        } if account else None),
+        "use_cases": json.loads(getattr(account, "use_cases", None) or "[]")
+        if account
+        else [],
+        "account": (
+            {
+                "id": account.id,
+                "name": account.name,
+                "org_name": getattr(account, "org_name", None),
+                "customer_type": getattr(account, "customer_type", "farm"),
+                "dashboard_profile": getattr(account, "dashboard_profile", "farm"),
+                "sector_focus": getattr(account, "sector_focus", "agro"),
+                "use_cases": json.loads(getattr(account, "use_cases", None) or "[]"),
+            }
+            if account
+            else None
+        ),
         "company_id": auth_context.active_organization_id or "",
         "authorization_context": {
             "user_id": auth_context.user_id,
@@ -902,6 +966,7 @@ def get_current_user(
 
 
 # ── Account Deletion (self-service) ──
+
 
 class DeleteAccountRequest(BaseModel):
     password: Optional[str] = None
@@ -961,19 +1026,45 @@ def delete_account(
     ]
 
     try:
-        db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id == user_id).delete(synchronize_session=False)
-        db.query(RefreshTokenFamily).filter(RefreshTokenFamily.user_id == user_id).delete(synchronize_session=False)
-        db.query(AuthIdentity).filter(AuthIdentity.user_id == user_id).delete(synchronize_session=False)
-        db.query(ResetToken).filter(ResetToken.user_id == user_id).delete(synchronize_session=False)
-        db.query(AccountMember).filter(AccountMember.user_id == user_id).delete(synchronize_session=False)
-        db.query(CompanyUser).filter(CompanyUser.user_id == user_id).delete(synchronize_session=False)
-        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(synchronize_session=False)
+        db.query(RefreshTokenModel).filter(RefreshTokenModel.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(RefreshTokenFamily).filter(
+            RefreshTokenFamily.user_id == user_id
+        ).delete(synchronize_session=False)
+        db.query(AuthIdentity).filter(AuthIdentity.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(ResetToken).filter(ResetToken.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        # Remove customer-created service requests before deleting an empty
+        # personal workspace. This is deterministic even where FK cascades are
+        # disabled and avoids a transient workspace SET NULL/check conflict.
+        db.query(MobileServiceRequest).filter(
+            MobileServiceRequest.user_id == user_id
+        ).delete(synchronize_session=False)
+        db.query(AccountMember).filter(AccountMember.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(CompanyUser).filter(CompanyUser.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(
+            synchronize_session=False
+        )
 
         # Drop personal workspaces that no longer have any members.
         for account_id in account_ids:
-            remaining = db.query(AccountMember).filter(AccountMember.account_id == account_id).count()
+            remaining = (
+                db.query(AccountMember)
+                .filter(AccountMember.account_id == account_id)
+                .count()
+            )
             if remaining == 0:
-                db.query(Account).filter(Account.id == account_id).delete(synchronize_session=False)
+                db.query(Account).filter(Account.id == account_id).delete(
+                    synchronize_session=False
+                )
 
         deleted_user = (
             db.query(User)
@@ -1007,6 +1098,7 @@ def delete_account(
 
 
 # ── Status ──
+
 
 @router.get("/status", tags=["auth", "system"])
 def auth_status() -> dict:
@@ -1078,13 +1170,10 @@ def create_external_identity_session(
                 else "identity_validation_failed"
             ),
         )
-        if (
-            validation.status in {
-                IntegrationStatus.NOT_CONFIGURED,
-                IntegrationStatus.RETRYING,
-            }
-            or (validation.failure is not None and validation.failure.retryable)
-        ):
+        if validation.status in {
+            IntegrationStatus.NOT_CONFIGURED,
+            IntegrationStatus.RETRYING,
+        } or (validation.failure is not None and validation.failure.retryable):
             raise HTTPException(status_code=503, detail="Identity provider unavailable")
         raise HTTPException(status_code=401, detail="Invalid or expired identity token")
 
@@ -1149,6 +1238,7 @@ def create_external_identity_session(
 
 
 # ── Forgot / Reset Password ──
+
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
@@ -1231,7 +1321,9 @@ def _consume_oauth_state(
     if not stored or not stored.code_verifier:
         raise HTTPException(status_code=400, detail="OAuth state inválido.")
     if stored.used:
-        raise HTTPException(status_code=400, detail="OAuth state já utilizado (replay).")
+        raise HTTPException(
+            status_code=400, detail="OAuth state já utilizado (replay)."
+        )
     if stored.expires_at < utc_now():
         raise HTTPException(status_code=400, detail="OAuth state expirado.")
 
@@ -1243,7 +1335,9 @@ def _consume_oauth_state(
     )
     if consumed != 1:
         db.rollback()
-        raise HTTPException(status_code=400, detail="OAuth state já utilizado (replay).")
+        raise HTTPException(
+            status_code=400, detail="OAuth state já utilizado (replay)."
+        )
     db.commit()
     return verifier, browser_nonce
 
@@ -1318,7 +1412,9 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
 
 @router.post("/reset-password")
-def reset_password(payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
+def reset_password(
+    payload: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)
+):
     token = (payload.token or "").strip()
     if not token:
         raise HTTPException(status_code=400, detail="Token ausente.")
@@ -1420,7 +1516,9 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
     except Exception as exc:
         db.rollback()
         logger.error("Password reset persistence failed (%s)", type(exc).__name__)
-        raise HTTPException(status_code=500, detail="Não foi possível atualizar a password") from exc
+        raise HTTPException(
+            status_code=500, detail="Não foi possível atualizar a password"
+        ) from exc
 
     return {"message": "Password atualizada com sucesso."}
 
@@ -1428,6 +1526,7 @@ def reset_password(payload: ResetPasswordRequest, request: Request, db: Session 
 # ═══════════════════════════════════════════════════════════════
 # Google OAuth
 # ═══════════════════════════════════════════════════════════════
+
 
 @router.get("/google/login")
 def google_login(
@@ -1445,7 +1544,10 @@ def google_login(
     if not settings.google_client_secret:
         missing.append("GOOGLE_CLIENT_SECRET")
     if missing:
-        raise HTTPException(status_code=400, detail=f"Google OAuth não configurado. Defina {', '.join(missing)}.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Google OAuth não configurado. Defina {', '.join(missing)}.",
+        )
 
     state, verifier = _create_oauth_state(db, "google")
 
@@ -1489,17 +1591,22 @@ def google_callback(
             browser_nonce=request.cookies.get(_oauth_nonce_cookie_name("google")),
         )
 
-        tokres = requests.post("https://oauth2.googleapis.com/token", data={
-            "code": code,
-            "client_id": settings.google_client_id,
-            "client_secret": settings.google_client_secret,
-            "redirect_uri": redirect_uri,
-            "grant_type": "authorization_code",
-            "code_verifier": code_verifier,
-        }, timeout=(
-            settings.integration_connect_timeout_seconds,
-            settings.integration_read_timeout_seconds,
-        ), allow_redirects=False)
+        tokres = requests.post(
+            "https://oauth2.googleapis.com/token",
+            data={
+                "code": code,
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+                "code_verifier": code_verifier,
+            },
+            timeout=(
+                settings.integration_connect_timeout_seconds,
+                settings.integration_read_timeout_seconds,
+            ),
+            allow_redirects=False,
+        )
 
         if tokres.status_code != 200:
             logger.warning(
@@ -1513,16 +1620,23 @@ def google_callback(
 
         access_token = tokres.json().get("access_token")
         if not isinstance(access_token, str) or not access_token:
-            raise HTTPException(status_code=400, detail="Resposta OAuth Google inválida")
+            raise HTTPException(
+                status_code=400, detail="Resposta OAuth Google inválida"
+            )
 
-        ures = requests.get("https://www.googleapis.com/oauth2/v2/userinfo",
-                            headers={"Authorization": f"Bearer {access_token}"},
-                            timeout=(
-                                settings.integration_connect_timeout_seconds,
-                                settings.integration_read_timeout_seconds,
-                            ), allow_redirects=False)
+        ures = requests.get(
+            "https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=(
+                settings.integration_connect_timeout_seconds,
+                settings.integration_read_timeout_seconds,
+            ),
+            allow_redirects=False,
+        )
         if ures.status_code != 200:
-            raise HTTPException(status_code=400, detail="Não foi possível validar a conta Google")
+            raise HTTPException(
+                status_code=400, detail="Não foi possível validar a conta Google"
+            )
         userinfo = ures.json()
         email = userinfo.get("email")
         name = userinfo.get("name")
@@ -1530,37 +1644,57 @@ def google_callback(
         google_sub = userinfo.get("id", "")
 
         if not email:
-            raise HTTPException(status_code=400, detail="Email não fornecido pelo Google.")
+            raise HTTPException(
+                status_code=400, detail="Email não fornecido pelo Google."
+            )
 
         resolved, principal = _find_or_link_identity(
-            db, provider="google", provider_user_id=google_sub,
-            email=email, display_name=name, avatar_url=picture,
+            db,
+            provider="google",
+            provider_user_id=google_sub,
+            email=email,
+            display_name=name,
+            avatar_url=picture,
             issuer="https://accounts.google.com",
             email_verified=userinfo.get("verified_email") is True,
         )
         user = resolved.user
 
         _ensure_profile(db, user, full_name=name)
-        membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+        membership = (
+            db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+        )
         account = db.get(Account, membership.account_id) if membership else None
 
         role = resolve_role(user)
         token = issue_session_access_token(user, principal)
 
-        log_audit(db, "oauth_login", user_id=user.id, user_email=email,
-                  details={"provider": "google"}, request=request)
+        log_audit(
+            db,
+            "oauth_login",
+            user_id=user.id,
+            user_email=email,
+            details={"provider": "google"},
+            request=request,
+        )
 
-        redirect_path = "/admin.html" if role == "admin" else ("/dashboard.html" if account else "/onboarding.html")
+        redirect_path = (
+            "/admin.html"
+            if role == "admin"
+            else ("/dashboard.html" if account else "/onboarding.html")
+        )
         frontend_base = settings.frontend_base.rstrip("/")
         callback_url = f"{frontend_base}/auth-callback.html?v=8"
         # Use URL fragment (#) instead of query params (?) so the token
         # never appears in server logs, Referer headers, or browser history.
-        params = urlencode({
-            "token": token,
-            "provider": "google",
-            "browser_nonce": browser_nonce,
-            "redirect": redirect_path,
-        })
+        params = urlencode(
+            {
+                "token": token,
+                "provider": "google",
+                "browser_nonce": browser_nonce,
+                "redirect": redirect_path,
+            }
+        )
         response = RedirectResponse(f"{callback_url}#{params}")
         _clear_oauth_state_cookie(response, "google")
         return response
@@ -1608,36 +1742,37 @@ def complete_onboarding(
     # Reusing the already validated token also preserves its original expiry;
     # onboarding must never become a way to extend an external session.
     locked_user = (
-        db.query(User)
-        .filter(User.id == user.id)
-        .with_for_update()
-        .one_or_none()
+        db.query(User).filter(User.id == user.id).with_for_update().one_or_none()
     )
     if locked_user is None or not locked_user.is_active:
         raise HTTPException(status_code=401, detail="User inválido/inativo")
     user = locked_user
 
-    membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+    membership = (
+        db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+    )
     if membership:
         account = db.query(Account).filter(Account.id == membership.account_id).first()
         if account is None:
-            raise HTTPException(status_code=409, detail="Workspace membership is invalid")
+            raise HTTPException(
+                status_code=409, detail="Workspace membership is invalid"
+            )
         try:
             _ensure_company(db, user, account.name, account.sector_focus)
             db.commit()
         except IntegrityError as exc:
             db.rollback()
             company_membership = (
-                db.query(CompanyUser)
-                .filter(CompanyUser.user_id == user.id)
-                .first()
+                db.query(CompanyUser).filter(CompanyUser.user_id == user.id).first()
             )
             if company_membership is None:
                 raise HTTPException(
                     status_code=409,
                     detail="Company binding is already in progress; retry the request",
                 ) from exc
-        return AuthResponse(access_token=current_access_token, user=user, account=account)
+        return AuthResponse(
+            access_token=current_access_token, user=user, account=account
+        )
 
     try:
         account_profile, onboarding_intent = _service_first_profile(
@@ -1648,7 +1783,9 @@ def complete_onboarding(
             use_cases=payload.use_cases,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
 
     if account_profile is None or onboarding_intent == "view_invitation":
         raise HTTPException(
@@ -1657,8 +1794,12 @@ def complete_onboarding(
         )
 
     modules = payload.modules_enabled or DEFAULT_MODULES
-    account_name = payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
-    company = _ensure_company(db, user, account_name, str(account_profile["sector_focus"]))
+    account_name = (
+        payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
+    )
+    company = _ensure_company(
+        db, user, account_name, str(account_profile["sector_focus"])
+    )
 
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
@@ -1666,7 +1807,8 @@ def complete_onboarding(
     account = Account(
         id=onboarding_account_id,
         organization_id=company.id,
-        name=account_name, sector_focus=str(account_profile["sector_focus"]),
+        name=account_name,
+        sector_focus=str(account_profile["sector_focus"]),
         entity_type=str(account_profile["entity_type"]),
         customer_type=str(account_profile["customer_type"]),
         dashboard_profile=str(account_profile["dashboard_profile"]),
@@ -1705,9 +1847,7 @@ def complete_onboarding(
             .one_or_none()
         )
         company_membership = (
-            db.query(CompanyUser)
-            .filter(CompanyUser.user_id == user.id)
-            .first()
+            db.query(CompanyUser).filter(CompanyUser.user_id == user.id).first()
         )
         if account is None or membership is None or company_membership is None:
             raise HTTPException(
@@ -1723,6 +1863,7 @@ def complete_onboarding(
 # ═══════════════════════════════════════════════════════════════
 # Microsoft OAuth (Entra ID)
 # ═══════════════════════════════════════════════════════════════
+
 
 @router.get("/microsoft/login")
 def microsoft_login(
@@ -1740,7 +1881,10 @@ def microsoft_login(
     if not settings.microsoft_client_secret:
         missing.append("MICROSOFT_CLIENT_SECRET")
     if missing:
-        raise HTTPException(status_code=400, detail=f"Microsoft OAuth não configurado. Defina {', '.join(missing)}.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Microsoft OAuth não configurado. Defina {', '.join(missing)}.",
+        )
 
     state, verifier = _create_oauth_state(db, "microsoft")
 
@@ -1775,7 +1919,9 @@ def microsoft_callback(
 
         redirect_uri = settings.backend_base.rstrip("/") + "/auth/microsoft/callback"
         if not settings.microsoft_client_id or not settings.microsoft_client_secret:
-            raise HTTPException(status_code=400, detail="Microsoft OAuth não configurado.")
+            raise HTTPException(
+                status_code=400, detail="Microsoft OAuth não configurado."
+            )
 
         tenant = settings.microsoft_tenant_id or "common"
         code_verifier, browser_nonce = _consume_oauth_state(
@@ -1816,7 +1962,9 @@ def microsoft_callback(
 
         ms_access_token = tokres.json().get("access_token")
         if not isinstance(ms_access_token, str) or not ms_access_token:
-            raise HTTPException(status_code=400, detail="Resposta OAuth Microsoft inválida")
+            raise HTTPException(
+                status_code=400, detail="Resposta OAuth Microsoft inválida"
+            )
 
         ures = requests.get(
             "https://graph.microsoft.com/v1.0/me",
@@ -1828,7 +1976,9 @@ def microsoft_callback(
             allow_redirects=False,
         )
         if ures.status_code != 200:
-            raise HTTPException(status_code=400, detail="Não foi possível validar a conta Microsoft")
+            raise HTTPException(
+                status_code=400, detail="Não foi possível validar a conta Microsoft"
+            )
         userinfo = ures.json()
 
         email = userinfo.get("mail") or userinfo.get("userPrincipalName")
@@ -1836,13 +1986,18 @@ def microsoft_callback(
         ms_id = userinfo.get("id", "")
 
         if not email:
-            raise HTTPException(status_code=400, detail="Email não fornecido pelo Microsoft.")
+            raise HTTPException(
+                status_code=400, detail="Email não fornecido pelo Microsoft."
+            )
 
         email = email.strip().lower()
 
         resolved, principal = _find_or_link_identity(
-            db, provider="microsoft", provider_user_id=ms_id,
-            email=email, display_name=name,
+            db,
+            provider="microsoft",
+            provider_user_id=ms_id,
+            email=email,
+            display_name=name,
             issuer="legacy:microsoft",
             # Graph mail/UPN is not a provider-verified mailbox claim. Existing
             # mappings continue; new linking/provisioning requires Entra or an
@@ -1852,24 +2007,38 @@ def microsoft_callback(
         user = resolved.user
 
         _ensure_profile(db, user, full_name=name)
-        membership = db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+        membership = (
+            db.query(AccountMember).filter(AccountMember.user_id == user.id).first()
+        )
         account = db.get(Account, membership.account_id) if membership else None
 
         role = resolve_role(user)
         token = issue_session_access_token(user, principal)
 
-        log_audit(db, "oauth_login", user_id=user.id, user_email=email,
-                  details={"provider": "microsoft"}, request=request)
+        log_audit(
+            db,
+            "oauth_login",
+            user_id=user.id,
+            user_email=email,
+            details={"provider": "microsoft"},
+            request=request,
+        )
 
-        redirect_path = "/admin.html" if role == "admin" else ("/dashboard.html" if account else "/onboarding.html")
+        redirect_path = (
+            "/admin.html"
+            if role == "admin"
+            else ("/dashboard.html" if account else "/onboarding.html")
+        )
         frontend_base = settings.frontend_base.rstrip("/")
         callback_url = f"{frontend_base}/auth-callback.html?v=8"
-        params = urlencode({
-            "token": token,
-            "provider": "microsoft",
-            "browser_nonce": browser_nonce,
-            "redirect": redirect_path,
-        })
+        params = urlencode(
+            {
+                "token": token,
+                "provider": "microsoft",
+                "browser_nonce": browser_nonce,
+                "redirect": redirect_path,
+            }
+        )
         response = RedirectResponse(f"{callback_url}#{params}")
         _clear_oauth_state_cookie(response, "microsoft")
         return response

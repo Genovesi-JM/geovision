@@ -21,7 +21,7 @@ from app.models import Order, User
 from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.services.cart import get_cart_service, get_sector_labels
-from app.services.orders import get_order_service, OrderStatus, PaymentMethod, EventType
+from app.services.orders import PaymentMethod, get_order_service
 from app.services.erp_sync import publish_account_event
 from app.account_profiles import normalize_public_sector
 
@@ -936,6 +936,7 @@ async def checkout(
                 publish_account_event(
                     db,
                     company_id=order.company_id,
+                    workspace_id=order.workspace_id,
                     event_type="order.created",
                     resource_type="order",
                     resource_id=order.id,

@@ -66,10 +66,14 @@ Stripe/card, IBAN, and PayPal implementations are compatibility adapters behind
 that interface. Tests inject provider fakes without loading gateway SDKs.
 
 Missing gateway credentials produce simulated responses only in local/dev/test.
-Deployed profiles fail closed. The storefront advertises only configured gateway
-methods; IBAN remains a manual settlement path. PayPal webhook verification and
-API-backed refunds remain unavailable in deployed mode and must not be reported
-as live capabilities.
+Deployed profiles fail closed. The storefront's compatibility discovery route
+advertises gateway methods from non-empty configuration fields; its `settles`
+and `any_gateway_live` field names do not prove a successful provider workflow.
+The checked-in IBAN values are placeholders, and the manual-transfer adapter
+only creates instructions awaiting operator confirmation. Neither path is live
+until finance/provider evidence and reconciliation ownership are recorded.
+PayPal webhook verification and API-backed refunds remain unavailable in
+deployed mode and must not be reported as live capabilities.
 
 Payment creation derives organization, amount, currency, description, and order
 identity from the owned GeoVision order. Client-supplied mismatches are rejected.

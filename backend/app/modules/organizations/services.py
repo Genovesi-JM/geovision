@@ -64,6 +64,23 @@ class WorkspaceAccess:
         return self.workspace_membership.role
 
 
+def sole_active_workspace_id(db: Session, organization_id: str) -> str | None:
+    """Resolve a legacy organization-only record only when its scope is unique."""
+
+    workspace_ids = [
+        row[0]
+        for row in db.query(Account.id)
+        .filter(
+            Account.organization_id == organization_id,
+            Account.status == WorkspaceStatus.ACTIVE.value,
+        )
+        .order_by(Account.id.asc())
+        .limit(2)
+        .all()
+    ]
+    return workspace_ids[0] if len(workspace_ids) == 1 else None
+
+
 def _audit(
     db: Session,
     *,
@@ -696,12 +713,9 @@ def update_member(
             "An invitation must be accepted by an authenticated user first",
         )
 
-    removes_owner = (
-        normalize_customer_role(membership.role) is CustomerRole.OWNER
-        and (
-            next_role is not CustomerRole.OWNER
-            or next_status is not MembershipStatus.ACTIVE
-        )
+    removes_owner = normalize_customer_role(membership.role) is CustomerRole.OWNER and (
+        next_role is not CustomerRole.OWNER
+        or next_status is not MembershipStatus.ACTIVE
     )
     if removes_owner:
         other_owner_count = (
@@ -795,5 +809,6 @@ __all__ = [
     "get_user_company_id",
     "organization_membership_for_user",
     "resolve_workspace_access",
+    "sole_active_workspace_id",
     "update_member",
 ]

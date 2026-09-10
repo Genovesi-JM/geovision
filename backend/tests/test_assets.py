@@ -228,20 +228,34 @@ def test_tenant_isolation_and_viewer_cannot_mutate_assets(client, db_session):
     )
     assert member.status_code == 201, member.text
     viewer_headers = _headers(viewer, workspace_id)
-    assert client.get(f"/assets/{asset['id']}", headers=viewer_headers).status_code == 200
-    assert client.post(
-        "/assets",
-        headers=viewer_headers,
-        json={"sector": "AGRICULTURE", "asset_type": "FIELD", "name": "No"},
-    ).status_code == 404
-    assert client.patch(
-        f"/assets/{asset['id']}", headers=viewer_headers, json={"name": "No"}
-    ).status_code == 404
-    assert client.delete(f"/assets/{asset['id']}", headers=viewer_headers).status_code == 404
+    assert (
+        client.get(f"/assets/{asset['id']}", headers=viewer_headers).status_code == 200
+    )
+    assert (
+        client.post(
+            "/assets",
+            headers=viewer_headers,
+            json={"sector": "AGRICULTURE", "asset_type": "FIELD", "name": "No"},
+        ).status_code
+        == 404
+    )
+    assert (
+        client.patch(
+            f"/assets/{asset['id']}", headers=viewer_headers, json={"name": "No"}
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(f"/assets/{asset['id']}", headers=viewer_headers).status_code
+        == 404
+    )
 
     _, outsider_workspace = _organization(client, outsider, "Tenant B")
     outsider_headers = _headers(outsider, outsider_workspace)
-    assert client.get(f"/assets/{asset['id']}", headers=outsider_headers).status_code == 404
+    assert (
+        client.get(f"/assets/{asset['id']}", headers=outsider_headers).status_code
+        == 404
+    )
     outsider_asset = _create_asset(client, outsider_headers, name="Other tenant")
     cross_tenant_parent = client.post(
         "/assets",
@@ -260,6 +274,96 @@ def test_tenant_isolation_and_viewer_cannot_mutate_assets(client, db_session):
         params={"workspace_id": outsider_workspace},
     )
     assert mismatched_filter.status_code == 404
+
+
+def test_legacy_null_asset_is_visible_only_in_the_sole_active_workspace(
+    client,
+    db_session,
+):
+    owner = _user(db_session, "legacy-null-scope")
+    organization_id, workspace_a = _organization(
+        client, owner, "Legacy Null Asset Scope"
+    )
+    headers_a = _headers(owner, workspace_a)
+    created = _create_asset(
+        client,
+        headers_a,
+        name="Legacy organization-only farm",
+        geometry={"type": "Point", "coordinates": [13.1, -8.9]},
+    )
+    legacy = db_session.get(Asset, created["id"])
+    assert legacy is not None
+    legacy.workspace_id = None
+    db_session.commit()
+
+    # Compatibility remains available while NULL has exactly one possible
+    # workspace interpretation.
+    assert created["id"] in {
+        row["id"] for row in client.get("/assets", headers=headers_a).json()
+    }
+    assert client.get(f"/assets/{created['id']}", headers=headers_a).status_code == 200
+    assert created["id"] in {
+        feature["id"]
+        for feature in client.get("/assets/map", headers=headers_a).json()["features"]
+    }
+    sole_workspace_child = _create_asset(
+        client,
+        headers_a,
+        name="Unambiguous legacy child",
+        asset_type="FIELD",
+        parent_asset_id=created["id"],
+    )
+    assert sole_workspace_child["parent_asset_id"] == created["id"]
+
+    second = client.post(
+        f"/organizations/{organization_id}/workspaces",
+        headers=headers_a,
+        json={
+            "name": "Second active workspace",
+            "customer_type": "business",
+            "sector_focus": "agro",
+        },
+    )
+    assert second.status_code == 201, second.text
+    headers_b = _headers(owner, second.json()["id"])
+
+    # Once the organization is a portfolio, the legacy row is ambiguous in
+    # every workspace and must be quarantined rather than fanned out.
+    for headers in (headers_a, headers_b):
+        listed = client.get("/assets", headers=headers)
+        assert listed.status_code == 200, listed.text
+        assert created["id"] not in {row["id"] for row in listed.json()}
+        assert (
+            client.get(f"/assets/{created['id']}", headers=headers).status_code == 404
+        )
+        mapped = client.get("/assets/map", headers=headers)
+        assert mapped.status_code == 200, mapped.text
+        assert created["id"] not in {
+            feature["id"] for feature in mapped.json()["features"]
+        }
+        rejected_parent = client.post(
+            "/assets",
+            headers=headers,
+            json={
+                "sector": "AGRICULTURE",
+                "asset_type": "FIELD",
+                "name": "Ambiguous child",
+                "parent_asset_id": created["id"],
+            },
+        )
+        assert rejected_parent.status_code == 404, rejected_parent.text
+
+    assert (
+        client.patch(
+            f"/assets/{created['id']}",
+            headers=headers_b,
+            json={"name": "Cross-workspace overwrite"},
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(f"/assets/{created['id']}", headers=headers_b).status_code == 404
+    )
 
 
 def test_geometry_validation_rejects_unsafe_or_ambiguous_shapes(client, db_session):

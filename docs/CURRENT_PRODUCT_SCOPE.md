@@ -5,23 +5,30 @@ based on the accepted direction in the ChatGPT discussions **Business Failure An
 **Find missing Geovision page items**, **Next steps after ESP32**, and the subsequent
 website/app implementation discussion.
 
-## Keep and improve now
+## Platform capability now
 
-- Agriculture, environmental monitoring, and sites/infrastructure as the three public
-  solution areas.
+- Agriculture, Infrastructure, Environmental, Mining, and Ports/Industrial are
+  implemented backend sector modules on one shared platform. Their availability
+  in a customer workspace remains controlled by entitlement, modules, and
+  rollout flags.
 - A simple entry experience for a farm, property/site, or individual device, backed by
   the same platform as the advanced enterprise experience.
-- Connected sensors, live readings, device health, alerts, intervention history,
-  reports, maps, and site/customer management.
+- Connected-sensor software for near-real-time readings, device health, alerts,
+  intervention history, reports, maps, and site/customer management. A live
+  physical deployment still requires the hardware, calibration, safety, network,
+  watchdog-owner, and provider gates in `HUMAN_GATES.md`.
 - Practical first devices for air/comfort, soil, water/tank/pump, weather, leaks, and
   small-site monitoring.
 - Aerial work that can be delivered with current equipment or partners: basic mapping,
   visual inspection, progress documentation, and appropriate agricultural imaging.
 - GeoVision Supply as an inventory-light commercial layer connected to detected needs.
 
-## Keep in code, but remove from the current public promise
+## Keep in code, but do not imply live commercial availability
 
-- Mining-, ports-, utilities-, and oil-and-gas-specific experiences.
+- Mining and Ports/Industrial backend workflows are implemented, but the public
+  website and sales offer must describe them only when GeoVision has validated
+  delivery capability for the intended customer and region. Utilities and
+  oil-and-gas-specific offers remain outside the current promise.
 - LiDAR, advanced thermal/multispectral, spraying, very-high-precision surveying, and
   other specialised flights until a paid project justifies rental, partnership, or purchase.
 - Advanced predictive AI before sufficient field data exists.

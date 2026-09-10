@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../config/app_config.dart';
 import '../networking/api_client.dart';
 import 'offline_queue.dart';
@@ -56,6 +58,12 @@ class OfflineSyncService {
               await _api.raw.post(
                 '/mobile/service-requests',
                 data: payload,
+                options: Options(
+                  headers: {
+                    'Idempotency-Key':
+                        action.payload['id']?.toString() ?? action.id,
+                  },
+                ),
               );
               break;
             default:

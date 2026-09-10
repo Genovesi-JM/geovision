@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 import hashlib
-import json
 import uuid
 
 import pytest
 
 from app.core.config import settings
-from app.core.events import DomainEvent
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
 from app.models import (
@@ -118,7 +116,13 @@ def _context(user: User, organization: Company, workspace: Account):
         organization_role="viewer",
         workspace_role="viewer",
         permissions=frozenset(
-            {"profile:read", "organization:read", "workspace:read", "asset:read", "report:read"}
+            {
+                "profile:read",
+                "organization:read",
+                "workspace:read",
+                "asset:read",
+                "report:read",
+            }
         ),
     )
 
@@ -157,7 +161,15 @@ def _report(db_session, organization, workspace, user, asset) -> Report:
     return row
 
 
-def _event(db_session, *, name: str, aggregate_type: str, aggregate_id: str, payload: dict, at=None):
+def _event(
+    db_session,
+    *,
+    name: str,
+    aggregate_type: str,
+    aggregate_id: str,
+    payload: dict,
+    at=None,
+):
     row = enqueue_domain_event(
         db_session,
         name=name,
@@ -169,6 +181,177 @@ def _event(db_session, *, name: str, aggregate_type: str, aggregate_id: str, pay
     )
     db_session.flush()
     return event_from_row(row)
+
+
+def _historical_notification(
+    db_session,
+    *,
+    organization: Company,
+    recipient: User,
+    target_type: str,
+    target_id: str | None,
+    title: str,
+) -> Notification:
+    now = utc_now()
+    row = Notification(
+        id=_id(),
+        organization_id=organization.id,
+        workspace_id=None,
+        recipient_user_id=recipient.id,
+        recipient_kind="USER",
+        recipient_key=f"user:{recipient.id}",
+        category="REPORT" if target_type == "REPORT" else "SYSTEM",
+        notification_type=(
+            "report.results_ready"
+            if target_type == "REPORT"
+            else "system.configuration"
+        ),
+        title=title,
+        body="Historical notification body",
+        severity="INFO",
+        target_type=target_type,
+        target_id=target_id,
+        deduplication_key=f"historical:{_id()}",
+        occurrence_count=1,
+        first_occurred_at=now,
+        last_occurred_at=now,
+        created_at=now,
+        updated_at=now,
+    )
+    db_session.add(row)
+    db_session.flush()
+    return row
+
+
+def test_legacy_null_report_materializes_only_for_a_sole_active_workspace(db_session):
+    organization, workspace, user, asset = _scope(db_session, "sole-legacy-report")
+    asset.workspace_id = None
+    report = _report(db_session, organization, workspace, user, asset)
+    report.workspace_id = None
+    db_session.flush()
+    event = _event(
+        db_session,
+        name="report.published",
+        aggregate_type="report",
+        aggregate_id=report.id,
+        payload={"report_id": report.id},
+    )
+
+    result = materialize_notification_event(db_session, event)
+    db_session.commit()
+
+    assert result.created == 1
+    notification = db_session.get(Notification, result.notification_ids[0])
+    assert notification.workspace_id == workspace.id
+    rows, total, unread = visible_notifications(
+        db_session,
+        context=_context(user, organization, workspace),
+    )
+    assert notification in rows
+    assert total == unread == 1
+    resolved = resolve_notification_target(
+        db_session,
+        context=_context(user, organization, workspace),
+        notification=notification,
+    )
+    assert resolved.workspace_id == workspace.id
+
+
+def test_multi_workspace_legacy_notification_is_hidden_and_not_materialized(
+    client,
+    db_session,
+):
+    organization, workspace_a, _, asset = _scope(db_session, "ambiguous-report")
+    user_b = User(
+        id=_id(),
+        email=f"ambiguous-reader-{_id()}@example.test",
+        role="cliente",
+        is_active=True,
+    )
+    workspace_b = Account(
+        id=_id(),
+        organization_id=organization.id,
+        name="Ambiguous workspace B",
+        sector_focus="agro",
+        entity_type="business",
+        customer_type="business",
+    )
+    db_session.add_all((user_b, workspace_b))
+    db_session.flush()
+    db_session.add_all(
+        (
+            CompanyUser(
+                id=_id(),
+                company_id=organization.id,
+                user_id=user_b.id,
+                email=user_b.email,
+                role="viewer",
+                is_active=True,
+                status="active",
+            ),
+            AccountMember(
+                account_id=workspace_b.id,
+                user_id=user_b.id,
+                role="viewer",
+                status="active",
+            ),
+        )
+    )
+    asset.workspace_id = None
+    report = _report(db_session, organization, workspace_a, user_b, asset)
+    report.workspace_id = None
+    db_session.flush()
+    event = _event(
+        db_session,
+        name="report.published",
+        aggregate_type="report",
+        aggregate_id=report.id,
+        payload={"report_id": report.id},
+    )
+
+    result = materialize_notification_event(db_session, event)
+    assert result.created == 0
+    assert result.notification_ids == ()
+
+    ambiguous = _historical_notification(
+        db_session,
+        organization=organization,
+        recipient=user_b,
+        target_type="REPORT",
+        target_id=report.id,
+        title="Ambiguous report summary",
+    )
+    organization_notice = _historical_notification(
+        db_session,
+        organization=organization,
+        recipient=user_b,
+        target_type="NONE",
+        target_id=None,
+        title="Organization configuration changed",
+    )
+    db_session.commit()
+
+    token = create_user_access_token(
+        user_id=user_b.id,
+        email=user_b.email,
+        role=user_b.role,
+        auth_generation=user_b.auth_generation,
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Workspace-ID": workspace_b.id,
+    }
+    inbox = client.get("/notifications", headers=headers)
+    assert inbox.status_code == 200, inbox.text
+    inbox_ids = {row["id"] for row in inbox.json()["items"]}
+    assert organization_notice.id in inbox_ids
+    assert ambiguous.id not in inbox_ids
+
+    deep_link = client.get(
+        f"/notifications/{ambiguous.id}/target",
+        headers=headers,
+    )
+    assert deep_link.status_code == 404, deep_link.text
 
 
 def test_published_report_materializes_once_and_target_is_reauthorized(db_session):
@@ -193,18 +376,29 @@ def test_published_report_materializes_once_and_target_is_reauthorized(db_sessio
 
     assert first.created == 1
     assert second.created == 0
-    assert db_session.query(Notification).filter(
-        Notification.recipient_user_id == user.id,
-        Notification.notification_type == "report.results_ready",
-    ).count() == 1
+    assert (
+        db_session.query(Notification)
+        .filter(
+            Notification.recipient_user_id == user.id,
+            Notification.notification_type == "report.results_ready",
+        )
+        .count()
+        == 1
+    )
     notification = db_session.get(Notification, first.notification_ids[0])
     assert notification.title == "Your results are ready"
-    assert db_session.query(NotificationEventLink).filter_by(
-        notification_id=notification.id
-    ).count() == 1
-    assert db_session.query(NotificationDelivery).filter_by(
-        notification_id=notification.id, channel="EMAIL"
-    ).count() == 1
+    assert (
+        db_session.query(NotificationEventLink)
+        .filter_by(notification_id=notification.id)
+        .count()
+        == 1
+    )
+    assert (
+        db_session.query(NotificationDelivery)
+        .filter_by(notification_id=notification.id, channel="EMAIL")
+        .count()
+        == 1
+    )
 
     resolved = resolve_notification_target(
         db_session,
@@ -224,7 +418,9 @@ def test_published_report_materializes_once_and_target_is_reauthorized(db_sessio
         )
 
 
-def test_default_event_consumer_materializes_with_its_runtime_delivery_config(db_session):
+def test_default_event_consumer_materializes_with_its_runtime_delivery_config(
+    db_session,
+):
     organization, workspace, user, asset = _scope(db_session, "event-consumer")
     report = _report(db_session, organization, workspace, user, asset)
     event = _event(
@@ -244,14 +440,22 @@ def test_default_event_consumer_materializes_with_its_runtime_delivery_config(db
     db_session.commit()
 
     assert (processed, duplicates) == (1, 0)
-    notification = db_session.query(Notification).filter_by(
-        recipient_user_id=user.id,
-        notification_type="report.results_ready",
-    ).one()
-    delivery = db_session.query(NotificationDelivery).filter_by(
-        notification_id=notification.id,
-        channel="EMAIL",
-    ).one()
+    notification = (
+        db_session.query(Notification)
+        .filter_by(
+            recipient_user_id=user.id,
+            notification_type="report.results_ready",
+        )
+        .one()
+    )
+    delivery = (
+        db_session.query(NotificationDelivery)
+        .filter_by(
+            notification_id=notification.id,
+            channel="EMAIL",
+        )
+        .one()
+    )
     assert delivery.provider == "disabled"
     assert delivery.status == "SUPPRESSED"
 
@@ -320,7 +524,9 @@ def test_customer_order_notification_does_not_fall_back_to_other_members(db_sess
     assert recipients == {owner.id}
 
 
-def test_repeated_critical_action_events_are_aggregated_without_delivery_spam(db_session):
+def test_repeated_critical_action_events_are_aggregated_without_delivery_spam(
+    db_session,
+):
     organization, workspace, user, asset = _scope(db_session, "action-rate")
     action = Action(
         id=_id(),
@@ -362,15 +568,23 @@ def test_repeated_critical_action_events_are_aggregated_without_delivery_spam(db
     notification = db_session.get(Notification, first.notification_ids[0])
     assert notification.occurrence_count == 2
     assert notification.severity == "CRITICAL"
-    assert db_session.query(NotificationEventLink).filter_by(
-        notification_id=notification.id
-    ).count() == 2
-    assert db_session.query(NotificationDelivery).filter_by(
-        notification_id=notification.id
-    ).count() == 1
+    assert (
+        db_session.query(NotificationEventLink)
+        .filter_by(notification_id=notification.id)
+        .count()
+        == 2
+    )
+    assert (
+        db_session.query(NotificationDelivery)
+        .filter_by(notification_id=notification.id)
+        .count()
+        == 1
+    )
 
 
-def test_preferences_suppress_channels_and_inbox_visibility_without_losing_history(db_session):
+def test_preferences_suppress_channels_and_inbox_visibility_without_losing_history(
+    db_session,
+):
     organization, workspace, user, asset = _scope(db_session, "preference")
     report = _report(db_session, organization, workspace, user, asset)
     db_session.add(
@@ -400,9 +614,11 @@ def test_preferences_suppress_channels_and_inbox_visibility_without_losing_histo
     db_session.commit()
 
     notification = db_session.get(Notification, result.notification_ids[0])
-    delivery = db_session.query(NotificationDelivery).filter_by(
-        notification_id=notification.id
-    ).one()
+    delivery = (
+        db_session.query(NotificationDelivery)
+        .filter_by(notification_id=notification.id)
+        .one()
+    )
     assert delivery.status == "SUPPRESSED"
     rows, total, unread = visible_notifications(
         db_session,
@@ -454,9 +670,12 @@ def test_unencrypted_invitation_token_is_never_persisted(db_session):
     )
     db_session.commit()
 
-    delivery = db_session.query(NotificationDelivery).join(Notification).filter(
-        Notification.target_id == invitation.id
-    ).one()
+    delivery = (
+        db_session.query(NotificationDelivery)
+        .join(Notification)
+        .filter(Notification.target_id == invitation.id)
+        .one()
+    )
     assert delivery.status == "SUPPRESSED"
     assert delivery.payload_ciphertext is None
     stored = "\n".join(
@@ -464,13 +683,18 @@ def test_unencrypted_invitation_token_is_never_persisted(db_session):
         for value in (
             db_session.get(Notification, delivery.notification_id).body,
             delivery.payload_ciphertext,
-            db_session.query(EventOutbox).filter_by(aggregate_id=invitation.id).one().payload_json,
+            db_session.query(EventOutbox)
+            .filter_by(aggregate_id=invitation.id)
+            .one()
+            .payload_json,
         )
     )
     assert raw_token not in stored
 
 
-def test_notification_api_is_recipient_bound_and_returns_typed_target(client, db_session):
+def test_notification_api_is_recipient_bound_and_returns_typed_target(
+    client, db_session
+):
     organization, workspace, user, asset = _scope(db_session, "notification-api")
     other = User(
         id=_id(),
