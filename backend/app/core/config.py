@@ -51,6 +51,8 @@ _URL_FIELDS = frozenset(
         "s3_endpoint_url",
         "azure_storage_account_url",
         "nodeodm_base_url",
+        "copernicus_stac_base_url",
+        "aemet_base_url",
     }
 )
 
@@ -206,6 +208,33 @@ class Settings(BaseSettings):
     nodeodm_token: Optional[str] = Field(default=None, repr=False)
     weather_provider: str = "none"
     satellite_provider: str = "none"
+    intelligence_worker_in_process: bool = False
+    intelligence_worker_poll_seconds: float = Field(default=30.0, gt=0, le=3600)
+    intelligence_worker_batch_size: int = Field(default=10, ge=1, le=100)
+    intelligence_worker_claim_timeout_seconds: int = Field(default=600, ge=30, le=86400)
+    intelligence_max_attempts: int = Field(default=3, ge=1, le=20)
+    intelligence_retry_initial_seconds: float = Field(default=30.0, ge=0, le=86400)
+    intelligence_retry_max_seconds: float = Field(default=3600.0, ge=0, le=604800)
+    satellite_cache_ttl_seconds: int = Field(default=21600, ge=60, le=604800)
+    weather_cache_ttl_seconds: int = Field(default=1800, ge=60, le=86400)
+    satellite_default_collection: str = "sentinel-2-l2a"
+    satellite_default_lookback_days: int = Field(default=14, ge=1, le=366)
+    satellite_default_max_cloud_cover_percent: float = Field(default=60.0, ge=0, le=100)
+    satellite_max_scenes_per_request: int = Field(default=20, ge=1, le=100)
+    satellite_download_assets_enabled: bool = False
+    satellite_download_asset_keys: str = "thumbnail"
+    satellite_max_asset_bytes: int = Field(
+        default=256 * 1024 * 1024, ge=1, le=5 * 1024 * 1024 * 1024
+    )
+    copernicus_stac_base_url: str = "https://stac.dataspace.copernicus.eu/v1"
+    copernicus_access_token: Optional[str] = Field(default=None, repr=False)
+    copernicus_allowed_download_hosts: str = (
+        "download.dataspace.copernicus.eu,datahub.creodias.eu"
+    )
+    weather_default_lookback_hours: int = Field(default=12, ge=1, le=168)
+    aemet_base_url: str = "https://opendata.aemet.es/opendata"
+    aemet_api_key: Optional[str] = Field(default=None, repr=False)
+    aemet_max_station_distance_km: float = Field(default=150.0, gt=0, le=1000)
     gis_provider: str = "none"
     construction_provider: str = "none"
     asset_management_provider: str = "none"
@@ -364,6 +393,8 @@ class Settings(BaseSettings):
             "service_bus_connection_string",
             "azure_event_grid_webhook_secret",
             "nodeodm_token",
+            "copernicus_access_token",
+            "aemet_api_key",
             "s3_access_key_id",
             "s3_secret_access_key",
             "azure_storage_connection_string",
@@ -438,6 +469,32 @@ class Settings(BaseSettings):
         if not _PROVIDER_NAME.fullmatch(normalized):
             raise ValueError("provider names must be stable lowercase identifiers")
         return normalized
+
+    @field_validator("satellite_download_asset_keys", mode="before")
+    @classmethod
+    def normalize_satellite_asset_keys(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (list, tuple, set)):
+            value = ",".join(str(item) for item in value)
+        return ",".join(
+            dict.fromkeys(item.strip() for item in str(value).split(",") if item.strip())
+        )
+
+    @field_validator("copernicus_allowed_download_hosts", mode="before")
+    @classmethod
+    def normalize_copernicus_hosts(cls, value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, (list, tuple, set)):
+            value = ",".join(str(item) for item in value)
+        return ",".join(
+            dict.fromkeys(
+                item.strip().lower().rstrip(".")
+                for item in str(value).split(",")
+                if item.strip()
+            )
+        )
 
     @field_validator("admin_emails", mode="before")
     @classmethod
@@ -531,6 +588,11 @@ class Settings(BaseSettings):
                 "PROCESSING_RETRY_MAX_SECONDS must be greater than or equal to "
                 "PROCESSING_RETRY_INITIAL_SECONDS"
             )
+        if self.intelligence_retry_max_seconds < self.intelligence_retry_initial_seconds:
+            raise ValueError(
+                "INTELLIGENCE_RETRY_MAX_SECONDS must be greater than or equal to "
+                "INTELLIGENCE_RETRY_INITIAL_SECONDS"
+            )
         processing_providers = {
             "none",
             "null",
@@ -589,6 +651,72 @@ class Settings(BaseSettings):
             self.nodeodm_base_url
         ):
             raise ValueError("NodeODM processing requires NODEODM_BASE_URL")
+        satellite_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "copernicus",
+            "cdse",
+            "sentinel",
+        }
+        if self.satellite_provider not in satellite_providers:
+            raise ValueError(
+                "SATELLITE_PROVIDER must be none, fake, or copernicus"
+            )
+        weather_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "aemet",
+            "aemet_opendata",
+            "azure_maps",
+            "azure_maps_weather",
+        }
+        if self.weather_provider not in weather_providers:
+            raise ValueError(
+                "WEATHER_PROVIDER must be none, fake, aemet, or the Azure Maps scaffold"
+            )
+        if self.weather_provider in {"aemet", "aemet_opendata"} and not self.aemet_api_key:
+            raise ValueError("AEMET weather requires AEMET_API_KEY")
+        if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection):
+            raise ValueError("SATELLITE_DEFAULT_COLLECTION is invalid")
+        asset_keys = self.satellite_download_asset_key_list
+        if self.satellite_download_assets_enabled and not asset_keys:
+            raise ValueError(
+                "SATELLITE_DOWNLOAD_ASSET_KEYS is required when asset downloads are enabled"
+            )
+        if any(not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,119}", key) for key in asset_keys):
+            raise ValueError("SATELLITE_DOWNLOAD_ASSET_KEYS contains an invalid key")
+        hosts = self.copernicus_download_host_list
+        if not hosts or any(
+            "/" in host
+            or ":" in host
+            or not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", host)
+            for host in hosts
+        ):
+            raise ValueError("COPERNICUS_ALLOWED_DOWNLOAD_HOSTS contains an invalid host")
+        for field_name, configured_url in (
+            ("COPERNICUS_STAC_BASE_URL", self.copernicus_stac_base_url),
+            ("AEMET_BASE_URL", self.aemet_base_url),
+        ):
+            parsed = urlsplit(configured_url)
+            allowed_schemes = {"https"} if self.is_deployed else {"http", "https"}
+            if (
+                parsed.scheme.lower() not in allowed_schemes
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(
+                    f"{field_name} must be an absolute provider URL without "
+                    "userinfo, query, or fragment"
+                )
+        self.copernicus_stac_base_url = self.copernicus_stac_base_url.rstrip("/")
+        self.aemet_base_url = self.aemet_base_url.rstrip("/")
         if not self.event_topic.strip() or not self.service_bus_topic.strip():
             raise ValueError("event and Service Bus topic names must not be empty")
         if not self.service_bus_subscription.strip():
@@ -714,6 +842,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "deployed automatic processing requires the configured NodeODM adapter"
                 )
+            if self.satellite_provider in {"fake", "deterministic"}:
+                raise ValueError("deployed environments cannot use the fake satellite provider")
+            if self.weather_provider in {"fake", "deterministic"}:
+                raise ValueError("deployed environments cannot use the fake weather provider")
             for field_name, configured_url in (
                 ("FRONTEND_BASE", self.frontend_base),
                 ("BACKEND_BASE", self.backend_base),
@@ -849,6 +981,18 @@ class Settings(BaseSettings):
         )
 
     @property
+    def satellite_download_asset_key_list(self) -> tuple[str, ...]:
+        return tuple(
+            item for item in self.satellite_download_asset_keys.split(",") if item
+        )
+
+    @property
+    def copernicus_download_host_list(self) -> tuple[str, ...]:
+        return tuple(
+            item for item in self.copernicus_allowed_download_hosts.split(",") if item
+        )
+
+    @property
     def smtp_configuration_complete(self) -> bool:
         username_configured = bool(self.smtp_user and self.smtp_user.strip())
         password_configured = bool(self.smtp_password)
@@ -949,6 +1093,11 @@ class Settings(BaseSettings):
                 "nodeodm": bool(
                     self.processing_provider in {"nodeodm", "opendronemap"}
                     and self.nodeodm_base_url
+                ),
+                "copernicus": self.satellite_provider in {"copernicus", "cdse", "sentinel"},
+                "aemet": bool(
+                    self.weather_provider in {"aemet", "aemet_opendata"}
+                    and self.aemet_api_key
                 ),
                 "erpnext": bool(
                     self.erpnext_base_url

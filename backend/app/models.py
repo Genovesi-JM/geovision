@@ -1995,6 +1995,296 @@ class ProcessingJobOutput(Base):
     )
 
 
+class IntelligenceSchedule(Base):
+    """Recurring provider-neutral satellite or weather acquisition plan."""
+
+    __tablename__ = "intelligence_schedules"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    provider_code: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    cadence_minutes: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=10080, server_default="10080"
+    )
+    lookback_days: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=14, server_default="14"
+    )
+    options_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="ACTIVE", server_default="ACTIVE", index=True
+    )
+    next_run_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_success_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_error_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    last_error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    consecutive_failures: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(200), nullable=False, unique=True
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint("kind IN ('SATELLITE', 'WEATHER')", name="ck_intelligence_schedule_kind"),
+        CheckConstraint(
+            "status IN ('ACTIVE', 'PAUSED', 'DISABLED')",
+            name="ck_intelligence_schedule_status",
+        ),
+        CheckConstraint(
+            "cadence_minutes > 0 AND lookback_days > 0 AND consecutive_failures >= 0",
+            name="ck_intelligence_schedule_intervals",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_intelligence_schedule_version"),
+        Index("ix_intelligence_schedules_due", status, next_run_at, created_at),
+    )
+
+
+class IntelligenceAcquisition(Base):
+    """Auditable provider request, cache record, and retry state."""
+
+    __tablename__ = "intelligence_acquisitions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    schedule_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("intelligence_schedules.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    acquisition_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    kind: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    provider_code: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    request_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    result_summary_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    dataset_ids_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="REQUESTED", server_default="REQUESTED", index=True
+    )
+    cache_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    max_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=3, server_default="3"
+    )
+    next_attempt_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    error_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(200), nullable=False, unique=True
+    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint("kind IN ('SATELLITE', 'WEATHER')", name="ck_intelligence_acquisition_kind"),
+        CheckConstraint(
+            "status IN ('REQUESTED', 'RUNNING', 'RETRY_WAIT', 'COMPLETED', 'FAILED')",
+            name="ck_intelligence_acquisition_status",
+        ),
+        CheckConstraint(
+            "attempt_count >= 0 AND max_attempts > 0",
+            name="ck_intelligence_acquisition_attempts",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_intelligence_acquisition_version"),
+        Index(
+            "ix_intelligence_acquisitions_cache",
+            organization_id,
+            asset_id,
+            kind,
+            provider_code,
+            request_fingerprint,
+            status,
+            cache_expires_at,
+        ),
+        Index("ix_intelligence_acquisitions_due", status, next_attempt_at, created_at),
+    )
+
+
+class SatelliteScene(Base):
+    """Normalized STAC scene metadata linked to a canonical Dataset."""
+
+    __tablename__ = "satellite_scenes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    intelligence_acquisition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("intelligence_acquisitions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    dataset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("datasets.id", ondelete="RESTRICT"), nullable=False, unique=True
+    )
+    provider_code: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    provider_reference: Mapped[str] = mapped_column(String(240), nullable=False)
+    collection: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    acquired_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cloud_cover_percent: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    resolution_meters: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    crs: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    bands_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    bbox_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    coverage_geojson: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    assets_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    provenance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    source_link: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "asset_id", "provider_code", "provider_reference", name="uq_satellite_scene_asset_source"
+        ),
+        CheckConstraint(
+            "cloud_cover_percent IS NULL OR "
+            "(cloud_cover_percent >= 0 AND cloud_cover_percent <= 100)",
+            name="ck_satellite_scene_cloud_cover",
+        ),
+        CheckConstraint(
+            "resolution_meters IS NULL OR resolution_meters > 0",
+            name="ck_satellite_scene_resolution",
+        ),
+        Index("ix_satellite_scenes_asset_time", asset_id, acquired_at),
+    )
+
+
+class WeatherObservation(Base):
+    """Normalized weather measurement from a provider station or grid."""
+
+    __tablename__ = "weather_observations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    intelligence_acquisition_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("intelligence_acquisitions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    dataset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("datasets.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    provider_code: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    source_reference: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
+    source_name: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    metric: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    unit: Mapped[str] = mapped_column(String(40), nullable=False)
+    quality: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="observed", server_default="observed"
+    )
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    distance_km: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    provenance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "asset_id",
+            "provider_code",
+            "source_reference",
+            "observed_at",
+            "metric",
+            name="uq_weather_observation_asset_source_time_metric",
+        ),
+        CheckConstraint(
+            "latitude IS NULL OR (latitude >= -90 AND latitude <= 90)",
+            name="ck_weather_observation_latitude",
+        ),
+        CheckConstraint(
+            "longitude IS NULL OR (longitude >= -180 AND longitude <= 180)",
+            name="ck_weather_observation_longitude",
+        ),
+        CheckConstraint(
+            "distance_km IS NULL OR distance_km >= 0",
+            name="ck_weather_observation_distance",
+        ),
+        Index("ix_weather_observations_asset_metric_time", asset_id, metric, observed_at),
+    )
+
+
 # â”€â”€ Cart â”€â”€
 
 class Cart(Base):

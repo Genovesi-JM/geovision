@@ -111,3 +111,25 @@ how to confirm · what the automation does afterwards.
 - **After:** Set `PROCESSING_PROVIDER=nodeodm`, enable automatic job creation,
   deploy the event and processing workers, and alert on `FAILED`,
   `NEEDS_REVIEW`, stale-claim and queue-depth counts.
+
+## 12. Live satellite and weather intelligence activation
+
+- **Reason:** Copernicus and AEMET adapters, durable scheduling, caching and
+  provenance are implemented, but external availability, quotas, licences,
+  geographic/station coverage and scientific interpretation require an
+  account-bound operational decision. Source observations are not validated
+  agronomic or engineering conclusions.
+- **Action:** Approve the required Copernicus access level and AEMET OpenData
+  key, attribution/licence terms, request and storage budgets, representative
+  assets/date windows, allowed imagery downloads and customer-facing wording.
+  Keep credentials in the server secret manager.
+- **Where:** Provider portals, GeoVision staging, PostgreSQL/object storage and
+  the monitoring/alerting system; never mobile/web clients or Git.
+- **Confirm:** Representative Spain assets complete live scene and weather
+  acquisition twice (including a cache hit), a scheduled weekly run, bounded
+  retry/recovery, provenance review, tenant-isolation test and quota/cost alert.
+- **After:** Select `SATELLITE_PROVIDER=copernicus` and/or
+  `WEATHER_PROVIDER=aemet`, deploy the independent intelligence worker, and
+  monitor failed/retrying/stale acquisitions, schedule failures, provider
+  latency, cache hit rate and download/storage consumption. Azure Maps Weather
+  remains unavailable until a separately approved adapter is implemented.

@@ -39,6 +39,7 @@ instead of treating legacy structures as disposable.
 | R29 | High | Phase 11 maps legacy drone missions and manual inspections into a common acquisition history while preserving both source tables and APIs | A partial cutover or repeated backfill can duplicate history, lose flight detail, leak provider/assignee metadata, or let sector code depend on drone-only structures | Keep deterministic legacy identities and uniqueness constraints, dual-write through compatibility services, expose allowlisted customer projections, test rollback/re-upgrade parity, and retire legacy tables only after deployed clients and row-count checks confirm cutover |
 | R30 | High | Phase 12 pins every object reference to local, S3-compatible, or Azure Blob storage; changing the configured default deliberately does not move old bytes, and signed uploads currently use a portable single-PUT ceiling | A settings-only cutover can make historical objects unavailable, and files above the ceiling need a real multipart/block client rather than a larger advertised limit | Run a staged copy with size/checksum verification, dual-provider read window, transactional reference switch, and rollback; add provider-specific multipart/block sessions only when client/workload evidence requires them |
 | R31 | High | Phase 14 adds durable processing jobs, a deterministic fake and NodeODM integration, but live photogrammetry compute capacity and measurement quality are not validated; the initial NodeODM output path reads a bounded archive into worker memory | A live node can exhaust memory/CPU/storage, a technically valid output can still be operationally inaccurate, or raising safety limits can destabilize workers | Keep automatic processing off until staging capacity and representative accuracy tests pass; pin/review the processor image, monitor queues/resources, retain NEEDS_REVIEW, and implement streamed/chunked transfer before larger workloads |
+| R32 | High | Phase 15 adds Copernicus and AEMET adapters, durable cached acquisitions and normalized provenance, but live credentials, provider quotas/licences, coverage and source interpretation are not validated | Provider outages or limits can create data gaps and costs, sparse stations/cloudy scenes can mislead users, or source data can be presented as a validated sector conclusion | Keep live providers behind Gate 12; review licence/attribution and budgets, validate representative assets and source quality, monitor failures/cache/storage, preserve provenance and require sector-specific interpretation before customer claims |
 
 ## Controls that already reduce risk
 
@@ -393,3 +394,23 @@ without a compatibility plan.
 - **Introduced and controlled:** R31 records the remaining live capacity,
   accuracy, image/licence approval and large-transfer work. Automatic processing
   remains opt-in and paid vendor adapters remain unavailable.
+
+## Phase 15 outcome
+
+- **Reduced:** R19, because satellite and weather capabilities are no longer
+  placeholders. Provider-neutral services now persist attempts, cache keys,
+  normalized scenes/observations, Acquisition/Dataset links and provenance.
+- **Contained:** Provider coupling, because Copernicus STAC and AEMET OpenData
+  details remain in adapters injected at the transport/worker boundary. Azure
+  Maps Weather is an explicit unavailable scaffold and fake providers are
+  rejected in deployed profiles.
+- **Contained:** Restart, duplicate and provider-failure risk, because weekly
+  schedules and retries use durable claims, bounded attempts/backoff, stable
+  fingerprints and reusable completed results. Safe error details and schedule
+  failure counters remain inspectable.
+- **Contained:** Download and credential exposure, because imagery downloads
+  are opt-in, size-bounded and HTTPS-host allowlisted; stored source links drop
+  query strings/fragments and all provider credentials remain server-side.
+- **Introduced and controlled:** R32 records remaining external quota, licence,
+  coverage, source-quality, cost and interpretation work. Gate 12 must pass
+  before live activation; source data alone is not a sector conclusion.

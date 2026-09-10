@@ -44,6 +44,25 @@ async def _in_process_processing_worker(stop: asyncio.Event) -> None:
             pass
 
 
+async def _in_process_intelligence_worker(stop: asyncio.Event) -> None:
+    """Local convenience runner; deployment uses the independent worker CLI."""
+
+    from app.workers.intelligence_worker import (
+        default_worker_id,
+        run_intelligence_worker_cycle,
+    )
+
+    worker_id = default_worker_id()
+    while not stop.is_set():
+        await asyncio.to_thread(run_intelligence_worker_cycle, worker_id=worker_id)
+        try:
+            await asyncio.wait_for(
+                stop.wait(), timeout=settings.intelligence_worker_poll_seconds
+            )
+        except asyncio.TimeoutError:
+            pass
+
+
 @asynccontextmanager
 async def application_workers(application: FastAPI) -> AsyncIterator[None]:
     """Run the existing MQTT bridge and IoT watchdog for one API instance.
@@ -69,6 +88,11 @@ async def application_workers(application: FastAPI) -> AsyncIterator[None]:
     processing_worker_task = (
         asyncio.create_task(_in_process_processing_worker(stop_event))
         if settings.processing_worker_in_process
+        else None
+    )
+    intelligence_worker_task = (
+        asyncio.create_task(_in_process_intelligence_worker(stop_event))
+        if settings.intelligence_worker_in_process
         else None
     )
     application.state.iot_watchdog_stop = stop_event
@@ -101,3 +125,10 @@ async def application_workers(application: FastAPI) -> AsyncIterator[None]:
                 processing_worker_task.cancel()
                 with suppress(asyncio.CancelledError):
                     await processing_worker_task
+        if intelligence_worker_task is not None:
+            try:
+                await asyncio.wait_for(intelligence_worker_task, timeout=2)
+            except TimeoutError:
+                intelligence_worker_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await intelligence_worker_task

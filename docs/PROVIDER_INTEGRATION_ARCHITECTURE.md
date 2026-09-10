@@ -111,8 +111,8 @@ backfill can be considered after those ownership boundaries are established.
 | Dataset object storage | `ObjectStorageProvider` | Private local, S3-compatible, and Azure Blob adapters implement provider-neutral streaming, signed URLs, stat/checksum, deletion, and object URI operations |
 | Domain events and queue publication | `EventPublisher`, `QueuePublisher` | Transactional database outbox, idempotent consumers, independent worker, local delivery and Azure Service Bus/Event Grid adapters are implemented |
 | Processing | `ProcessingProvider` | Durable job orchestration, deterministic fake and NodeODM adapter implement submit/status/cancel/output normalization; PIX4D, Autodesk and Bentley remain explicit unavailable scaffolds |
-| Weather | `WeatherProvider` | Port only; provider integration belongs to Phase 15 |
-| Satellite | `SatelliteProvider` | Port only; provider integration belongs to Phase 15 |
+| Weather | `WeatherProvider` | Durable acquisition/observation workflow, deterministic fake and AEMET OpenData adapter are implemented; Azure Maps remains an explicit unavailable scaffold |
+| Satellite | `SatelliteProvider` | Durable acquisition/scene workflow, deterministic fake and Copernicus Data Space STAC adapter are implemented, including optional bounded asset download |
 | Payments | `PaymentProvider` | Existing bank, Stripe, Multicaixa, and PayPal adapters have a normalized facade and lazy factory; the orchestrator accepts injected adapters; Phase 8 still owns lifecycle consolidation |
 | ERP | `ERPProvider` | Existing mock and ERPNext adapters implement the boundary; mock is limited to local/dev/test; no Odoo adapter yet |
 | Notifications | `NotificationProvider` | SMTP adapter and metadata-only local fallback are behind a lazy factory; deployed environments require SMTP with verified STARTTLS; durable delivery remains Phase 20 work |
@@ -147,6 +147,26 @@ archive retains objects, while file deletion uses a recoverable intermediate
 state and tombstone. Existing rows stay pinned to their provider, so a provider
 cutover still requires copy/checksum/reference migration and rollback rather
 than changing the default setting. See `docs/DATASET_STORAGE.md`.
+
+### Satellite and weather intelligence
+
+The monitoring module owns provider-neutral satellite search and weather
+observation requests. Its services validate tenant-owned asset geometry,
+persist every attempt, cache equivalent requests, register ordinary
+Acquisition and Dataset records, and retain normalized source/time/provenance
+metadata. Scheduled work uses claimed database records and the independent
+intelligence worker; providers are injected at the router or worker composition
+boundary.
+
+The Copernicus adapter uses the public STAC search contract and normalizes
+Sentinel scene time, cloud cover, resolution, bands, coverage and assets. Asset
+downloads are disabled by default, size-bounded, restricted to an HTTPS host
+allowlist and stored through `ObjectStorageProvider`; signed query material is
+never persisted. The AEMET adapter follows the OpenData metadata-to-data URL
+flow, restricts the second request to the configured AEMET host and selects the
+nearest station within a configured radius. Azure Maps Weather is deliberately
+unavailable until its commercial adapter is implemented. See
+`docs/SATELLITE_WEATHER_INTELLIGENCE.md`.
 
 ### ERP
 
@@ -222,9 +242,10 @@ complete identity-provider implementation.
 
 ## Deferred work
 
-Phase 2 does not implement cloud infrastructure, durable messaging, processing
-jobs, satellite/weather ingestion, the Odoo cutover, a generic external-ID
-table, payment lifecycle redesign, full legacy identity/session retirement, or
-durable notification delivery. Credential-key rotation and notification-log
-lifecycle management are also not provided. Those changes remain assigned to
-their later playbook phases.
+The initial Phase 2 boundary did not implement these later capabilities.
+Durable messaging, processing jobs, payment lifecycle consolidation and
+satellite/weather ingestion are now implemented by their owning phases. Cloud
+infrastructure activation, the Odoo cutover, a generic external-ID table, full
+legacy identity/session retirement, durable notification delivery,
+credential-key rotation and notification-log lifecycle management remain
+deferred to their documented phases and human gates.

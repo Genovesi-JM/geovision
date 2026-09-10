@@ -4,9 +4,19 @@ from app.modules.contracts import DomainModule, RouterMount
 
 definition = DomainModule(
     name="monitoring",
-    purpose="Devices, gateways, telemetry, alert rules, live events, and health.",
-    maturity="implemented-transitional",
+    purpose=(
+        "Devices, telemetry, alerts, satellite/weather intelligence, live events, and health."
+    ),
+    maturity="implemented",
+    dependencies=("core", "organizations", "assets", "missions", "datasets"),
     routes=(
+        RouterMount(
+            "monitoring.intelligence",
+            "monitoring",
+            "app.routers.intelligence",
+            114,
+            secondary_owners=("assets", "datasets", "missions"),
+        ),
         RouterMount(
             "monitoring.iot",
             "monitoring",

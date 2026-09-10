@@ -189,7 +189,8 @@ MARITIME_PROVIDER=none
 ```
 
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
-`IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, and `PROCESSING_PROVIDER` drive provider factories. Queue
+`IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, `PROCESSING_PROVIDER`,
+`WEATHER_PROVIDER`, and `SATELLITE_PROVIDER` drive provider factories. Queue
 delivery accepts `database`, test-only `in_memory`, `azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
@@ -198,15 +199,63 @@ Business API routes still accept only GeoVision internal sessions. Payment
 methods use their own per-method factory rather than one selector. Processing
 accepts `none`, local/test `fake`, or `nodeodm`; PIX4D, Autodesk Reality Capture,
 and Bentley Reality Modeling names deliberately resolve to explicit unavailable
-scaffolds until their adapters are implemented and approved. Weather, satellite,
-GIS, construction, asset-management, and maritime remain reserved seams.
+scaffolds until their adapters are implemented and approved. Satellite accepts
+`none`, local/test `fake`, or `copernicus`. Weather accepts `none`, local/test
+`fake`, or `aemet`; Azure Maps provider names resolve to an explicit unavailable
+scaffold. GIS, construction, asset-management, and maritime remain reserved seams.
 
-In addition to the signing and encryption guards, identity selector and Entra
-configuration structure are validated when settings load. Most other provider
-names and credential completeness are validated when a factory or provider
-operation is invoked, not when FastAPI starts. Health/readiness therefore does
-not prove that discovery/JWKS, ERP, storage, notifications, payments, or another
-external account can complete a live request.
+In addition to the signing and encryption guards, identity, processing,
+satellite and weather selector structure is validated when settings load;
+selecting AEMET also requires its API key. Most other credential completeness
+is validated when a factory or provider operation is invoked, not when FastAPI
+starts. Health/readiness therefore does not prove that discovery/JWKS, ERP,
+storage, notifications, payments, Copernicus, AEMET, or another external
+account can complete a live request.
+
+## Satellite and weather intelligence
+
+Satellite and weather requests are tenant-scoped, cached and recorded as
+durable intelligence acquisitions. Successful results create normal
+Acquisition/Dataset records plus normalized scene or observation records with
+source, acquisition/observation time and provenance. Weekly schedules use the
+same services through the independent worker.
+
+```dotenv
+SATELLITE_PROVIDER=none
+WEATHER_PROVIDER=none
+INTELLIGENCE_WORKER_IN_PROCESS=false
+INTELLIGENCE_WORKER_POLL_SECONDS=30
+INTELLIGENCE_WORKER_BATCH_SIZE=10
+INTELLIGENCE_WORKER_CLAIM_TIMEOUT_SECONDS=600
+INTELLIGENCE_MAX_ATTEMPTS=3
+INTELLIGENCE_RETRY_INITIAL_SECONDS=30
+INTELLIGENCE_RETRY_MAX_SECONDS=3600
+SATELLITE_CACHE_TTL_SECONDS=21600
+WEATHER_CACHE_TTL_SECONDS=1800
+SATELLITE_DEFAULT_COLLECTION=sentinel-2-l2a
+SATELLITE_DEFAULT_LOOKBACK_DAYS=14
+SATELLITE_DEFAULT_MAX_CLOUD_COVER_PERCENT=60
+SATELLITE_MAX_SCENES_PER_REQUEST=20
+SATELLITE_DOWNLOAD_ASSETS_ENABLED=false
+SATELLITE_DOWNLOAD_ASSET_KEYS=thumbnail
+SATELLITE_MAX_ASSET_BYTES=268435456
+COPERNICUS_STAC_BASE_URL=https://stac.dataspace.copernicus.eu/v1
+COPERNICUS_ACCESS_TOKEN=
+COPERNICUS_ALLOWED_DOWNLOAD_HOSTS=download.dataspace.copernicus.eu,datahub.creodias.eu
+WEATHER_DEFAULT_LOOKBACK_HOURS=12
+AEMET_BASE_URL=https://opendata.aemet.es/opendata
+AEMET_API_KEY=
+AEMET_MAX_STATION_DISTANCE_KM=150
+```
+
+For a dependency-free local demonstration, select both `fake` providers and
+run `python -m app.workers.intelligence_worker`. Fake providers are rejected in
+staging/production. AEMET requires a key when selected. Copernicus catalogue
+searches can be public, while protected asset downloads may require the
+redacted `COPERNICUS_ACCESS_TOKEN`. Downloads are disabled by default and
+restricted to the configured HTTPS host allowlist and maximum size. Run the
+live activation gate before enabling either provider in production. See
+[`docs/SATELLITE_WEATHER_INTELLIGENCE.md`](../docs/SATELLITE_WEATHER_INTELLIGENCE.md).
 
 ## Photogrammetry processing
 

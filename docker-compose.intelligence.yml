@@ -1,0 +1,28 @@
+services:
+  backend:
+    environment:
+      SATELLITE_PROVIDER: ${SATELLITE_PROVIDER:-none}
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-none}
+      COPERNICUS_ACCESS_TOKEN: ${COPERNICUS_ACCESS_TOKEN:-}
+      AEMET_API_KEY: ${AEMET_API_KEY:-}
+
+  intelligence-worker:
+    profiles: ["intelligence"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    command: ["python", "-m", "app.workers.intelligence_worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      OBJECT_STORAGE_PROVIDER: ${OBJECT_STORAGE_PROVIDER:-local}
+      LOCAL_STORAGE_ROOT: /runtime/object-storage
+      SATELLITE_PROVIDER: ${SATELLITE_PROVIDER:-none}
+      WEATHER_PROVIDER: ${WEATHER_PROVIDER:-none}
+      COPERNICUS_STAC_BASE_URL: ${COPERNICUS_STAC_BASE_URL:-https://stac.dataspace.copernicus.eu/v1}
+      COPERNICUS_ACCESS_TOKEN: ${COPERNICUS_ACCESS_TOKEN:-}
+      COPERNICUS_ALLOWED_DOWNLOAD_HOSTS: ${COPERNICUS_ALLOWED_DOWNLOAD_HOSTS:-download.dataspace.copernicus.eu,datahub.creodias.eu}
+      AEMET_BASE_URL: ${AEMET_BASE_URL:-https://opendata.aemet.es/opendata}
+      AEMET_API_KEY: ${AEMET_API_KEY:-}
+    volumes: [geovision-runtime:/runtime]
+    depends_on:
+      db: {condition: service_healthy}
