@@ -332,8 +332,13 @@ def test_asset_management_package_has_no_network_or_vendor_sdk_imports() -> None
     forbidden_roots = {
         "arcgis",
         "bentley",
+        "dynamics",
         "httpx",
+        "ibm",
+        "maximo",
+        "msal",
         "requests",
+        "sap",
         "seequent",
         "socket",
     }
@@ -385,3 +390,66 @@ def test_existing_bentley_arcgis_and_miteco_capabilities_are_reused() -> None:
             assert result.failure.code == "unsupported_provider"
     finally:
         miteco.client.close()
+
+
+@pytest.mark.parametrize(
+    ("selector", "class_name"),
+    (
+        ("sap_eam", "SAPEAMAssetManagementScaffold"),
+        ("ibm_maximo", "IBMMaximoAssetManagementScaffold"),
+        (
+            "dynamics_365_asset_management",
+            "Dynamics365AssetManagementScaffold",
+        ),
+        ("customer_cmms", "CustomerCMMSAssetManagementScaffold"),
+    ),
+)
+def test_phase_31_cmms_scaffolds_require_registry_and_customer_sandbox(
+    selector: str,
+    class_name: str,
+) -> None:
+    config = Settings(
+        _env_file=None,
+        asset_management_provider=selector,
+        integration_connect_timeout_seconds=2.5,
+        integration_read_timeout_seconds=17,
+    )
+    provider = create_asset_management_provider(config)
+    result = provider.synchronize_asset(
+        {
+            "internal_id": uuid.uuid4(),
+            "client_secret": "phase-31-request-secret-must-not-echo",
+            "work_order": "must-not-create-persistence",
+        },
+        idempotency_key="phase-31-cmms",
+    )
+
+    assert isinstance(provider, AssetManagementProvider)
+    assert type(provider).__name__ == class_name
+    assert provider.credentials_configured is False
+    assert provider.timeout_policy.connect_seconds == 2.5
+    assert provider.timeout_policy.read_seconds == 17
+    assert provider.timeout_policy.write_seconds == 17
+    assert result.status is IntegrationStatus.NOT_CONFIGURED
+    assert result.failure is not None
+    assert result.failure.code == "provider_not_configured"
+    assert result.failure.retryable is False
+    assert "Phase 32" in result.failure.message
+    assert "customer integration registry" in result.failure.message
+    assert "approved sandbox" in result.failure.message
+    assert "phase-31-request-secret-must-not-echo" not in str(result)
+    assert result.external_reference is None
+    assert config.safe_summary()["providers"]["asset_management"] == selector
+
+
+def test_phase_31_cmms_settings_do_not_invent_global_credentials() -> None:
+    config = Settings(_env_file=None, asset_management_provider="sap-eam")
+
+    assert config.asset_management_provider == "sap_eam"
+    for field_name in (
+        "sap_client_secret",
+        "maximo_api_key",
+        "dynamics_client_secret",
+        "customer_cmms_token",
+    ):
+        assert not hasattr(config, field_name)

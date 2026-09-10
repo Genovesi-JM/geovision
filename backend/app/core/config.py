@@ -841,11 +841,30 @@ class Settings(BaseSettings):
             "deterministic",
             "seequent",
             "mine_enterprise",
+            "sap_eam",
+            "ibm_maximo",
+            "dynamics_365_asset_management",
+            "customer_cmms",
         }
         if self.asset_management_provider not in asset_management_providers:
             raise ValueError(
                 "ASSET_MANAGEMENT_PROVIDER must be none, null, fake, "
-                "deterministic, seequent, or mine_enterprise"
+                "deterministic, seequent, mine_enterprise, sap_eam, ibm_maximo, "
+                "dynamics_365_asset_management, or customer_cmms"
+            )
+        maritime_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "marinetraffic",
+            "kpler",
+            "puertos_del_estado",
+        }
+        if self.maritime_provider not in maritime_providers:
+            raise ValueError(
+                "MARITIME_PROVIDER must be none, null, fake, deterministic, "
+                "marinetraffic, kpler, or puertos_del_estado"
             )
         if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection):
             raise ValueError("SATELLITE_DEFAULT_COLLECTION is invalid")
@@ -1078,6 +1097,10 @@ class Settings(BaseSettings):
             if self.asset_management_provider in {"fake", "deterministic"}:
                 raise ValueError(
                     "deployed environments cannot use the fake asset-management provider"
+                )
+            if self.maritime_provider in {"fake", "deterministic"}:
+                raise ValueError(
+                    "deployed environments cannot use the fake maritime provider"
                 )
             if self.erp_provider == "odoo" and (
                 not self.odoo_webhook_secret or len(self.odoo_webhook_secret) < 32
@@ -1420,6 +1443,8 @@ class Settings(BaseSettings):
                 "trimble": self.trimble_configuration_complete,
                 "arcgis": self.arcgis_configuration_complete,
                 "seequent": self.seequent_configuration_complete,
+                # No live maritime adapter or customer entitlement is configured.
+                "maritime": False,
                 "erpnext": bool(
                     self.erpnext_base_url
                     and self.erpnext_api_key

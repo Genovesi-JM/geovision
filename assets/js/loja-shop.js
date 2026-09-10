@@ -19,10 +19,11 @@ let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
 let currentCart = null;
 const CATALOG_SECTOR_KEY = "gv_catalog_sector";
 const LEGACY_MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
-const STORE_SECTORS = new Set(["agro", "environment", "construction", "infrastructure", "mining"]);
+const STORE_SECTORS = new Set(["agro", "environment", "construction", "infrastructure", "mining", "ports"]);
 function normalizeStoreSector(value) {
   if (["ambiental"].includes(value)) return "environment";
   if (value === "livestock") return "agro";
+  if (["industry", "industrial", "port", "ports_industrial"].includes(value)) return "ports";
   return STORE_SECTORS.has(value) ? value : null;
 }
 const recommendedSector = normalizeStoreSector(
@@ -56,6 +57,7 @@ const SECTOR_LABEL_KEYS = {
   "infrastructure": "loja.sector.infrastructure",
   "agro": "loja.sector.agro",
   "mining": "loja.sector.mining",
+  "ports": "loja.sector.ports",
 };
 const storeT = (key) => (window.t && window.t(key)) || key;
 const storeFormat = (key, values = {}) => Object.entries(values).reduce(

@@ -55,7 +55,8 @@ void main() {
           'construction',
           'infrastructure',
           'environment',
-          'mining'
+          'mining',
+          'ports'
         ]));
     expect(
         products.every((product) => product.description.length > 45), isTrue);
@@ -106,6 +107,12 @@ void main() {
       'prod_mining_lidar_specialist_survey',
       'prod_mining_environmental_monitoring',
       'prod_mining_repeat_monitoring_plan',
+      'prod_ports_visual_inspection',
+      'prod_ports_thermal_inspection',
+      'prod_ports_3d_mapping',
+      'prod_ports_sensor_installation',
+      'prod_ports_monitoring_plan',
+      'prod_ports_specialist_review',
       'prod_aerial_basic_mapping',
       'prod_agro_visual_inspection',
       'prod_supply_soil_probe',

@@ -588,6 +588,7 @@ const translations = {
   "loja.sector.infrastructure": { pt: "Infraestruturas", en: "Infrastructure", es: "Infraestructuras" },
   "loja.sector.agro": { pt: "Agro e pecuária", en: "Agriculture & livestock", es: "Agricultura y ganadería" },
   "loja.sector.mining": { pt: "Mineração e pedreiras", en: "Mining & quarrying", es: "Minería y canteras" },
+  "loja.sector.ports": { pt: "Portos e indústria", en: "Ports & industry", es: "Puertos e industria" },
   "loja.execution.oneOff": { pt: "Pontual", en: "One-off", es: "Puntual" },
   "loja.execution.recurring": { pt: "Recorrente", en: "Recurring", es: "Recurrente" },
   "loja.featured": { pt: "Destaque", en: "Featured", es: "Destacado" },

@@ -102,6 +102,21 @@ _MINING_SERVICE_ASSET_TYPES = (
     "STOCKPILE_ZONE",
     "TALUS",
 )
+_PORTS_SERVICE_ASSET_TYPES = (
+    "BERTH",
+    "CRANE",
+    "EQUIPMENT",
+    "GANTRY",
+    "INSPECTION_ZONE",
+    "LOADING_AREA",
+    "PORT",
+    "QUAY",
+    "ROOF",
+    "STRUCTURE",
+    "TANK",
+    "TERMINAL",
+    "WAREHOUSE",
+)
 _LEGACY_PRODUCT_ASSET_TYPES = {
     product_id: _INFRASTRUCTURE_SERVICE_ASSET_TYPES
     for product_id in (
@@ -135,6 +150,19 @@ _LEGACY_PRODUCT_ASSET_TYPES.update(
             "prod_mining_lidar_specialist_survey",
             "prod_mining_environmental_monitoring",
             "prod_mining_repeat_monitoring_plan",
+        )
+    }
+)
+_LEGACY_PRODUCT_ASSET_TYPES.update(
+    {
+        product_id: _PORTS_SERVICE_ASSET_TYPES
+        for product_id in (
+            "prod_ports_visual_inspection",
+            "prod_ports_thermal_inspection",
+            "prod_ports_3d_mapping",
+            "prod_ports_sensor_installation",
+            "prod_ports_monitoring_plan",
+            "prod_ports_specialist_review",
         )
     }
 )

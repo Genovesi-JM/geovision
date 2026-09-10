@@ -52,6 +52,22 @@ def create_asset_management_provider(
 
         return MineEnterpriseSystemScaffold(timeout_policy=timeout_policy)
 
+    from .scaffolds import (
+        CustomerCMMSAssetManagementScaffold,
+        Dynamics365AssetManagementScaffold,
+        IBMMaximoAssetManagementScaffold,
+        SAPEAMAssetManagementScaffold,
+    )
+
+    registry_scaffolds = {
+        "sap_eam": SAPEAMAssetManagementScaffold,
+        "ibm_maximo": IBMMaximoAssetManagementScaffold,
+        "dynamics_365_asset_management": Dynamics365AssetManagementScaffold,
+        "customer_cmms": CustomerCMMSAssetManagementScaffold,
+    }
+    if selected in registry_scaffolds:
+        return registry_scaffolds[selected](timeout_policy=timeout_policy)
+
     from .unavailable import UnavailableAssetManagementProvider
 
     if selected in {"none", "null"}:

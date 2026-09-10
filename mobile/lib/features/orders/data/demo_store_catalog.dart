@@ -608,6 +608,219 @@ abstract final class DemoStoreCatalog {
       },
     ),
     GvProduct(
+      id: 'prod_ports_visual_inspection',
+      name: 'Inspeção Visual Portuária e Industrial',
+      category: 'service',
+      priceCents: 66500,
+      priceAkzCents: 55000000,
+      priceEurCents: 61100,
+      currency: 'USD',
+      featured: true,
+      sectors: ['ports'],
+      image: 'assets/images/store/infrastructure-inspection.jpg',
+      description:
+          'Evidências RGB georreferenciadas de um ativo e zona exatos; mudanças mapeadas permanecem candidatas para revisão, sem conclusão automática de defeito, segurança ou conformidade.',
+      deliverables: [
+        'Evidências visuais georreferenciadas',
+        'Registo do ativo e zona de inspeção',
+        'Relatório de candidatos ligado às evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Ports & Industrial Visual Inspection',
+          'description':
+              'Georeferenced RGB evidence for an exact asset and zone; mapped changes remain review candidates without automatic defect, safety, or compliance conclusions.'
+        },
+        'es': {
+          'name': 'Inspección Visual Portuaria e Industrial',
+          'description':
+              'Evidencia RGB georreferenciada de un activo y zona exactos; los cambios siguen siendo candidatos a revisión, sin conclusiones automáticas de defecto, seguridad o cumplimiento.'
+        },
+        'fr': {
+          'name': 'Inspection visuelle portuaire et industrielle',
+          'description':
+              'Preuves RGB géoréférencées d’un actif et d’une zone précis ; les changements restent à examiner, sans conclusion automatique de défaut, de sécurité ou de conformité.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_ports_thermal_inspection',
+      name: 'Inspeção Térmica Portuária e Industrial',
+      category: 'service',
+      priceCents: 72300,
+      priceAkzCents: 60000000,
+      priceEurCents: 66700,
+      currency: 'USD',
+      sectors: ['ports'],
+      image: 'assets/images/store/infrastructure-inspection.jpg',
+      description:
+          'Captura térmica calibrada em condições acordadas; diferenças de temperatura permanecem candidatas para revisão e não são classificadas automaticamente como avarias.',
+      deliverables: [
+        'Imagens térmicas calibradas',
+        'Registo de diferenças de temperatura',
+        'Condições de aquisição e limitações'
+      ],
+      translations: {
+        'en': {
+          'name': 'Ports & Industrial Thermal Inspection',
+          'description':
+              'Calibrated thermal capture under agreed conditions; temperature differences remain review candidates and are not automatically classified as faults.'
+        },
+        'es': {
+          'name': 'Inspección Térmica Portuaria e Industrial',
+          'description':
+              'Captura térmica calibrada en condiciones acordadas; las diferencias de temperatura siguen siendo candidatas a revisión y no se clasifican automáticamente como fallos.'
+        },
+        'fr': {
+          'name': 'Inspection thermique portuaire et industrielle',
+          'description':
+              'Capture thermique étalonnée dans des conditions convenues ; les écarts de température restent à examiner et ne sont pas automatiquement qualifiés de défaillances.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_ports_3d_mapping',
+      name: 'Captura de Realidade 3D Portuária e Industrial',
+      category: 'service',
+      priceCents: 144600,
+      priceAkzCents: 120000000,
+      priceEurCents: 133300,
+      currency: 'USD',
+      featured: true,
+      sectors: ['ports'],
+      image: 'assets/images/store/construction-progress.jpg',
+      description:
+          'Contexto 3D por fotogrametria ou LiDAR tecnicamente justificado, sujeito a registo e qualidade documentados e sem avaliação automática da condição.',
+      deliverables: [
+        'Nuvem de pontos ou malha quando suportada',
+        'Registo e controlo de qualidade',
+        'Comparação histórica compatível quando disponível'
+      ],
+      translations: {
+        'en': {
+          'name': 'Ports & Industrial 3D Reality Capture',
+          'description':
+              '3D context from photogrammetry or technically justified LiDAR, subject to documented registration and quality and without automatic condition assessment.'
+        },
+        'es': {
+          'name': 'Captura de Realidad 3D Portuaria e Industrial',
+          'description':
+              'Contexto 3D mediante fotogrametría o LiDAR técnicamente justificado, sujeto a registro y calidad documentados y sin evaluación automática del estado.'
+        },
+        'fr': {
+          'name': 'Capture de réalité 3D portuaire et industrielle',
+          'description':
+              'Contexte 3D par photogrammétrie ou LiDAR techniquement justifié, sous réserve d’un recalage et d’une qualité documentés, sans évaluation automatique de l’état.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_ports_sensor_installation',
+      name: 'Instalação de Sensores Portuários e Industriais',
+      category: 'service',
+      priceCents: 42200,
+      priceAkzCents: 35000000,
+      priceEurCents: 38900,
+      currency: 'USD',
+      sectors: ['ports'],
+      image: 'assets/images/store/connected-weather-station.jpg',
+      description:
+          'Instalação e atribuição auditável de sensores a um ativo GeoVision, sujeitas à validação de localização, calibração, energia, conectividade e comissionamento.',
+      deliverables: [
+        'Registo de instalação validado',
+        'Atribuição auditável ao ativo',
+        'Resultado de comissionamento e conectividade'
+      ],
+      translations: {
+        'en': {
+          'name': 'Ports & Industrial Sensor Installation',
+          'description':
+              'Auditable sensor installation and assignment to a GeoVision asset, subject to placement, calibration, power, connectivity, and commissioning validation.'
+        },
+        'es': {
+          'name': 'Instalación de Sensores Portuarios e Industriales',
+          'description':
+              'Instalación y asignación auditable de sensores a un activo GeoVision, sujetas a validar ubicación, calibración, energía, conectividad y puesta en servicio.'
+        },
+        'fr': {
+          'name': 'Installation de capteurs portuaires et industriels',
+          'description':
+              'Installation et affectation auditable de capteurs à un actif GeoVision, sous réserve de validation du positionnement, de l’étalonnage, de l’alimentation, de la connectivité et de la mise en service.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_ports_monitoring_plan',
+      name: 'Plano de Monitorização Portuária e Industrial',
+      category: 'subscription',
+      priceCents: 90400,
+      priceAkzCents: 75000000,
+      priceEurCents: 83300,
+      currency: 'USD',
+      featured: true,
+      sectors: ['ports'],
+      image: 'assets/images/store/construction-progress.jpg',
+      description:
+          'Inspeções recorrentes centradas no ativo, contexto de sensores suportados, controlos de qualidade, comparações históricas e relatórios rastreáveis; evidências ausentes permanecem desconhecidas.',
+      deliverables: [
+        'Cadência de inspeção acordada',
+        'Histórico de inspeções e alertas do ativo',
+        'Relatórios recorrentes ligados às evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Ports & Industrial Monitoring Plan',
+          'description':
+              'Recurring asset-centric inspections, supported sensor context, quality controls, historical comparisons, and traceable reports; missing evidence remains unknown.'
+        },
+        'es': {
+          'name': 'Plan de Monitorización Portuaria e Industrial',
+          'description':
+              'Inspecciones recurrentes centradas en el activo, contexto de sensores compatibles, controles de calidad, comparaciones históricas e informes trazables; la evidencia ausente permanece desconocida.'
+        },
+        'fr': {
+          'name': 'Plan de suivi portuaire et industriel',
+          'description':
+              'Inspections récurrentes centrées sur l’actif, contexte de capteurs pris en charge, contrôles qualité, comparaisons historiques et rapports traçables ; les preuves absentes restent inconnues.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_ports_specialist_review',
+      name: 'Revisão Especializada Portuária e Industrial',
+      category: 'service',
+      priceCents: 30100,
+      priceAkzCents: 25000000,
+      priceEurCents: 27800,
+      currency: 'USD',
+      sectors: ['ports'],
+      image: 'assets/images/store/infrastructure-inspection.jpg',
+      description:
+          'Revisão qualificada de evidências e candidatos, preservando observações, incerteza, proveniência e responsabilidade do revisor, sem certificação automática.',
+      deliverables: [
+        'Registo da revisão das evidências',
+        'Autoria e notas de interpretação',
+        'Decisão de seguimento documentada'
+      ],
+      translations: {
+        'en': {
+          'name': 'Ports & Industrial Specialist Review',
+          'description':
+              'Qualified review of evidence and candidates while preserving observations, uncertainty, provenance, and reviewer responsibility, without automatic certification.'
+        },
+        'es': {
+          'name': 'Revisión Especializada Portuaria e Industrial',
+          'description':
+              'Revisión cualificada de evidencias y candidatos que preserva observaciones, incertidumbre, procedencia y responsabilidad del revisor, sin certificación automática.'
+        },
+        'fr': {
+          'name': 'Examen spécialisé portuaire et industriel',
+          'description':
+              'Examen qualifié des preuves et éléments candidats, préservant observations, incertitude, provenance et responsabilité de l’examinateur, sans certification automatique.'
+        },
+      },
+    ),
+    GvProduct(
       id: 'prod_aerial_basic_mapping',
       name: 'Mapeamento Aéreo Essencial',
       category: 'service',

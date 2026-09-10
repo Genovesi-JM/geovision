@@ -503,6 +503,10 @@
   color: #a16207 !important;
   background: rgba(161,98,7,.08) !important;
 }
+[data-theme="light"] .sector-badge.ports {
+  color: #0e7490 !important;
+  background: rgba(14,116,144,.08) !important;
+}
 [data-theme="light"] .sector-badge.agro {
   color: #15803d !important;
   background: rgba(21,128,61,.08) !important;

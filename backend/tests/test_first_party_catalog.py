@@ -240,6 +240,67 @@ def test_mining_catalogue_exposes_quality_gated_services(client):
     assert expected.keys() <= {item["id"] for item in stockpile_response.json()}
 
 
+def test_ports_catalogue_exposes_asset_centric_inspection_services(client):
+    response = client.get("/catalog/items", params={"sector": "ports"})
+    assert response.status_code == 200, response.text
+    items = {item["id"]: item for item in response.json()}
+
+    expected = {
+        "prod_ports_visual_inspection": "INSPECTION",
+        "prod_ports_thermal_inspection": "INSPECTION",
+        "prod_ports_3d_mapping": "SERVICE",
+        "prod_ports_sensor_installation": "INSTALLATION",
+        "prod_ports_monitoring_plan": "MONITORING_PLAN",
+        "prod_ports_specialist_review": "SERVICE",
+    }
+    asset_types = {
+        "BERTH",
+        "CRANE",
+        "EQUIPMENT",
+        "GANTRY",
+        "INSPECTION_ZONE",
+        "LOADING_AREA",
+        "PORT",
+        "QUAY",
+        "ROOF",
+        "STRUCTURE",
+        "TANK",
+        "TERMINAL",
+        "WAREHOUSE",
+    }
+    assert expected.keys() <= items.keys()
+    for item_id, item_type in expected.items():
+        item = items[item_id]
+        assert item["item_type"] == item_type
+        assert item["sectors"] == ["PORTS_INDUSTRIAL"]
+        assert set(item["asset_types"]) == asset_types
+        assert item["deliverables"]
+        assert "supplier_id" not in item
+        assert "metadata" not in item
+        assert set(item["translations"]) == {"pt", "en", "es", "fr"}
+        assert all(
+            translation["name"] and translation["description"]
+            for translation in item["translations"].values()
+        )
+
+    visual = items["prod_ports_visual_inspection"]["description"]
+    assert "review candidates" in visual
+    assert "do not automatically establish" in visual
+    thermal = items["prod_ports_thermal_inspection"]["description"]
+    assert "not automatically classified as faults" in thermal
+    monitoring = items["prod_ports_monitoring_plan"]["description"]
+    assert "Missing evidence remains explicitly unknown" in monitoring
+    specialist = items["prod_ports_specialist_review"]["description"]
+    assert "does not create an automatic" in specialist
+
+    gantry_response = client.get(
+        "/catalog/items",
+        params={"sector": "industry", "asset_type": "gantry"},
+    )
+    assert gantry_response.status_code == 200, gantry_response.text
+    assert expected.keys() <= {item["id"] for item in gantry_response.json()}
+
+
 def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
     headers = _login_headers(client, "teste@admin.com")
     suffix = uuid.uuid4().hex[:8]

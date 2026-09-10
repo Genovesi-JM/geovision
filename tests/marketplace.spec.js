@@ -15,8 +15,10 @@ test.describe('GeoVision first-party catalogue', () => {
     await page.locator('#sector-filters [data-sector="mining"]').click();
     await expect(page.locator('.loja-card')).toHaveCount(5);
     await expect(page.getByRole('heading', { name: 'Voo Volumétrico de Mina' })).toHaveCount(0);
+    await page.locator('#sector-filters [data-sector="ports"]').click();
+    await expect(page.locator('.loja-card')).toHaveCount(6);
     await page.locator('#sector-filters [data-sector="all"]').click();
-    await expect(page.locator('.loja-card')).toHaveCount(35);
+    await expect(page.locator('.loja-card')).toHaveCount(41);
     // Energy & Power Monitor is a supported Home product (shown as "GV Power").
     await expect(page.getByText('Pulverização de Precisão')).toHaveCount(0);
 
@@ -29,6 +31,8 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Targeted Drone Verification' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mining Volumetry Survey' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mining Repeat Monitoring Plan' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ports & Industrial Visual Inspection' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Ports & Industrial Monitoring Plan' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Add');
     await expect(page.locator('.deliverables-preview').first())
       .toContainText('Mapped visual evidence');
@@ -40,6 +44,7 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Cartografía 3D de Infraestructura' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Plan de Monitorización Ambiental' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Levantamiento Volumétrico Minero' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Inspección Visual Portuaria e Industrial' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Añadir');
   });
 

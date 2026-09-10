@@ -204,9 +204,9 @@ MARITIME_PROVIDER=none
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
 `IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, `PROCESSING_PROVIDER`,
 `WEATHER_PROVIDER`, `SATELLITE_PROVIDER`, `IOT_CLOUD_PROVIDER`,
-`CONSTRUCTION_PROVIDER`, `GIS_PROVIDER`, and `ASSET_MANAGEMENT_PROVIDER` drive
-provider boundaries. Queue delivery accepts `database`, test-only `in_memory`,
-`azure_service_bus`, or the
+`CONSTRUCTION_PROVIDER`, `GIS_PROVIDER`, `ASSET_MANAGEMENT_PROVIDER`, and
+`MARITIME_PROVIDER` drive provider boundaries. Queue delivery accepts
+`database`, test-only `in_memory`, `azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
 Entra configuration at startup and control the external-token exchange boundary.
@@ -223,14 +223,26 @@ the public official-data `miteco` adapter, or the unavailable `arcgis` scaffold.
 Every named construction vendor and ArcGIS remain explicit unavailable
 scaffolds; supplying credentials does not turn them into live connectors.
 Asset management accepts `none`/`null`, local/test `fake`/`deterministic`,
-`seequent`, or `mine_enterprise`. Seequent and the generic mine-enterprise
-selection are explicit unavailable scaffolds: Seequent records only whether
-its credential pair is complete, while the generic selection has no invented
-authentication settings and remains unavailable until a concrete provider,
-customer sandbox,
-and Phase 32 registry exist. Both fake names are rejected in
-staging/production, including when selected through a factory override.
-Maritime remains a reserved seam.
+`seequent`, `mine_enterprise`, `sap_eam`, `ibm_maximo`,
+`dynamics_365_asset_management`, or `customer_cmms`. Every named selection is
+an explicit unavailable scaffold. Seequent records only whether its credential
+pair is complete. The other enterprise selections have no global credentials
+or invented endpoints and remain unavailable until a concrete customer scope,
+approved sandbox, mapping contract, and Phase 32 registry exist.
+
+Maritime accepts `none`/`null`, local/test `fake`/`deterministic`,
+`marinetraffic`, `kpler`, or `puertos_del_estado`. The deterministic fixture
+normalizes observed and model context while marking every value simulated,
+context-only, non-diagnostic, and unsuitable for navigation. MarineTraffic and
+Kpler remain unavailable until customer API entitlement, scope, rate terms,
+and a sandbox are approved. Puertos del Estado returns
+`authorization_terms_not_approved`: its oceanography FAQ restricts downloaded
+data to the stated purpose and prohibits transfer to third parties, so written
+permission is required before GeoVision can cache, derive alerts from, or show
+those data through a customer SaaS. No maritime selector performs live I/O.
+The safe summary always reports `configured.maritime=false` in this phase.
+All provider fake names are rejected in staging/production, including factory
+overrides.
 
 Optional enterprise OAuth application credentials are typed and redacted:
 
@@ -257,12 +269,15 @@ project/model/layer/asset references belong in `ExternalReference` values
 associated with authoritative GeoVision UUIDs; they are not configuration and
 never become primary IDs. Bentley iTwin stays behind `ConstructionProvider`,
 Bentley Reality Modeling behind `ProcessingProvider`, and ArcGIS/MITECO behind
-`GISProvider`; the asset-management factory does not duplicate them. No generic
-provider registry or persistent external-reference table is created in this
-phase.
+`GISProvider`; the asset-management factory does not duplicate them. AEMET,
+Copernicus, and MITECO also remain independent of the maritime boundary. No
+generic provider registry or persistent external-reference table is created in
+this phase, and no SAP, Maximo, Dynamics, customer-CMMS, MarineTraffic, Kpler,
+or Puertos credential belongs in the global environment file.
 
 In addition to the signing and encryption guards, identity, processing,
-satellite and weather selector structure is validated when settings load;
+satellite, weather, construction, GIS, asset-management, and maritime selector
+structure is validated when settings load;
 selecting AEMET also requires its API key. Most other credential completeness
 is validated when a factory or provider operation is invoked, not when FastAPI
 starts. Health/readiness therefore does not prove that discovery/JWKS, ERP,

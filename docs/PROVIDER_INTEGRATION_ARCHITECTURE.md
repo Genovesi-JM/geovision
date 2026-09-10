@@ -125,9 +125,9 @@ backfill can be considered after those ownership boundaries are established.
 | Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
 | GIS | `GISProvider` | A bounded public MITECO OGC API Features adapter and local contract fake implement the port; ArcGIS remains a fail-closed scaffold |
-| Asset management | `AssetManagementProvider` | Typed and mapping-compatible synchronization requests use a required idempotency key; Seequent and generic mine-enterprise selections remain fail-closed scaffolds, with a deterministic local/test contract fake |
+| Asset management | `AssetManagementProvider` | Typed and mapping-compatible synchronization requests use a required idempotency key; Seequent, generic mine-enterprise, SAP EAM, IBM Maximo, Dynamics 365 Asset Management, and customer-CMMS selections remain fail-closed scaffolds, with a deterministic local/test contract fake |
 | Construction systems | `ConstructionProvider` | Autodesk APS, Procore, Bentley iTwin, and Trimble have fail-closed scaffolds plus a local contract fake |
-| Maritime systems | `MaritimeProvider` | Placeholder port only |
+| Maritime systems | `MaritimeProvider` | Typed and mapping-compatible context contract plus a deterministic local/test fake; MarineTraffic, Kpler, and Puertos del Estado are explicit fail-closed scaffolds with no live I/O |
 
 The words “port” and “adapter” describe code boundaries, not commercial or
 operational readiness. A provider is live only after credentials, external
@@ -215,7 +215,7 @@ the MITECO implementation does not duplicate or proxy either client. Outside
 Spain, MITECO returns a coverage mismatch while global providers can continue
 independently.
 
-### Mining asset-management scaffolds
+### Asset-management scaffolds
 
 `AssetManagementProvider` is a narrow cross-sector synchronization seam; it is
 not a mining model, volume calculator, geology engine, safety assessment, or
@@ -227,7 +227,8 @@ require a keyword-only idempotency key, and the receipt carries explicit
 composition code can use the typed request and receipt.
 
 `ASSET_MANAGEMENT_PROVIDER` accepts `none`/`null`, local/test-only
-`fake`/`deterministic`, `seequent`, or `mine_enterprise`. The deterministic fake
+`fake`/`deterministic`, `seequent`, `mine_enterprise`, `sap_eam`, `ibm_maximo`,
+`dynamics_365_asset_management`, or `customer_cmms`. The deterministic fake
 performs no network I/O and produces the same opaque external reference for the
 same GeoVision UUID, asset kind, and idempotency key. It ignores caller-supplied
 provider references and metadata when producing the receipt, so fixtures cannot
@@ -243,12 +244,65 @@ until Phase 32 supplies a persistent provider registry, a concrete customer
 selection, an approved sandbox, and a reviewed authentication contract; this
 phase deliberately invents no generic credential or endpoint settings.
 
+SAP EAM, IBM Maximo, Dynamics 365 Asset Management, and customer CMMS are also
+named unavailable scaffolds. They use the existing typed, idempotent asset-sync
+contract but perform no request and introduce no work-order persistence,
+endpoint, SDK, or credential field. Their configuration is customer/workspace
+specific: Phase 32 must establish the encrypted integration registry, tenant
+ownership, provider account, approved sandbox, authentication method, field
+mapping, and provider-side idempotency before any live write is implemented.
+
 Existing capability boundaries remain authoritative: Bentley iTwin project
 synchronization stays behind `ConstructionProvider`, Bentley Reality Modeling
 stays behind `ProcessingProvider`, and ArcGIS plus MITECO stay behind
 `GISProvider`. The asset-management factory rejects those provider names rather
 than duplicating their clients or implying interchangeable capabilities. No
 database migration or generic external-reference table is introduced.
+
+### Maritime context scaffolds
+
+`MaritimeProvider` accepts a typed `MaritimeContextRequest` or a legacy mapping
+and returns a normalized `MaritimeContextResult`. Each reading explicitly keeps
+its opaque provider reference, UTC-valid time, station reference, latitude and
+longitude, metric, value, unit, quality, source, source kind, licence,
+attribution, and provenance. `MaritimeSourceKind` keeps observed, model,
+forecast, and AIS values distinct. Every result is `context_only=true`,
+`measurements_authoritative=false`, `navigation_authority=false`, and
+`diagnostic_authority=false`.
+
+`MARITIME_PROVIDER` accepts `none`/`null`, local/test-only
+`fake`/`deterministic`, `marinetraffic`, `kpler`, or `puertos_del_estado`. The
+deterministic fixture validates the GeoVision UUID, coordinate bounds, time
+window, search radius, and result limit. It returns fixed simulated observed
+and model readings with a deterministic opaque reference; it does not represent
+AIS, oceanographic, operational, or safety truth. Deployed profiles reject both
+fixture names even when a factory override requests one.
+
+MarineTraffic and Kpler selections return `provider_not_configured`. API
+entitlement, customer scope, rate terms, authentication, a sandbox, and the
+per-workspace Phase 32 registry must be approved before a live adapter exists.
+No global API-key field is provided. AIS is supplementary context and must never
+be used as collision-avoidance, navigation, port-control, security, or safety
+authority.
+
+Puertos del Estado exposes valuable measured and modelled oceanographic context
+through Portus and Portuscopia, but its
+[official oceanography FAQ](https://www.puertos.es/servicios/oceanografia/faqs)
+states that downloaded data are authorized only for the specific download
+purpose and may not be transferred to third parties. A GeoVision customer SaaS
+display, cache, or derived alert therefore requires written permission and a
+reviewed HTTPS access contract. The scaffold performs no network request and
+returns `authorization_terms_not_approved`; free download availability is not
+treated as redistribution permission. If permission is later granted, the live
+adapter must preserve observed versus model semantics, UTC timestamps, station
+and vertical-datum metadata, quality flags, attribution, licence/reuse terms,
+update times, spatial applicability, and source-specific warnings.
+
+AEMET weather, Copernicus satellite, and MITECO GIS remain in their existing
+ports, factories, and provenance models. The maritime package imports none of
+those clients and does not proxy or duplicate them. `safe_summary()` reports the
+selected maritime name while keeping `configured.maritime=false`, because no
+live maritime connectivity is available in this phase.
 
 ### ERP
 

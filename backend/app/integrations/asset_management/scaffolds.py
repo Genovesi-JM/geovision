@@ -52,4 +52,49 @@ class MineEnterpriseSystemScaffold(UnavailableAssetManagementProvider):
         )
 
 
-__all__ = ["MineEnterpriseSystemScaffold", "SeequentAssetManagementScaffold"]
+class _RegistryBackedAssetManagementScaffold(UnavailableAssetManagementProvider):
+    display_name: str
+    provider_name: str
+
+    def __init__(self, *, timeout_policy: TimeoutPolicy) -> None:
+        super().__init__(
+            self.provider_name,
+            (
+                f"{self.display_name} requires the Phase 32 customer integration "
+                "registry, an approved sandbox, and a reviewed authentication and "
+                "asset-mapping contract; live connectivity is unavailable"
+            ),
+            failure_code="provider_not_configured",
+            credentials_configured=False,
+            timeout_policy=timeout_policy,
+        )
+
+
+class SAPEAMAssetManagementScaffold(_RegistryBackedAssetManagementScaffold):
+    display_name = "SAP Enterprise Asset Management"
+    provider_name = "sap_eam"
+
+
+class IBMMaximoAssetManagementScaffold(_RegistryBackedAssetManagementScaffold):
+    display_name = "IBM Maximo"
+    provider_name = "ibm_maximo"
+
+
+class Dynamics365AssetManagementScaffold(_RegistryBackedAssetManagementScaffold):
+    display_name = "Dynamics 365 Asset Management"
+    provider_name = "dynamics_365_asset_management"
+
+
+class CustomerCMMSAssetManagementScaffold(_RegistryBackedAssetManagementScaffold):
+    display_name = "Customer CMMS"
+    provider_name = "customer_cmms"
+
+
+__all__ = [
+    "CustomerCMMSAssetManagementScaffold",
+    "Dynamics365AssetManagementScaffold",
+    "IBMMaximoAssetManagementScaffold",
+    "MineEnterpriseSystemScaffold",
+    "SAPEAMAssetManagementScaffold",
+    "SeequentAssetManagementScaffold",
+]
