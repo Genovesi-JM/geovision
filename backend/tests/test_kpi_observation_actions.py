@@ -116,7 +116,10 @@ def test_status_policies_are_backend_owned_and_confidence_aware():
     assert calculate_kpi_status(25, lower) is KpiStatus.WARNING
     assert calculate_kpi_status(35, lower) is KpiStatus.CRITICAL
     assert calculate_kpi_status(None, lower) is KpiStatus.UNKNOWN
-    assert format_kpi_value(0.734, "%", {"multiplier": 100, "decimal_places": 1}) == "73.4 %"
+    assert (
+        format_kpi_value(0.734, "%", {"multiplier": 100, "decimal_places": 1})
+        == "73.4 %"
+    )
     assert format_kpi_value(0.04, None, {"positive_prefix": "+"}) == "+0.04"
 
 
@@ -149,19 +152,22 @@ def test_calculator_and_rule_registries_select_latest_versions_without_core_edit
     latest = calculators.resolve("MINING", "stockpile_change")
     assert latest.definition.version == "2.0.0"
     assert latest.calculate(EvaluationContext("asset", "MINING", at)).value == 2
-    assert calculators.resolve("MINING", "stockpile_change", "1.0.0").definition.version == "1.0.0"
+    assert (
+        calculators.resolve("MINING", "stockpile_change", "1.0.0").definition.version
+        == "1.0.0"
+    )
     assert len(calculators.registrations("MINING")) == 1
     with pytest.raises(ValueError, match="already registered"):
         calculators.register(latest.definition, latest.calculate)
 
     rules = RuleRegistry()
     rules.register(
-        sector="PORTS_INDUSTRIAL",
+        sector="PORTS_LOGISTICS",
         key="port.anomaly",
         version="1.0.0",
         evaluate=lambda _context, _values: RuleOutcome(),
     )
-    assert rules.registrations("PORTS_INDUSTRIAL")[0].key == "port.anomaly"
+    assert rules.registrations("PORTS_LOGISTICS")[0].key == "port.anomaly"
     assert rules.registrations("AGRICULTURE") == ()
 
 
@@ -171,7 +177,12 @@ def test_calculator_and_rule_registries_select_latest_versions_without_core_edit
         ("AGRICULTURE", "crop_condition", "CROP_STRESS"),
         ("INFRASTRUCTURE", "construction_progress", "PROGRESS_VARIANCE"),
         ("MINING", "stockpile_change", "STOCKPILE_CHANGE"),
-        ("PORTS_INDUSTRIAL", "port_throughput", "PORT_ANOMALY"),
+        (
+            "INDUSTRY_ENERGY_UTILITIES",
+            "asset_condition",
+            "ASSET_ANOMALY",
+        ),
+        ("PORTS_LOGISTICS", "port_throughput", "PORT_ANOMALY"),
         ("ENVIRONMENTAL", "vegetation_change", "ENVIRONMENTAL_CHANGE"),
     ],
 )
@@ -265,14 +276,26 @@ def test_evaluation_persists_provenance_and_drives_normalized_customer_apis(
         db_session,
         asset=asset,
         definition=definition,
-        calculation=KpiCalculation(10, now - timedelta(days=30), "validated-baseline", 0.95, {"kind": "baseline"}),
+        calculation=KpiCalculation(
+            10,
+            now - timedelta(days=30),
+            "validated-baseline",
+            0.95,
+            {"kind": "baseline"},
+        ),
         is_baseline=True,
     )
     record_kpi_value(
         db_session,
         asset=asset,
         definition=definition,
-        calculation=KpiCalculation(15, now - timedelta(days=7), "drone-derived", 0.88, {"dataset_sha256": "a" * 64}),
+        calculation=KpiCalculation(
+            15,
+            now - timedelta(days=7),
+            "drone-derived",
+            0.88,
+            {"dataset_sha256": "a" * 64},
+        ),
     )
 
     calculators = CalculatorRegistry()
@@ -320,7 +343,9 @@ def test_evaluation_persists_provenance_and_drives_normalized_customer_apis(
                     source_observation_key="attention-zone",
                     due_date=context.measured_at + timedelta(days=2),
                     assigned_to_user_id=owner.id,
-                    recommendation_refs=({"kind": "service", "code": "DETAILED_SURVEY"},),
+                    recommendation_refs=(
+                        {"kind": "service", "code": "DETAILED_SURVEY"},
+                    ),
                 ),
             ),
         )
@@ -377,10 +402,20 @@ def test_evaluation_persists_provenance_and_drives_normalized_customer_apis(
     event_names = {
         row.event_type
         for row in db_session.query(EventOutbox)
-        .filter(EventOutbox.aggregate_id.in_([evaluation.kpi_values[0].id, evaluation.observations[0].id, actions[0].id]))
+        .filter(
+            EventOutbox.aggregate_id.in_(
+                [
+                    evaluation.kpi_values[0].id,
+                    evaluation.observations[0].id,
+                    actions[0].id,
+                ]
+            )
+        )
         .all()
     }
-    assert {"kpi.updated", "observation.created", "action.requested"}.issubset(event_names)
+    assert {"kpi.updated", "observation.created", "action.requested"}.issubset(
+        event_names
+    )
 
     kpis = client.get(f"/assets/{asset.id}/kpis", headers=headers)
     assert kpis.status_code == 200, kpis.text
@@ -446,7 +481,10 @@ def test_evaluation_persists_provenance_and_drives_normalized_customer_apis(
     )
     assert membership.status_code == 201, membership.text
     viewer_headers = _headers(viewer, workspace_id)
-    assert client.get(f"/assets/{asset.id}/summary", headers=viewer_headers).status_code == 200
+    assert (
+        client.get(f"/assets/{asset.id}/summary", headers=viewer_headers).status_code
+        == 200
+    )
     denied = client.patch(
         f"/actions/{actions[0].id}",
         headers=viewer_headers,
@@ -459,5 +497,11 @@ def test_evaluation_persists_provenance_and_drives_normalized_customer_apis(
     )
     assert outsider.id
     assert outsider_workspace != workspace_id
-    assert client.get(f"/assets/{asset.id}/kpis", headers=outsider_headers).status_code == 404
-    assert client.get(f"/actions/{actions[0].id}", headers=outsider_headers).status_code == 404
+    assert (
+        client.get(f"/assets/{asset.id}/kpis", headers=outsider_headers).status_code
+        == 404
+    )
+    assert (
+        client.get(f"/actions/{actions[0].id}", headers=outsider_headers).status_code
+        == 404
+    )

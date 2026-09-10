@@ -12,7 +12,10 @@ system, not embedded in a WebView.
    latest report, device-health summary, quick actions, last-sync status.
 2. **Sites** — list/search/sector-filter → site detail (KPIs, fields, areas) →
    site map. Agriculture is the first complete workflow; the model is
-   multi-sector via sector-aware KPI definitions.
+   multi-sector via sector-aware KPI definitions. Site filters and API payloads
+   use the ordered six public IDs in
+   [`docs/SECTOR_TAXONOMY.md`](docs/SECTOR_TAXONOMY.md); mobile must not maintain
+   a separate mining/industry or ports/industrial taxonomy.
 3. **Alerts** — list, severity filters (info/low/medium/high/critical),
    detail with location, recommended action, evidence, acknowledge / request
    intervention. Alerts originate on the backend; push routes to the app.

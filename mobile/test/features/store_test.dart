@@ -6,8 +6,36 @@ import 'package:geovision/features/orders/domain/currency.dart';
 import 'package:geovision/features/orders/domain/commerce.dart';
 import 'package:geovision/features/orders/domain/product.dart';
 import 'package:geovision/features/orders/presentation/product_image.dart';
+import 'package:geovision/features/orders/presentation/store_copy.dart';
+import 'package:geovision/features/sites/domain/sector.dart';
 
 void main() {
+  testWidgets('store filters use the agreed Portuguese sector labels',
+      (tester) async {
+    late List<String> labels;
+    late String legacyLabel;
+    await tester.pumpWidget(Localizations(
+      locale: const Locale('pt'),
+      delegates: const [DefaultWidgetsLocalizations.delegate],
+      child: Builder(builder: (context) {
+        final copy = StoreCopy.of(context);
+        labels = PublicSectorIds.values.map(copy.sector).toList();
+        legacyLabel = copy.sector('PORTS_INDUSTRIAL');
+        return const SizedBox.shrink();
+      }),
+    ));
+
+    expect(labels, const [
+      'Agricultura & Pecuária',
+      'Construção & Infraestruturas',
+      'Ambiente',
+      'Mineração',
+      'Indústria, Energia & Utilities',
+      'Portos & Logística',
+    ]);
+    expect(legacyLabel, 'Portos & Logística');
+  });
+
   test('demo catalogue contains only the current public product categories',
       () {
     final categories = DemoData.products().map((p) => p.category).toSet();
@@ -48,16 +76,14 @@ void main() {
       () {
     final products = DemoData.products();
     final sectors = products.expand((product) => product.sectors).toSet();
-    expect(
-        sectors,
-        containsAll([
-          'agro',
-          'construction',
-          'infrastructure',
-          'environment',
-          'mining',
-          'ports'
-        ]));
+    expect(sectors, {
+      'agriculture',
+      'construction_infrastructure',
+      'environment',
+      'mining',
+      'industry_energy_utilities',
+      'ports_logistics',
+    });
     expect(
         products.every((product) => product.description.length > 45), isTrue);
     expect(
@@ -154,6 +180,7 @@ void main() {
     expect(product.priceCents, 54500);
     expect(product.priceEurCents, 50000);
     expect(product.deliverables, ['Mapa NDVI']);
+    expect(product.sectors, ['agriculture']);
     expect(product.featured, isTrue);
     expect(product.localizedName('en'), 'NDVI Analysis');
   });

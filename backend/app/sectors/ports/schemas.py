@@ -1,4 +1,4 @@
-"""HTTP contracts for Ports and Industrial inspection intelligence."""
+"""HTTP contracts for Ports and Logistics inspection intelligence."""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ class PortsEvaluationRequest(BaseModel):
 
 class PortsCapabilitiesOut(BaseModel):
     sector: str
+    public_sector: str
+    maturity: str
     enabled: bool
     algorithm_bundle_version: str
     analysis_schema: str

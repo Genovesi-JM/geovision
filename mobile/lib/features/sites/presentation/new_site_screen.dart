@@ -21,7 +21,7 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
   final formKey = GlobalKey<FormState>();
   final name = TextEditingController();
   final area = TextEditingController();
-  Sector sector = Sector.agro;
+  Sector sector = Sector.agriculture;
   String country = 'Angola';
   String countryCode = 'AO';
   SiteRegion? province;
@@ -299,10 +299,10 @@ class _SiteFormCopy {
   String get title =>
       _pick('Adicionar local', 'Add site', 'Añadir sitio', 'Ajouter un site');
   String get intro => _pick(
-      'Registe uma fazenda, exploração, mina, infraestrutura ou área ambiental da sua organização.',
-      'Register a farm, operation, mine, infrastructure or environmental area belonging to your organisation.',
-      'Registre una finca, operación, mina, infraestructura o área ambiental de su organización.',
-      'Enregistrez une ferme, exploitation, mine, infrastructure ou zone environnementale de votre organisation.');
+      'Registe uma operação agrícola, construção, infraestrutura, área ambiental, mina, indústria, utility, porto ou operação logística.',
+      'Register an agricultural, construction, infrastructure, environmental, mining, industrial, utility, port or logistics operation.',
+      'Registre una operación agrícola, de construcción, infraestructura, medio ambiente, minería, industria, utilities, puertos o logística.',
+      'Enregistrez une activité agricole, de construction, d’infrastructure, environnementale, minière, industrielle, portuaire ou logistique.');
   String get name => _pick(
       'Nome do local *', 'Site name *', 'Nombre del sitio *', 'Nom du site *');
   String get nameValidation => _pick(
@@ -372,18 +372,25 @@ class _SiteFormCopy {
       };
 
   String sectorName(Sector value) => switch (value) {
-        Sector.agro => _pick(
-            'Agricultura e pecuária',
+        Sector.agriculture => _pick(
+            'Agricultura & Pecuária',
             'Agriculture & livestock',
             'Agricultura y ganadería',
             'Agriculture et élevage'),
+        Sector.constructionInfrastructure => _pick(
+            'Construção & Infraestruturas',
+            'Construction & infrastructure',
+            'Construcción e infraestructuras',
+            'Construction et infrastructures'),
         Sector.environment =>
           _pick('Ambiente', 'Environment', 'Medio ambiente', 'Environnement'),
-        Sector.construction =>
-          _pick('Construção', 'Construction', 'Construcción', 'Construction'),
-        Sector.industry => _pick('Indústria e mineração', 'Industry & mining',
-            'Industria y minería', 'Industrie et mines'),
-        Sector.infrastructure => _pick('Infraestruturas', 'Infrastructure',
-            'Infraestructuras', 'Infrastructures'),
+        Sector.mining => _pick('Mineração', 'Mining', 'Minería', 'Mines'),
+        Sector.industryEnergyUtilities => _pick(
+            'Indústria, Energia & Utilities',
+            'Industry, Energy & Utilities',
+            'Industria, Energía & Utilities',
+            'Industrie, Énergie & Services publics'),
+        Sector.portsLogistics => _pick('Portos & Logística',
+            'Ports & Logistics', 'Puertos & Logística', 'Ports & Logistique'),
       };
 }

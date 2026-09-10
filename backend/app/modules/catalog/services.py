@@ -22,6 +22,13 @@ from app.models import (
     ShopProduct,
     User,
 )
+from app.sector_taxonomy import (
+    PUBLIC_SECTOR_DEFINITIONS,
+    PUBLIC_SECTORS,
+    asset_sector_for_public,
+    normalize_public_sector,
+    public_sector_for_asset,
+)
 from app.product_translations import get_product_translations
 from app.modules.catalog.schemas import (
     CatalogItemCreate,
@@ -42,32 +49,40 @@ class CatalogError(ValueError):
 _SECTOR_ALIASES = {
     "AGRO": "AGRICULTURE",
     "AGRICULTURE": "AGRICULTURE",
+    "AGRICULTURE_LIVESTOCK": "AGRICULTURE",
     "LIVESTOCK": "AGRICULTURE",
     "CONSTRUCTION": "INFRASTRUCTURE",
+    "CONSTRUCTION_INFRASTRUCTURE": "INFRASTRUCTURE",
     "INFRASTRUCTURE": "INFRASTRUCTURE",
     "WATER": "INFRASTRUCTURE",
-    "ENERGY": "INFRASTRUCTURE",
     "FACILITIES": "INFRASTRUCTURE",
     "COLD_CHAIN": "INFRASTRUCTURE",
-    "SOLAR": "INFRASTRUCTURE",
     "DEMINING": "INFRASTRUCTURE",
     "ENVIRONMENT": "ENVIRONMENTAL",
     "ENVIRONMENTAL": "ENVIRONMENTAL",
     "AMBIENTAL": "ENVIRONMENTAL",
     "MINING": "MINING",
-    "INDUSTRY": "PORTS_INDUSTRIAL",
-    "INDUSTRIAL": "PORTS_INDUSTRIAL",
-    "PORT": "PORTS_INDUSTRIAL",
-    "PORTS": "PORTS_INDUSTRIAL",
-    "PORTS_INDUSTRIAL": "PORTS_INDUSTRIAL",
+    "QUARRY": "MINING",
+    "ENERGY": "INDUSTRY_ENERGY_UTILITIES",
+    "INDUSTRY": "INDUSTRY_ENERGY_UTILITIES",
+    "INDUSTRIAL": "INDUSTRY_ENERGY_UTILITIES",
+    "INDUSTRY_ENERGY": "INDUSTRY_ENERGY_UTILITIES",
+    "INDUSTRY_ENERGY_UTILITIES": "INDUSTRY_ENERGY_UTILITIES",
+    "SOLAR": "INDUSTRY_ENERGY_UTILITIES",
+    "UTILITIES": "INDUSTRY_ENERGY_UTILITIES",
+    "LOGISTICS": "PORTS_LOGISTICS",
+    "PORT": "PORTS_LOGISTICS",
+    "PORTS": "PORTS_LOGISTICS",
+    "PORTS_INDUSTRIAL": "PORTS_LOGISTICS",
+    "PORTS_LOGISTICS": "PORTS_LOGISTICS",
 }
 
-_LEGACY_SECTORS = {
-    "AGRICULTURE": "agro",
-    "INFRASTRUCTURE": "infrastructure",
-    "ENVIRONMENTAL": "environment",
-    "MINING": "mining",
-    "PORTS_INDUSTRIAL": "industry",
+_ASSET_SECTOR_ORDER = {
+    definition.asset_sector: index
+    for index, definition in enumerate(PUBLIC_SECTOR_DEFINITIONS)
+}
+_PUBLIC_SECTOR_ORDER = {
+    definition.id: index for index, definition in enumerate(PUBLIC_SECTOR_DEFINITIONS)
 }
 
 _INFRASTRUCTURE_SERVICE_ASSET_TYPES = (
@@ -179,8 +194,34 @@ def _slug(value: object, default: str = "catalog-item") -> str:
 
 
 def normalize_sector(value: object) -> str:
-    normalized = _identifier(value, "INFRASTRUCTURE")
+    public_sector = asset_sector_for_public(str(value))
+    if public_sector is not None:
+        return public_sector
+    normalized = _identifier(value, "")
     return _SECTOR_ALIASES.get(normalized, normalized)
+
+
+def _ordered_asset_sectors(values: list[object]) -> list[str]:
+    normalized = list(
+        dict.fromkeys(sector for value in values if (sector := normalize_sector(value)))
+    )
+    original_order = {value: index for index, value in enumerate(normalized)}
+    return sorted(
+        normalized,
+        key=lambda value: (
+            _ASSET_SECTOR_ORDER.get(value, len(_ASSET_SECTOR_ORDER)),
+            original_order[value],
+        ),
+    )
+
+
+def _ordered_public_sectors(values: list[object]) -> list[str]:
+    normalized = {
+        public_sector_for_asset(str(value))
+        for value in values
+        if public_sector_for_asset(str(value)) in PUBLIC_SECTORS
+    }
+    return sorted(normalized, key=_PUBLIC_SECTOR_ORDER.__getitem__)
 
 
 def normalize_asset_type(value: object) -> str:
@@ -204,9 +245,13 @@ def _json(value: Any) -> str:
             sort_keys=True,
         )
     except (TypeError, ValueError) as exc:
-        raise CatalogError("invalid_json", "Catalogue fields must contain JSON-compatible values") from exc
+        raise CatalogError(
+            "invalid_json", "Catalogue fields must contain JSON-compatible values"
+        ) from exc
     if len(payload.encode("utf-8")) > 65_536:
-        raise CatalogError("payload_too_large", "A catalogue JSON field cannot exceed 64 KiB")
+        raise CatalogError(
+            "payload_too_large", "A catalogue JSON field cannot exceed 64 KiB"
+        )
     return payload
 
 
@@ -230,7 +275,9 @@ def _enum_value(value: Any) -> Any:
     return getattr(value, "value", value)
 
 
-def _catalog_type(product_type: str | None, category: str | None, name: str | None) -> str:
+def _catalog_type(
+    product_type: str | None, category: str | None, name: str | None
+) -> str:
     combined = " ".join((product_type or "", category or "", name or "")).lower()
     if product_type in {"hardware", "physical", "physical_product"}:
         return "PHYSICAL_PRODUCT"
@@ -327,14 +374,16 @@ def public_item(item: CatalogItem) -> dict[str, Any]:
         "description": item.description,
         "item_type": item.item_type,
         "category": item.category,
-        "sectors": _json_list(item.sectors_json),
+        "sectors": _ordered_public_sectors(_json_list(item.sectors_json)),
         "asset_types": _json_list(item.asset_types_json),
         "customer_content": _json_dict(item.customer_content_json),
         "deliverables": _json_list(item.deliverables_json),
         "price_model": item.price_model,
         "currency": item.currency,
         "unit_amount": item.unit_amount,
-        "pricing": {key: int(value) for key, value in _json_dict(item.pricing_json).items()},
+        "pricing": {
+            key: int(value) for key, value in _json_dict(item.pricing_json).items()
+        },
         "availability_status": item.availability_status,
         "recommendation_triggers": _json_list(item.recommendation_triggers_json),
         "image_url": item.image_url,
@@ -351,6 +400,7 @@ def public_item(item: CatalogItem) -> dict[str, Any]:
 def internal_item(item: CatalogItem) -> dict[str, Any]:
     return {
         **public_item(item),
+        "sectors": _json_list(item.sectors_json),
         "status": item.status,
         "metadata": _json_dict(item.metadata_json),
         "supplier_id": item.supplier_id,
@@ -370,6 +420,8 @@ def list_public_items(
     asset_type: str | None = None,
     search: str | None = None,
 ) -> list[CatalogItem]:
+    if sector and normalize_public_sector(sector) not in PUBLIC_SECTORS:
+        raise CatalogError("unsupported_sector", "Unsupported sector filter")
     query = db.query(CatalogItem).filter(CatalogItem.status == "PUBLISHED")
     if item_type:
         query = query.filter(CatalogItem.item_type == _identifier(item_type, "SERVICE"))
@@ -383,14 +435,22 @@ def list_public_items(
                 CatalogItem.code.ilike(term),
             )
         )
-    items = query.order_by(CatalogItem.is_featured.desc(), CatalogItem.name, CatalogItem.id).all()
+    items = query.order_by(
+        CatalogItem.is_featured.desc(), CatalogItem.name, CatalogItem.id
+    ).all()
     normalized_sector = normalize_sector(sector) if sector else None
     normalized_asset = normalize_asset_type(asset_type) if asset_type else None
     return [
         item
         for item in items
-        if (normalized_sector is None or normalized_sector in _json_list(item.sectors_json))
-        and (normalized_asset is None or normalized_asset in _json_list(item.asset_types_json))
+        if (
+            normalized_sector is None
+            or normalized_sector in _json_list(item.sectors_json)
+        )
+        and (
+            normalized_asset is None
+            or normalized_asset in _json_list(item.asset_types_json)
+        )
     ]
 
 
@@ -426,8 +486,14 @@ def list_internal_items(
 def create_item(db: Session, *, actor: User, data: CatalogItemCreate) -> CatalogItem:
     code = _identifier(data.code or data.name, "CATALOG_ITEM")[:100]
     slug = _slug(data.slug or data.name)[:200]
-    if db.query(CatalogItem).filter(or_(CatalogItem.code == code, CatalogItem.slug == slug)).first():
-        raise CatalogError("catalog_item_exists", "Catalogue code or slug already exists")
+    if (
+        db.query(CatalogItem)
+        .filter(or_(CatalogItem.code == code, CatalogItem.slug == slug))
+        .first()
+    ):
+        raise CatalogError(
+            "catalog_item_exists", "Catalogue code or slug already exists"
+        )
     _validate_supplier(db, data.supplier_id)
     prices = dict(data.pricing)
     if data.unit_amount is not None:
@@ -442,8 +508,10 @@ def create_item(db: Session, *, actor: User, data: CatalogItemCreate) -> Catalog
         description=data.description,
         item_type=data.item_type.value,
         category=data.category,
-        sectors_json=_json(sorted({normalize_sector(value) for value in data.sectors})),
-        asset_types_json=_json(sorted({normalize_asset_type(value) for value in data.asset_types})),
+        sectors_json=_json(_ordered_asset_sectors(data.sectors)),
+        asset_types_json=_json(
+            sorted({normalize_asset_type(value) for value in data.asset_types})
+        ),
         customer_content_json=_json(data.customer_content),
         deliverables_json=_json(data.deliverables),
         price_model=data.price_model.value,
@@ -510,26 +578,36 @@ def update_item(
         if field in changes:
             duplicate = (
                 db.query(CatalogItem)
-                .filter(getattr(CatalogItem, field) == changes[field], CatalogItem.id != item.id)
+                .filter(
+                    getattr(CatalogItem, field) == changes[field],
+                    CatalogItem.id != item.id,
+                )
                 .first()
             )
             if duplicate:
-                raise CatalogError("catalog_item_exists", f"Catalogue {field} already exists")
+                raise CatalogError(
+                    "catalog_item_exists", f"Catalogue {field} already exists"
+                )
     if "supplier_id" in changes:
         _validate_supplier(db, changes["supplier_id"])
     previous_status = item.status
     for field, value in changes.items():
         if field in _JSON_UPDATE_FIELDS:
             if field == "sectors" and value is not None:
-                value = sorted({normalize_sector(entry) for entry in value})
+                value = _ordered_asset_sectors(value)
             elif field == "asset_types" and value is not None:
                 value = sorted({normalize_asset_type(entry) for entry in value})
-            empty_value = [] if field in {
-                "sectors",
-                "asset_types",
-                "deliverables",
-                "recommendation_triggers",
-            } else {}
+            empty_value = (
+                []
+                if field
+                in {
+                    "sectors",
+                    "asset_types",
+                    "deliverables",
+                    "recommendation_triggers",
+                }
+                else {}
+            )
             setattr(
                 item,
                 _JSON_UPDATE_FIELDS[field],
@@ -582,7 +660,9 @@ def supplier_internal(supplier: ProcurementSupplier) -> dict[str, Any]:
         "insurance": _json_dict(supplier.insurance_json),
         "document_refs": _json_list(supplier.document_refs_json),
         "quality_score": (
-            float(supplier.quality_score) if supplier.quality_score is not None else None
+            float(supplier.quality_score)
+            if supplier.quality_score is not None
+            else None
         ),
         "last_reviewed_at": (
             supplier.last_reviewed_at.isoformat() if supplier.last_reviewed_at else None
@@ -655,7 +735,11 @@ def update_supplier(
             supplier.metadata_json = _json(value if value is not None else {})
         elif field in json_fields:
             fallback = {} if field == "insurance" else []
-            setattr(supplier, json_fields[field], _json(value if value is not None else fallback))
+            setattr(
+                supplier,
+                json_fields[field],
+                _json(value if value is not None else fallback),
+            )
         else:
             setattr(supplier, field, value)
     supplier.updated_at = utc_now()
@@ -706,7 +790,8 @@ def list_suppliers(
         rows = [
             row
             for row in rows
-            if target in {_identifier(value, "") for value in _json_list(row.capabilities_json)}
+            if target
+            in {_identifier(value, "") for value in _json_list(row.capabilities_json)}
         ]
     return rows[:limit]
 
@@ -736,8 +821,10 @@ def mirror_catalog_item(db: Session, item: CatalogItem) -> ShopProduct:
         db.add(product)
     metadata = _json_dict(item.metadata_json)
     pricing = _json_dict(item.pricing_json)
-    legacy_type = "hardware" if item.item_type == "PHYSICAL_PRODUCT" else (
-        "subscription" if item.item_type == "MONITORING_PLAN" else "service"
+    legacy_type = (
+        "hardware"
+        if item.item_type == "PHYSICAL_PRODUCT"
+        else ("subscription" if item.item_type == "MONITORING_PLAN" else "service")
     )
     product.name = item.name
     product.slug = item.slug
@@ -756,9 +843,7 @@ def mirror_catalog_item(db: Session, item: CatalogItem) -> ShopProduct:
     product.duration_hours = item.duration_hours
     product.requires_site = item.requires_site
     product.min_area_ha = metadata.get("min_area_ha")
-    product.sectors_json = _json(
-        [_LEGACY_SECTORS.get(value, str(value).lower()) for value in _json_list(item.sectors_json)]
-    )
+    product.sectors_json = _json(_ordered_public_sectors(_json_list(item.sectors_json)))
     product.deliverables_json = _json(_json_list(item.deliverables_json))
     product.image_url = item.image_url
     product.is_active = item.status == "PUBLISHED"
@@ -769,7 +854,9 @@ def mirror_catalog_item(db: Session, item: CatalogItem) -> ShopProduct:
     return product
 
 
-def sync_shop_product(db: Session, product: ShopProduct, *, overwrite: bool = False) -> CatalogItem:
+def sync_shop_product(
+    db: Session, product: ShopProduct, *, overwrite: bool = False
+) -> CatalogItem:
     item = (
         db.query(CatalogItem)
         .filter(
@@ -815,7 +902,7 @@ def sync_shop_product(db: Session, product: ShopProduct, *, overwrite: bool = Fa
     item.description = product.description
     item.item_type = item_type
     item.category = product.category
-    item.sectors_json = _json(sorted({normalize_sector(v) for v in _json_list(product.sectors_json)}))
+    item.sectors_json = _json(_ordered_asset_sectors(_json_list(product.sectors_json)))
     configured_asset_types = _LEGACY_PRODUCT_ASSET_TYPES.get(product.id)
     item.asset_types_json = _json(
         list(configured_asset_types)
@@ -853,13 +940,17 @@ def sync_shop_product(db: Session, product: ShopProduct, *, overwrite: bool = Fa
     item.requires_scheduling = item_type not in {"PHYSICAL_PRODUCT", "ANALYSIS"}
     item.duration_hours = product.duration_hours
     item.fulfilment_type = _fulfilment_type(item_type)
-    item.installed_product_type = product.category if item_type == "PHYSICAL_PRODUCT" else None
+    item.installed_product_type = (
+        product.category if item_type == "PHYSICAL_PRODUCT" else None
+    )
     item.published_at = (item.published_at or now) if product.is_active else None
     item.updated_at = now
     return item
 
 
-def sync_basic_product(db: Session, product: Product, *, overwrite: bool = False) -> CatalogItem:
+def sync_basic_product(
+    db: Session, product: Product, *, overwrite: bool = False
+) -> CatalogItem:
     item = (
         db.query(CatalogItem)
         .filter(
@@ -886,7 +977,9 @@ def sync_basic_product(db: Session, product: Product, *, overwrite: bool = False
             updated_at=now,
         )
         db.add(item)
-    primary_image = next((image.url for image in product.images if image.is_primary), None)
+    primary_image = next(
+        (image.url for image in product.images if image.is_primary), None
+    )
     item.name = product.name
     item.summary = product.description[:500] if product.description else None
     item.description = product.description
@@ -942,8 +1035,10 @@ def legacy_product(item: CatalogItem) -> dict[str, Any]:
     metadata = _json_dict(item.metadata_json)
     content = _json_dict(item.customer_content_json)
     prices = _json_dict(item.pricing_json)
-    product_type = "hardware" if item.item_type == "PHYSICAL_PRODUCT" else (
-        "subscription" if item.item_type == "MONITORING_PLAN" else "service"
+    product_type = (
+        "hardware"
+        if item.item_type == "PHYSICAL_PRODUCT"
+        else ("subscription" if item.item_type == "MONITORING_PLAN" else "service")
     )
     return {
         "id": item.id,
@@ -953,7 +1048,8 @@ def legacy_product(item: CatalogItem) -> dict[str, Any]:
         "short_description": item.summary,
         "product_type": product_type,
         "category": item.category,
-        "execution_type": content.get("execution_type") or metadata.get("execution_type"),
+        "execution_type": content.get("execution_type")
+        or metadata.get("execution_type"),
         "price": int(prices.get("AOA", item.unit_amount or 0)),
         "price_usd": int(prices.get("USD", 0)),
         "price_eur": int(prices.get("EUR", 0)),
@@ -962,11 +1058,9 @@ def legacy_product(item: CatalogItem) -> dict[str, Any]:
         "duration_hours": item.duration_hours,
         "requires_site": item.requires_site,
         "requires_scheduling": item.requires_scheduling,
-        "min_area_ha": content.get("minimum_area_hectares") or metadata.get("min_area_ha"),
-        "sectors": [
-            _LEGACY_SECTORS.get(value, str(value).lower())
-            for value in _json_list(item.sectors_json)
-        ],
+        "min_area_ha": content.get("minimum_area_hectares")
+        or metadata.get("min_area_ha"),
+        "sectors": _ordered_public_sectors(_json_list(item.sectors_json)),
         "deliverables": _json_list(item.deliverables_json),
         "translations": _translations(item),
         "image_url": item.image_url,

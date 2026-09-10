@@ -22,3 +22,13 @@ def test_removed_home_sector_falls_back_to_generic():
     # KPI set. Unknown sectors fall back to the generic KPIs.
     items = get_kpis_for_sectors(["home"])
     assert [i.id for i in items] == [i.id for i in get_generic_kpis()]
+    assert all(item.value == "—" for item in items)
+    assert all(item.status is None and item.trend is None for item in items)
+    assert all(item.sector is None for item in items)
+
+
+def test_mining_placeholders_never_claim_zero_or_healthy_without_evidence():
+    items = get_kpis_for_sectors(["mining"])
+    assert items
+    assert all(item.value == "—" for item in items)
+    assert all(item.status is None and item.trend is None for item in items)

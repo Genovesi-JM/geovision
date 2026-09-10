@@ -30,6 +30,7 @@ from app.modules.organizations.domain import (
     permission_granted,
 )
 from app.modules.audit.services import record_audit_event
+from app.sector_taxonomy import normalize_capability_modules
 from app.services.event_outbox import enqueue_domain_event
 
 
@@ -376,7 +377,7 @@ def create_organization_with_workspace(
         timezone=timezone.strip(),
         status="active",
         subscription_plan="trial",
-        sectors=json.dumps([sector_focus]),
+        sectors=json.dumps([item for item in sector_focus.split(",") if item]),
         current_users=1,
     )
     db.add(organization)
@@ -400,7 +401,7 @@ def create_organization_with_workspace(
         dashboard_profile=dashboard_profile,
         use_cases=json.dumps(use_cases),
         org_name=org_name,
-        modules_enabled=json.dumps(modules_enabled),
+        modules_enabled=json.dumps(normalize_capability_modules(modules_enabled)),
         status=WorkspaceStatus.ACTIVE.value,
     )
     db.add_all([organization_membership, workspace])
@@ -466,7 +467,7 @@ def create_workspace(
         dashboard_profile=dashboard_profile,
         use_cases=json.dumps(use_cases),
         org_name=organization.name,
-        modules_enabled=json.dumps(modules_enabled),
+        modules_enabled=json.dumps(normalize_capability_modules(modules_enabled)),
         status=WorkspaceStatus.ACTIVE.value,
     )
     db.add(workspace)

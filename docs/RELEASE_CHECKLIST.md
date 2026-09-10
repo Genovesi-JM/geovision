@@ -81,10 +81,11 @@ deployment or close any human gate in `HUMAN_GATES.md`.
   inputs as open evidence, not a pass for that gate.
 - [ ] On a freshly migrated disposable database,
   `backend/scripts/seed_phase33_demo.py --confirm-synthetic-demo` was run twice
-  to prove idempotency. Agriculture, Infrastructure, Environmental, Mining, and
-  Ports/Industrial each have clearly marked synthetic Asset, mission, dataset,
-  KPI, observation, action, and report history visible through customer-safe
-  projections. No credential was created, reset, or printed.
+  to prove idempotency. All six canonical sectors each have clearly marked
+  synthetic Asset, mission, dataset, KPI, observation, action, and report
+  history visible through customer-safe projections. No credential was
+  created, reset, or printed. The Phase 33 script name is a retained
+  compatibility name.
 - [ ] One service request was followed through canonical organization,
   workspace, Asset, order, fulfilment job, private assignment, acquisition,
   upload, dataset, processing, KPI/observation/action, reviewed publication, and
@@ -111,6 +112,30 @@ deployment or close any human gate in `HUMAN_GATES.md`.
   token and selected workspace. If
   `GEOVISION_STAGING_FOREIGN_WORKSPACE_ID` was not supplied, record the
   cross-workspace staging check as missing rather than complete.
+
+## Phase 34 six-sector alignment evidence
+
+- [ ] Public website, onboarding, account profiles, dashboard, catalogue, KPI
+  responses, mobile selectors, backend registry, Asset sectors, and synthetic
+  fixtures expose the same ordered six-sector contract from
+  `docs/SECTOR_TAXONOMY.md`.
+- [ ] New responses and writes use only `agriculture`,
+  `construction_infrastructure`, `environment`, `mining`,
+  `industry_energy_utilities`, and `ports_logistics`; Asset/evidence writes use
+  only their six mapped uppercase technical values.
+- [ ] Legacy public and technical aliases remain readable, while tests prove
+  that mining is not mapped to industry and ports/logistics is not combined
+  with industry/energy/utilities.
+- [ ] Canonical Industry/Energy/Utilities and Ports/Logistics capability routes
+  pass authorization, Workspace-module, rollout, missing-data, and
+  cross-tenant negative tests; hidden legacy Industry and Ports paths preserve
+  compatibility.
+- [ ] `phase34_sector_taxonomy_v1` passed clean upgrade, downgrade,
+  re-upgrade, row-count, unknown-extension preservation, and one-head checks
+  against a production-like PostgreSQL/PostGIS copy.
+- [ ] Browser and Flutter contract tests verify exact Portuguese labels, order,
+  IDs, aliases, filters, and no stale combined sector copy. Record the exact
+  Phase 34 commit and do not reuse Phase 33 test counts or image digests.
 
 ## Background workers and integrations
 

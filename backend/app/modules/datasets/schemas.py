@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.modules.assets.domain import normalize_sector as normalize_asset_sector
+from app.sector_taxonomy import PUBLIC_SECTORS_BY_ASSET_SECTOR
 from app.modules.datasets.domain import (
     DatasetStatus,
     ObjectArea,
@@ -61,6 +63,16 @@ class DatasetCreate(BaseModel):
     def stable_dataset_type(cls, value: str) -> str:
         return normalize_dataset_type(value)
 
+    @field_validator("sector", mode="before")
+    @classmethod
+    def technical_sector(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = normalize_asset_sector(value)
+        if normalized not in PUBLIC_SECTORS_BY_ASSET_SECTOR:
+            raise ValueError("sector must map to one of the six GeoVision sectors")
+        return normalized
+
     @field_validator("metadata", "provenance")
     @classmethod
     def safe_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
@@ -70,7 +82,11 @@ class DatasetCreate(BaseModel):
     def linked_asset_and_capture_time(self):
         if not self.asset_id and not self.site_id:
             raise ValueError("asset_id or legacy site_id is required")
-        if self.capture_time and self.capture_date and self.capture_time != self.capture_date:
+        if (
+            self.capture_time
+            and self.capture_date
+            and self.capture_time != self.capture_date
+        ):
             raise ValueError("capture_time and capture_date must agree")
         if self.resolution is not None and not self.resolution_unit:
             raise ValueError("resolution_unit is required with resolution")
@@ -101,7 +117,11 @@ class DatasetUpdate(BaseModel):
 
     @model_validator(mode="after")
     def coherent_measurements(self):
-        if self.capture_time and self.capture_date and self.capture_time != self.capture_date:
+        if (
+            self.capture_time
+            and self.capture_date
+            and self.capture_time != self.capture_date
+        ):
             raise ValueError("capture_time and capture_date must agree")
         supplied_resolution = "resolution" in self.model_fields_set
         supplied_unit = "resolution_unit" in self.model_fields_set

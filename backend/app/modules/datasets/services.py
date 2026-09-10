@@ -17,16 +17,12 @@ from app.core.event_names import EventNames
 from app.core.time import utc_now
 from app.models import Acquisition, Asset, Dataset, DatasetFile, Site, User
 from app.modules.audit.services import record_audit_event
-from app.modules.assets.services import (
-    AssetAccessError,
-    get_asset,
-    synchronize_legacy_site,
-)
+from app.modules.assets.domain import normalize_sector as normalize_asset_sector
+from app.modules.assets.services import get_asset, synchronize_legacy_site
 from app.modules.datasets.domain import (
     DatasetError,
     DatasetStatus,
     ObjectArea,
-    ProcessingLevel,
     normalize_provider_code,
     object_area_for,
     require_transition,
@@ -35,6 +31,7 @@ from app.modules.datasets.domain import (
 from app.modules.datasets.schemas import DatasetCreate, DatasetUpdate
 from app.modules.identity.domain import AuthorizationContext
 from app.modules.organizations.domain import permission_granted
+from app.sector_taxonomy import PUBLIC_SECTORS_BY_ASSET_SECTOR
 from app.services.event_outbox import enqueue_domain_event
 from app.services.storage import StorageService, detect_file_type
 
@@ -206,13 +203,23 @@ def create_dataset(
         )
     dataset_id = str(uuid.uuid4())
     capture_time = data.capture_time or data.capture_date
+    asset_sector = normalize_asset_sector(asset.sector)
+    if asset_sector not in PUBLIC_SECTORS_BY_ASSET_SECTOR:
+        raise DatasetError(
+            "asset_sector_unmapped",
+            "Asset sector is outside the supported GeoVision taxonomy",
+        )
+    if data.sector is not None and data.sector != asset_sector:
+        raise DatasetError(
+            "dataset_sector_mismatch",
+            "Dataset sector must match its linked asset sector",
+        )
     dataset = Dataset(
         id=dataset_id,
         company_id=asset.organization_id,
         workspace_id=asset.workspace_id,
-        site_id=data.site_id or (
-            asset.legacy_source_id if asset.legacy_source == "site" else None
-        ),
+        site_id=data.site_id
+        or (asset.legacy_source_id if asset.legacy_source == "site" else None),
         asset_id=asset.id,
         mission_id=mission.id if mission else None,
         name=data.name.strip(),
@@ -231,7 +238,7 @@ def create_dataset(
         quality_status=data.quality_status.value,
         provenance_json=_json(data.provenance),
         status=DatasetStatus.UPLOADING.value,
-        sector=data.sector or asset.sector,
+        sector=asset_sector,
         capture_date=capture_time,
         metadata_json=_json(data.metadata),
         file_count=0,
@@ -247,7 +254,10 @@ def create_dataset(
         actor=actor,
         action="dataset.created",
         dataset=dataset,
-        details={"dataset_type": dataset.dataset_type, "mission_id": dataset.mission_id},
+        details={
+            "dataset_type": dataset.dataset_type,
+            "mission_id": dataset.mission_id,
+        },
     )
     _dataset_event(
         db,
@@ -291,7 +301,7 @@ def list_owned_datasets(
     if site_id:
         query = query.filter(Dataset.site_id == site_id)
     if sector:
-        query = query.filter(Dataset.sector == sector)
+        query = query.filter(Dataset.sector == normalize_asset_sector(sector))
     if status:
         query = query.filter(Dataset.status == status)
     if source_tool:
@@ -353,7 +363,9 @@ def dataset_out(dataset: Dataset) -> dict[str, Any]:
         "capture_time": dataset.capture_date,
         "capture_date": dataset.capture_date,
         "crs": dataset.crs,
-        "resolution": float(dataset.resolution) if dataset.resolution is not None else None,
+        "resolution": float(dataset.resolution)
+        if dataset.resolution is not None
+        else None,
         "resolution_unit": dataset.resolution_unit,
         "processing_level": dataset.processing_level,
         "quality_status": dataset.quality_status,
@@ -387,7 +399,9 @@ def update_dataset(
     if target_status:
         require_transition(dataset.status, target_status.value)
         dataset.status = target_status.value
-    capture_time = changed.pop("capture_time", None) or changed.pop("capture_date", None)
+    capture_time = changed.pop("capture_time", None) or changed.pop(
+        "capture_date", None
+    )
     if capture_time is not None:
         dataset.capture_date = capture_time
     if "metadata" in changed:
@@ -571,7 +585,11 @@ def upload_dataset_file(
         dataset=dataset,
         name=EventNames.DATASET_FILE_UPLOADED,
         key=f"dataset-file:{file.id}:uploaded",
-        payload={"file_id": file.id, "object_key": stored_key, "size_bytes": actual_size},
+        payload={
+            "file_id": file.id,
+            "object_key": stored_key,
+            "size_bytes": actual_size,
+        },
     )
     try:
         db.commit()
@@ -663,7 +681,11 @@ def reserve_upload(
 
 def _reserved_file(dataset: Dataset, storage_key: str) -> DatasetFile:
     file = next(
-        (candidate for candidate in dataset.files if candidate.storage_key == storage_key),
+        (
+            candidate
+            for candidate in dataset.files
+            if candidate.storage_key == storage_key
+        ),
         None,
     )
     if file is None or file.status not in {"pending_upload", "uploaded"}:
@@ -696,7 +718,9 @@ def complete_reserved_upload_from_stream(
         max_size_bytes=settings.dataset_signed_upload_max_bytes,
     )
     if file.file_size and file.file_size != size_bytes:
-        raise DatasetError("file_size_mismatch", "Uploaded file size does not match reservation")
+        raise DatasetError(
+            "file_size_mismatch", "Uploaded file size does not match reservation"
+        )
     stored_key, actual_size, md5_hash, sha256_hash = storage.upload_file(
         file_obj,
         storage_key,
@@ -731,7 +755,11 @@ def complete_reserved_upload_from_stream(
         dataset=dataset,
         name=EventNames.DATASET_FILE_UPLOADED,
         key=f"dataset-file:{file.id}:uploaded",
-        payload={"file_id": file.id, "object_key": stored_key, "size_bytes": actual_size},
+        payload={
+            "file_id": file.id,
+            "object_key": stored_key,
+            "size_bytes": actual_size,
+        },
     )
     try:
         db.commit()
@@ -759,7 +787,9 @@ def confirm_reserved_upload(
 ) -> DatasetFile:
     file = _reserved_file(dataset, storage_key)
     if file.filename != filename:
-        raise DatasetError("upload_mismatch", "Filename does not match upload reservation")
+        raise DatasetError(
+            "upload_mismatch", "Filename does not match upload reservation"
+        )
     if file.status == "uploaded":
         return file
     if file.storage_provider != storage.provider_name:
@@ -814,8 +844,7 @@ def confirm_reserved_upload(
     )
     file.sha256_hash = (
         str(trusted_sha256).lower()
-        if trusted_sha256
-        and re.fullmatch(r"[a-fA-F0-9]{64}", str(trusted_sha256))
+        if trusted_sha256 and re.fullmatch(r"[a-fA-F0-9]{64}", str(trusted_sha256))
         else None
     )
     file.status = "uploaded"
@@ -839,7 +868,11 @@ def confirm_reserved_upload(
         dataset=dataset,
         name=EventNames.DATASET_FILE_UPLOADED,
         key=f"dataset-file:{file.id}:uploaded",
-        payload={"file_id": file.id, "object_key": storage_key, "size_bytes": actual_size},
+        payload={
+            "file_id": file.id,
+            "object_key": storage_key,
+            "size_bytes": actual_size,
+        },
     )
     db.commit()
     db.refresh(file)
@@ -880,7 +913,9 @@ def delete_dataset_file(
     file_id: str,
     storage: StorageService,
 ) -> DatasetFile:
-    file = next((candidate for candidate in dataset.files if candidate.id == file_id), None)
+    file = next(
+        (candidate for candidate in dataset.files if candidate.id == file_id), None
+    )
     if file is None or file.status == "deleted":
         raise DatasetError("file_not_found", "Dataset file was not found")
     if file.storage_provider != storage.provider_name:

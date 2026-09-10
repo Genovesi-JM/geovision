@@ -19,10 +19,12 @@ test.describe('B2C and B2B capability balance', () => {
     const map = page.locator('#hero-map');
 
     const sectors = [
-      ['Agropecuária', 'agro', 'Humidade', 'Rebanho · 184'],
+      ['Agricultura & Pecuária', 'agriculture', 'Humidade', 'Rebanho · 184'],
+      ['Construção & Infraestruturas', 'construction_infrastructure', 'Progresso', 'Máquina · EX-04'],
+      ['Ambiente', 'environment', 'Vegetação', 'Rio · qualidade boa'],
       ['Mineração', 'mining', 'Volume', 'Talude norte · estável'],
-      ['Construção', 'construction', 'Progresso', 'Máquina · EX-04'],
-      ['Ambiental', 'ambiental', 'Vegetação', 'Rio · qualidade boa'],
+      ['Indústria, Energia & Utilities', 'industry_energy_utilities', 'Disponibilidade', 'Subestação · normal'],
+      ['Portos & Logística', 'ports_logistics', 'Ocupação', 'Berço 3 · ocupado'],
     ];
 
     for (const [tab, sector, metric, node] of sectors) {
@@ -33,21 +35,173 @@ test.describe('B2C and B2B capability balance', () => {
     }
 
     await page.getByRole('button', { name: 'EN', exact: true }).click();
-    await expect(map.getByText('Vegetation', { exact: true })).toBeVisible();
-    await expect(map.getByText('River · good quality', { exact: true })).toBeVisible();
+    await expect(map.getByText('Occupancy', { exact: true })).toBeVisible();
+    await expect(map.getByText('Berth 3 · occupied', { exact: true })).toBeVisible();
   });
 
-  test('farm and construction visitors see sensors, tracking, aerial and platform capability', async ({ page }) => {
+  test('the sectors page exposes the six canonical public paths and keeps old anchors compatible', async ({ page }) => {
     await page.goto(`${BASE}/sectors.html`, { waitUntil: 'domcontentloaded' });
 
-    const farm = page.locator('#agropecuaria');
+    const expected = [
+      ['agriculture', 'agricultura-pecuaria', 'Agricultura & Pecuária'],
+      ['construction_infrastructure', 'construcao-infraestruturas', 'Construção & Infraestruturas'],
+      ['environment', 'ambiente', 'Ambiente'],
+      ['mining', 'mineracao', 'Mineração'],
+      ['industry_energy_utilities', 'industria-energia-utilities', 'Indústria, Energia & Utilities'],
+      ['ports_logistics', 'portos-logistica', 'Portos & Logística'],
+    ];
+    for (const [sector, slug, label] of expected) {
+      const section = page.locator(`#${slug}`);
+      await expect(section).toHaveAttribute('data-sector-id', sector);
+      await expect(section.getByRole('heading', { name: label, exact: true })).toBeVisible();
+      await expect(page.locator(`.sector-jump a[href="#${slug}"]`)).toHaveCount(1);
+    }
+
+    const farm = page.locator('#agricultura-pecuaria');
     await expect(farm).toContainText('sensores, tracking, mapas e dados aéreos');
     await expect(farm).toContainText('Animais, GPS e geofences');
 
-    const construction = page.locator('#construcao');
+    const construction = page.locator('#construcao-infraestruturas');
     await expect(construction).toContainText('sensor no terreno à visão aérea');
     await expect(construction).toContainText('Tracking e estado de equipamentos');
     await expect(construction).toContainText('Timeline, mapa, alertas e relatórios');
+
+    for (const legacyAnchor of ['agropecuaria', 'construcao', 'infraestruturas', 'ambiental', 'industria', 'logistica']) {
+      await expect(page.locator(`#${legacyAnchor}`)).toHaveCount(1);
+    }
+  });
+
+  test('the homepage has one card for each canonical public sector', async ({ page }) => {
+    await page.goto(`${BASE}/index.html`, { waitUntil: 'domcontentloaded' });
+    const cards = page.locator('.sector-card[data-sector-id]');
+    await expect(cards).toHaveCount(6);
+
+    const expected = [
+      ['agriculture', 'agricultura-pecuaria'],
+      ['construction_infrastructure', 'construcao-infraestruturas'],
+      ['environment', 'ambiente'],
+      ['mining', 'mineracao'],
+      ['industry_energy_utilities', 'industria-energia-utilities'],
+      ['ports_logistics', 'portos-logistica'],
+    ];
+    for (const [sector, slug] of expected) {
+      await expect(page.locator(`.sector-card[data-sector-id="${sector}"]`))
+        .toHaveAttribute('href', `sectors.html#${slug}`);
+    }
+  });
+
+  test('legacy browser sector IDs normalize to the canonical six', async ({ page }) => {
+    await page.goto(`${BASE}/login.html`, { waitUntil: 'domcontentloaded' });
+    const taxonomy = await page.evaluate(() => {
+      const sectors = window.GV_SECTOR_TAXONOMY;
+      return {
+        ids: sectors.ids,
+        labels: sectors.ids.map((id) => sectors.labels[id]),
+        slugs: sectors.ids.map((id) => sectors.slugs[id]),
+        aliasRegistry: sectors.aliases,
+        aliases: [
+          'agro',
+          'infrastructure',
+          'ambiental',
+          'quarry',
+          'industrial',
+          'solar',
+          'ports',
+          'indústria, energia & utilities',
+          'industria_energia_utilities',
+          'indústria, energia e utilities',
+        ].map((value) => sectors.normalizeSector(value)),
+        labelAliases: sectors.ids.map((id) => sectors.normalizeSector(sectors.labels[id])),
+        listAlias: sectors.normalizeSectors('indústria, energia & utilities'),
+      };
+    });
+    expect(taxonomy.ids).toEqual([
+      'agriculture',
+      'construction_infrastructure',
+      'environment',
+      'mining',
+      'industry_energy_utilities',
+      'ports_logistics',
+    ]);
+    expect(taxonomy.labels).toEqual([
+      'Agricultura & Pecuária',
+      'Construção & Infraestruturas',
+      'Ambiente',
+      'Mineração',
+      'Indústria, Energia & Utilities',
+      'Portos & Logística',
+    ]);
+    expect(taxonomy.slugs).toEqual([
+      'agricultura-pecuaria',
+      'construcao-infraestruturas',
+      'ambiente',
+      'mineracao',
+      'industria-energia-utilities',
+      'portos-logistica',
+    ]);
+    expect(taxonomy.aliases).toEqual([
+      'agriculture',
+      'construction_infrastructure',
+      'environment',
+      'mining',
+      'industry_energy_utilities',
+      'industry_energy_utilities',
+      'ports_logistics',
+      'industry_energy_utilities',
+      'industry_energy_utilities',
+      'industry_energy_utilities',
+    ]);
+    expect(taxonomy.labelAliases).toEqual(taxonomy.ids);
+    expect(taxonomy.listAlias).toEqual(['industry_energy_utilities']);
+    expect(taxonomy.aliasRegistry).toEqual({
+      agro: 'agriculture',
+      agropecuaria: 'agriculture',
+      agriculture: 'agriculture',
+      agricultura: 'agriculture',
+      agricultura_e_pecuaria: 'agriculture',
+      agricultura_pecuaria: 'agriculture',
+      agriculture_livestock: 'agriculture',
+      livestock: 'agriculture',
+      construction: 'construction_infrastructure',
+      construction_and_infrastructure: 'construction_infrastructure',
+      construction_infrastructure: 'construction_infrastructure',
+      construcao_e_infraestruturas: 'construction_infrastructure',
+      construcao_infraestrutura: 'construction_infrastructure',
+      construcao_infraestruturas: 'construction_infrastructure',
+      infrastructure: 'construction_infrastructure',
+      infrastructures: 'construction_infrastructure',
+      ambiente: 'environment',
+      ambiental: 'environment',
+      environment: 'environment',
+      environmental: 'environment',
+      mine: 'mining',
+      mines: 'mining',
+      mineracao: 'mining',
+      mining: 'mining',
+      quarry: 'mining',
+      energy: 'industry_energy_utilities',
+      energia: 'industry_energy_utilities',
+      industrial: 'industry_energy_utilities',
+      industria: 'industry_energy_utilities',
+      industria_e_energia_utilities: 'industry_energy_utilities',
+      industria_energia_e_utilities: 'industry_energy_utilities',
+      industria_energia_utilities: 'industry_energy_utilities',
+      industry: 'industry_energy_utilities',
+      industry_energy: 'industry_energy_utilities',
+      industry_energy_utilities: 'industry_energy_utilities',
+      solar: 'industry_energy_utilities',
+      utilities: 'industry_energy_utilities',
+      logistics: 'ports_logistics',
+      logistica: 'ports_logistics',
+      port: 'ports_logistics',
+      portos: 'ports_logistics',
+      ports: 'ports_logistics',
+      ports_and_logistics: 'ports_logistics',
+      ports_industrial: 'ports_logistics',
+      ports_logistics: 'ports_logistics',
+      portos_e_logistica: 'ports_logistics',
+      portos_logistica: 'ports_logistics',
+    });
   });
 
   test('an enterprise buyer sees the five technology pillars and transparent statuses', async ({ page }) => {

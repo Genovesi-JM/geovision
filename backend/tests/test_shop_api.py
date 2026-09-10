@@ -1,4 +1,12 @@
+import json
 import uuid
+
+import pytest
+
+from app.services.cart import CartSectorValidationError, get_cart_service
+from app.iot.kits import get_kit
+from app.models import CatalogItem, ShopProduct
+from app.services.cart import seed_kit_products, seed_shop_products
 
 
 def _customer_headers(client):
@@ -13,7 +21,9 @@ def _customer_headers(client):
 def test_diy_kits_appear_in_marketplace(client):
     products = client.get("/shop/products").json()
     product_ids = {p["id"] for p in products}
-    assert all(set(product["translations"]) == {"pt", "en", "es", "fr"} for product in products)
+    assert all(
+        set(product["translations"]) == {"pt", "en", "es", "fr"} for product in products
+    )
     assert all("ambiental" not in product["sectors"] for product in products)
     assert {
         "prod_infra_progress",
@@ -31,10 +41,16 @@ def test_diy_kits_appear_in_marketplace(client):
         "prod_agro_spraying",
         "prod_demining_thermal",
         "prod_solar_panel_inspection",
+        "prod_kit_cold_chain_starter",
+        "prod_kit_energy_meter_starter",
+        "prod_kit_spray_control",
+        "prod_kit_seed_flow",
     }.intersection(product_ids)
     kit_products = [p for p in products if p["id"].startswith("prod_kit_")]
     assert kit_products, "DIY kits should be seeded into the marketplace"
-    water = next((p for p in kit_products if p["id"] == "prod_kit_water_tank_starter"), None)
+    water = next(
+        (p for p in kit_products if p["id"] == "prod_kit_water_tank_starter"), None
+    )
     assert water is not None
     assert water["product_type"] == "hardware" and water["category"] == "sensor_kit"
     # Prices are stored in minor units (×100): Water kit is $130 -> 13000.
@@ -46,6 +62,18 @@ def test_diy_kits_appear_in_marketplace(client):
     assert water["translations"]["pt"]["name"].startswith("GV Level")
     assert water["translations"]["en"]["description"]
 
+    tracker = next(
+        product
+        for product in kit_products
+        if product["id"] == "prod_kit_gps_asset_tracker"
+    )
+    assert tracker["sectors"] == [
+        "construction_infrastructure",
+        "mining",
+        "industry_energy_utilities",
+        "ports_logistics",
+    ]
+
     # "home" is no longer a GeoVision sector — no product may carry it.
     assert all("home" not in product["sectors"] for product in products)
     environment_products = client.get(
@@ -53,10 +81,84 @@ def test_diy_kits_appear_in_marketplace(client):
     ).json()
     assert environment_products
     assert all("environment" in product["sectors"] for product in environment_products)
-    # The former Home kits remain in the catalogue under their professional
-    # sectors (infrastructure / environment), just not recommended for "home".
-    energy = next((p for p in products if p["id"] == "prod_kit_energy_meter_starter"), None)
-    assert energy is not None and "infrastructure" in energy["sectors"]
+    # Standby concepts remain unavailable until their provisioning path is
+    # validated; declaring a public sector does not make a kit sellable.
+    assert "prod_kit_energy_meter_starter" not in product_ids
+
+
+def test_kit_seed_reconciles_existing_catalogue_sectors_and_standby_state(
+    client, db_session
+):
+    product_id = "prod_kit_gps_asset_tracker"
+    item = db_session.get(CatalogItem, product_id)
+    product = db_session.get(ShopProduct, product_id)
+    kit = get_kit("gps_asset_tracker")
+    assert item is not None and product is not None and kit is not None
+
+    item.sectors_json = '["INFRASTRUCTURE"]'
+    db_session.commit()
+    seed_kit_products(db_session)
+    db_session.refresh(item)
+    assert json.loads(item.sectors_json) == [
+        "INFRASTRUCTURE",
+        "MINING",
+        "INDUSTRY_ENERGY_UTILITIES",
+        "PORTS_LOGISTICS",
+    ]
+
+    original_availability = kit.get("availability")
+    try:
+        kit["availability"] = "standby"
+        seed_kit_products(db_session)
+        db_session.refresh(item)
+        db_session.refresh(product)
+        assert item.status == "ARCHIVED"
+        assert item.availability_status == "UNAVAILABLE"
+        assert product.is_active is False
+        assert product_id not in {
+            row["id"] for row in client.get("/shop/products").json()
+        }
+    finally:
+        if original_availability is None:
+            kit.pop("availability", None)
+        else:
+            kit["availability"] = original_availability
+        seed_kit_products(db_session)
+
+    db_session.refresh(item)
+    assert item.status == "PUBLISHED"
+    assert item.availability_status == "AVAILABLE"
+
+
+def test_static_seed_reconciles_controlled_sectors_and_archives_standby_offers(
+    client, db_session
+):
+    active_id = "prod_ports_visual_inspection"
+    active_item = db_session.get(CatalogItem, active_id)
+    standby_id = "prod_demining_thermal"
+    standby_item = db_session.get(CatalogItem, standby_id)
+    standby_product = db_session.get(ShopProduct, standby_id)
+    assert active_item is not None
+    assert standby_item is not None and standby_product is not None
+
+    active_item.sectors_json = '["PORTS_LOGISTICS"]'
+    standby_item.status = "PUBLISHED"
+    standby_item.availability_status = "AVAILABLE"
+    standby_product.is_active = True
+    db_session.commit()
+
+    seed_shop_products(db_session)
+    db_session.refresh(active_item)
+    db_session.refresh(standby_item)
+    db_session.refresh(standby_product)
+    assert json.loads(active_item.sectors_json) == [
+        "INDUSTRY_ENERGY_UTILITIES",
+        "PORTS_LOGISTICS",
+    ]
+    assert standby_item.status == "ARCHIVED"
+    assert standby_item.availability_status == "UNAVAILABLE"
+    assert standby_product.is_active is False
+    assert standby_id not in {row["id"] for row in client.get("/shop/products").json()}
 
 
 def test_catalogue_exposes_explicit_multi_currency_contract(client):
@@ -74,6 +176,36 @@ def test_catalogue_exposes_explicit_multi_currency_contract(client):
     assert set(product["translations"]) == {"pt", "en", "es", "fr"}
 
 
+@pytest.mark.parametrize("account_sector", ["future_special", "agriculture,mining"])
+def test_cart_warning_rejects_noncanonical_account_sector(
+    client, db_session, account_sector
+):
+    product = client.get("/shop/products").json()[0]
+
+    response = client.post(
+        "/shop/check-sector-mismatch",
+        json={"product_id": product["id"], "account_sector": account_sector},
+    )
+    assert response.status_code == 422
+    assert "six GeoVision public sectors" in response.json()["detail"]
+
+    cart_id = f"invalid-sector-{uuid.uuid4().hex[:8]}"
+    added = client.post(
+        f"/shop/cart/{cart_id}/items",
+        json={"product_id": product["id"], "quantity": 1},
+    )
+    assert added.status_code == 200, added.text
+    cart_response = client.get(
+        f"/shop/cart/{cart_id}/with-warnings",
+        params={"account_sector": account_sector},
+    )
+    assert cart_response.status_code == 422
+
+    service = get_cart_service(db_session)
+    with pytest.raises(CartSectorValidationError):
+        service.check_sector_mismatch(product["id"], account_sector)
+
+
 def test_cart_currency_checkout_and_owned_order_contract(client):
     headers = _customer_headers(client)
     product = client.get("/shop/products").json()[0]
@@ -88,9 +220,7 @@ def test_cart_currency_checkout_and_owned_order_contract(client):
     assert added.json()["items"][0]["quantity"] == 2
     assert added.json()["currency"] == "AOA"
 
-    converted = client.patch(
-        f"/shop/cart/{cart_id}/currency", json={"currency": "USD"}
-    )
+    converted = client.patch(f"/shop/cart/{cart_id}/currency", json={"currency": "USD"})
     assert converted.status_code == 200, converted.text
     assert converted.json()["currency"] == "USD"
     assert converted.json()["total"] == product["price_usd"] * 2
@@ -154,7 +284,10 @@ def test_payment_methods_only_advertise_real_settlement(client):
     data = client.get("/shop/payment-methods").json()
     by_method = {m["method"]: m for m in data["methods"]}
     # IBAN always settles (manual confirmation, no gateway).
-    assert by_method["iban_angola"]["enabled"] is True and by_method["iban_angola"]["settles"] is True
+    assert (
+        by_method["iban_angola"]["enabled"] is True
+        and by_method["iban_angola"]["settles"] is True
+    )
     assert by_method["iban_international"]["enabled"] is True
     # Gateways are disabled until their credentials are configured (else they mock).
     assert by_method["visa_mastercard"]["enabled"] is False

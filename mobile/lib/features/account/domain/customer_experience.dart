@@ -1,3 +1,5 @@
+import '../../sites/domain/sector.dart';
+
 class CustomerWorkspace {
   const CustomerWorkspace({
     required this.id,
@@ -6,6 +8,7 @@ class CustomerWorkspace {
     required this.organizationName,
     required this.role,
     required this.sector,
+    required this.sectors,
     required this.modulesEnabled,
   });
 
@@ -15,19 +18,26 @@ class CustomerWorkspace {
   final String organizationName;
   final String role;
   final String sector;
+  final List<String> sectors;
   final Set<String> modulesEnabled;
 
-  factory CustomerWorkspace.fromJson(Map<String, dynamic> json) =>
-      CustomerWorkspace(
-        id: '${json['id'] ?? ''}',
-        organizationId: '${json['organization_id'] ?? ''}',
-        name: '${json['name'] ?? 'Workspace'}',
-        organizationName:
-            '${json['organization_name'] ?? json['org_name'] ?? ''}',
-        role: '${json['role'] ?? 'viewer'}',
-        sector: '${json['sector'] ?? json['sector_focus'] ?? ''}',
-        modulesEnabled: _strings(json['modules_enabled']).toSet(),
-      );
+  factory CustomerWorkspace.fromJson(Map<String, dynamic> json) {
+    var sectors = parseCanonicalSectorIds(json['sectors']);
+    if (sectors.isEmpty) {
+      sectors = parseCanonicalSectorIds(json['sector'] ?? json['sector_focus']);
+    }
+    return CustomerWorkspace(
+      id: '${json['id'] ?? ''}',
+      organizationId: '${json['organization_id'] ?? ''}',
+      name: '${json['name'] ?? 'Workspace'}',
+      organizationName:
+          '${json['organization_name'] ?? json['org_name'] ?? ''}',
+      role: '${json['role'] ?? 'viewer'}',
+      sector: sectors.isEmpty ? '' : sectors.first,
+      sectors: sectors,
+      modulesEnabled: _strings(json['modules_enabled']).toSet(),
+    );
+  }
 }
 
 class CustomerExperience {
@@ -112,7 +122,8 @@ class CustomerExperience {
         name: 'Kilombo Farm',
         organizationName: 'Fazenda Kilombo Agro',
         role: 'owner',
-        sector: 'agro',
+        sector: 'agriculture',
+        sectors: ['agriculture'],
         modulesEnabled: {'assets', 'actions', 'services', 'devices', 'reports'},
       ),
       CustomerWorkspace(
@@ -121,7 +132,8 @@ class CustomerExperience {
         name: 'Luanda Infrastructure',
         organizationName: 'Fazenda Kilombo Agro',
         role: 'manager',
-        sector: 'infrastructure',
+        sector: 'construction_infrastructure',
+        sectors: ['construction_infrastructure'],
         modulesEnabled: {'assets', 'actions', 'services', 'reports'},
       ),
     ],

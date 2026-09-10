@@ -303,7 +303,7 @@ def test_mining_registers_as_an_independent_common_core_extension():
         }
     }
     assert all(len(owners) == 1 for owners in legacy_owners.values())
-    assert legacy_owners["industry"] == ["ports"]
+    assert legacy_owners["industry"] == ["industry_energy_utilities"]
     assert legacy_owners["quarry"] == ["mining"]
     assert SUPPORTED_ASSET_TYPES == {
         "MINE_SITE",

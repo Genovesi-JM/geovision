@@ -20,9 +20,13 @@ lifecycle. Its supported types are:
 Each row has sector and asset-type applicability, customer-safe content,
 deliverables, a price model, minor-unit multi-currency prices, availability,
 recommendation triggers, and optional fulfilment/installed-product hints. The
-five normalized sector values are `AGRICULTURE`, `INFRASTRUCTURE`,
-`ENVIRONMENTAL`, `MINING`, and `PORTS_INDUSTRIAL`; the schema remains extensible
-for reviewed future sectors and asset types.
+six normalized technical sector values are `AGRICULTURE`, `INFRASTRUCTURE`,
+`ENVIRONMENTAL`, `MINING`, `INDUSTRY_ENERGY_UTILITIES`, and `PORTS_LOGISTICS`;
+the schema remains extensible for reviewed future sectors and asset types. The
+customer projection translates these to the six public IDs in
+[`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md). Historical
+`PORTS_INDUSTRIAL`/`INDUSTRY` rows are compatibility inputs, never new-write
+values.
 
 Only `PUBLISHED` rows appear through the customer API. `DRAFT`, `UNAVAILABLE`,
 and `ARCHIVED` remain visible only to authorized GeoVision staff. Non-quote
@@ -67,6 +71,11 @@ legacy `/products` and `/admin/products` routes during cutover:
 - old admin delete now archives instead of deleting commercial history.
 - the browser sector preference reads the historical
   `gv_marketplace_sector` key once and writes `gv_catalog_sector` thereafter.
+
+On startup, code-controlled first-party offers reconcile only their canonical
+sector applicability and availability/publication state. This makes upgrades
+remove newly standby offers and apply reviewed sector mappings while preserving
+canonical customer copy and pricing edits.
 
 The historical `marketplace` recommendation action value remains only as a
 serialized compatibility alias for older IoT clients. New intelligence Actions

@@ -1,5 +1,13 @@
 import 'sector.dart';
 
+Sector _siteSector(Map<String, dynamic> json) {
+  final rawSector = json['sector'];
+  if (rawSector == null || rawSector.toString().trim().isEmpty) {
+    throw const FormatException('Site sector is required');
+  }
+  return sectorFromString(rawSector.toString());
+}
+
 enum SiteStatus { active, attention, offline }
 
 SiteStatus siteStatusFromString(String v) {
@@ -143,7 +151,7 @@ class Site {
   factory Site.fromJson(Map<String, dynamic> j) => Site(
         id: j['id'].toString(),
         name: j['name'].toString(),
-        sector: sectorFromString((j['sector'] ?? 'infrastructure').toString()),
+        sector: _siteSector(j),
         status: siteStatusFromString((j['status'] ?? 'active').toString()),
         location: (j['location'] ?? '').toString(),
         center: GeoPoint.fromJson((j['center'] as Map).cast<String, dynamic>()),

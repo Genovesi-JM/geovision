@@ -32,8 +32,8 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_33_OPENAPI_SHA256 = (
-    "a0309838ac0d4b98da55a9b9879cfcb70185051b59e34905de1504202f65efe4"
+PHASE_34_OPENAPI_SHA256 = (
+    "5cc2ed8578608c3d2316bb452aa87c6ba5b4dc88d127a9eb8ea19be21331d0c4"
 )
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
@@ -1365,10 +1365,10 @@ def test_deployed_credential_writes_never_fall_back_to_plaintext(monkeypatch):
     assert sentinel not in str(unavailable.value)
 
 
-def test_phase_33_openapi_contract_is_byte_stable(client):
+def test_phase_34_openapi_contract_is_byte_stable(client):
     payload = json.dumps(
         client.app.openapi(),
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_33_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_34_OPENAPI_SHA256

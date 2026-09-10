@@ -28,7 +28,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from ..account_profiles import PUBLIC_SECTORS, normalize_account_profile
+from ..account_profiles import normalize_account_profile
 from ..core import database
 from ..core.config import settings
 from ..core.integration import IntegrationConfigurationError, IntegrationStatus
@@ -58,7 +58,18 @@ from ..models import (
     User,
     UserProfile,
 )
-from ..schemas import AuthResponse, LoginRequest, RegisterRequest
+from ..schemas import (
+    AuthResponse,
+    LoginRequest,
+    RegisterRequest,
+    SectorSelectionValue,
+)
+from ..sector_taxonomy import (
+    PUBLIC_SECTORS,
+    normalize_capability_modules,
+    public_sector_focus,
+    public_sector_values,
+)
 from ..modules.identity.domain import AuthorizationContext, ExternalPrincipal, TokenUse
 from ..modules.identity.ports import IdentityProvider
 from ..modules.identity.services import (
@@ -203,6 +214,14 @@ def _ensure_company(
             raise RuntimeError("Company membership points to a missing organization")
         return company
 
+    canonical_sectors = public_sector_values(
+        sector_focus if sector_focus is not None else "agriculture"
+    )
+    if not canonical_sectors:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Account sector taxonomy requires review before organization creation",
+        )
     company = Company(
         id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:company:{user.id}")),
         name=account_name,
@@ -210,7 +229,7 @@ def _ensure_company(
         phone=None,
         organization_type="customer",
         timezone="UTC",
-        sectors=json.dumps([sector_focus or "agro"]),
+        sectors=json.dumps(canonical_sectors),
         status="active",
         subscription_plan="trial",
         max_users=5,
@@ -285,7 +304,7 @@ def _ensure_default_account(
         ) + " workspace"
 
     default_profile = normalize_account_profile(
-        "farm", sector_focus=sector_focus or "agro"
+        "farm", sector_focus=sector_focus or "agriculture"
     )
     onboarding_account_id = str(
         uuid.uuid5(uuid.NAMESPACE_URL, f"geovision:onboarding:{user.id}")
@@ -612,7 +631,9 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
 
     account = None
     if account_profile is not None:
-        modules = payload.modules_enabled or DEFAULT_MODULES
+        modules = normalize_capability_modules(
+            payload.modules_enabled or DEFAULT_MODULES
+        )
         account_name = (
             payload.account_name
             or payload.org_name
@@ -934,7 +955,9 @@ def get_current_user(
         "dashboard_profile": getattr(account, "dashboard_profile", "farm")
         if account
         else "farm",
-        "sector_focus": getattr(account, "sector_focus", "agro") if account else "agro",
+        "sector_focus": (
+            public_sector_focus(getattr(account, "sector_focus", "")) if account else ""
+        ),
         "use_cases": json.loads(getattr(account, "use_cases", None) or "[]")
         if account
         else [],
@@ -945,7 +968,9 @@ def get_current_user(
                 "org_name": getattr(account, "org_name", None),
                 "customer_type": getattr(account, "customer_type", "farm"),
                 "dashboard_profile": getattr(account, "dashboard_profile", "farm"),
-                "sector_focus": getattr(account, "sector_focus", "agro"),
+                "sector_focus": public_sector_focus(
+                    getattr(account, "sector_focus", "")
+                ),
                 "use_cases": json.loads(getattr(account, "use_cases", None) or "[]"),
             }
             if account
@@ -1710,14 +1735,18 @@ def google_callback(
 
 
 class OnboardingRequest(BaseModel):
-    sector_focus: Optional[str] = None
-    sectors: Optional[List[str]] = None
+    sector_focus: Optional[str] = Field(default=None, max_length=320)
+    sectors: Optional[List[SectorSelectionValue]] = Field(default=None, max_length=6)
     customer_type: str = "farm"
     use_cases: Optional[List[str]] = None
     account_name: Optional[str] = None
     org_name: Optional[str] = None
     modules_enabled: Optional[List[str]] = None
     intent: Optional[str] = Field(default=None, max_length=40)
+
+    _normalize_modules = field_validator("modules_enabled", mode="before")(
+        normalize_capability_modules
+    )
 
 
 @router.post("/onboarding", response_model=AuthResponse)
@@ -1793,7 +1822,7 @@ def complete_onboarding(
             detail="Invitation onboarding must use /invitations/accept",
         )
 
-    modules = payload.modules_enabled or DEFAULT_MODULES
+    modules = normalize_capability_modules(payload.modules_enabled or DEFAULT_MODULES)
     account_name = (
         payload.account_name or payload.org_name or (email.split("@")[0] + " workspace")
     )

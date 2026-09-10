@@ -123,9 +123,20 @@ def test_cross_sector_hierarchy_spatial_filters_and_geojson_map(client, db_sessi
     assert farm["workspace_id"] == workspace_id
     assert farm["bbox"] == [13.0, -9.0, 13.2, -8.8]
     assert field["parent_asset_id"] == farm["id"]
-    assert terminal["sector"] == "PORTS_INDUSTRIAL"
+    assert terminal["sector"] == "PORTS_LOGISTICS"
     assert extension["sector"] == "RENEWABLE_ENERGY"
     assert extension["asset_type"] == "WIND_TURBINE"
+
+    registry = client.get("/assets/registry", headers=headers)
+    assert registry.status_code == 200, registry.text
+    assert registry.json()["sectors"] == [
+        "AGRICULTURE",
+        "INFRASTRUCTURE",
+        "ENVIRONMENTAL",
+        "MINING",
+        "INDUSTRY_ENERGY_UTILITIES",
+        "PORTS_LOGISTICS",
+    ]
 
     children = client.get(
         "/assets",

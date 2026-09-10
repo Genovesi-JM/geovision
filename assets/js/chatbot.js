@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="gv-chat-header-text">
             <div class="gv-chat-title">Assistente GAIA</div>
             <small class="gv-chat-subtitle">
-              Fala comigo sobre agricultura, pecuaria, minas, obras...
+              Fala comigo sobre os seis setores GeoVision.
             </small>
           </div>
         </div>
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       role: "assistant",
       content:
-        "Ola! Sou o assistente da GeoVision. Posso explicar como usamos drones, sensores e mapas nas nossas operações. Em que sector queres focar?"
+        "Olá! Sou o assistente da GeoVision. Posso explicar como usamos drones, sensores e mapas em Agricultura & Pecuária, Construção & Infraestruturas, Ambiente, Mineração, Indústria, Energia & Utilities e Portos & Logística. Em que setor queres focar?"
     }
   ];
 
@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const NAV_PAGES = [
     { url: "index.html",          keys: ["inicio","home","pagina principal","página principal","landing","homepage"] },
     { url: "loja.html",           keys: ["loja","shop","store","tienda","comprar","compras","produtos","products","productos"] },
-    { url: "about.html",           keys: ["sectores","sectors","setores","agricultura","agriculture","agro","farming","pecuaria","pecuária","livestock","gado","mineracao","mineração","mining","construcao","construção","construction","obras","infraestrutura","infrastructure","desminagem","demining"] },
+    { url: "sectors.html",         keys: ["sectores","sectors","setores","agricultura","agriculture","agro","farming","pecuaria","pecuária","livestock","gado","construcao","construção","construction","obras","infraestrutura","infraestruturas","infrastructure","ambiente","ambiental","environment","mineracao","mineração","mining","industria","indústria","industry","energia","energy","utilities","portos","ports","logistica","logística","logistics","desminagem","demining"] },
     { url: "dashboard.html",      keys: ["dashboard","painel","panel","painel de controlo"] },
     { url: "login.html",          keys: ["login","entrar","iniciar sessao","iniciar sessão","sign in","signin"] },
     { url: "onboarding.html",     keys: ["registo","registro","register","cadastro","criar conta","sign up","signup","onboarding"] },
@@ -184,12 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
     sendBtn.disabled = true;
 
     const sectorGuess = (() => {
-      if (path.includes("agri")) return "Agricultura";
-      if (path.includes("livestock")) return "Pecuaria";
-      if (path.includes("mining")) return "Mineracao";
-      if (path.includes("construction")) return "Construcao";
-      if (path.includes("infra")) return "Infraestruturas";
-      if (path.includes("demining")) return "Desminagem";
+      const locationContext = `${path} ${window.location.search} ${window.location.hash}`.toLowerCase();
+      if (/agri|agro|pecuaria|livestock/.test(locationContext)) return "Agricultura & Pecuária";
+      if (/construction|construcao|infra/.test(locationContext)) return "Construção & Infraestruturas";
+      if (/ambiente|ambiental|environment/.test(locationContext)) return "Ambiente";
+      if (/mining|mineracao/.test(locationContext)) return "Mineração";
+      if (/industr|energia|energy|utilities|solar/.test(locationContext)) return "Indústria, Energia & Utilities";
+      if (/portos|ports|logistica|logistics/.test(locationContext)) return "Portos & Logística";
       return "Geral";
     })();
 

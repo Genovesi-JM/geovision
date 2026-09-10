@@ -5,9 +5,10 @@ Curto guia para correr a app localmente, executar testes e o smoke e2e.
 ## Start here
 
 The [engineering guide](docs/README.md) is the current documentation index.
-It links the Phase 33 architecture, entity map, exact permissions, event and
-provider catalogues, onboarding flows, extension guides, limitations, and
-release evidence.
+It links the Phase 33 architecture, Phase 34
+[six-sector taxonomy](docs/SECTOR_TAXONOMY.md), entity map, exact permissions,
+event and provider catalogues, onboarding flows, extension guides, limitations,
+and release evidence.
 
 ## Refactor baseline
 
@@ -106,7 +107,7 @@ Nunca reutilize uma palavra-passe de teste num ambiente partilhado ou
 implantado.
 
 Para anexar uma conta local existente ao portefólio sintético explícito dos
-cinco sectores, siga o [guia de engenharia](docs/README.md#synthetic-five-sector-workspace).
+seis setores, siga o [guia de engenharia](docs/README.md#synthetic-six-sector-workspace).
 O seed não cria, altera nem mostra credenciais.
 
 4) Testes backend (pytest)

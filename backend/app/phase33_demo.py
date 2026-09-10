@@ -54,6 +54,8 @@ from app.sectors.infrastructure.fixtures import (
     demo_infrastructure_bundle,
     resolve_demo_dataset_references as resolve_infrastructure_references,
 )
+from app.sectors.industry.domain import KPI_DEFINITIONS as INDUSTRY_KPIS
+from app.sectors.industry.fixtures import demo_industry_bundle
 from app.sectors.mining.domain import KPI_DEFINITIONS as MINING_KPIS
 from app.sectors.mining.fixtures import (
     demo_mining_bundle,
@@ -64,6 +66,7 @@ from app.sectors.ports.fixtures import (
     demo_ports_bundle,
     resolve_demo_dataset_references as resolve_ports_references,
 )
+from app.sector_taxonomy import capability_sector_for_public
 
 
 PHASE33_DEMO_MARKER = "geovision.phase33.synthetic.v1"
@@ -113,6 +116,7 @@ class Phase33DemoSeedResult:
 
 @dataclass(frozen=True)
 class _SectorSeed:
+    public_sector: str
     slug: str
     sector: str
     acquisition_type: str
@@ -151,12 +155,17 @@ def _mining_bundle(_asset_id: str) -> dict[str, Any]:
     return demo_mining_bundle(measured_at=PHASE33_DEMO_AS_OF)
 
 
+def _industry_bundle(_asset_id: str) -> dict[str, Any]:
+    return demo_industry_bundle(measured_at=PHASE33_DEMO_AS_OF)
+
+
 def _ports_bundle(asset_id: str) -> dict[str, Any]:
     return demo_ports_bundle(asset_id=asset_id, measured_at=PHASE33_DEMO_AS_OF)
 
 
 _SECTORS = (
     _SectorSeed(
+        public_sector="agriculture",
         slug="agriculture",
         sector="AGRICULTURE",
         acquisition_type="DRONE",
@@ -167,6 +176,7 @@ _SECTORS = (
         bundle=_agriculture_bundle,
     ),
     _SectorSeed(
+        public_sector="construction_infrastructure",
         slug="infrastructure",
         sector="INFRASTRUCTURE",
         acquisition_type="DRONE",
@@ -178,6 +188,7 @@ _SECTORS = (
         resolve_references=resolve_infrastructure_references,
     ),
     _SectorSeed(
+        public_sector="environment",
         slug="environmental",
         sector="ENVIRONMENTAL",
         acquisition_type="SATELLITE",
@@ -189,6 +200,7 @@ _SECTORS = (
         resolve_references=resolve_environmental_references,
     ),
     _SectorSeed(
+        public_sector="mining",
         slug="mining",
         sector="MINING",
         acquisition_type="DRONE",
@@ -200,8 +212,20 @@ _SECTORS = (
         resolve_references=resolve_mining_references,
     ),
     _SectorSeed(
+        public_sector="industry_energy_utilities",
+        slug="industry_energy_utilities",
+        sector="INDUSTRY_ENERGY_UTILITIES",
+        acquisition_type="MANUAL_INSPECTION",
+        definition=INDUSTRY_KPIS[0],
+        baseline_value=1.0,
+        current_value=4.0,
+        observation_type="EQUIPMENT_REVIEW_CANDIDATE",
+        bundle=_industry_bundle,
+    ),
+    _SectorSeed(
+        public_sector="ports_logistics",
         slug="ports",
-        sector="PORTS_INDUSTRIAL",
+        sector="PORTS_LOGISTICS",
         acquisition_type="MANUAL_INSPECTION",
         definition=PORTS_KPIS[1],
         baseline_value=5.0,
@@ -211,6 +235,14 @@ _SECTORS = (
         resolve_references=resolve_ports_references,
     ),
 )
+
+
+def _sector_modules() -> list[str]:
+    return [
+        module
+        for item in _SECTORS
+        if (module := capability_sector_for_public(item.public_sector)) is not None
+    ]
 
 
 def _json_default(value: object) -> str:
@@ -460,13 +492,15 @@ def _ensure_topology(
         row_id=organization_id,
         create=lambda: Company(
             id=organization_id,
-            name="[SYNTHETIC DEMO] GeoVision Five-Sector Portfolio",
+            name="[SYNTHETIC DEMO] GeoVision Six-Sector Portfolio",
             email="phase33-synthetic-organization@example.invalid",
             address=PHASE33_DEMO_NOTICE,
             country="Angola",
             organization_type="demo",
             timezone="Africa/Luanda",
-            sectors=_json([item.sector for item in _SECTORS], field_name="sectors"),
+            sectors=_json(
+                [item.public_sector for item in _SECTORS], field_name="sectors"
+            ),
             status="active",
             subscription_plan="enterprise",
             max_users=10,
@@ -474,13 +508,22 @@ def _ensure_topology(
             created_at=created_at,
             updated_at=created_at,
         ),
-        owned=lambda row: row.name == "[SYNTHETIC DEMO] GeoVision Five-Sector Portfolio"
+        owned=lambda row: row.name
+        in {
+            "[SYNTHETIC DEMO] GeoVision Five-Sector Portfolio",
+            "[SYNTHETIC DEMO] GeoVision Six-Sector Portfolio",
+        }
         and row.email == "phase33-synthetic-organization@example.invalid"
         and row.organization_type == "demo"
         and row.status == "active",
         counter=counter,
         counter_key="organizations",
     )
+    organization.name = "[SYNTHETIC DEMO] GeoVision Six-Sector Portfolio"
+    organization.sectors = _json(
+        [item.public_sector for item in _SECTORS], field_name="sectors"
+    )
+    db.add(organization)
     db.flush()
 
     workspace_id = phase33_demo_id("workspace", "five-sector")
@@ -491,8 +534,8 @@ def _ensure_topology(
         create=lambda: Account(
             id=workspace_id,
             organization_id=organization.id,
-            name="[SYNTHETIC DEMO] Five-Sector Operations",
-            sector_focus=",".join(item.slug for item in _SECTORS),
+            name="[SYNTHETIC DEMO] Six-Sector Operations",
+            sector_focus=",".join(item.public_sector for item in _SECTORS),
             entity_type="company",
             customer_type="multi_sector",
             dashboard_profile="operations",
@@ -506,7 +549,7 @@ def _ensure_topology(
                     "assets",
                     "analytics",
                     "reports",
-                    *(item.slug for item in _SECTORS),
+                    *_sector_modules(),
                 ],
                 field_name="modules_enabled",
             ),
@@ -515,12 +558,23 @@ def _ensure_topology(
             updated_at=created_at,
         ),
         owned=lambda row: row.organization_id == organization.id
-        and row.name == "[SYNTHETIC DEMO] Five-Sector Operations"
+        and row.name
+        in {
+            "[SYNTHETIC DEMO] Five-Sector Operations",
+            "[SYNTHETIC DEMO] Six-Sector Operations",
+        }
         and row.status == "active"
         and PHASE33_DEMO_MARKER in (row.use_cases or ""),
         counter=counter,
         counter_key="workspaces",
     )
+    workspace.name = "[SYNTHETIC DEMO] Six-Sector Operations"
+    workspace.sector_focus = ",".join(item.public_sector for item in _SECTORS)
+    workspace.modules_enabled = _json(
+        ["assets", "analytics", "reports", *_sector_modules()],
+        field_name="modules_enabled",
+    )
+    db.add(workspace)
     db.flush()
 
     for user, role in ((owner, "owner"), (member, "member")):
@@ -760,8 +814,7 @@ def _ensure_sector_history(
             owned=lambda row: row.organization_id == organization.id
             and row.workspace_id == workspace.id
             and row.asset_id == asset.id
-            and row.provider_reference
-            == f"{PHASE33_DEMO_MARKER}:{spec.slug}:{period}"
+            and row.provider_reference == f"{PHASE33_DEMO_MARKER}:{spec.slug}:{period}"
             and _has_marker(row.provenance_json),
             counter=counter,
             counter_key="acquisitions",
@@ -1269,7 +1322,7 @@ def seed_phase33_demo(
         attach_user_email=attach_user_email,
     )
     asset_ids = {
-        spec.slug: _ensure_sector_history(
+        spec.public_sector: _ensure_sector_history(
             db,
             organization=organization,
             workspace=workspace,

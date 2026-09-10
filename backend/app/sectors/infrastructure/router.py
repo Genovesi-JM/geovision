@@ -90,6 +90,8 @@ def infrastructure_capabilities(
 ):
     return {
         "sector": SECTOR,
+        "public_sector": "construction_infrastructure",
+        "maturity": "custom_project",
         "enabled": infrastructure_enabled_for_context(db, context=context)
         and _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,

@@ -23,9 +23,9 @@ instead of treating legacy structures as disposable.
 | R13 | Medium | Dataset storage now has durable file identity, streaming, signed uploads, local/S3/Azure adapters, provider size/checksum verification, and recoverable deletion; legacy Document flows still use their older facade | New dataset uploads no longer require relational blobs or full buffering, but legacy documents can retain weaker storage behavior | Route new geospatial payloads through canonical datasets and harden/retire the legacy Document facade during the report/document phases |
 | R14 | High | Phase 21 adds Odoo 19 JSON-2 behind the provider-neutral ERP port while preserving the ERPNext adapter and provider-pinned queued work | A settings-only or destructive cutover can strand or send old commercial commands to the wrong provider | Complete Gate 17, inventory/drain/reconcile rows with their recorded provider, retain rollback credentials and retire ERPNext only after an approved cutover |
 | R15 | High | Current deployment is DigitalOcean; Azure Blob, Service Bus and Event Grid adapters now exist behind provider boundaries, but live Azure infrastructure and identity assignments are not provisioned | A big-bang cloud move can mix domain refactoring with operational migration or activate unverified credentials | Provision and validate adapters in staging, rehearse rollback, then migrate capabilities independently rather than switching the whole platform at once |
-| R16 | Medium | The current public scope hides or combines some sectors, while the playbook requires five explicit verticals including Ports/Industrial | UI, catalogue and data fixtures may contradict the new architecture or over-promise immature capabilities | Treat sector activation as later feature-flagged phases; do not change public claims during foundation work |
+| R16 | Medium | Phase 34 defines six distinct public sectors across web, mobile, accounts, catalogue, KPI, Asset, module, and fixture boundaries, but legacy aliases and stored values remain during cutover | A stale client or row can recombine mining with industry, ports/logistics with industrial work, or split construction from infrastructure; a consistent label can also over-promise immature delivery | Use `SECTOR_TAXONOMY.md` as the contract, normalize known aliases on input/migration, emit canonical values, retain compatibility reads until measured cutover, and keep commercial maturity plus evidence gates explicit |
 | R17 | Medium | Flutter top-level navigation is Portal, Assets, Store, Alerts and More rather than Home, Assets, Actions, Services and More | Early backend work could accidentally couple to a UI structure scheduled for replacement | Keep navigation changes in Phase 22 and expose backend capabilities independent of tab names |
-| R18 | Medium | Agriculture has dedicated KPI definitions; other mobile sectors reuse a minimal infrastructure list | Sector dashboards can present generic or misleading metrics | Add validated KPI definitions only with provenance and source requirements in sector activation phases |
+| R18 | Medium | Every public sector has a distinct KPI route/catalogue selection, but validation depth and connected evidence vary; legacy sector KPIs may still contain generic or optimistic placeholders | A correctly labelled sector dashboard can still present generic, source-free, or misleading metrics | Return missing data as unavailable/unknown, require named current sources and provenance, and activate sector thresholds or status claims only after representative specialist validation |
 | R19 | Medium | RAG, Mapbox/Google delivery, Stripe mobile, live push and several drone/processing providers remain unavailable or credential-gated | Documentation or UI can imply production readiness that code does not provide | Keep explicit capability states, fake adapters and feature flags; never report credentials-gated behavior as live |
 | R20 | Medium | The local Docker installation lacks the Compose plugin and its daemon is not running | The backend image and documented IoT stack cannot be reproduced on this host today | Start/repair Docker, install Compose, then validate the image and full stack without deleting existing volumes |
 | R21 | Medium | The default local `.venv` is stale and the shell does not expose Flutter even though Flutter is installed | Advertised commands fail before tests begin | Use `make baseline`, recreate the backend virtual environment, and keep tool discovery in the verification script |
@@ -242,8 +242,10 @@ without a compatibility plan.
 - **Reduced:** R06, because one public `/catalog/items` contract now covers all
   six offer types while `/shop/products`, carts, orders, `/products`, and old
   admin URLs retain compatibility projections and stable item identifiers.
-- **Reduced:** R16, because applicability is normalized to the five common
-  sector identifiers without publicly activating unready sector capabilities.
+- **Reduced at Phase 7:** R16, because applicability was normalized to the five
+  common identifiers then in scope without publicly activating unready sector
+  capabilities. Phase 34 supersedes that historical set with six canonical
+  values and preserves the Phase 7 values as migration aliases.
 - **Contained:** Supplier contact and qualification data live in an internal
   procurement table and are never serialized to customers. Customer roles
   cannot manage items; only explicit GeoVision staff permissions can do so.
@@ -452,9 +454,10 @@ without a compatibility plan.
 - **Reduced:** R18, because frontends now have one Asset-scoped response for
   current, previous, baseline, change, status, confidence, measurement time and
   source. Status thresholds and historical comparison remain server-side.
-- **Contained:** Cross-sector coupling, because Agriculture, Infrastructure,
-  Environmental, Mining and Ports/Industrial register versioned calculators and
-  rules without modifying the core engine or adding sector-only Asset fields.
+- **Contained:** Cross-sector coupling, because the sector packages register
+  versioned calculators and rules without modifying the core engine or adding
+  sector-only Asset fields. Phase 34's six-sector names supersede the combined
+  Ports/Industrial description used when this Phase 17 outcome was recorded.
 - **Contained:** Weak-evidence risk, because observations preserve confidence,
   validation state, algorithm version, geometry and mission/dataset provenance;
   rejected findings are excluded from default alert/summary counts.
@@ -569,7 +572,7 @@ without a compatibility plan.
   or expired state fails closed. Atomic version-qualified override writes avoid
   lost rollout decisions. Authorization, membership, current organization
   entitlement, connection lifecycle and the operation-specific capability
-  remain separate gates. All five sector HTTP modules and generic sector-report
+  remain separate gates. All six sector HTTP modules and generic sector-report
   generation combine rollout decisions with their narrower workspace/module
   entitlement.
 - **Contained:** Provider failure and replay risk, because normalized runs and
@@ -586,3 +589,20 @@ without a compatibility plan.
   Configuration/Key Vault smoke tests, production-like PostgreSQL migration
   rehearsal and provider-specific credential, sandbox, mapping, idempotency,
   quota/licence and approval gates.
+
+## Phase 34 outcome
+
+- **Reduced:** R16, because one ordered registry now distinguishes the six
+  public IDs, Portuguese labels, marketing anchors, technical Asset sectors,
+  capability modules, and compatibility aliases used across product surfaces.
+- **Contained:** Migration risk, because known aliases are normalized without
+  deleting source records or guessing unknown extensions, while hidden legacy
+  routes and input aliases allow a measured client cutover.
+- **Contained:** Sector conflation, because Mineração, Indústria, Energia &
+  Utilities, and Portos & Logística now have separate public and technical
+  identities. Construction and infrastructure, and agriculture and livestock,
+  are intentionally combined only at the defined customer boundary.
+- **Introduced and controlled:** A matching label does not prove evidence or
+  commercial readiness. Each sector retains its maturity, source, specialist,
+  provider, rollout, Workspace, and human gates; Industry/Energy/Utilities and
+  Ports/Logistics remain explicitly expanding.

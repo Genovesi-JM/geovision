@@ -12,7 +12,7 @@ from app.core.integration import IntegrationFailure, IntegrationResult
 from app.core.tokens import create_user_access_token
 from app.integrations.storage.azure_blob import AzureBlobStorageProvider
 from app.integrations.storage.local import LocalObjectStorageProvider
-from app.models import Dataset, DatasetFile, User
+from app.models import Company, Dataset, DatasetFile, Site, User
 from app.modules.datasets.ports import ObjectStorageProvider
 from app.routers.datasets import _storage
 from app.services.storage import StorageService
@@ -104,6 +104,7 @@ def _create_dataset(client, headers, asset_id: str, mission_id: str | None = Non
             "mission_id": mission_id,
             "name": "Wetland multispectral capture",
             "dataset_type": "MULTISPECTRAL_IMAGES",
+            "sector": "environment",
             "provider": "GeoVision Capture",
             "source_reference": "GV-CAPTURE-12",
             "capture_time": "2026-09-10T08:00:00Z",
@@ -117,6 +118,31 @@ def _create_dataset(client, headers, asset_id: str, mission_id: str | None = Non
     )
     assert response.status_code == 201, response.text
     return response.json()
+
+
+def test_dataset_sector_is_derived_from_its_linked_asset(client, db_session):
+    _, headers, _, _, asset = _workspace_asset(client, db_session, "sector-bound")
+    base = {
+        "asset_id": asset["id"],
+        "name": "Sector-bound evidence",
+        "dataset_type": "RGB_IMAGES",
+    }
+
+    unknown = client.post(
+        "/datasets/",
+        headers=headers,
+        json={**base, "sector": "future"},
+    )
+    assert unknown.status_code == 422
+    mismatch = client.post(
+        "/datasets/",
+        headers=headers,
+        json={**base, "sector": "mining"},
+    )
+    assert mismatch.status_code == 422
+    derived = client.post("/datasets/", headers=headers, json=base)
+    assert derived.status_code == 201, derived.text
+    assert derived.json()["sector"] == "ENVIRONMENTAL"
 
 
 def test_local_stream_upload_download_finalize_archive_and_tombstone(
@@ -146,6 +172,7 @@ def test_local_stream_upload_download_finalize_archive_and_tombstone(
         dataset = _create_dataset(client, headers, asset["id"], mission.json()["id"])
         assert dataset["company_id"] == organization_id
         assert dataset["dataset_type"] == "MULTISPECTRAL_IMAGES"
+        assert dataset["sector"] == "ENVIRONMENTAL"
         assert dataset["storage_provider"] == "local"
 
         upload = client.post(
@@ -165,19 +192,21 @@ def test_local_stream_upload_download_finalize_archive_and_tombstone(
             f"{mission.json()['id']}/datasets/{dataset['id']}/raw/"
         )
         assert uploaded["storage_key"].startswith(expected_path)
-        assert storage.provider.path_for(uploaded["storage_key"]).read_bytes() == b"geovision-raster"
-
-        finalized = client.post(
-            f"/datasets/{dataset['id']}/finalize", headers=headers
+        assert (
+            storage.provider.path_for(uploaded["storage_key"]).read_bytes()
+            == b"geovision-raster"
         )
+
+        finalized = client.post(f"/datasets/{dataset['id']}/finalize", headers=headers)
         assert finalized.status_code == 200, finalized.text
         assert finalized.json()["status"] == "ready"
         linked_mission = client.get(
             f"/missions/{mission.json()['id']}", headers=headers
         )
-        assert {"type": "dataset", "dataset_id": dataset["id"]} in linked_mission.json()[
-            "output_refs"
-        ]
+        assert {
+            "type": "dataset",
+            "dataset_id": dataset["id"],
+        } in linked_mission.json()["output_refs"]
 
         download = client.get(
             f"/datasets/{dataset['id']}/files/{uploaded['id']}/download",
@@ -209,7 +238,9 @@ def test_local_stream_upload_download_finalize_archive_and_tombstone(
         assert archived.status_code == 200, archived.text
         assert "retained" in archived.json()["message"]
         assert storage.provider.path_for(uploaded["storage_key"]).is_file()
-        assert client.get(f"/datasets/{dataset['id']}", headers=headers).status_code == 404
+        assert (
+            client.get(f"/datasets/{dataset['id']}", headers=headers).status_code == 404
+        )
         listed = client.get(
             "/datasets/", headers=headers, params={"include_archived": True}
         )
@@ -237,7 +268,10 @@ def test_signed_local_upload_is_short_lived_size_bound_and_tenant_scoped(
     client.app.dependency_overrides[_storage] = lambda: storage
     try:
         dataset = _create_dataset(client, headers_a, asset_a["id"])
-        assert client.get(f"/datasets/{dataset['id']}", headers=headers_b).status_code == 404
+        assert (
+            client.get(f"/datasets/{dataset['id']}", headers=headers_b).status_code
+            == 404
+        )
         assert (
             client.get(
                 "/datasets/",
@@ -591,6 +625,37 @@ def test_legacy_admin_dataset_routes_create_canonical_records_and_archive_safely
     )
     assert site.status_code == 200, site.text
 
+    legacy_site = Site(
+        company_id=company.json()["id"],
+        name="Legacy extension site",
+        country="Angola",
+        sector="future_special",
+    )
+    db_session.add(legacy_site)
+    company_row = db_session.get(Company, company.json()["id"])
+    company_row.sectors = '["agriculture", "Future, Special"]'
+    db_session.commit()
+
+    company_projection = client.get(
+        f"/admin/companies/{company.json()['id']}", headers=headers
+    )
+    assert company_projection.status_code == 200, company_projection.text
+    assert company_projection.json()["sectors"] == ["agriculture"]
+    sites_projection = client.get("/admin/sites", headers=headers)
+    assert sites_projection.status_code == 200, sites_projection.text
+    projected_legacy_site = next(
+        item for item in sites_projection.json() if item["id"] == legacy_site.id
+    )
+    assert projected_legacy_site["sector"] is None
+
+    unsupported = client.post(
+        f"/admin/sites/{legacy_site.id}/datasets",
+        headers=headers,
+        json={"name": "Must be reviewed", "data_type": "orthomosaic"},
+    )
+    assert unsupported.status_code == 422
+    assert "taxonomy review" in unsupported.json()["detail"]
+
     unsafe = client.post(
         f"/admin/sites/{site.json()['id']}/datasets",
         headers=headers,
@@ -620,6 +685,7 @@ def test_legacy_admin_dataset_routes_create_canonical_records_and_archive_safely
     assert row is not None
     assert row.dataset_type == "ORTHOMOSAIC"
     assert row.asset_id is not None
+    assert row.sector == "ENVIRONMENTAL"
     assert row.storage_provider == "local"
     assert row.status == "uploading"
 

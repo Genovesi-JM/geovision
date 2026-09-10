@@ -58,6 +58,7 @@ def _scope(
     label: str,
     *,
     role: str = "owner",
+    sector: str = "agriculture",
 ) -> tuple[Company, Account, Site]:
     suffix = uuid.uuid4().hex[:10]
     organization = Company(
@@ -70,7 +71,7 @@ def _scope(
     workspace = Account(
         organization_id=organization.id,
         name=f"Security workspace {label} {suffix}",
-        sector_focus="agriculture",
+        sector_focus=sector,
         entity_type="organization",
         customer_type="farm",
         dashboard_profile="farm",
@@ -100,7 +101,7 @@ def _scope(
     site = Site(
         company_id=organization.id,
         name=f"Security site {label}",
-        sector="agriculture",
+        sector=sector,
         is_active=True,
     )
     db_session.add(site)
@@ -285,8 +286,12 @@ def test_risk_assessments_are_site_owned_permissioned_and_tenant_scoped(
     db_session,
 ):
     owner = _user(db_session, "risk-owner")
-    organization_a, workspace_a, site_a = _scope(db_session, owner, "risk-a")
-    organization_b, workspace_b, site_b = _scope(db_session, owner, "risk-b")
+    organization_a, workspace_a, site_a = _scope(
+        db_session, owner, "risk-a", sector="mining"
+    )
+    organization_b, workspace_b, site_b = _scope(
+        db_session, owner, "risk-b", sector="mining"
+    )
     viewer = _user(db_session, "risk-viewer")
     _add_member(
         db_session,
@@ -297,8 +302,15 @@ def test_risk_assessments_are_site_owned_permissioned_and_tenant_scoped(
     )
     payload_a = {
         "site_id": site_a.id,
-        "sector": "agro",
-        "data": {"ndvi_avg": 0.2, "soil_moisture_pct": 18},
+        "sector": "mining",
+        "data": {
+            "tailings_level_pct": 92,
+            "terrain_displacement_mm": 52,
+            "esg_score": 55,
+            "dust_concentration_ppm": 120,
+            "water_quality_index": 45,
+            "extraction_efficiency_pct": 65,
+        },
     }
 
     denied_role = client.post(
@@ -315,6 +327,15 @@ def test_risk_assessments_are_site_owned_permissioned_and_tenant_scoped(
         json={**payload_a, "site_id": site_b.id},
     )
     assert cross_tenant.status_code == 404, cross_tenant.text
+    db_session.expire_all()
+    assert db_session.query(RiskAssessment).count() == before
+
+    incomplete = client.post(
+        "/risk/assess",
+        headers=_headers(owner, workspace_a.id),
+        json={**payload_a, "data": {}},
+    )
+    assert incomplete.status_code == 422
     db_session.expire_all()
     assert db_session.query(RiskAssessment).count() == before
 
@@ -335,12 +356,12 @@ def test_risk_assessments_are_site_owned_permissioned_and_tenant_scoped(
     assert other_context.json()["site_id"] == site_b.id
 
     hidden_history = client.get(
-        f"/risk/history/{site_b.id}?sector=agro",
+        f"/risk/history/{site_b.id}?sector=mining",
         headers=_headers(owner, workspace_a.id),
     )
     assert hidden_history.status_code == 404, hidden_history.text
     own_history = client.get(
-        f"/risk/history/{site_a.id}?sector=agro",
+        f"/risk/history/{site_a.id}?sector=mining",
         headers=_headers(viewer, workspace_a.id),
     )
     assert own_history.status_code == 200, own_history.text
@@ -348,11 +369,44 @@ def test_risk_assessments_are_site_owned_permissioned_and_tenant_scoped(
         own.json()["assessment_id"]
     ]
     wrong_sector = client.get(
-        f"/risk/history/{site_a.id}?sector=mining",
+        f"/risk/history/{site_a.id}?sector=environment",
         headers=_headers(viewer, workspace_a.id),
     )
-    assert wrong_sector.status_code == 200
-    assert wrong_sector.json()["assessments"] == []
+    assert wrong_sector.status_code == 409
+
+    mismatched_assessment = client.post(
+        "/risk/assess",
+        headers=_headers(owner, workspace_a.id),
+        json={**payload_a, "sector": "environment"},
+    )
+    assert mismatched_assessment.status_code == 409
+
+    unsupported_site = Site(
+        company_id=organization_a.id,
+        name="Agriculture risk engine unavailable",
+        sector="agriculture",
+        is_active=True,
+    )
+    db_session.add(unsupported_site)
+    db_session.commit()
+    before_unsupported = db_session.query(RiskAssessment).count()
+    unsupported = client.post(
+        "/risk/assess",
+        headers=_headers(owner, workspace_a.id),
+        json={
+            "site_id": unsupported_site.id,
+            "sector": "agriculture",
+            "data": {"ndvi_avg": 0.2},
+        },
+    )
+    assert unsupported.status_code == 409
+    db_session.expire_all()
+    assert db_session.query(RiskAssessment).count() == before_unsupported
+    no_history = client.get(
+        f"/risk/history/{unsupported_site.id}?sector=agriculture",
+        headers=_headers(viewer, workspace_a.id),
+    )
+    assert no_history.status_code == 404
     assert organization_a.id != organization_b.id
 
 
@@ -476,7 +530,9 @@ def _is_customer_response_path(path: str) -> bool:
         "/processing",
         "/shop/admin",
     )
-    return not any(path == prefix or path.startswith(f"{prefix}/") for prefix in internal_prefixes)
+    return not any(
+        path == prefix or path.startswith(f"{prefix}/") for prefix in internal_prefixes
+    )
 
 
 def test_customer_response_contracts_never_reference_internal_economics_fields(client):

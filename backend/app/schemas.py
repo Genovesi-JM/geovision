@@ -1,11 +1,16 @@
 """Pydantic schemas for request/response models."""
+
 import json
 from datetime import datetime
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, StringConstraints, field_validator
 
 from .core.passwords import validate_new_password
+from .sector_taxonomy import normalize_capability_modules, public_sector_focus
+
+
+SectorSelectionValue = Annotated[str, StringConstraints(max_length=320)]
 
 
 def _json_list(value):
@@ -18,6 +23,14 @@ def _json_list(value):
         except Exception:
             return []
     return []
+
+
+def _module_list(value):
+    return normalize_capability_modules(_json_list(value))
+
+
+def _optional_module_list(value):
+    return normalize_capability_modules(value) if value is not None else None
 
 
 class Token(BaseModel):
@@ -54,6 +67,10 @@ class AccountSummary(BaseModel):
     model_config = {"from_attributes": True}
 
     _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
+    _normalize_modules = field_validator("modules_enabled", mode="before")(_module_list)
+    _normalize_sector_focus = field_validator("sector_focus", mode="before")(
+        public_sector_focus
+    )
 
 
 class RegisterRequest(BaseModel):
@@ -67,14 +84,18 @@ class RegisterRequest(BaseModel):
     org_name: Optional[str] = None
 
     account_name: Optional[str] = None
-    sector_focus: Optional[str] = None
-    sectors: Optional[List[str]] = None
+    sector_focus: Optional[str] = Field(default=None, max_length=320)
+    sectors: Optional[List[SectorSelectionValue]] = Field(default=None, max_length=6)
     customer_type: str = Field(default="farm")
     use_cases: Optional[List[str]] = None
     modules_enabled: Optional[List[str]] = None
     # New clients choose an outcome, not a customer/account taxonomy. When
     # omitted, the historical profile fields above remain fully compatible.
     intent: Optional[str] = Field(default=None, max_length=40)
+
+    _normalize_modules = field_validator("modules_enabled", mode="before")(
+        _optional_module_list
+    )
 
 
 class LoginRequest(BaseModel):
@@ -103,6 +124,9 @@ class AccountOut(BaseModel):
     model_config = {"from_attributes": True}
 
     _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
+    _normalize_sector_focus = field_validator("sector_focus", mode="before")(
+        public_sector_focus
+    )
 
 
 class AuthResponse(BaseModel):
@@ -115,13 +139,17 @@ class AuthResponse(BaseModel):
 
 class AccountCreate(BaseModel):
     name: str
-    sector_focus: str
-    sectors: Optional[List[str]] = None
+    sector_focus: str = Field(min_length=2, max_length=320)
+    sectors: Optional[List[SectorSelectionValue]] = Field(default=None, max_length=6)
     entity_type: str = Field(default="org")
     customer_type: str = Field(default="business")
     use_cases: Optional[List[str]] = None
     org_name: Optional[str] = None
     modules_enabled: Optional[List[str]] = None
+
+    _normalize_modules = field_validator("modules_enabled", mode="before")(
+        _optional_module_list
+    )
 
 
 class AccountPublic(BaseModel):
@@ -139,6 +167,10 @@ class AccountPublic(BaseModel):
     model_config = {"from_attributes": True}
 
     _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
+    _normalize_modules = field_validator("modules_enabled", mode="before")(_module_list)
+    _normalize_sector_focus = field_validator("sector_focus", mode="before")(
+        public_sector_focus
+    )
 
 
 class ProjectCreate(BaseModel):
@@ -185,8 +217,8 @@ class KPIItem(BaseModel):
     value: float | int | str
     unit: Optional[str] = None
     status: Optional[str] = None  # ok, warning, critical
-    trend: Optional[str] = None   # up, down, stable
-    updated_at: datetime
+    trend: Optional[str] = None  # up, down, stable
+    updated_at: Optional[datetime] = None
     sector: Optional[str] = None  # For multi-sector filtering
     description: Optional[str] = None  # Human-readable explanation for chatbot
 
@@ -213,6 +245,7 @@ class AlertsResponse(BaseModel):
     total: int
     critical_count: int
     warning_count: int
+    availability: str = "NO_DATA"
 
 
 class ServiceItem(BaseModel):
@@ -237,11 +270,13 @@ class HardwareItem(BaseModel):
 
 class DashboardContext(BaseModel):
     """Structured context for chatbot to understand what user sees."""
+
     account_name: str
     sectors: List[str]
     active_sector: Optional[str] = None
     kpis: List[KPIItem]
     alerts: List[AlertItem]
-    services_count: int
-    hardware_count: int
+    alerts_availability: str = "NO_DATA"
+    services_count: Optional[int] = None
+    hardware_count: Optional[int] = None
     summary_text: str  # Human-readable summary for chatbot

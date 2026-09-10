@@ -6,6 +6,7 @@ import uuid
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
 from app.models import (
+    Account,
     AccountMember,
     Action,
     Asset,
@@ -209,9 +210,7 @@ def _seed_intelligence(
         asset_id=asset_id,
         observation_type="WATER_STRESS",
         severity="WARNING",
-        geometry_geojson=json.dumps(
-            {"type": "Point", "coordinates": [15.1, -11.9]}
-        ),
+        geometry_geojson=json.dumps({"type": "Point", "coordinates": [15.1, -11.9]}),
         value_json="{}",
         metadata_json="{}",
         confidence=0.88,
@@ -228,9 +227,7 @@ def _seed_intelligence(
         asset_id=asset_id,
         observation_type="UNREVIEWED_ANOMALY",
         severity="CRITICAL",
-        geometry_geojson=json.dumps(
-            {"type": "Point", "coordinates": [15.15, -11.95]}
-        ),
+        geometry_geojson=json.dumps({"type": "Point", "coordinates": [15.15, -11.95]}),
         value_json="{}",
         metadata_json="{}",
         confidence=0.4,
@@ -257,6 +254,9 @@ def test_portal_experience_filters_navigation_and_exposes_typed_context(
         "Portal Farm",
         modules=["projects", "alerts", "store", "kpi", "map"],
     )
+    workspace = db_session.get(Account, workspace_id)
+    workspace.sector_focus = "agriculture,mining"
+    db_session.commit()
     second_workspace = _add_workspace(
         client,
         owner,
@@ -294,13 +294,13 @@ def test_portal_experience_filters_navigation_and_exposes_typed_context(
     )
     db_session.commit()
 
-    response = client.get(
-        "/portal/experience", headers=_headers(owner, workspace_id)
-    )
+    response = client.get("/portal/experience", headers=_headers(owner, workspace_id))
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["active_workspace_id"] == workspace_id
     assert body["active_organization_id"] == organization_id
+    assert body["active_workspace"]["sector"] == "agriculture"
+    assert body["active_workspace"]["sectors"] == ["agriculture", "mining"]
     assert {row["id"] for row in body["workspaces"]} == {
         workspace_id,
         second_workspace,
@@ -334,7 +334,15 @@ def test_portal_experience_filters_navigation_and_exposes_typed_context(
     assert "internal_role" not in serialized
     assert {
         rule["target_type"] for rule in body["deep_link_contract"]["destinations"]
-    } == {"WORKSPACE", "ASSET", "ACTION", "SERVICE", "SERVICE_RESULT", "ORDER", "REPORT"}
+    } == {
+        "WORKSPACE",
+        "ASSET",
+        "ACTION",
+        "SERVICE",
+        "SERVICE_RESULT",
+        "ORDER",
+        "REPORT",
+    }
 
 
 def test_portal_hides_irrelevant_and_management_modules_from_small_viewer(
@@ -356,9 +364,7 @@ def test_portal_hides_irrelevant_and_management_modules_from_small_viewer(
     )
     assert added.status_code == 201, added.text
 
-    response = client.get(
-        "/portal/experience", headers=_headers(viewer, workspace_id)
-    )
+    response = client.get("/portal/experience", headers=_headers(viewer, workspace_id))
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["capabilities"] == ["overview"]
@@ -556,9 +562,7 @@ def test_portal_map_layers_are_validated_typed_and_workspace_scoped(
     )
     db_session.commit()
 
-    response = client.get(
-        "/portal/map-layers", headers=_headers(owner, workspace_a)
-    )
+    response = client.get("/portal/map-layers", headers=_headers(owner, workspace_a))
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["workspace_id"] == workspace_a
@@ -663,9 +667,7 @@ def test_portal_workspace_selector_omits_stale_revoked_organization_access(
     stale_workspace_membership.status = "active"
     db_session.commit()
 
-    response = client.get(
-        "/portal/experience", headers=_headers(member, workspace_a)
-    )
+    response = client.get("/portal/experience", headers=_headers(member, workspace_a))
     assert response.status_code == 200, response.text
     assert {item["id"] for item in response.json()["workspaces"]} == {workspace_a}
 

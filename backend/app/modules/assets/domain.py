@@ -8,12 +8,18 @@ import re
 from enum import Enum
 from typing import Any, Iterable, Mapping
 
+from app.sector_taxonomy import asset_sector_for_public
+
 
 class AssetSector(str, Enum):
     AGRICULTURE = "AGRICULTURE"
     INFRASTRUCTURE = "INFRASTRUCTURE"
     ENVIRONMENTAL = "ENVIRONMENTAL"
     MINING = "MINING"
+    INDUSTRY_ENERGY_UTILITIES = "INDUSTRY_ENERGY_UTILITIES"
+    PORTS_LOGISTICS = "PORTS_LOGISTICS"
+    # Read compatibility only. New writes normalize this historical combined
+    # identifier to PORTS_LOGISTICS.
     PORTS_INDUSTRIAL = "PORTS_INDUSTRIAL"
 
 
@@ -64,17 +70,28 @@ ASSET_TYPE_REGISTRY = frozenset(
 _SECTOR_ALIASES = {
     "AGRO": AssetSector.AGRICULTURE.value,
     "AGRICULTURE": AssetSector.AGRICULTURE.value,
+    "AGRICULTURE_LIVESTOCK": AssetSector.AGRICULTURE.value,
     "LIVESTOCK": AssetSector.AGRICULTURE.value,
     "CONSTRUCTION": AssetSector.INFRASTRUCTURE.value,
+    "CONSTRUCTION_INFRASTRUCTURE": AssetSector.INFRASTRUCTURE.value,
     "INFRASTRUCTURE": AssetSector.INFRASTRUCTURE.value,
     "ENVIRONMENT": AssetSector.ENVIRONMENTAL.value,
     "ENVIRONMENTAL": AssetSector.ENVIRONMENTAL.value,
     "AMBIENTAL": AssetSector.ENVIRONMENTAL.value,
     "MINING": AssetSector.MINING.value,
-    "INDUSTRY": AssetSector.PORTS_INDUSTRIAL.value,
-    "INDUSTRIAL": AssetSector.PORTS_INDUSTRIAL.value,
-    "PORTS": AssetSector.PORTS_INDUSTRIAL.value,
-    "PORTS_INDUSTRIAL": AssetSector.PORTS_INDUSTRIAL.value,
+    "QUARRY": AssetSector.MINING.value,
+    "ENERGY": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "INDUSTRY": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "INDUSTRIAL": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "INDUSTRY_ENERGY": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "INDUSTRY_ENERGY_UTILITIES": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "SOLAR": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "UTILITIES": AssetSector.INDUSTRY_ENERGY_UTILITIES.value,
+    "LOGISTICS": AssetSector.PORTS_LOGISTICS.value,
+    "PORT": AssetSector.PORTS_LOGISTICS.value,
+    "PORTS": AssetSector.PORTS_LOGISTICS.value,
+    "PORTS_INDUSTRIAL": AssetSector.PORTS_LOGISTICS.value,
+    "PORTS_LOGISTICS": AssetSector.PORTS_LOGISTICS.value,
 }
 
 _TYPE_ALIASES = {
@@ -93,8 +110,14 @@ class AssetValidationError(ValueError):
 
 
 def normalize_identifier(value: str, *, field_name: str, max_length: int = 80) -> str:
-    normalized = re.sub(r"[^A-Za-z0-9]+", "_", str(value or "").strip()).strip("_").upper()
-    if not normalized or len(normalized) > max_length or not _IDENTIFIER.fullmatch(normalized):
+    normalized = (
+        re.sub(r"[^A-Za-z0-9]+", "_", str(value or "").strip()).strip("_").upper()
+    )
+    if (
+        not normalized
+        or len(normalized) > max_length
+        or not _IDENTIFIER.fullmatch(normalized)
+    ):
         raise AssetValidationError(
             f"{field_name} must be a stable uppercase identifier using letters, digits, and underscores"
         )
@@ -102,6 +125,9 @@ def normalize_identifier(value: str, *, field_name: str, max_length: int = 80) -
 
 
 def normalize_sector(value: str) -> str:
+    public_sector = asset_sector_for_public(value)
+    if public_sector is not None:
+        return public_sector
     normalized = normalize_identifier(value, field_name="sector", max_length=50)
     return _SECTOR_ALIASES.get(normalized, normalized)
 
@@ -113,7 +139,9 @@ def normalize_asset_type(value: str) -> str:
 
 def _position(value: Any) -> list[float]:
     if not isinstance(value, (list, tuple)) or len(value) != 2:
-        raise AssetValidationError("GeoJSON positions must contain longitude and latitude")
+        raise AssetValidationError(
+            "GeoJSON positions must contain longitude and latitude"
+        )
     if isinstance(value[0], bool) or isinstance(value[1], bool):
         raise AssetValidationError("GeoJSON coordinates must be numbers")
     try:
@@ -167,7 +195,9 @@ def normalize_geometry(value: Mapping[str, Any] | str | None) -> dict[str, Any] 
         normalized_coordinates = _polygon(coordinates)
     else:
         if not isinstance(coordinates, (list, tuple)) or not coordinates:
-            raise AssetValidationError("MultiPolygon coordinates require at least one polygon")
+            raise AssetValidationError(
+                "MultiPolygon coordinates require at least one polygon"
+            )
         normalized_coordinates = [_polygon(polygon) for polygon in coordinates]
     return {"type": geometry_type, "coordinates": normalized_coordinates}
 
@@ -186,7 +216,9 @@ def _positions(geometry: Mapping[str, Any]) -> Iterable[list[float]]:
                 yield from ring
 
 
-def geometry_bounds(geometry: Mapping[str, Any] | None) -> tuple[float, float, float, float] | None:
+def geometry_bounds(
+    geometry: Mapping[str, Any] | None,
+) -> tuple[float, float, float, float] | None:
     if geometry is None:
         return None
     positions = list(_positions(geometry))
@@ -195,7 +227,9 @@ def geometry_bounds(geometry: Mapping[str, Any] | None) -> tuple[float, float, f
     return min(longitudes), min(latitudes), max(longitudes), max(latitudes)
 
 
-def geometry_display_center(geometry: Mapping[str, Any] | None) -> tuple[float, float] | None:
+def geometry_display_center(
+    geometry: Mapping[str, Any] | None,
+) -> tuple[float, float] | None:
     """Return a stable map center (latitude, longitude), not an analytic centroid."""
 
     bounds = geometry_bounds(geometry)
@@ -205,7 +239,9 @@ def geometry_display_center(geometry: Mapping[str, Any] | None) -> tuple[float, 
     return (min_y + max_y) / 2, (min_x + max_x) / 2
 
 
-def point_geometry(latitude: float | None, longitude: float | None) -> dict[str, Any] | None:
+def point_geometry(
+    latitude: float | None, longitude: float | None
+) -> dict[str, Any] | None:
     if latitude is None or longitude is None:
         return None
     return normalize_geometry({"type": "Point", "coordinates": [longitude, latitude]})

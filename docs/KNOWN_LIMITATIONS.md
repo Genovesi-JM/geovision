@@ -10,7 +10,7 @@ is not evidence that a live provider or deployment works.
 
 | Blocker | Required evidence to close it |
 |---|---|
-| No approved staging deployment evidence for the Phase 33 commit | Successful main CI, staging workflow URL, commit, immutable image digest, API URL, migration execution, operator and timestamp. |
+| No approved staging deployment evidence for the Phase 34 six-sector commit | Successful main CI, staging workflow URL, commit, immutable image digest, API URL, `phase34_sector_taxonomy_v1` execution, operator and timestamp. Phase 33 evidence is historical and cannot close this gate. |
 | Production-like PostgreSQL/PostGIS migration and restore rehearsal is external | Backup ID, isolated restore, upgrade to the single Alembic head, PostGIS/index verification, measured recovery result, and compatible rollback digest. |
 | Entra client cutover is incomplete | Real tenant/app/scope configuration, web and Flutter MSAL exchange, issuer/audience and negative-token proof, rollback, and Gate approval. Internal auth remains the pilot path. |
 | Mobile distribution is not approved | Private Android release signing, Apple team/TestFlight signing, store accounts/listings, privacy declarations, and device-level install/update evidence. |
@@ -24,7 +24,7 @@ is not evidence that a live provider or deployment works.
 
 ## Pilot constraints
 
-- Synthetic five-sector data and deterministic providers are clearly marked and
+- Synthetic six-sector data and deterministic providers are clearly marked and
   must never be mixed with customer evidence or enabled in deployed profiles.
 - The local test database is SQLite. PostgreSQL/PostGIS is the deployment
   target and the CI migration service is the authoritative automated rehearsal.

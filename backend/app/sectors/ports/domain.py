@@ -1,4 +1,4 @@
-"""Ports/industrial KPI definitions with fail-closed inspection semantics."""
+"""Ports and logistics KPI definitions with fail-closed inspection semantics."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from app.modules.analytics.domain import (
 )
 
 
-SECTOR = "PORTS_INDUSTRIAL"
+SECTOR = "PORTS_LOGISTICS"
 ALGORITHM_VERSION = "1.0.0"
 
 SUPPORTED_ASSET_TYPES = frozenset(
@@ -526,7 +526,7 @@ def register_ports(
     calculators: CalculatorRegistry = calculator_registry,
     rules: RuleRegistry = rule_registry,
 ) -> None:
-    """Idempotently activate Ports/Industrial in the common intelligence engine."""
+    """Idempotently activate Ports/Logistics in the common intelligence engine."""
 
     for definition in KPI_DEFINITIONS:
         calculators.register(definition, _CALCULATORS[definition.key], replace=True)

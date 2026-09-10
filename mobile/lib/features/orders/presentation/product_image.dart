@@ -26,13 +26,16 @@ class ProductImage extends StatelessWidget {
       };
 
   String get _fallbackAsset {
-    if (product.sectors.contains('industry')) {
+    if (product.sectors.contains('mining')) {
       return 'assets/images/store/mining-drone-survey.jpg';
     }
-    if (product.sectors.contains('construction')) {
+    if (product.sectors.contains('construction_infrastructure')) {
       return 'assets/images/store/construction-progress.jpg';
     }
-    if (product.sectors.contains('infrastructure')) {
+    if (product.sectors.contains('industry_energy_utilities')) {
+      return 'assets/images/store/infrastructure-inspection.jpg';
+    }
+    if (product.sectors.contains('ports_logistics')) {
       return 'assets/images/store/infrastructure-inspection.jpg';
     }
     if (product.sectors.contains('environment')) {

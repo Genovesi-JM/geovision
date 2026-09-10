@@ -87,6 +87,8 @@ def mining_capabilities(
 ):
     return {
         "sector": SECTOR,
+        "public_sector": "mining",
+        "maturity": "specialized",
         "enabled": mining_enabled_for_context(db, context=context)
         and _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,

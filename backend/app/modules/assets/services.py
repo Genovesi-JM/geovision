@@ -15,6 +15,7 @@ from app.core.time import utc_now
 from app.models import Account, Asset, AuditLog, IotAsset, Site, User
 from app.modules.assets.domain import (
     AssetStatus,
+    AssetValidationError,
     geometry_bounds,
     geometry_display_center,
     normalize_asset_type,
@@ -542,7 +543,11 @@ def synchronize_legacy_site(
     asset.organization_id = site.company_id
     if workspace_id is not None:
         asset.workspace_id = workspace_id
-    asset.sector = normalize_sector(site.sector or "AGRICULTURE")
+    if not site.sector:
+        raise AssetValidationError(
+            "Legacy site requires sector review before it can become an asset"
+        )
+    asset.sector = normalize_sector(site.sector)
     asset.asset_type = "SITE"
     asset.name = site.name
     asset.description = site.description

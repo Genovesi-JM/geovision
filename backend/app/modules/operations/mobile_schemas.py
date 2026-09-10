@@ -43,6 +43,7 @@ class MobileWorkspaceOut(BaseModel):
     organization_name: str
     role: str
     sector: str
+    sectors: list[str] = Field(default_factory=list)
     modules_enabled: list[str] = Field(default_factory=list)
 
 

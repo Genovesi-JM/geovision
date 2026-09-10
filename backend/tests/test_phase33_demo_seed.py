@@ -30,8 +30,9 @@ EXPECTED_SECTORS = {
     "AGRICULTURE",
     "ENVIRONMENTAL",
     "INFRASTRUCTURE",
+    "INDUSTRY_ENERGY_UTILITIES",
     "MINING",
-    "PORTS_INDUSTRIAL",
+    "PORTS_LOGISTICS",
 }
 
 
@@ -81,7 +82,30 @@ def test_phase33_seed_builds_all_histories_and_is_idempotent(db_session):
     member = db_session.get(User, first.member_user_id)
     assert organization.name.startswith("[SYNTHETIC DEMO]")
     assert organization.email.endswith("@example.invalid")
+    assert json.loads(organization.sectors) == [
+        "agriculture",
+        "construction_infrastructure",
+        "environment",
+        "mining",
+        "industry_energy_utilities",
+        "ports_logistics",
+    ]
     assert workspace.organization_id == organization.id
+    assert workspace.sector_focus == (
+        "agriculture,construction_infrastructure,environment,mining,"
+        "industry_energy_utilities,ports_logistics"
+    )
+    assert json.loads(workspace.modules_enabled) == [
+        "assets",
+        "analytics",
+        "reports",
+        "agriculture",
+        "infrastructure",
+        "environmental",
+        "mining",
+        "industry_energy_utilities",
+        "ports_logistics",
+    ]
     assert demo_seed.PHASE33_DEMO_MARKER in workspace.use_cases
     assert owner.password_hash is None and member.password_hash is None
     assert owner.email.endswith("@example.invalid")
@@ -108,10 +132,11 @@ def test_phase33_seed_builds_all_histories_and_is_idempotent(db_session):
     assert {row.sector for row in assets} == EXPECTED_SECTORS
     assert set(first.asset_ids) == {
         "agriculture",
-        "environmental",
-        "infrastructure",
+        "construction_infrastructure",
+        "environment",
+        "industry_energy_utilities",
         "mining",
-        "ports",
+        "ports_logistics",
     }
 
     for asset in assets:
@@ -201,11 +226,14 @@ def test_phase33_seed_builds_all_histories_and_is_idempotent(db_session):
             _marker(row.provenance_json)
             policy = json.loads(row.definition.status_policy_json)
             assert policy
-            assert row.status == calculate_kpi_status(
-                float(row.numeric_value),
-                policy,
-                confidence=row.confidence,
-            ).value
+            assert (
+                row.status
+                == calculate_kpi_status(
+                    float(row.numeric_value),
+                    policy,
+                    confidence=row.confidence,
+                ).value
+            )
         for row in observations:
             assert row.source == "geovision.phase33.synthetic"
             _marker(row.provenance_json)
@@ -285,7 +313,7 @@ def test_phase33_seed_refuses_deployed_environments(db_session, monkeypatch):
     assert db_session.query(Company).count() == before
 
 
-def test_phase33_cli_attaches_real_login_and_exposes_marked_five_sector_portal(
+def test_phase33_cli_attaches_real_login_and_exposes_marked_six_sector_portal(
     client,
     db_session,
     capsys,
@@ -360,7 +388,7 @@ def test_phase33_cli_attaches_real_login_and_exposes_marked_five_sector_portal(
     assert experience.status_code == 200, experience.text
     tree = experience.json()["asset_tree"]
     assert {item["sector"] for item in tree} == EXPECTED_SECTORS
-    assert len(tree) == 5
+    assert len(tree) == 6
     for item in tree:
         assert item["synthetic"] is True
         assert item["synthetic_marker"] == demo_seed.PHASE33_DEMO_MARKER
@@ -370,8 +398,8 @@ def test_phase33_cli_attaches_real_login_and_exposes_marked_five_sector_portal(
     summary = client.get("/portal/assets/summary", headers=headers)
     assert summary.status_code == 200, summary.text
     summary_body = summary.json()
-    assert summary_body["totals"]["assets"] == 5
-    assert summary_body["totals"]["published_reports"] == 5
+    assert summary_body["totals"]["assets"] == 6
+    assert summary_body["totals"]["published_reports"] == 6
     assert {item["sector"] for item in summary_body["items"]} == EXPECTED_SECTORS
     for item in summary_body["items"]:
         assert item["synthetic"] is True
@@ -387,8 +415,8 @@ def test_phase33_cli_attaches_real_login_and_exposes_marked_five_sector_portal(
     map_response = client.get("/portal/map-layers", headers=headers)
     assert map_response.status_code == 200, map_response.text
     layers = {item["id"]: item for item in map_response.json()["layers"]}
-    assert len(layers["assets"]["feature_collection"]["features"]) == 5
-    assert len(layers["observations"]["feature_collection"]["features"]) == 10
+    assert len(layers["assets"]["feature_collection"]["features"]) == 6
+    assert len(layers["observations"]["feature_collection"]["features"]) == 12
     for layer_name in ("assets", "observations"):
         for feature in layers[layer_name]["feature_collection"]["features"]:
             properties = feature["properties"]
@@ -398,7 +426,7 @@ def test_phase33_cli_attaches_real_login_and_exposes_marked_five_sector_portal(
 
     reports = client.get("/reports", headers=headers)
     assert reports.status_code == 200, reports.text
-    assert reports.json()["total"] == 5
+    assert reports.json()["total"] == 6
     for report in reports.json()["items"]:
         assert report["status"] == "PUBLISHED"
         assert report["title"].startswith("[SYNTHETIC DEMO]")

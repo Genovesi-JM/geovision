@@ -38,7 +38,9 @@ from app.sectors.infrastructure.domain import (
 
 
 ANALYSIS_SCHEMA = "geovision.infrastructure.analysis.v1"
-_MODULE_KEYS = frozenset({"infrastructure", "construction"})
+_MODULE_KEYS = frozenset(
+    {"construction_infrastructure", "infrastructure", "construction"}
+)
 _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,159}$")
 _VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+-]{0,39}$")
 _SURFACE_TYPES = frozenset({"DSM", "DTM", "POINT_CLOUD", "LIDAR_POINT_CLOUD"})
@@ -168,7 +170,9 @@ def _accepted_analysis(row: Dataset) -> Mapping[str, Any] | None:
         return None
     algorithm = str(analysis.get("algorithm", "")).strip()
     algorithm_version = str(analysis.get("algorithm_version", "")).strip()
-    if not _IDENTIFIER.fullmatch(algorithm) or not _VERSION.fullmatch(algorithm_version):
+    if not _IDENTIFIER.fullmatch(algorithm) or not _VERSION.fullmatch(
+        algorithm_version
+    ):
         return None
     if not isinstance(analysis.get("metrics", {}), Mapping):
         return None
@@ -192,7 +196,9 @@ def _progress_evidence_valid(value: Any) -> bool:
 
 
 def _schedule_evidence_valid(row: Dataset, value: Any) -> bool:
-    if row.dataset_type not in _SCHEDULE_DATASET_TYPES or not isinstance(value, Mapping):
+    if row.dataset_type not in _SCHEDULE_DATASET_TYPES or not isinstance(
+        value, Mapping
+    ):
         return False
     return bool(
         value.get("trusted") is True
@@ -237,7 +243,10 @@ def _paired_evidence_valid(
     if not current_crs or current_crs != previous_crs:
         return False
     if surface:
-        if row.dataset_type not in _SURFACE_TYPES or previous.dataset_type not in _SURFACE_TYPES:
+        if (
+            row.dataset_type not in _SURFACE_TYPES
+            or previous.dataset_type not in _SURFACE_TYPES
+        ):
             return False
         if not str(value.get("vertical_datum", "")).strip():
             return False
@@ -280,7 +289,9 @@ def _finding_key(value: Any, fallback: str) -> str:
     return candidate[:100]
 
 
-def _candidate_confidence(candidate: Mapping[str, Any], analysis: Mapping[str, Any]) -> float:
+def _candidate_confidence(
+    candidate: Mapping[str, Any], analysis: Mapping[str, Any]
+) -> float:
     declared = _number(candidate.get("confidence"))
     normalized = 0.5 if declared is None else max(0.0, min(1.0, declared))
     return min(_confidence(analysis), normalized)
@@ -319,7 +330,9 @@ def _extract_findings(
                 {
                     "key": _finding_key(candidate.get("id"), f"{kind}-{index + 1}"),
                     "kind": kind,
-                    "label": str(candidate.get("label") or f"{kind.title()} review candidate"),
+                    "label": str(
+                        candidate.get("label") or f"{kind.title()} review candidate"
+                    ),
                     "severity": str(candidate.get("severity") or "WATCH").upper(),
                     "confidence": _candidate_confidence(candidate, analysis),
                     "geometry": _safe_geometry(candidate.get("geometry")),
@@ -331,14 +344,18 @@ def _extract_findings(
                 }
             )
     review_areas = analysis.get("review_areas")
-    if isinstance(review_areas, Sequence) and not isinstance(review_areas, (str, bytes)):
+    if isinstance(review_areas, Sequence) and not isinstance(
+        review_areas, (str, bytes)
+    ):
         assessed["review_area"] = True
         for index, candidate in enumerate(review_areas):
             if not isinstance(candidate, Mapping):
                 continue
             findings.append(
                 {
-                    "key": _finding_key(candidate.get("id"), f"review-area-{index + 1}"),
+                    "key": _finding_key(
+                        candidate.get("id"), f"review-area-{index + 1}"
+                    ),
                     "kind": "review_area",
                     "label": str(candidate.get("label") or "Mapped review area"),
                     "severity": str(candidate.get("severity") or "WATCH").upper(),
@@ -375,7 +392,9 @@ def build_source_context(
     )
     datasets = [
         row
-        for row in query.order_by(Dataset.capture_date.desc(), Dataset.created_at.desc()).all()
+        for row in query.order_by(
+            Dataset.capture_date.desc(), Dataset.created_at.desc()
+        ).all()
         if (row.capture_date or row.created_at) <= evaluated_at
     ]
     datasets_by_id = {row.id: row for row in datasets}
@@ -398,11 +417,17 @@ def build_source_context(
         measured_at = row.capture_date or row.processed_at or row.created_at
         metrics = analysis.get("metrics", {})
         progress = _number(metrics.get("overall_progress"))
-        if progress is not None and 0 <= progress <= 100 and _progress_evidence_valid(
-            analysis.get("progress_evidence")
+        if (
+            progress is not None
+            and 0 <= progress <= 100
+            and _progress_evidence_valid(analysis.get("progress_evidence"))
         ):
             histories.setdefault("overall_progress", []).append(
-                (measured_at, progress, _detail(row, analysis, gate="reviewed_progress"))
+                (
+                    measured_at,
+                    progress,
+                    _detail(row, analysis, gate="reviewed_progress"),
+                )
             )
 
         if _paired_evidence_valid(
@@ -411,7 +436,11 @@ def build_source_context(
             area_change = _number(metrics.get("area_change"))
             if area_change is not None:
                 histories.setdefault("area_change", []).append(
-                    (measured_at, area_change, _detail(row, analysis, gate="aligned_2d_pair"))
+                    (
+                        measured_at,
+                        area_change,
+                        _detail(row, analysis, gate="aligned_2d_pair"),
+                    )
                 )
                 paired_change_ids.add(row.id)
 
@@ -421,10 +450,16 @@ def build_source_context(
             found_surface_metric = False
             for key in ("volume_change", "cut_volume", "fill_volume"):
                 value = _number(metrics.get(key))
-                if value is None or (key in {"cut_volume", "fill_volume"} and value < 0):
+                if value is None or (
+                    key in {"cut_volume", "fill_volume"} and value < 0
+                ):
                     continue
                 histories.setdefault(key, []).append(
-                    (measured_at, value, _detail(row, analysis, gate="validated_surface_pair"))
+                    (
+                        measured_at,
+                        value,
+                        _detail(row, analysis, gate="validated_surface_pair"),
+                    )
                 )
                 found_surface_metric = True
             if found_surface_metric:
@@ -475,7 +510,9 @@ def build_source_context(
         measurements["progress_change"] = current - previous
         details["progress_change"] = {
             **current_detail,
-            "confidence": min(current_detail["confidence"], previous_detail["confidence"]),
+            "confidence": min(
+                current_detail["confidence"], previous_detail["confidence"]
+            ),
             "measured_at": current_at,
             "provenance": {
                 **dict(current_detail["provenance"]),
@@ -492,7 +529,9 @@ def build_source_context(
     ]
     unique_findings: dict[tuple[str, str, str], dict[str, Any]] = {}
     for item in latest_findings:
-        unique_findings[(str(item["dataset_id"]), str(item["kind"]), str(item["key"]))] = item
+        unique_findings[
+            (str(item["dataset_id"]), str(item["kind"]), str(item["key"]))
+        ] = item
     findings = list(unique_findings.values())
     finding_counts = {
         "visual": sum(item["kind"] == "visual" for item in findings),
@@ -522,14 +561,14 @@ def build_source_context(
                 **dict(assessment_detail["provenance"]),
                 "derived_from": "validated_explicit_candidate_list",
                 "candidate_kind": kind,
-                "dataset_ids": sorted(
-                    {str(item["dataset_id"]) for item in matching}
-                ),
+                "dataset_ids": sorted({str(item["dataset_id"]) for item in matching}),
             },
         }
 
     comparisons = infrastructure_comparisons(db, asset=asset, enforce_feature=False)
-    historical_comparison = any(item["availability"] == "AVAILABLE" for item in comparisons)
+    historical_comparison = any(
+        item["availability"] == "AVAILABLE" for item in comparisons
+    )
     availability = {
         "validated_analysis": bool(accepted_ids),
         "validated_progress": "overall_progress" in measurements,
@@ -545,7 +584,10 @@ def build_source_context(
         "limitations": [
             message
             for condition, message in (
-                (not accepted_ids, "No validated Infrastructure analysis is available."),
+                (
+                    not accepted_ids,
+                    "No validated Infrastructure analysis is available.",
+                ),
                 (
                     "overall_progress" not in measurements,
                     "Overall progress is unknown without reviewed survey or trusted project evidence.",
@@ -650,7 +692,13 @@ def infrastructure_comparisons(
         _require_feature(db, asset)
     datasets = _eligible_comparison_rows(db, asset)
     specifications = (
-        ("SURVEY_2D", "Historical 2D survey comparison", "2D", "SWIPE_2D", ("ORTHOMOSAIC",)),
+        (
+            "SURVEY_2D",
+            "Historical 2D survey comparison",
+            "2D",
+            "SWIPE_2D",
+            ("ORTHOMOSAIC",),
+        ),
         (
             "SURFACE_3D",
             "Historical 3D surface comparison",
@@ -658,7 +706,13 @@ def infrastructure_comparisons(
             "MODEL_COMPARE_3D",
             ("DSM", "DTM", "POINT_CLOUD", "LIDAR_POINT_CLOUD", "MESH_3D"),
         ),
-        ("THERMAL_2D", "Historical thermal comparison", "2D", "THERMAL_COMPARE_2D", ("THERMAL_IMAGES",)),
+        (
+            "THERMAL_2D",
+            "Historical thermal comparison",
+            "2D",
+            "THERMAL_COMPARE_2D",
+            ("THERMAL_IMAGES",),
+        ),
     )
     result: list[dict[str, Any]] = []
     for kind, title, dimension, render_mode, preferred_types in specifications:
@@ -741,7 +795,9 @@ _LAYER_MODES = {
 def infrastructure_map_layers(db: Session, *, asset: Asset) -> list[dict[str, Any]]:
     _assert_infrastructure_asset(asset)
     _require_feature(db, asset)
-    geometry = _safe_geometry(_object(asset.geometry_geojson) if asset.geometry_geojson else None)
+    geometry = _safe_geometry(
+        _object(asset.geometry_geojson) if asset.geometry_geojson else None
+    )
     layers: list[dict[str, Any]] = [
         {
             "id": f"asset:{asset.id}",
@@ -777,7 +833,8 @@ def infrastructure_map_layers(db: Session, *, asset: Asset) -> list[dict[str, An
         accepted_analysis = _accepted_analysis(row)
         availability = (
             "NO_DATA"
-            if row.status not in {"ready", "processing"} or row.quality_status == "FAILED"
+            if row.status not in {"ready", "processing"}
+            or row.quality_status == "FAILED"
             else "PROCESSING"
             if row.status == "processing"
             else "NOT_RENDERABLE"
@@ -797,7 +854,9 @@ def infrastructure_map_layers(db: Session, *, asset: Asset) -> list[dict[str, An
                 "dataset_id": row.id,
                 "observation_id": None,
                 "captured_at": row.capture_date or row.created_at,
-                "confidence": _confidence(accepted_analysis) if accepted_analysis else None,
+                "confidence": _confidence(accepted_analysis)
+                if accepted_analysis
+                else None,
                 "quality": row.quality_status,
                 "crs": row.crs,
                 "resolution": (
@@ -812,7 +871,11 @@ def infrastructure_map_layers(db: Session, *, asset: Asset) -> list[dict[str, An
             }
         )
     for row in list_asset_observations(db, asset=asset, limit=500):
-        geometry = _safe_geometry(_object(row.geometry_geojson)) if row.geometry_geojson else None
+        geometry = (
+            _safe_geometry(_object(row.geometry_geojson))
+            if row.geometry_geojson
+            else None
+        )
         if not geometry:
             continue
         layers.append(
@@ -855,7 +918,11 @@ def infrastructure_report_context(db: Session, *, asset: Asset) -> dict[str, Any
         Action.asset_id == asset.id,
         Action.status.in_(("OPEN", "IN_PROGRESS")),
     )
-    actions = action_query.order_by(Action.due_date, Action.created_at.desc()).limit(500).all()
+    actions = (
+        action_query.order_by(Action.due_date, Action.created_at.desc())
+        .limit(500)
+        .all()
+    )
     return {
         "schema": "geovision.infrastructure.report-context.v1",
         "algorithm_bundle_version": ALGORITHM_VERSION,

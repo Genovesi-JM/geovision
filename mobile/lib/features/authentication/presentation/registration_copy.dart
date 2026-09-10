@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../../sites/domain/sector.dart';
+
 class RegistrationCopy {
   RegistrationCopy._(this.language);
   final String language;
@@ -156,14 +158,20 @@ class RegistrationCopy {
       'Vous pourrez modifier ces préférences plus tard. GeoVision n’active aucun capteur ou service sans votre choix.');
 
   String profile(String id) => switch (id) {
-        'farm' => pick('Agricultura e pecuária', 'Farm & livestock',
+        'farm' => pick('Agricultura & Pecuária', 'Farm & livestock',
             'Agricultura y ganadería', 'Agriculture et élevage'),
-        'construction' =>
-          pick('Construção', 'Construction', 'Construcción', 'Construction'),
+        'construction' => pick(
+            'Construção & Infraestruturas',
+            'Construction & infrastructure',
+            'Construcción e infraestructuras',
+            'Construction et infrastructures'),
         'environment' =>
           pick('Ambiente', 'Environment', 'Medio ambiente', 'Environnement'),
-        'industry' => pick('Indústria e mineração', 'Industry & mining',
-            'Industria y minería', 'Industrie et mines'),
+        'industry' => pick(
+            'Indústria, energia, utilities, mineração, portos & logística',
+            'Industry, energy, utilities, mining, ports & logistics',
+            'Industria, energía, utilities, minería, puertos y logística',
+            'Industrie, énergie, services publics, mines, ports et logistique'),
         'device' => pick('Tenho um dispositivo', 'I have a device',
             'Tengo un dispositivo', 'J’ai un appareil'),
         'enterprise' => pick('Empresa com vários locais', 'Multi-site company',
@@ -171,20 +179,28 @@ class RegistrationCopy {
         _ => id,
       };
 
-  String sector(String id) => switch (id) {
-        'agro' => pick('Agro e pecuária', 'Agriculture & livestock',
-            'Agro y ganadería', 'Agriculture et élevage'),
-        'environment' =>
+  String sector(String id) => switch (canonicalSectorId(id)) {
+        PublicSectorIds.agriculture => pick(
+            'Agricultura & Pecuária',
+            'Agriculture & livestock',
+            'Agro y ganadería',
+            'Agriculture et élevage'),
+        PublicSectorIds.constructionInfrastructure => pick(
+            'Construção & Infraestruturas',
+            'Construction & infrastructure',
+            'Construcción e infraestructuras',
+            'Construction et infrastructures'),
+        PublicSectorIds.environment =>
           pick('Ambiente', 'Environment', 'Medio ambiente', 'Environnement'),
-        'construction' =>
-          pick('Construção', 'Construction', 'Construcción', 'Construction'),
-        'industry' => pick('Indústria e mineração', 'Industry & mining',
-            'Industria y minería', 'Industrie et mines'),
-        'infrastructure' => pick(
-            'Infraestruturas e ativos',
-            'Infrastructure & assets',
-            'Infraestructuras y activos',
-            'Infrastructures et actifs'),
+        PublicSectorIds.mining =>
+          pick('Mineração', 'Mining', 'Minería', 'Mines'),
+        PublicSectorIds.industryEnergyUtilities => pick(
+            'Indústria, Energia & Utilities',
+            'Industry, Energy & Utilities',
+            'Industria, Energía & Utilities',
+            'Industrie, Énergie & Services publics'),
+        PublicSectorIds.portsLogistics => pick('Portos & Logística',
+            'Ports & Logistics', 'Puertos & Logística', 'Ports & Logistique'),
         _ => id,
       };
 

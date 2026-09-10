@@ -81,10 +81,12 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
   not each own that work.
 
 Canonical organizations/workspaces, invitations, Assets, catalogue/orders,
-private contractors, missions, datasets, processing, all five sector engines,
-reports, notifications, portal capability discovery, durable events, Azure
-deployment foundations, and the enterprise integration registry are complete
-in code. See [Phase 33 readiness](PHASE_33_READINESS.md) for the evidence and
+private contractors, missions, datasets, processing, all six sector packages
+at their documented maturity, reports, notifications, portal capability
+discovery, durable events, Azure deployment foundations, and the enterprise
+integration registry are complete in code. See the
+[canonical sector taxonomy](SECTOR_TAXONOMY.md),
+[Phase 33 readiness](PHASE_33_READINESS.md) for its historical evidence, and
 [known limitations](KNOWN_LIMITATIONS.md) for the remaining external gates.
 
 ## Recently landed (code, done)

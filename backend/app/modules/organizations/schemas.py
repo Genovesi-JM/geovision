@@ -4,18 +4,27 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Optional
+from typing import Annotated, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.modules.organizations.domain import (
     CustomerRole,
     MembershipStatus,
 )
+from app.sector_taxonomy import normalize_capability_modules, public_sector_focus
 
 
 DEFAULT_MODULES = ["kpi", "projects", "store", "alerts"]
+SectorSelectionValue = Annotated[str, StringConstraints(max_length=320)]
 
 
 def _json_list(value: object) -> list[str]:
@@ -31,6 +40,10 @@ def _json_list(value: object) -> list[str]:
     return []
 
 
+def _module_list(value: object) -> list[str]:
+    return normalize_capability_modules(_json_list(value))
+
+
 def _validate_timezone(value: str) -> str:
     timezone = value.strip()
     try:
@@ -42,12 +55,16 @@ def _validate_timezone(value: str) -> str:
 
 class WorkspaceCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
-    sector_focus: str = Field(default="agro", min_length=2, max_length=50)
-    sectors: Optional[list[str]] = None
+    sector_focus: str = Field(default="agriculture", min_length=2, max_length=320)
+    sectors: Optional[list[SectorSelectionValue]] = Field(default=None, max_length=6)
     entity_type: str = Field(default="org", min_length=2, max_length=50)
     customer_type: str = Field(default="business", min_length=2, max_length=50)
     use_cases: list[str] = Field(default_factory=list)
     modules_enabled: list[str] = Field(default_factory=lambda: list(DEFAULT_MODULES))
+
+    _normalize_modules = field_validator("modules_enabled", mode="before")(
+        normalize_capability_modules
+    )
 
 
 class OrganizationCreate(BaseModel):
@@ -76,7 +93,10 @@ class WorkspaceOut(BaseModel):
     updated_at: datetime
 
     _parse_use_cases = field_validator("use_cases", mode="before")(_json_list)
-    _parse_modules = field_validator("modules_enabled", mode="before")(_json_list)
+    _parse_modules = field_validator("modules_enabled", mode="before")(_module_list)
+    _normalize_sector_focus = field_validator("sector_focus", mode="before")(
+        public_sector_focus
+    )
 
 
 class OrganizationOut(BaseModel):

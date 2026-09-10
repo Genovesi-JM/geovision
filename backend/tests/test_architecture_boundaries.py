@@ -25,9 +25,9 @@ from app.sectors.registry import (
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 GENERATED_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}
-PHASE_33_ROUTE_COUNT = 404
-PHASE_33_ROUTE_SHA256 = (
-    "5dc16634b23299fb61b70981393cfaec77ed23b0da00d501dd198cd898e17d95"
+PHASE_34_ROUTE_COUNT = 412
+PHASE_34_ROUTE_SHA256 = (
+    "447a58dbad0ab0be1b6883b3cf9d718b4c2ff04525a439f35c55cb6104357c06"
 )
 
 
@@ -61,15 +61,15 @@ def _import_targets(path: Path) -> set[str]:
     return targets
 
 
-def test_phase_33_http_and_websocket_contract_is_pinned(client):
+def test_phase_34_http_and_websocket_contract_is_pinned(client):
     routes = _route_contract(client.app)
     payload = "\n".join(routes).encode()
 
-    assert len(routes) == PHASE_33_ROUTE_COUNT, "\n".join(routes)
+    assert len(routes) == PHASE_34_ROUTE_COUNT, "\n".join(routes)
     assert len(routes) == len(set(routes)), (
         "duplicate method/path registration detected"
     )
-    assert hashlib.sha256(payload).hexdigest() == PHASE_33_ROUTE_SHA256, "\n".join(
+    assert hashlib.sha256(payload).hexdigest() == PHASE_34_ROUTE_SHA256, "\n".join(
         routes
     )
 
@@ -94,7 +94,8 @@ def test_application_mount_order_preserves_legacy_router_order():
         "sector.environmental",
         "catalog.products",
         "sector.mining",
-        "sector.ports",
+        "sector.industry_energy_utilities",
+        "sector.ports_logistics",
         "orders.legacy",
         "orders.canonical",
         "operations.experience",
@@ -132,7 +133,8 @@ def test_required_domain_and_sector_boundaries_are_registered():
         "infrastructure",
         "environmental",
         "mining",
-        "ports",
+        "industry_energy_utilities",
+        "ports_logistics",
     ]
     assert routes_for_module("missions")
     assert routes_for_module("reports")

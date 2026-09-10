@@ -12,18 +12,32 @@ test.describe('GeoVision first-party catalogue', () => {
   });
 
   test('renders only the active catalogue and localizes dynamic product copy', async ({ page }) => {
+    const publicFilters = page.locator('#sector-filters [data-sector]:not([data-sector="all"])');
+    await expect(publicFilters).toHaveCount(6);
+    expect(await publicFilters.evaluateAll((buttons) => buttons.map((button) => button.dataset.sector))).toEqual([
+      'agriculture',
+      'construction_infrastructure',
+      'environment',
+      'mining',
+      'industry_energy_utilities',
+      'ports_logistics',
+    ]);
     await page.locator('#sector-filters [data-sector="mining"]').click();
-    await expect(page.locator('.loja-card')).toHaveCount(5);
-    await expect(page.getByRole('heading', { name: 'Voo Volumétrico de Mina' })).toHaveCount(0);
-    await page.locator('#sector-filters [data-sector="ports"]').click();
     await expect(page.locator('.loja-card')).toHaveCount(6);
+    await expect(page.getByRole('heading', { name: 'Voo Volumétrico de Mina' })).toHaveCount(0);
+    await page.locator('#sector-filters [data-sector="industry_energy_utilities"]').click();
+    await expect(page.locator('.loja-card')).toHaveCount(8);
+    await expect(page.getByRole('heading', { name: /GV Track/ })).toBeVisible();
+    await page.locator('#sector-filters [data-sector="ports_logistics"]').click();
+    await expect(page.locator('.loja-card')).toHaveCount(7);
+    await expect(page.getByRole('heading', { name: /GV Power/ })).toHaveCount(0);
     await page.locator('#sector-filters [data-sector="all"]').click();
-    await expect(page.locator('.loja-card')).toHaveCount(41);
-    // Energy & Power Monitor is a supported Home product (shown as "GV Power").
+    await expect(page.locator('.loja-card')).toHaveCount(40);
+    await expect(page.getByRole('heading', { name: /GV Power/ })).toHaveCount(0);
     await expect(page.getByText('Pulverização de Precisão')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'EN', exact: true }).click();
-    await expect(page.getByRole('heading', { name: /GV Power/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /GV Track/ })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Essential Aerial Mapping' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Infrastructure Progress Survey' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Infrastructure Monitoring Plan' })).toBeVisible();
@@ -31,8 +45,8 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Targeted Drone Verification' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mining Volumetry Survey' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Mining Repeat Monitoring Plan' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Ports & Industrial Visual Inspection' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Ports & Industrial Monitoring Plan' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Asset Visual Inspection' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Asset Monitoring Plan' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Add');
     await expect(page.locator('.deliverables-preview').first())
       .toContainText('Mapped visual evidence');
@@ -44,7 +58,7 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Cartografía 3D de Infraestructura' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Plan de Monitorización Ambiental' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Levantamiento Volumétrico Minero' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Inspección Visual Portuaria e Industrial' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Inspección Visual de Activos' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Añadir');
   });
 
@@ -52,8 +66,12 @@ test.describe('GeoVision first-party catalogue', () => {
     const card = page.locator('.loja-card').filter({
       has: page.getByRole('heading', { name: 'Mapeamento Aéreo Essencial' }),
     });
-    const recommended = await card.locator('.recommended-badge').boundingBox();
-    const featured = await card.locator('.featured-badge').boundingBox();
+    const recommendedBadge = card.locator('.recommended-badge');
+    const featuredBadge = card.locator('.featured-badge');
+    await expect(recommendedBadge).toBeVisible();
+    await expect(featuredBadge).toBeVisible();
+    const recommended = await recommendedBadge.boundingBox();
+    const featured = await featuredBadge.boundingBox();
     expect(recommended).not.toBeNull();
     expect(featured).not.toBeNull();
     const overlaps = recommended.x < featured.x + featured.width &&
@@ -70,11 +88,33 @@ test.describe('GeoVision first-party catalogue', () => {
     await product.locator('.btn-add').click();
     await expect(page.locator('#sector-warning-modal')).toBeVisible();
     await expect(page.locator('#sector-warning-message'))
-      .toContainText('Agro e pecuária');
+      .toContainText('Agricultura & Pecuária');
     await page.locator('#sector-warning-continue').click();
     await expect(page.locator('#sector-warning-modal')).toBeHidden();
     await expect(page.locator('#cart-count')).toContainText('1 item');
     await expect(page.locator('.loja-cart-item-name'))
       .toHaveText('Kit de Sondas de Solo');
+  });
+
+  test('normalizes legacy catalogue links into the six public sector filters', async ({ page }) => {
+    await page.goto(`${BASE}/loja.html?sector=agro`);
+    await expect(page.locator('#sector-filters [data-sector="agriculture"]')).toHaveClass(/active/);
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('gv_catalog_sector')))
+      .toBe('environment');
+
+    await page.goto(`${BASE}/loja.html?sector=ports`);
+    await expect(page.locator('#sector-filters [data-sector="ports_logistics"]')).toHaveClass(/active/);
+
+    await page.goto(`${BASE}/loja.html?sector=solar`);
+    await expect(page.locator('#sector-filters [data-sector="industry_energy_utilities"]')).toHaveClass(/active/);
+
+    const portugueseIndustry = encodeURIComponent('indústria, energia & utilities');
+    await page.goto(`${BASE}/loja.html?sector=${portugueseIndustry}`);
+    await expect(page.locator('#sector-filters [data-sector="industry_energy_utilities"]')).toHaveClass(/active/);
+
+    expect(await page.evaluate(() => productPublicSectors({ sectors: ['industry'] })))
+      .toEqual(['industry_energy_utilities']);
+    expect(await page.evaluate(() => productPublicSectors({ sectors: ['ports_industrial'] })))
+      .toEqual(['industry_energy_utilities', 'ports_logistics']);
   });
 });

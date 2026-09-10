@@ -117,15 +117,21 @@ bounded staleness window; an expired snapshot denies access. Targeting
 exclusions take precedence over explicit users/groups and deterministic
 percentage rollout.
 
-The five sector HTTP modules consume the exact rollout keys
-`geovision.sectors.agriculture`, `.infrastructure`, `.environmental`, `.mining`
-and `.ports`. Their pre-existing workspace/module checks remain authoritative:
-a rollout flag can deny an otherwise enabled module but cannot grant around
-those checks. A local installation with neither an external rollout provider
-nor an explicit override preserves the established enabled-by-default modules.
-Once Azure App Configuration is configured, missing, unavailable or expired
-external decisions fail closed. Capabilities report the effective combination,
-and operational sector routes enforce it for the current workspace member.
+The six sector HTTP modules consume rollout decisions for `agriculture`,
+`infrastructure`, `environmental`, `mining`, `industry_energy_utilities`, and
+`ports_logistics`. The first five use matching
+`geovision.sectors.<module>` keys. During Phase 34 migration,
+`ports_logistics` continues to resolve the deployed compatibility key
+`geovision.sectors.ports`; changing that external key requires an independently
+audited flag migration. Their pre-existing workspace/module checks remain
+authoritative: a rollout flag can deny an otherwise enabled module but cannot
+grant around those checks. A local installation with neither an external
+rollout provider nor an explicit override preserves the established
+enabled-by-default modules. Once Azure App Configuration is configured,
+missing, unavailable or expired external decisions fail closed. Capabilities
+report the effective combination, and operational sector routes enforce it for
+the current workspace member. Public IDs and technical module mappings are
+listed in [`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md).
 
 An override with source `azure_app_configuration` must retain a non-secret
 configuration reference; ETag and configuration version are optional mirroring

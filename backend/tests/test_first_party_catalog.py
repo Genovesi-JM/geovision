@@ -56,18 +56,29 @@ def test_public_catalogue_is_canonical_and_published_only(client, db_session):
     assert response.status_code == 200, response.text
     items = response.json()
     assert items
-    assert all(item["item_type"] in {
-        "PHYSICAL_PRODUCT",
-        "SERVICE",
-        "MONITORING_PLAN",
-        "INSTALLATION",
-        "INSPECTION",
-        "ANALYSIS",
-    } for item in items)
+    assert all(
+        item["item_type"]
+        in {
+            "PHYSICAL_PRODUCT",
+            "SERVICE",
+            "MONITORING_PLAN",
+            "INSTALLATION",
+            "INSPECTION",
+            "ANALYSIS",
+        }
+        for item in items
+    )
     assert all("metadata" not in item and "supplier_id" not in item for item in items)
     assert all(
         set(item["sectors"]).issubset(
-            {"AGRICULTURE", "INFRASTRUCTURE", "ENVIRONMENTAL", "MINING", "PORTS_INDUSTRIAL"}
+            {
+                "agriculture",
+                "construction_infrastructure",
+                "environment",
+                "mining",
+                "industry_energy_utilities",
+                "ports_logistics",
+            }
         )
         for item in items
     )
@@ -76,12 +87,25 @@ def test_public_catalogue_is_canonical_and_published_only(client, db_session):
     assert {item["id"] for item in items} == shop_ids
 
     archived = (
-        db_session.query(CatalogItem)
-        .filter(CatalogItem.status == "ARCHIVED")
-        .first()
+        db_session.query(CatalogItem).filter(CatalogItem.status == "ARCHIVED").first()
     )
     assert archived is not None
     assert client.get(f"/catalog/items/{archived.id}").status_code == 404
+
+    published = db_session.get(CatalogItem, items[0]["id"])
+    original_sectors = published.sectors_json
+    published.sectors_json = '["FUTURE_SPECIAL"]'
+    db_session.commit()
+    public_detail = client.get(f"/catalog/items/{published.id}")
+    assert public_detail.status_code == 200, public_detail.text
+    assert public_detail.json()["sectors"] == []
+    shop_detail = client.get(f"/shop/products/{published.id}")
+    assert shop_detail.status_code == 200, shop_detail.text
+    assert shop_detail.json()["sectors"] == []
+    assert client.get("/catalog/items", params={"sector": "future"}).status_code == 422
+    assert client.get("/shop/products", params={"sector": "future"}).status_code == 422
+    published.sectors_json = original_sectors
+    db_session.commit()
 
 
 def test_infrastructure_catalogue_exposes_the_six_supported_actions(client):
@@ -101,10 +125,8 @@ def test_infrastructure_catalogue_exposes_the_six_supported_actions(client):
     for item_id, item_type in expected.items():
         item = items[item_id]
         assert item["item_type"] == item_type
-        assert item["sectors"] == ["INFRASTRUCTURE"]
-        assert {"BUILDING", "BRIDGE", "ROAD", "SITE"} <= set(
-            item["asset_types"]
-        )
+        assert item["sectors"] == ["construction_infrastructure"]
+        assert {"BUILDING", "BRIDGE", "ROAD", "SITE"} <= set(item["asset_types"])
         assert item["deliverables"]
         assert "supplier_id" not in item
         assert "metadata" not in item
@@ -114,12 +136,14 @@ def test_infrastructure_catalogue_exposes_the_six_supported_actions(client):
             for translation in item["translations"].values()
         )
 
-    assert "not an engineering diagnosis" in items[
-        "prod_infra_technical_inspection"
-    ]["description"]
-    assert "not labelled as faults" in items[
-        "prod_infra_thermal_inspection"
-    ]["description"]
+    assert (
+        "not an engineering diagnosis"
+        in items["prod_infra_technical_inspection"]["description"]
+    )
+    assert (
+        "not labelled as faults"
+        in items["prod_infra_thermal_inspection"]["description"]
+    )
 
     road_response = client.get(
         "/catalog/items",
@@ -158,7 +182,7 @@ def test_environmental_catalogue_exposes_the_six_supported_actions(client):
     for item_id, item_type in expected.items():
         item = items[item_id]
         assert item["item_type"] == item_type
-        assert item["sectors"] == ["ENVIRONMENTAL"]
+        assert item["sectors"] == ["environment"]
         assert set(item["asset_types"]) == asset_types
         assert item["deliverables"]
         assert "supplier_id" not in item
@@ -169,15 +193,14 @@ def test_environmental_catalogue_exposes_the_six_supported_actions(client):
             for translation in item["translations"].values()
         )
 
-    assert "without assigning" in items["prod_env_environmental_survey"][
-        "description"
-    ]
-    assert "do not diagnose" in items["prod_env_reforestation_monitoring"][
-        "description"
-    ]
-    assert "does not confirm a cause automatically" in items[
-        "prod_env_targeted_drone_verification"
-    ]["description"]
+    assert "without assigning" in items["prod_env_environmental_survey"]["description"]
+    assert (
+        "do not diagnose" in items["prod_env_reforestation_monitoring"]["description"]
+    )
+    assert (
+        "does not confirm a cause automatically"
+        in items["prod_env_targeted_drone_verification"]["description"]
+    )
 
     forest_response = client.get(
         "/catalog/items",
@@ -213,7 +236,7 @@ def test_mining_catalogue_exposes_quality_gated_services(client):
     for item_id, item_type in expected.items():
         item = items[item_id]
         assert item["item_type"] == item_type
-        assert item["sectors"] == ["MINING"]
+        assert item["sectors"] == ["mining"]
         assert set(item["asset_types"]) == asset_types
         assert item["deliverables"]
         assert "supplier_id" not in item
@@ -241,7 +264,7 @@ def test_mining_catalogue_exposes_quality_gated_services(client):
 
 
 def test_ports_catalogue_exposes_asset_centric_inspection_services(client):
-    response = client.get("/catalog/items", params={"sector": "ports"})
+    response = client.get("/catalog/items", params={"sector": "ports_logistics"})
     assert response.status_code == 200, response.text
     items = {item["id"]: item for item in response.json()}
 
@@ -272,7 +295,10 @@ def test_ports_catalogue_exposes_asset_centric_inspection_services(client):
     for item_id, item_type in expected.items():
         item = items[item_id]
         assert item["item_type"] == item_type
-        assert item["sectors"] == ["PORTS_INDUSTRIAL"]
+        assert item["sectors"] == [
+            "industry_energy_utilities",
+            "ports_logistics",
+        ]
         assert set(item["asset_types"]) == asset_types
         assert item["deliverables"]
         assert "supplier_id" not in item
@@ -301,9 +327,71 @@ def test_ports_catalogue_exposes_asset_centric_inspection_services(client):
     assert expected.keys() <= {item["id"] for item in gantry_response.json()}
 
 
+def test_shop_sector_registry_exposes_the_ordered_cross_surface_contract(client):
+    response = client.get("/shop/sectors")
+    assert response.status_code == 200, response.text
+    assert response.json() == [
+        {
+            "key": "agriculture",
+            "label": "Agricultura & Pecuária",
+            "slug": "agricultura-pecuaria",
+            "asset_sector": "AGRICULTURE",
+            "capability_sector": "agriculture",
+            "maturity": "available",
+        },
+        {
+            "key": "construction_infrastructure",
+            "label": "Construção & Infraestruturas",
+            "slug": "construcao-infraestruturas",
+            "asset_sector": "INFRASTRUCTURE",
+            "capability_sector": "infrastructure",
+            "maturity": "custom_project",
+        },
+        {
+            "key": "environment",
+            "label": "Ambiente",
+            "slug": "ambiente",
+            "asset_sector": "ENVIRONMENTAL",
+            "capability_sector": "environmental",
+            "maturity": "custom_project",
+        },
+        {
+            "key": "mining",
+            "label": "Mineração",
+            "slug": "mineracao",
+            "asset_sector": "MINING",
+            "capability_sector": "mining",
+            "maturity": "specialized",
+        },
+        {
+            "key": "industry_energy_utilities",
+            "label": "Indústria, Energia & Utilities",
+            "slug": "industria-energia-utilities",
+            "asset_sector": "INDUSTRY_ENERGY_UTILITIES",
+            "capability_sector": "industry_energy_utilities",
+            "maturity": "expansion",
+        },
+        {
+            "key": "ports_logistics",
+            "label": "Portos & Logística",
+            "slug": "portos-logistica",
+            "asset_sector": "PORTS_LOGISTICS",
+            "capability_sector": "ports_logistics",
+            "maturity": "expansion",
+        },
+    ]
+
+
 def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
     headers = _login_headers(client, "teste@admin.com")
     suffix = uuid.uuid4().hex[:8]
+    oversized = client.post(
+        "/catalog/internal/items",
+        headers=headers,
+        json=_item_payload("SERVICE", suffix, sectors=["agro"] * 7),
+    )
+    assert oversized.status_code == 422
+
     supplier = client.post(
         "/catalog/internal/suppliers",
         headers=headers,
@@ -333,6 +421,7 @@ def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
         )
         assert response.status_code == 201, response.text
         assert response.json()["supplier_id"] == supplier_id
+        assert response.json()["sectors"] == ["AGRICULTURE", "ENVIRONMENTAL"]
         created.append(response.json())
 
     assert {item["item_type"] for item in created} == {
@@ -348,13 +437,20 @@ def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
         params={"item_type": "INSPECTION", "sector": "agro", "asset_type": "farm"},
     )
     assert filtered.status_code == 200, filtered.text
-    assert any(item["id"] == next(row["id"] for row in created if row["item_type"] == "INSPECTION") for item in filtered.json())
+    assert any(
+        item["id"]
+        == next(row["id"] for row in created if row["item_type"] == "INSPECTION")
+        for item in filtered.json()
+    )
     assert all("supplier_id" not in item for item in filtered.json())
 
 
 def test_customer_cannot_manage_catalog_but_inventory_staff_can(client, db_session):
     customer_headers = _login_headers(client, "teste@clientes.com")
-    assert client.get("/catalog/internal/items", headers=customer_headers).status_code == 403
+    assert (
+        client.get("/catalog/internal/items", headers=customer_headers).status_code
+        == 403
+    )
     denied = client.post(
         "/catalog/internal/items",
         headers=customer_headers,
@@ -397,6 +493,17 @@ def test_catalogue_rejects_secret_metadata_and_unpriced_publication(client):
         json=_item_payload("SERVICE", suffix, metadata={"api_key": "must-not-store"}),
     )
     assert secret.status_code == 422
+
+    unknown_sector = client.post(
+        "/catalog/internal/items",
+        headers=headers,
+        json=_item_payload(
+            "SERVICE",
+            uuid.uuid4().hex[:8],
+            sectors=["future"],
+        ),
+    )
+    assert unknown_sector.status_code == 422
 
     unpriced = client.post(
         "/catalog/internal/items",
@@ -445,5 +552,13 @@ def test_legacy_admin_delete_archives_without_losing_catalog_history(client):
 
 def test_no_public_seller_provider_or_bidding_surface(client):
     route_paths = {route.path.lower() for route in client.app.routes}
-    forbidden_fragments = ("/sellers", "/vendors", "/provider-bids", "/contractor-storefront")
-    assert all(not any(fragment in path for fragment in forbidden_fragments) for path in route_paths)
+    forbidden_fragments = (
+        "/sellers",
+        "/vendors",
+        "/provider-bids",
+        "/contractor-storefront",
+    )
+    assert all(
+        not any(fragment in path for fragment in forbidden_fragments)
+        for path in route_paths
+    )

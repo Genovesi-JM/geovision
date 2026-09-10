@@ -19,12 +19,93 @@ let cartId = localStorage.getItem("gv_cart_id") || generateCartId();
 let currentCart = null;
 const CATALOG_SECTOR_KEY = "gv_catalog_sector";
 const LEGACY_MARKETPLACE_SECTOR_KEY = "gv_marketplace_sector";
-const STORE_SECTORS = new Set(["agro", "environment", "construction", "infrastructure", "mining", "ports"]);
+const STORE_SECTORS = new Set([
+  "agriculture",
+  "construction_infrastructure",
+  "environment",
+  "mining",
+  "industry_energy_utilities",
+  "ports_logistics",
+]);
+const STORE_SECTOR_ALIASES = {
+  agro: "agriculture",
+  agropecuaria: "agriculture",
+  agriculture: "agriculture",
+  agricultura: "agriculture",
+  agricultura_e_pecuaria: "agriculture",
+  agricultura_pecuaria: "agriculture",
+  agriculture_livestock: "agriculture",
+  livestock: "agriculture",
+  construction: "construction_infrastructure",
+  construction_and_infrastructure: "construction_infrastructure",
+  construction_infrastructure: "construction_infrastructure",
+  construcao_e_infraestruturas: "construction_infrastructure",
+  construcao_infraestrutura: "construction_infrastructure",
+  construcao_infraestruturas: "construction_infrastructure",
+  infrastructure: "construction_infrastructure",
+  infrastructures: "construction_infrastructure",
+  ambiente: "environment",
+  ambiental: "environment",
+  environment: "environment",
+  environmental: "environment",
+  mining: "mining",
+  mine: "mining",
+  mines: "mining",
+  mineracao: "mining",
+  quarry: "mining",
+  industry: "industry_energy_utilities",
+  industria: "industry_energy_utilities",
+  industrial: "industry_energy_utilities",
+  industry_energy: "industry_energy_utilities",
+  industria_e_energia_utilities: "industry_energy_utilities",
+  industria_energia_utilities: "industry_energy_utilities",
+  industria_energia_e_utilities: "industry_energy_utilities",
+  industry_energy_utilities: "industry_energy_utilities",
+  energy: "industry_energy_utilities",
+  energia: "industry_energy_utilities",
+  solar: "industry_energy_utilities",
+  utilities: "industry_energy_utilities",
+  port: "ports_logistics",
+  portos: "ports_logistics",
+  ports: "ports_logistics",
+  ports_industrial: "ports_logistics",
+  ports_and_logistics: "ports_logistics",
+  ports_logistics: "ports_logistics",
+  logistics: "ports_logistics",
+  logistica: "ports_logistics",
+  portos_e_logistica: "ports_logistics",
+  portos_logistica: "ports_logistics",
+};
+function storeSectorKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
 function normalizeStoreSector(value) {
-  if (["ambiental"].includes(value)) return "environment";
-  if (value === "livestock") return "agro";
-  if (["industry", "industrial", "port", "ports_industrial"].includes(value)) return "ports";
-  return STORE_SECTORS.has(value) ? value : null;
+  const shared = window.GV_SECTOR_TAXONOMY;
+  if (shared && typeof shared.normalizeSector === "function") {
+    return shared.normalizeSector(value);
+  }
+  const key = storeSectorKey(value);
+  const normalized = STORE_SECTOR_ALIASES[key] || key;
+  return STORE_SECTORS.has(normalized) ? normalized : null;
+}
+function productPublicSectors(product) {
+  const sectors = (product && product.sectors) || [];
+  return [...new Set(sectors.flatMap((value) => {
+    const key = storeSectorKey(value);
+    // Only the historical combined catalogue value is ambiguous. Plain
+    // industry aliases belong exclusively to Industry, Energy & Utilities.
+    if (key === "ports_industrial") {
+      return ["industry_energy_utilities", "ports_logistics"];
+    }
+    const normalized = normalizeStoreSector(key);
+    return normalized ? [normalized] : [];
+  }))];
 }
 const recommendedSector = normalizeStoreSector(
   localStorage.getItem(CATALOG_SECTOR_KEY) ||
@@ -52,12 +133,12 @@ let stripeElements = null;
 
 // Sector labels for display
 const SECTOR_LABEL_KEYS = {
-  "environment": "loja.sector.environment",
-  "construction": "loja.sector.construction",
-  "infrastructure": "loja.sector.infrastructure",
-  "agro": "loja.sector.agro",
-  "mining": "loja.sector.mining",
-  "ports": "loja.sector.ports",
+  "agriculture": "public.sector.agriculture",
+  "construction_infrastructure": "public.sector.constructionInfrastructure",
+  "environment": "public.sector.environment",
+  "mining": "public.sector.mining",
+  "industry_energy_utilities": "public.sector.industryEnergyUtilities",
+  "ports_logistics": "public.sector.portsLogistics",
 };
 const storeT = (key) => (window.t && window.t(key)) || key;
 const storeFormat = (key, values = {}) => Object.entries(values).reduce(
@@ -569,9 +650,9 @@ function renderProducts() {
   
   // Apply sector filter
   if (currentSectorFilter !== "all") {
-    filtered = filtered.filter((p) => (p.sectors || []).some((s) => normalizeStoreSector(s) === currentSectorFilter));
+    filtered = filtered.filter((p) => productPublicSectors(p).includes(currentSectorFilter));
   }
-  filtered = filtered.filter((p) => (p.sectors || []).some((s) => normalizeStoreSector(s)));
+  filtered = filtered.filter((p) => productPublicSectors(p).length);
   
   // Apply type filter
   if (currentTypeFilter !== "all") {
@@ -586,8 +667,8 @@ function renderProducts() {
 
   // Put solutions for the active account first, then globally featured items.
   filtered.sort((a, b) => {
-    const aRecommended = recommendedSector && (a.sectors || []).some((s) => normalizeStoreSector(s) === recommendedSector);
-    const bRecommended = recommendedSector && (b.sectors || []).some((s) => normalizeStoreSector(s) === recommendedSector);
+    const aRecommended = recommendedSector && productPublicSectors(a).includes(recommendedSector);
+    const bRecommended = recommendedSector && productPublicSectors(b).includes(recommendedSector);
     if (aRecommended && !bRecommended) return -1;
     if (!aRecommended && bRecommended) return 1;
     if (a.is_featured && !b.is_featured) return -1;
@@ -603,7 +684,7 @@ function renderProducts() {
     const productCopy = localizedProductCopy(p);
     
     // Sector badges
-    const publicSectors = [...new Set((p.sectors || []).map(normalizeStoreSector).filter(Boolean))];
+    const publicSectors = productPublicSectors(p);
     const sectorBadges = publicSectors.map(s => `<span class="${getSectorBadgeClass(s)}">${esc(SECTOR_LABEL_KEYS[s] ? storeT(SECTOR_LABEL_KEYS[s]) : s)}</span>`).join("");
 
     // Execution type badge

@@ -25,13 +25,29 @@ from app.modules.identity.domain import AuthorizationContext
 from app.sectors.agriculture.router import _asset as agriculture_asset
 
 
-SECTORS = ("agriculture", "infrastructure", "environmental", "mining", "ports")
+SECTORS = (
+    "agriculture",
+    "infrastructure",
+    "environmental",
+    "mining",
+    "industry_energy_utilities",
+    "ports_logistics",
+)
+FLAG_SECTORS = {
+    "agriculture": "agriculture",
+    "infrastructure": "infrastructure",
+    "environmental": "environmental",
+    "mining": "mining",
+    "industry_energy_utilities": "industry_energy_utilities",
+    "ports_logistics": "ports",
+}
 ASSET_KINDS = {
     "agriculture": ("AGRICULTURE", "FARM"),
     "infrastructure": ("INFRASTRUCTURE", "ROAD"),
     "environmental": ("ENVIRONMENTAL", "ENVIRONMENTAL_SITE"),
     "mining": ("MINING", "QUARRY"),
-    "ports": ("PORTS_INDUSTRIAL", "QUAY"),
+    "industry_energy_utilities": ("INDUSTRY_ENERGY_UTILITIES", "FACILITY"),
+    "ports_logistics": ("PORTS_LOGISTICS", "QUAY"),
 }
 
 
@@ -65,8 +81,11 @@ def _fixture(db_session):
     )
     workspace = Account(
         organization_id=organization.id,
-        name="Five-sector workspace",
-        sector_focus="agriculture,infrastructure,environmental,mining,ports",
+        name="Six-sector workspace",
+        sector_focus=(
+            "agriculture,construction_infrastructure,environment,mining,"
+            "industry_energy_utilities,ports_logistics"
+        ),
         entity_type="company",
         customer_type="multi_sector",
         dashboard_profile="operations",
@@ -135,7 +154,7 @@ def test_all_sector_flags_honor_workspace_member_and_http_precedence(
             FeatureFlagOverride(
                 organization_id=organization.id,
                 workspace_id=workspace.id,
-                flag_key=f"geovision.sectors.{sector}",
+                flag_key=f"geovision.sectors.{FLAG_SECTORS[sector]}",
                 enabled=False,
                 source="GEOVISION",
                 created_by_user_id=owner.id,
@@ -160,7 +179,7 @@ def test_all_sector_flags_honor_workspace_member_and_http_precedence(
                 organization_id=organization.id,
                 workspace_id=workspace.id,
                 user_id=owner.id,
-                flag_key=f"geovision.sectors.{sector}",
+                flag_key=f"geovision.sectors.{FLAG_SECTORS[sector]}",
                 enabled=True,
                 source="GEOVISION",
                 created_by_user_id=owner.id,
@@ -196,7 +215,7 @@ def test_all_sector_flags_honor_workspace_member_and_http_precedence(
         "INFRASTRUCTURE": "infrastructure",
         "ENVIRONMENTAL": "environmental",
         "MINING": "mining",
-        "PORTS_INDUSTRIAL": "ports",
+        "PORTS_LOGISTICS": "ports-logistics",
     }
     for asset_sector, path_sector in path_sectors.items():
         denied = client.get(

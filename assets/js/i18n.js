@@ -588,7 +588,7 @@ const translations = {
   "loja.sector.infrastructure": { pt: "Infraestruturas", en: "Infrastructure", es: "Infraestructuras" },
   "loja.sector.agro": { pt: "Agro e pecuária", en: "Agriculture & livestock", es: "Agricultura y ganadería" },
   "loja.sector.mining": { pt: "Mineração e pedreiras", en: "Mining & quarrying", es: "Minería y canteras" },
-  "loja.sector.ports": { pt: "Portos e indústria", en: "Ports & industry", es: "Puertos e industria" },
+  "loja.sector.ports": { pt: "Portos & Logística", en: "Ports & Logistics", es: "Puertos y Logística" },
   "loja.execution.oneOff": { pt: "Pontual", en: "One-off", es: "Puntual" },
   "loja.execution.recurring": { pt: "Recorrente", en: "Recurring", es: "Recurrente" },
   "loja.featured": { pt: "Destaque", en: "Featured", es: "Destacado" },
@@ -971,7 +971,7 @@ const translations = {
 
   // ============ ABOUT PAGE - WHY GEOVISION ============
   "about.why.eyebrow2": { pt: "A Nossa Vantagem", en: "Our Advantage", es: "Nuestra Ventaja" },
-  "about.why.multiSector.desc": { pt: "Experiência comprovada em mineração, infraestrutura, agricultura, desminagem e energia.", en: "Proven expertise across mining, infrastructure, agriculture, demining and energy sectors.", es: "Experiencia comprobada en minería, infraestructura, agricultura, desminado y energía." },
+  "about.why.multiSector.desc": { pt: "Capacidade configurável para Agricultura & Pecuária, Construção & Infraestruturas, Ambiente, Mineração, Indústria, Energia & Utilities e Portos & Logística.", en: "Configurable capability for Agriculture & Livestock, Construction & Infrastructure, Environment, Mining, Industry, Energy & Utilities, and Ports & Logistics.", es: "Capacidad configurable para Agricultura y Ganadería, Construcción e Infraestructuras, Medio ambiente, Minería, Industria, Energía y Servicios Públicos, y Puertos y Logística." },
   "about.why.enterprise.title": { pt: "Sistemas Empresariais", en: "Enterprise-Ready Systems", es: "Sistemas Empresariales" },
   "about.why.enterprise.desc": { pt: "Plataformas de grau industrial com segurança robusta, conformidade e escalabilidade.", en: "Industrial-grade platforms with robust security, compliance and scalability.", es: "Plataformas de grado industrial con seguridad robusta, cumplimiento y escalabilidad." },
   "about.why.security.title": { pt: "Gestão Segura de Dados", en: "Secure Data Management", es: "Gestión Segura de Datos" },
@@ -1058,7 +1058,7 @@ const translations = {
   "tech.why.eyebrow": { pt: "Nossa Vantagem", en: "Our Advantage", es: "Nuestra Ventaja" },
   "tech.why.title": { pt: "Porquê a GeoVision", en: "Why GeoVision", es: "Por Qué GeoVision" },
   "tech.why.multiSector.title": { pt: "Capacidade Multi-Setor", en: "Multi-Sector Capability", es: "Capacidad Multi-Sector" },
-  "tech.why.multiSector.desc": { pt: "Experiência comprovada em agropecuária, mineração, construção, infraestruturas e setor ambiental.", en: "Proven expertise across agriculture, mining, construction, infrastructure and environmental sectors.", es: "Experiencia comprobada en agropecuaria, minería, construcción, infraestructuras y sector ambiental." },
+  "tech.why.multiSector.desc": { pt: "Capacidade configurável para os seis setores GeoVision, da Agricultura & Pecuária aos Portos & Logística.", en: "Configurable capability across GeoVision's six sectors, from Agriculture & Livestock to Ports & Logistics.", es: "Capacidad configurable para los seis sectores de GeoVision, desde Agricultura y Ganadería hasta Puertos y Logística." },
   "tech.why.enterprise.title": { pt: "Nível Empresarial", en: "Enterprise-Grade", es: "Nivel Empresarial" },
   "tech.why.enterprise.desc": { pt: "Plataformas de grau industrial com segurança robusta, compliance e escalabilidade.", en: "Industrial-grade platforms with robust security, compliance and scalability.", es: "Plataformas de grado industrial con seguridad robusta, compliance y escalabilidad." },
   "tech.why.security.title": { pt: "Dados Seguros", en: "Secure Data", es: "Datos Seguros" },
@@ -1426,7 +1426,7 @@ const translations = {
   "sectors.viewservices.ambiental": { pt: "Ver Serviços Ambientais", en: "View Environmental Services", es: "Ver Servicios Ambientales" },
 
   // ============ SECTORS PAGE - AGROPECUÁRIA ============
-  "sectors.agropecuaria": { pt: "Agropecuária", en: "Agriculture", es: "Agropecuaria" },
+  "sectors.agropecuaria": { pt: "Agricultura & Pecuária", en: "Agriculture & Livestock", es: "Agricultura y Ganadería" },
   "sectors.agropecuaria.title": { pt: "Diagnóstico, Prescrição, Execução & Monitorização Pecuária", en: "Diagnosis, Prescription, Execution & Livestock Monitoring", es: "Diagnóstico, Prescripción, Ejecución y Monitorización Ganadera" },
   "sectors.agropecuaria.desc": { pt: "A GeoVision integra diagnóstico multiespectral, mapas de prescrição, execução aérea seletiva e monitorização pecuária (aérea e GPS) — desde a deteção de stress hídrico até à aplicação variável com Agras T40, contagem aérea de efetivos e rastreio contínuo via colares GPS 4G.", en: "GeoVision integrates multispectral diagnosis, prescription maps, selective aerial execution and livestock monitoring (aerial and GPS) — from water stress detection to variable-rate application with Agras T40, aerial cattle counting and continuous tracking via 4G GPS collars.", es: "GeoVision integra diagnóstico multiespectral, mapas de prescripción, ejecución aérea selectiva y monitorización ganadera (aérea y GPS) — desde la detección de estrés hídrico hasta la aplicación variable con Agras T40, conteo aéreo de efectivos y rastreo continuo vía collares GPS 4G." },
   "sectors.agropecuaria.step1.label": { pt: "ETAPA 01 — DIAGNÓSTICO", en: "STEP 01 — DIAGNOSIS", es: "ETAPA 01 — DIAGNÓSTICO" },
@@ -1559,7 +1559,7 @@ const translations = {
   "sectors.cta.infraestruturas.sub": { pt: "Planeie a manutenção com base em dados reais de condição, não em pressupostos.", en: "Plan maintenance based on real condition data, not assumptions.", es: "Planifique el mantenimiento con base en datos reales de condición, no en suposiciones." },
 
   // ============ SECTORS PAGE - AMBIENTAL ============
-  "sectors.ambiental": { pt: "Ambiental", en: "Environmental", es: "Ambiental" },
+  "sectors.ambiental": { pt: "Ambiente", en: "Environment", es: "Medio ambiente" },
   "sectors.ambiental.title": { pt: "Monitorização Ambiental, Reflorestação & Apoio a Ação Humanitária contra Minas", en: "Environmental Monitoring, Reforestation & Humanitarian Mine Action Support", es: "Monitorización Ambiental, Reforestación y Apoyo a Acción Humanitaria contra Minas" },
   "sectors.ambiental.desc": { pt: "A GeoVision combina levantamento aéreo, mapeamento multiespectral e análise GIS para monitorização ambiental, programas de reflorestação (dispersão aérea de sementes e acompanhamento NDVI), avaliação de impacto e suporte visual a programas de desminagem humanitária — reforçando o planeamento e execução sem substituir o trabalho de campo.", en: "GeoVision combines aerial surveying, multispectral mapping and GIS analysis for environmental monitoring, reforestation programs (aerial seed spreading and NDVI tracking), impact assessment and visual support for humanitarian demining programs — enhancing planning and execution without replacing fieldwork.", es: "GeoVision combina levantamiento aéreo, mapeo multiespectral y análisis GIS para monitorización ambiental, programas de reforestación (dispersión aérea de semillas y seguimiento NDVI), evaluación de impacto y soporte visual a programas de desminado humanitario — reforzando la planificación y ejecución sin sustituir el trabajo de campo." },
   "sectors.ambiental.step1.label": { pt: "ETAPA 01 — AMBIENTAL", en: "STEP 01 — ENVIRONMENTAL", es: "ETAPA 01 — AMBIENTAL" },
@@ -1660,9 +1660,15 @@ Object.assign(translations, {
   "commercial.status.expansion": {pt:"Em expansão",en:"Expanding",es:"En expansión"},
   "commercial.sector.construction": {pt:"Construção & Infraestruturas",en:"Construction & Infrastructure",es:"Construcción e Infraestructuras"},
   "commercial.sector.environment": {pt:"Ambiente",en:"Environment",es:"Medio ambiente"},
-  "commercial.sector.industry": {pt:"Mineração & Indústria",en:"Mining & Industry",es:"Minería e Industria"},
+  "commercial.sector.industry": {pt:"Indústria, Energia & Utilities",en:"Industry, Energy & Utilities",es:"Industria, Energía y Servicios Públicos"},
   "commercial.sector.utilities": {pt:"Indústria, Energia & Utilities",en:"Industry, Energy & Utilities",es:"Industria, Energía y Servicios Públicos"},
   "commercial.sector.logistics": {pt:"Portos & Logística",en:"Ports & Logistics",es:"Puertos y Logística"},
+  "public.sector.agriculture": {pt:"Agricultura & Pecuária",en:"Agriculture & Livestock",es:"Agricultura y Ganadería"},
+  "public.sector.constructionInfrastructure": {pt:"Construção & Infraestruturas",en:"Construction & Infrastructure",es:"Construcción e Infraestructuras"},
+  "public.sector.environment": {pt:"Ambiente",en:"Environment",es:"Medio ambiente"},
+  "public.sector.mining": {pt:"Mineração",en:"Mining",es:"Minería"},
+  "public.sector.industryEnergyUtilities": {pt:"Indústria, Energia & Utilities",en:"Industry, Energy & Utilities",es:"Industria, Energía y Servicios Públicos"},
+  "public.sector.portsLogistics": {pt:"Portos & Logística",en:"Ports & Logistics",es:"Puertos y Logística"},
   "commercial.about.eyebrow": {pt:"Sobre a GeoVision",en:"About GeoVision",es:"Sobre GeoVision"},
   "commercial.about.title": {pt:"Tecnologia para compreender melhor o mundo físico.",en:"Technology to better understand the physical world.",es:"Tecnología para comprender mejor el mundo físico."},
   "commercial.about.subtitle": {pt:"Transformamos sinais de casas, propriedades e operações em informação clara para pessoas que precisam de decidir e agir.",en:"We turn signals from homes, properties and operations into clear information for people who need to decide and act.",es:"Convertimos señales de hogares, propiedades y operaciones en información clara para quienes necesitan decidir y actuar."},
@@ -1671,7 +1677,7 @@ Object.assign(translations, {
   "commercial.about.whoLead": {pt:"Da necessidade local à visão operacional.",en:"From a local need to an operational view.",es:"De una necesidad local a una visión operativa."},
   "commercial.about.p1": {pt:"A GeoVision combina dispositivos, conectividade, imagens e software para tornar visível o que muda num local. Uma família pode acompanhar um depósito de água; uma exploração pode observar solo e rega; uma empresa pode reunir vários ativos e equipas.",en:"GeoVision combines devices, connectivity, imagery and software to make change at a site visible. A family can track a water tank; a farm can observe soil and irrigation; a company can bring several assets and teams together.",es:"GeoVision combina dispositivos, conectividad, imágenes y software para hacer visibles los cambios en un sitio. Una familia puede controlar un depósito; una finca, el suelo y el riego; una empresa, varios activos y equipos."},
   "commercial.about.p2": {pt:"Não começamos pela tecnologia mais complexa. Começamos pela decisão que o cliente precisa de tomar, escolhemos os dados necessários e expandimos a solução quando existe valor comprovado.",en:"We do not start with the most complex technology. We start with the decision the customer needs to make, choose the required data and expand when value is proven.",es:"No empezamos por la tecnología más compleja. Empezamos por la decisión del cliente, elegimos los datos necesarios y ampliamos cuando hay valor probado."},
-  "commercial.about.p3": {pt:"O portal adapta a experiência ao tipo de conta: propriedade, agricultura, obra, ambiente, indústria, dispositivo individual ou operação com vários locais.",en:"The portal adapts to the account: property, agriculture, construction, environment, industry, a single device or a multi-site operation.",es:"El portal se adapta a la cuenta: propiedad, agricultura, obra, medio ambiente, industria, un dispositivo u operación multisitio."},
+  "commercial.about.p3": {pt:"O portal adapta a experiência ao tipo de conta, aos setores selecionados e à escala da operação — de um dispositivo a vários locais.",en:"The portal adapts to the account type, selected sectors and operating scale — from one device to multiple sites.",es:"El portal adapta la experiencia al tipo de cuenta, los sectores seleccionados y la escala operativa, desde un dispositivo hasta múltiples ubicaciones."},
   "commercial.about.scaleEyebrow": {pt:"Operação e crescimento",en:"Operations and growth",es:"Operación y crecimiento"},
   "commercial.about.scaleTitle": {pt:"Presença local. Tecnologia escalável.",en:"Local presence. Scalable technology.",es:"Presencia local. Tecnología escalable."},
   "commercial.about.angolaTitle": {pt:"Angola",en:"Angola",es:"Angola"},
@@ -1771,7 +1777,7 @@ Object.assign(translations, {
   "commercial.store.projectDesc": {pt:"Adicione o serviço mais próximo da necessidade ou contacte a equipa. O pedido inicia a avaliação; não fecha automaticamente o escopo.",en:"Add the closest service or contact the team. The request starts an assessment; it does not automatically close the scope.",es:"Añada el servicio más cercano o contacte al equipo. La solicitud inicia una evaluación; no cierra automáticamente el alcance."},
   "commercial.account.construction": {pt:"Construção / infraestrutura",en:"Construction / infrastructure",es:"Construcción / infraestructura"},
   "commercial.account.environment": {pt:"Ambiente",en:"Environment",es:"Medio ambiente"},
-  "commercial.account.industry": {pt:"Indústria / mineração",en:"Industry / mining",es:"Industria / minería"},
+  "commercial.account.industry": {pt:"Operações industriais e logísticas",en:"Industrial and logistics operations",es:"Operaciones industriales y logísticas"},
   "commercial.account.enterprise": {pt:"Empresa / vários locais",en:"Company / multiple sites",es:"Empresa / varios sitios"}
 });
 
@@ -1792,7 +1798,9 @@ Object.assign(translations, {
   "commercial.home.cardAgro": {pt:"Monitorize solo, água, culturas, animais e equipamentos através de sensores, tracking, mapas e dados aéreos.",en:"Monitor soil, water, crops, animals and equipment through sensors, tracking, maps and aerial data.",es:"Monitorice suelo, agua, cultivos, animales y equipos mediante sensores, tracking, mapas y datos aéreos."},
   "commercial.home.cardConstruction": {pt:"Acompanhe progresso, equipamentos, condições ambientais e alterações do local, do terreno à visão aérea.",en:"Track progress, equipment, environmental conditions and site changes, from the ground to the air.",es:"Siga el progreso, equipos, condiciones ambientales y cambios del sitio, desde el terreno hasta el aire."},
   "commercial.home.cardEnvironment": {pt:"Combine sensores no terreno, mapas e observação aérea para acompanhar condições e alterações em grandes áreas.",en:"Combine ground sensors, maps and aerial observation to track conditions and change across large areas.",es:"Combine sensores de terreno, mapas y observación aérea para seguir condiciones y cambios en grandes áreas."},
+  "commercial.home.cardMining": {pt:"Acompanhe frentes de trabalho, inventários, volumetria, ativos e alterações entre campanhas.",en:"Track work fronts, inventories, volumes, assets and changes between campaigns.",es:"Siga frentes de trabajo, inventarios, volumetría, activos y cambios entre campañas."},
   "commercial.home.cardIndustry": {pt:"Monitorize áreas, ativos, equipamentos e condições operacionais com dados de campo, tracking e inteligência aérea.",en:"Monitor areas, assets, equipment and operating conditions with field data, tracking and aerial intelligence.",es:"Monitorice áreas, activos, equipos y condiciones operativas con datos de campo, tracking e inteligencia aérea."},
+  "commercial.home.cardPortsLogistics": {pt:"Coordene pátios, corredores, inventário visual e ativos distribuídos numa vista operacional comum.",en:"Coordinate yards, corridors, visual inventory and distributed assets in one operational view.",es:"Coordine patios, corredores, inventario visual y activos distribuidos en una vista operativa común."},
   "commercial.flow.desc": {pt:"A GeoVision reúne informação do terreno, de ativos móveis e do ar para criar uma visão única da operação.",en:"GeoVision brings together information from the ground, mobile assets and the air to create one operational view.",es:"GeoVision reúne información del terreno, activos móviles y el aire para crear una visión única de la operación."},
   "commercial.flow.sources": {pt:"Terreno, ativos & ar",en:"Ground, assets & air",es:"Terreno, activos y aire"},
   "commercial.flow.sourcesDesc": {pt:"Sensores, GPS, drones e dados externos recolhem o contexto necessário.",en:"Sensors, GPS, drones and external data capture the required context.",es:"Sensores, GPS, drones y datos externos capturan el contexto necesario."},

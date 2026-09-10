@@ -10,6 +10,8 @@ import math
 import re
 from typing import Any
 
+from app.modules.assets.domain import normalize_sector as normalize_asset_sector
+
 
 class KpiImportance(str, Enum):
     PRIMARY = "PRIMARY"
@@ -73,7 +75,9 @@ def _stable_identifier(value: str, field_name: str, *, uppercase: bool = False) 
 
 def _version_key(value: str) -> tuple[tuple[int, object], ...]:
     parts = re.findall(r"\d+|[A-Za-z]+", value)
-    return tuple((0, int(part)) if part.isdigit() else (1, part.lower()) for part in parts)
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part.lower()) for part in parts
+    )
 
 
 def _stable_version(value: str, field_name: str = "version") -> str:
@@ -104,9 +108,19 @@ class KpiDefinitionSpec:
     sort_order: int = 0
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "sector", _stable_identifier(self.sector, "sector", uppercase=True))
+        object.__setattr__(
+            self,
+            "sector",
+            _stable_identifier(
+                normalize_asset_sector(self.sector),
+                "sector",
+                uppercase=True,
+            ),
+        )
         object.__setattr__(self, "key", _stable_identifier(self.key, "key"))
-        object.__setattr__(self, "calculator", _stable_identifier(self.calculator, "calculator"))
+        object.__setattr__(
+            self, "calculator", _stable_identifier(self.calculator, "calculator")
+        )
         object.__setattr__(self, "version", _stable_version(self.version))
         name = str(self.name or "").strip()
         if not name or len(name) > 200:
@@ -182,25 +196,39 @@ class ObservationProposal:
         object.__setattr__(
             self,
             "observation_type",
-            _stable_identifier(self.observation_type, "observation_type", uppercase=True),
+            _stable_identifier(
+                self.observation_type, "observation_type", uppercase=True
+            ),
         )
-        object.__setattr__(self, "algorithm_key", _stable_identifier(self.algorithm_key, "algorithm_key"))
         object.__setattr__(
-            self, "algorithm_version", _stable_version(self.algorithm_version, "algorithm_version")
+            self,
+            "algorithm_key",
+            _stable_identifier(self.algorithm_key, "algorithm_key"),
+        )
+        object.__setattr__(
+            self,
+            "algorithm_version",
+            _stable_version(self.algorithm_version, "algorithm_version"),
         )
         object.__setattr__(self, "severity", ObservationSeverity(self.severity))
-        object.__setattr__(self, "validation_status", ValidationStatus(self.validation_status))
+        object.__setattr__(
+            self, "validation_status", ValidationStatus(self.validation_status)
+        )
         if not str(self.source or "").strip():
             raise ValueError("source is required")
         if not 0 <= float(self.confidence) <= 1:
             raise ValueError("confidence must be between 0 and 1")
-        if self.numeric_value is not None and not math.isfinite(float(self.numeric_value)):
+        if self.numeric_value is not None and not math.isfinite(
+            float(self.numeric_value)
+        ):
             raise ValueError("observation numeric value must be finite")
         object.__setattr__(self, "detected_at", _utc_naive(self.detected_at))
         object.__setattr__(self, "value", dict(self.value))
         object.__setattr__(self, "metadata", dict(self.metadata))
         object.__setattr__(self, "provenance", dict(self.provenance))
-        object.__setattr__(self, "geometry", dict(self.geometry) if self.geometry else None)
+        object.__setattr__(
+            self, "geometry", dict(self.geometry) if self.geometry else None
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,11 +274,17 @@ class EvaluationContext:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "sector", _stable_identifier(self.sector, "sector", uppercase=True))
+        object.__setattr__(
+            self, "sector", _stable_identifier(self.sector, "sector", uppercase=True)
+        )
         object.__setattr__(self, "measured_at", _utc_naive(self.measured_at))
         object.__setattr__(self, "measurements", dict(self.measurements))
-        object.__setattr__(self, "datasets", tuple(dict(item) for item in self.datasets))
-        object.__setattr__(self, "telemetry", tuple(dict(item) for item in self.telemetry))
+        object.__setattr__(
+            self, "datasets", tuple(dict(item) for item in self.datasets)
+        )
+        object.__setattr__(
+            self, "telemetry", tuple(dict(item) for item in self.telemetry)
+        )
         object.__setattr__(self, "metadata", dict(self.metadata))
 
 
@@ -305,7 +339,9 @@ class CalculatorRegistry:
             and (version is None or item.definition.version == version)
         ]
         if not candidates:
-            raise KeyError(f"No KPI calculator registered for {normalized_sector}.{normalized_key}")
+            raise KeyError(
+                f"No KPI calculator registered for {normalized_sector}.{normalized_key}"
+            )
         return max(
             candidates,
             key=lambda item: (
@@ -457,7 +493,9 @@ def format_kpi_value(
     separator = str(display_format.get("unit_separator", " "))
     if isinstance(value, bool):
         rendered = str(
-            display_format.get("true_label" if value else "false_label", str(value).lower())
+            display_format.get(
+                "true_label" if value else "false_label", str(value).lower()
+            )
         )
     elif isinstance(value, (int, float)):
         if float(value) > 0 and "positive_prefix" in display_format:
@@ -491,7 +529,9 @@ class HistoricalComparison:
     baseline_change_percent: float | None
 
 
-def _change(current: float | None, reference: float | None) -> tuple[float | None, float | None]:
+def _change(
+    current: float | None, reference: float | None
+) -> tuple[float | None, float | None]:
     if current is None or reference is None:
         return None, None
     delta = current - reference

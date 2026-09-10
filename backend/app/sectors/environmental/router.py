@@ -90,6 +90,8 @@ def environmental_capabilities(
 ):
     return {
         "sector": SECTOR,
+        "public_sector": "environment",
+        "maturity": "custom_project",
         "enabled": environmental_enabled_for_context(db, context=context)
         and _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,

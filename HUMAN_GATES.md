@@ -163,7 +163,9 @@ how to confirm · what the automation does afterwards.
 
 - **Reason:** The shared engine enforces provenance, confidence, validation,
   thresholds, versioning and outcomes, but code alone cannot approve agronomic,
-  engineering, environmental, mining or port decision rules.
+  construction/infrastructure, environmental, mining, industrial/energy/
+  utilities, or port/logistics decision rules. Apply this gate independently
+  to each canonical sector in `docs/SECTOR_TAXONOMY.md`.
 - **Action:** For each sector registration, nominate an accountable subject
   expert; approve representative training/validation datasets, units,
   thresholds, baselines, geography/season/asset applicability, confidence

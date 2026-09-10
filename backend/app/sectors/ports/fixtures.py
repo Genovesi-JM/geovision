@@ -1,4 +1,4 @@
-"""Synthetic repeated-inspection fixture for Ports and Industrial demos."""
+"""Synthetic repeated-inspection fixture for Ports and Logistics demos."""
 
 from __future__ import annotations
 
@@ -133,7 +133,7 @@ def demo_ports_bundle(
     return deepcopy(
         {
             "asset": {
-                "sector": "PORTS_INDUSTRIAL",
+                "sector": "PORTS_LOGISTICS",
                 "asset_type": "GANTRY",
                 "name": "Synthetic terminal gantry",
                 "location_label": "Synthetic demo terminal, Sines",

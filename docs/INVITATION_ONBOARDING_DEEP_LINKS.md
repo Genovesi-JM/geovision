@@ -63,7 +63,10 @@ creates a starter organization or workspace; the client calls
 
 Legacy callers may continue sending `customer_type`, sector, and use-case
 fields to `/auth/register` or `/auth/onboarding`. New browser and Flutter flows
-send `intent`. This is an additive compatibility transition.
+send `intent`. When a legacy sector is present, the server normalizes it to the
+six-sector contract in [`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md). This is an
+additive compatibility transition; aliases are never a second customer-facing
+sector list.
 
 ## Target validation and destinations
 

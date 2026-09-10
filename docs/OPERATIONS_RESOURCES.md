@@ -34,10 +34,14 @@ supplier or contractor profile.
 ## Capability taxonomy
 
 `operational_capabilities` is extensible and categorized rather than tied to a
-single worker type. The migration seeds RGB, RTK, MULTISPECTRAL, THERMAL,
-LIDAR; all five sector expertise codes; and baseline agronomy, IoT installation,
-field technician, surveying, and data-analysis skills. GeoVision Operations can
-add or deactivate future capabilities without a schema change.
+single worker type. Phase 9 seeded RGB, RTK, MULTISPECTRAL, THERMAL, LIDAR; its
+then-current five sector expertise codes; and baseline agronomy, IoT
+installation, field technician, surveying, and data-analysis skills. Phase 34
+aligns sector expertise with the six technical values in
+[`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md), preserving linked legacy rows while
+normalizing `PORTS_INDUSTRIAL` and adding the distinct
+`INDUSTRY_ENERGY_UTILITIES` capability. GeoVision Operations can add or
+deactivate future capabilities without a schema change.
 
 Contractors link to capabilities through `contractor_capabilities`, leaving
 space for proficiency, verification, expiry, and private notes. Search can

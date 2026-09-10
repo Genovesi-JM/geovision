@@ -13,7 +13,7 @@ abstract final class DemoStoreCatalog {
       priceEurCents: 61100,
       currency: 'USD',
       featured: true,
-      sectors: ['construction', 'infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/construction-progress.jpg',
       description:
           'Levantamento RGB/RTK recorrente para comparar progresso apenas quando existem evidências de levantamento e planeamento válidas.',
@@ -48,7 +48,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 45000000,
       priceEurCents: 50000,
       currency: 'USD',
-      sectors: ['construction', 'infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
           'Observações visuais georreferenciadas para revisão qualificada; não constitui diagnóstico de engenharia.',
@@ -83,7 +83,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 47500000,
       priceEurCents: 52800,
       currency: 'USD',
-      sectors: ['infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
           'Regista anomalias de temperatura quando existem dados térmicos calibrados; não classifica anomalias como avarias.',
@@ -118,7 +118,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 125000000,
       priceEurCents: 138900,
       currency: 'USD',
-      sectors: ['infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/construction-progress.jpg',
       description:
           'Contexto 3D medido por fotogrametria ou LiDAR, conforme a fonte de aquisição validada.',
@@ -153,7 +153,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 20000000,
       priceEurCents: 22200,
       currency: 'USD',
-      sectors: ['infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
           'Revisão qualificada das evidências e áreas sinalizadas, preservando as observações e a proveniência originais.',
@@ -189,7 +189,7 @@ abstract final class DemoStoreCatalog {
       priceEurCents: 55500,
       currency: 'USD',
       featured: true,
-      sectors: ['infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/construction-progress.jpg',
       description:
           'Levantamentos recorrentes, controlos de qualidade, comparações e relatórios rastreáveis com cadência acordada.',
@@ -609,14 +609,14 @@ abstract final class DemoStoreCatalog {
     ),
     GvProduct(
       id: 'prod_ports_visual_inspection',
-      name: 'Inspeção Visual Portuária e Industrial',
+      name: 'Inspeção Visual de Ativos',
       category: 'service',
       priceCents: 66500,
       priceAkzCents: 55000000,
       priceEurCents: 61100,
       currency: 'USD',
       featured: true,
-      sectors: ['ports'],
+      sectors: ['ports_logistics', 'industry_energy_utilities'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
           'Evidências RGB georreferenciadas de um ativo e zona exatos; mudanças mapeadas permanecem candidatas para revisão, sem conclusão automática de defeito, segurança ou conformidade.',
@@ -627,17 +627,17 @@ abstract final class DemoStoreCatalog {
       ],
       translations: {
         'en': {
-          'name': 'Ports & Industrial Visual Inspection',
+          'name': 'Asset Visual Inspection',
           'description':
               'Georeferenced RGB evidence for an exact asset and zone; mapped changes remain review candidates without automatic defect, safety, or compliance conclusions.'
         },
         'es': {
-          'name': 'Inspección Visual Portuaria e Industrial',
+          'name': 'Inspección Visual de Activos',
           'description':
               'Evidencia RGB georreferenciada de un activo y zona exactos; los cambios siguen siendo candidatos a revisión, sin conclusiones automáticas de defecto, seguridad o cumplimiento.'
         },
         'fr': {
-          'name': 'Inspection visuelle portuaire et industrielle',
+          'name': 'Inspection visuelle d’actifs',
           'description':
               'Preuves RGB géoréférencées d’un actif et d’une zone précis ; les changements restent à examiner, sans conclusion automatique de défaut, de sécurité ou de conformité.'
         },
@@ -645,13 +645,13 @@ abstract final class DemoStoreCatalog {
     ),
     GvProduct(
       id: 'prod_ports_thermal_inspection',
-      name: 'Inspeção Térmica Portuária e Industrial',
+      name: 'Inspeção Térmica de Ativos',
       category: 'service',
       priceCents: 72300,
       priceAkzCents: 60000000,
       priceEurCents: 66700,
       currency: 'USD',
-      sectors: ['ports'],
+      sectors: ['ports_logistics', 'industry_energy_utilities'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
           'Captura térmica calibrada em condições acordadas; diferenças de temperatura permanecem candidatas para revisão e não são classificadas automaticamente como avarias.',
@@ -662,17 +662,17 @@ abstract final class DemoStoreCatalog {
       ],
       translations: {
         'en': {
-          'name': 'Ports & Industrial Thermal Inspection',
+          'name': 'Asset Thermal Inspection',
           'description':
               'Calibrated thermal capture under agreed conditions; temperature differences remain review candidates and are not automatically classified as faults.'
         },
         'es': {
-          'name': 'Inspección Térmica Portuaria e Industrial',
+          'name': 'Inspección Térmica de Activos',
           'description':
               'Captura térmica calibrada en condiciones acordadas; las diferencias de temperatura siguen siendo candidatas a revisión y no se clasifican automáticamente como fallos.'
         },
         'fr': {
-          'name': 'Inspection thermique portuaire et industrielle',
+          'name': 'Inspection thermique d’actifs',
           'description':
               'Capture thermique étalonnée dans des conditions convenues ; les écarts de température restent à examiner et ne sont pas automatiquement qualifiés de défaillances.'
         },
@@ -680,14 +680,14 @@ abstract final class DemoStoreCatalog {
     ),
     GvProduct(
       id: 'prod_ports_3d_mapping',
-      name: 'Captura de Realidade 3D Portuária e Industrial',
+      name: 'Captura de Realidade 3D de Ativos',
       category: 'service',
       priceCents: 144600,
       priceAkzCents: 120000000,
       priceEurCents: 133300,
       currency: 'USD',
       featured: true,
-      sectors: ['ports'],
+      sectors: ['ports_logistics', 'industry_energy_utilities'],
       image: 'assets/images/store/construction-progress.jpg',
       description:
           'Contexto 3D por fotogrametria ou LiDAR tecnicamente justificado, sujeito a registo e qualidade documentados e sem avaliação automática da condição.',
@@ -698,17 +698,17 @@ abstract final class DemoStoreCatalog {
       ],
       translations: {
         'en': {
-          'name': 'Ports & Industrial 3D Reality Capture',
+          'name': 'Asset 3D Reality Capture',
           'description':
               '3D context from photogrammetry or technically justified LiDAR, subject to documented registration and quality and without automatic condition assessment.'
         },
         'es': {
-          'name': 'Captura de Realidad 3D Portuaria e Industrial',
+          'name': 'Captura de Realidad 3D de Activos',
           'description':
               'Contexto 3D mediante fotogrametría o LiDAR técnicamente justificado, sujeto a registro y calidad documentados y sin evaluación automática del estado.'
         },
         'fr': {
-          'name': 'Capture de réalité 3D portuaire et industrielle',
+          'name': 'Capture de réalité 3D d’actifs',
           'description':
               'Contexte 3D par photogrammétrie ou LiDAR techniquement justifié, sous réserve d’un recalage et d’une qualité documentés, sans évaluation automatique de l’état.'
         },
@@ -716,13 +716,13 @@ abstract final class DemoStoreCatalog {
     ),
     GvProduct(
       id: 'prod_ports_sensor_installation',
-      name: 'Instalação de Sensores Portuários e Industriais',
+      name: 'Instalação de Sensores em Ativos',
       category: 'service',
       priceCents: 42200,
       priceAkzCents: 35000000,
       priceEurCents: 38900,
       currency: 'USD',
-      sectors: ['ports'],
+      sectors: ['ports_logistics', 'industry_energy_utilities'],
       image: 'assets/images/store/connected-weather-station.jpg',
       description:
           'Instalação e atribuição auditável de sensores a um ativo GeoVision, sujeitas à validação de localização, calibração, energia, conectividade e comissionamento.',
@@ -733,17 +733,17 @@ abstract final class DemoStoreCatalog {
       ],
       translations: {
         'en': {
-          'name': 'Ports & Industrial Sensor Installation',
+          'name': 'Asset Sensor Installation',
           'description':
               'Auditable sensor installation and assignment to a GeoVision asset, subject to placement, calibration, power, connectivity, and commissioning validation.'
         },
         'es': {
-          'name': 'Instalación de Sensores Portuarios e Industriales',
+          'name': 'Instalación de Sensores en Activos',
           'description':
               'Instalación y asignación auditable de sensores a un activo GeoVision, sujetas a validar ubicación, calibración, energía, conectividad y puesta en servicio.'
         },
         'fr': {
-          'name': 'Installation de capteurs portuaires et industriels',
+          'name': 'Installation de capteurs sur actifs',
           'description':
               'Installation et affectation auditable de capteurs à un actif GeoVision, sous réserve de validation du positionnement, de l’étalonnage, de l’alimentation, de la connectivité et de la mise en service.'
         },
@@ -751,14 +751,14 @@ abstract final class DemoStoreCatalog {
     ),
     GvProduct(
       id: 'prod_ports_monitoring_plan',
-      name: 'Plano de Monitorização Portuária e Industrial',
+      name: 'Plano de Monitorização de Ativos',
       category: 'subscription',
       priceCents: 90400,
       priceAkzCents: 75000000,
       priceEurCents: 83300,
       currency: 'USD',
       featured: true,
-      sectors: ['ports'],
+      sectors: ['ports_logistics', 'industry_energy_utilities'],
       image: 'assets/images/store/construction-progress.jpg',
       description:
           'Inspeções recorrentes centradas no ativo, contexto de sensores suportados, controlos de qualidade, comparações históricas e relatórios rastreáveis; evidências ausentes permanecem desconhecidas.',
@@ -769,17 +769,17 @@ abstract final class DemoStoreCatalog {
       ],
       translations: {
         'en': {
-          'name': 'Ports & Industrial Monitoring Plan',
+          'name': 'Asset Monitoring Plan',
           'description':
               'Recurring asset-centric inspections, supported sensor context, quality controls, historical comparisons, and traceable reports; missing evidence remains unknown.'
         },
         'es': {
-          'name': 'Plan de Monitorización Portuaria e Industrial',
+          'name': 'Plan de Monitorización de Activos',
           'description':
               'Inspecciones recurrentes centradas en el activo, contexto de sensores compatibles, controles de calidad, comparaciones históricas e informes trazables; la evidencia ausente permanece desconocida.'
         },
         'fr': {
-          'name': 'Plan de suivi portuaire et industriel',
+          'name': 'Plan de suivi d’actifs',
           'description':
               'Inspections récurrentes centrées sur l’actif, contexte de capteurs pris en charge, contrôles qualité, comparaisons historiques et rapports traçables ; les preuves absentes restent inconnues.'
         },
@@ -787,13 +787,13 @@ abstract final class DemoStoreCatalog {
     ),
     GvProduct(
       id: 'prod_ports_specialist_review',
-      name: 'Revisão Especializada Portuária e Industrial',
+      name: 'Revisão Especializada de Ativos',
       category: 'service',
       priceCents: 30100,
       priceAkzCents: 25000000,
       priceEurCents: 27800,
       currency: 'USD',
-      sectors: ['ports'],
+      sectors: ['ports_logistics', 'industry_energy_utilities'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
           'Revisão qualificada de evidências e candidatos, preservando observações, incerteza, proveniência e responsabilidade do revisor, sem certificação automática.',
@@ -804,17 +804,17 @@ abstract final class DemoStoreCatalog {
       ],
       translations: {
         'en': {
-          'name': 'Ports & Industrial Specialist Review',
+          'name': 'Asset Specialist Review',
           'description':
               'Qualified review of evidence and candidates while preserving observations, uncertainty, provenance, and reviewer responsibility, without automatic certification.'
         },
         'es': {
-          'name': 'Revisión Especializada Portuaria e Industrial',
+          'name': 'Revisión Especializada de Activos',
           'description':
               'Revisión cualificada de evidencias y candidatos que preserva observaciones, incertidumbre, procedencia y responsabilidad del revisor, sin certificación automática.'
         },
         'fr': {
-          'name': 'Examen spécialisé portuaire et industriel',
+          'name': 'Examen spécialisé d’actifs',
           'description':
               'Examen qualifié des preuves et éléments candidats, préservant observations, incertitude, provenance et responsabilité de l’examinateur, sans certification automatique.'
         },
@@ -829,7 +829,7 @@ abstract final class DemoStoreCatalog {
       priceEurCents: 38900,
       currency: 'USD',
       featured: true,
-      sectors: ['agro', 'environment', 'infrastructure'],
+      sectors: ['agriculture', 'environment', 'construction_infrastructure'],
       image: 'assets/images/store/multispectral-drone-service.jpg',
       description:
           'Mapeamento visual de uma exploração, propriedade ou local com ortomosaico e resumo de observações.',
@@ -864,7 +864,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 25000000,
       priceEurCents: 27800,
       currency: 'USD',
-      sectors: ['agro'],
+      sectors: ['agriculture'],
       image: 'assets/images/store/multispectral-drone-service.jpg',
       description:
           'Inspeção aérea para documentar culturas, irrigação, acessos e anomalias visíveis.',
@@ -899,7 +899,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 2550000,
       priceEurCents: 2800,
       currency: 'USD',
-      sectors: ['agro'],
+      sectors: ['agriculture'],
       image: 'assets/images/store/soil-iot-kit.jpg',
       description:
           'Sondas de humidade para substituição, expansão ou primeiro protótipo, sujeitas a verificação de compatibilidade.',
@@ -934,7 +934,7 @@ abstract final class DemoStoreCatalog {
       priceAkzCents: 4250000,
       priceEurCents: 4600,
       currency: 'USD',
-      sectors: ['agro'],
+      sectors: ['agriculture'],
       image: 'assets/images/store/soil-iot-kit.jpg',
       description:
           'Válvula de baixa tensão, sensor de caudal e ligações para um protótipo de irrigação monitorizada.',
@@ -966,7 +966,7 @@ abstract final class DemoStoreCatalog {
       priceEurCents: 12000,
       currency: 'USD',
       featured: true,
-      sectors: ['infrastructure'],
+      sectors: ['construction_infrastructure'],
       image: 'assets/images/store/environmental-monitoring.jpg',
       description:
           'Acompanhe nível do depósito, caudal e funcionamento da bomba com alertas configuráveis.',

@@ -38,6 +38,7 @@ from app.modules.datasets.domain import (
     validate_upload,
 )
 from app.modules.audit.services import record_audit_event
+from app.modules.assets.domain import normalize_sector as normalize_asset_sector
 from app.core.observability import get_logger, log_event
 from app.modules.processing.domain import (
     PROCESSABLE_SOURCE_TYPES,
@@ -949,7 +950,7 @@ def _register_output_dataset(
                 }
             ),
             status=DatasetStatus.PROCESSING.value,
-            sector=source.sector,
+            sector=(normalize_asset_sector(source.sector) if source.sector else None),
             capture_date=source.capture_date,
             metadata_json=_json(
                 reject_sensitive_metadata(dict(output.metadata), "output_metadata")

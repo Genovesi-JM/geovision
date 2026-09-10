@@ -220,12 +220,13 @@
 
     .map-tabs {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.5rem;
       margin-top: 1rem;
     }
 
     .map-tab {
-      flex: 1;
+      flex: 1 1 calc(33.333% - 0.5rem);
       padding: 0.6rem 0.75rem;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -603,6 +604,18 @@
         justify-content: center;
       }
     }
+
+    /* Canonical six-sector IDs used by the hero state. */
+    .hero-sector-map[data-sector="agriculture"] { --sector-rgb: 34,197,94; --sector-accent: #4ade80; }
+    .hero-sector-map[data-sector="construction_infrastructure"] { --sector-rgb: 168,85,247; --sector-accent: #c084fc; }
+    .hero-sector-map[data-sector="environment"] { --sector-rgb: 20,184,166; --sector-accent: #2dd4bf; }
+    .hero-sector-map[data-sector="industry_energy_utilities"] { --sector-rgb: 245,158,11; --sector-accent: #fbbf24; }
+    .hero-sector-map[data-sector="ports_logistics"] { --sector-rgb: 6,182,212; --sector-accent: #22d3ee; }
+    .hero-sector-map[data-sector="agriculture"] .sector-boundary { d: path("M38 84 C118 42 202 55 264 71 C338 39 443 57 461 120 L452 238 C356 264 258 234 174 253 C92 263 38 218 38 84Z"); }
+    .hero-sector-map[data-sector="construction_infrastructure"] .sector-boundary { d: path("M62 235 L62 121 L145 121 L145 75 L241 75 L241 144 L331 144 L331 99 L438 99 L438 235Z"); }
+    .hero-sector-map[data-sector="environment"] .sector-boundary { d: path("M38 184 C74 76 159 55 242 91 C312 36 425 78 462 171 C414 254 338 249 266 228 C187 271 85 247 38 184Z"); }
+    .hero-sector-map[data-sector="industry_energy_utilities"] .sector-boundary { d: path("M52 232 L52 142 L128 142 L128 92 L206 126 L206 72 L286 118 L286 152 L366 152 L366 99 L448 99 L448 232Z"); }
+    .hero-sector-map[data-sector="ports_logistics"] .sector-boundary { d: path("M38 224 L38 112 L148 112 L148 78 L269 78 L269 132 L462 132 L462 224 C356 252 148 252 38 224Z"); }
   </style>
   <link rel="stylesheet" href="assets/css/theme-light.css">
 </head>
@@ -677,7 +690,7 @@
             <span class="hero-card-title" data-i18n="index.liveDemo">Painel de Inteligência</span>
             <span class="hero-card-badge" data-i18n="adm.active">Ativo</span>
           </div>
-          <div class="system-map hero-sector-map" id="hero-map" data-sector="agro" aria-label="Sistema GeoVision para Agricultura e Pecuária" aria-live="polite">
+          <div class="system-map hero-sector-map" id="hero-map" data-sector="agriculture" aria-label="Sistema GeoVision para Agricultura e Pecuária" aria-live="polite">
             <svg class="sector-connections" viewBox="0 0 500 300" preserveAspectRatio="none" aria-hidden="true">
               <path class="sector-boundary" d="M48 176 C62 74 160 45 250 62 C354 34 447 88 452 171 C457 245 353 256 267 238 C176 272 67 246 48 176Z" />
               <path class="connection-line line-one" d="M120 92 C180 105 195 128 250 150" />
@@ -706,10 +719,12 @@
             <span><i class="fa-solid fa-wand-magic-sparkles"></i><span data-i18n="commercial.system.ai">IA &amp; análise</span></span>
           </div>
           <div class="map-tabs">
-            <button class="map-tab active" type="button" role="tab" aria-selected="true" data-sector="agro" data-i18n="sectors.agropecuaria">Agropecuária</button>
-            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="mining" data-i18n="sectors.mineracao">Mineração</button>
-            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="construction" data-i18n="login.construction">Construção</button>
-            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="ambiental" data-i18n="sectors.ambiental">Ambiental</button>
+            <button class="map-tab active" type="button" role="tab" aria-selected="true" data-sector="agriculture" data-i18n="public.sector.agriculture">Agricultura &amp; Pecuária</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="construction_infrastructure" data-i18n="public.sector.constructionInfrastructure">Construção &amp; Infraestruturas</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="environment" data-i18n="public.sector.environment">Ambiente</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="mining" data-i18n="public.sector.mining">Mineração</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="industry_energy_utilities" data-i18n="public.sector.industryEnergyUtilities">Indústria, Energia &amp; Utilities</button>
+            <button class="map-tab" type="button" role="tab" aria-selected="false" data-sector="ports_logistics" data-i18n="public.sector.portsLogistics">Portos &amp; Logística</button>
           </div>
         </div>
       </div>
@@ -723,28 +738,40 @@
       <h2 class="section-title" data-i18n="index.entry.title">O que quer monitorizar?</h2>
     </div>
     <div class="sectors-grid">
-      <a href="sectors.html#agropecuaria" class="sector-card">
+      <a href="sectors.html#agricultura-pecuaria" class="sector-card" data-sector-id="agriculture">
         <div class="sector-icon"><i class="fa-solid fa-seedling"></i></div>
-        <h3 class="sector-name" data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</h3>
+        <h3 class="sector-name" data-i18n="public.sector.agriculture">Agricultura &amp; Pecuária</h3>
         <p class="sector-desc" data-i18n="commercial.home.cardAgro">Monitorize solo, água, culturas, animais e equipamentos através de sensores, tracking, mapas e dados aéreos.</p>
         <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
       </a>
-      <a href="sectors.html#construcao" class="sector-card">
+      <a href="sectors.html#construcao-infraestruturas" class="sector-card" data-sector-id="construction_infrastructure">
         <div class="sector-icon"><i class="fa-solid fa-helmet-safety"></i></div>
-        <h3 class="sector-name" data-i18n="commercial.sector.construction">Construção &amp; Infraestruturas</h3>
+        <h3 class="sector-name" data-i18n="public.sector.constructionInfrastructure">Construção &amp; Infraestruturas</h3>
         <p class="sector-desc" data-i18n="commercial.home.cardConstruction">Acompanhe progresso, equipamentos, condições ambientais e alterações do local, do terreno à visão aérea.</p>
         <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
       </a>
-      <a href="sectors.html#ambiental" class="sector-card">
+      <a href="sectors.html#ambiente" class="sector-card" data-sector-id="environment">
         <div class="sector-icon"><i class="fa-solid fa-leaf"></i></div>
-        <h3 class="sector-name" data-i18n="commercial.sector.environment">Ambiente</h3>
+        <h3 class="sector-name" data-i18n="public.sector.environment">Ambiente</h3>
         <p class="sector-desc" data-i18n="commercial.home.cardEnvironment">Combine sensores no terreno, mapas e observação aérea para acompanhar condições e alterações em grandes áreas.</p>
         <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
       </a>
-      <a href="sectors.html#mineracao" class="sector-card">
+      <a href="sectors.html#mineracao" class="sector-card" data-sector-id="mining">
+        <div class="sector-icon"><i class="fa-solid fa-gem"></i></div>
+        <h3 class="sector-name" data-i18n="public.sector.mining">Mineração</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardMining">Acompanhe frentes de trabalho, inventários, volumetria, ativos e alterações entre campanhas.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
+      </a>
+      <a href="sectors.html#industria-energia-utilities" class="sector-card" data-sector-id="industry_energy_utilities">
         <div class="sector-icon"><i class="fa-solid fa-industry"></i></div>
-        <h3 class="sector-name" data-i18n="commercial.sector.industry">Mineração &amp; Indústria</h3>
-        <p class="sector-desc" data-i18n="commercial.home.cardIndustry">Monitorize áreas, ativos, equipamentos e condições operacionais com dados de campo, tracking e inteligência aérea.</p>
+        <h3 class="sector-name" data-i18n="public.sector.industryEnergyUtilities">Indústria, Energia &amp; Utilities</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardIndustry">Monitorize locais, equipamentos e condições operacionais com dados de campo, tracking e inteligência aérea.</p>
+        <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
+      </a>
+      <a href="sectors.html#portos-logistica" class="sector-card" data-sector-id="ports_logistics">
+        <div class="sector-icon"><i class="fa-solid fa-ship"></i></div>
+        <h3 class="sector-name" data-i18n="public.sector.portsLogistics">Portos &amp; Logística</h3>
+        <p class="sector-desc" data-i18n="commercial.home.cardPortsLogistics">Coordene pátios, corredores, inventário visual e ativos distribuídos numa vista operacional comum.</p>
         <span class="sector-link" data-i18n="commercial.cta.seeSolution">Ver solução →</span>
       </a>
     </div>
@@ -763,52 +790,6 @@
         <p class="section-desc" data-i18n="commercial.flow.desc">A GeoVision reúne informação do terreno, de ativos móveis e do ar para criar uma visão única da operação.</p>
       </div>
 
-      <div class="sectors-grid" hidden inert aria-hidden="true" data-nosnippet>
-        <a href="sectors.html#agropecuaria" class="sector-card">
-          <div class="sector-icon"><i class="fa-solid fa-seedling"></i></div>
-          <h3 class="sector-name" data-i18n="sectors.agropecuaria">Agropecuária</h3>
-          <p class="sector-desc" data-i18n="index.sector.agro.desc">
-            NDVI multiespectral, mapas de prescrição, pulverização variável, contagem aérea de gado e rastreio GPS 4G com alertas de geofence.
-          </p>
-          <span class="sector-link" data-i18n="index.exploreModule">Explorar Módulo </span>
-        </a>
-
-        <a href="sectors.html#mineracao" class="sector-card">
-          <div class="sector-icon"><i class="fa-solid fa-gem"></i></div>
-          <h3 class="sector-name" data-i18n="sectors.mineracao">Mineração</h3>
-          <p class="sector-desc" data-i18n="index.sector.mineracao.desc">
-            Topografia 3D, volumetria comparativa, monitorização de taludes e inteligência de mina.
-          </p>
-          <span class="sector-link" data-i18n="index.exploreModule">Explorar Módulo </span>
-        </a>
-
-        <a href="sectors.html#construcao" class="sector-card">
-          <div class="sector-icon"><i class="fa-solid fa-helmet-safety"></i></div>
-          <h3 class="sector-name" data-i18n="login.construction">Construção</h3>
-          <p class="sector-desc" data-i18n="index.sector.construcao.desc">
-            Acompanhamento de obra, análise volumétrica, documentação as-built e controlo de projeto.
-          </p>
-          <span class="sector-link" data-i18n="index.exploreModule">Explorar Módulo </span>
-        </a>
-
-        <a href="sectors.html#infraestruturas" class="sector-card">
-          <div class="sector-icon"><i class="fa-solid fa-road"></i></div>
-          <h3 class="sector-name" data-i18n="sectors.infraestruturas">Infraestruturas</h3>
-          <p class="sector-desc" data-i18n="index.sector.infraestruturas.desc">
-            Estradas, barragens, linhas de transmissão e monitorização de corredores com avaliação de condição.
-          </p>
-          <span class="sector-link" data-i18n="index.exploreModule">Explorar Módulo </span>
-        </a>
-
-        <a href="sectors.html#ambiental" class="sector-card">
-          <div class="sector-icon"><i class="fa-solid fa-leaf"></i></div>
-          <h3 class="sector-name" data-i18n="index.sector.ambiental.name">Ambiental & Reflorestação</h3>
-          <p class="sector-desc" data-i18n="index.sector.ambiental.desc">
-            Monitorização ambiental, reflorestação por dispersão aérea de sementes (T40), acompanhamento NDVI pós-reflorestação e suporte visual a desminagem humanitária.
-          </p>
-          <span class="sector-link" data-i18n="index.exploreModule">Explorar Módulo </span>
-        </a>
-      </div>
       <div class="commercial-flow">
         <article><strong data-i18n="commercial.flow.sources">Terreno, ativos &amp; ar</strong><span data-i18n="commercial.flow.sourcesDesc">Sensores, GPS, drones e dados externos recolhem o contexto necessário.</span></article>
         <article><strong data-i18n="commercial.flow.platformStep">Plataforma GeoVision</strong><span data-i18n="commercial.flow.platformStepDesc">Organiza locais, dispositivos, ativos móveis e missões numa vista comum.</span></article>
@@ -952,7 +933,7 @@
 
     // Sector-specific operational illustrations
     const sectorVisuals = {
-      agro: {
+      agriculture: {
         icon: 'fa-wheat-awn',
         labels: { pt: ['GV Soil · 21%', 'Rebanho · 184', 'GeoVision · mapa + IA', 'GV Track · animal 27', 'Voo NDVI · concluído'], en: ['GV Soil · 21%', 'Herd · 184', 'GeoVision · map + AI', 'GV Track · animal 27', 'NDVI flight · complete'], es: ['GV Soil · 21%', 'Rebaño · 184', 'GeoVision · mapa + IA', 'GV Track · animal 27', 'Vuelo NDVI · completo'] },
         icons: ['fa-seedling', 'fa-cow', 'fa-layer-group', 'fa-location-dot', 'fa-helicopter'],
@@ -966,19 +947,33 @@
         metrics: { pt: [['Volume','+12,4k m³'],['Taludes','Estáveis'],['Frota','8/9']], en: [['Volume','+12.4k m³'],['Slopes','Stable'],['Fleet','8/9']], es: [['Volumen','+12,4k m³'],['Taludes','Estables'],['Flota','8/9']] },
         aria: { pt: 'Sistema GeoVision para Mineração', en: 'GeoVision system for Mining', es: 'Sistema GeoVision para Minería' }
       },
-      construction: {
+      construction_infrastructure: {
         icon: 'fa-building-circle-check',
         labels: { pt: ['Zona A · 82%', 'Máquina · EX-04', 'GeoVision · progresso 3D', 'Materiais · portão 2', 'Voo comparativo · hoje'], en: ['Zone A · 82%', 'Machine · EX-04', 'GeoVision · 3D progress', 'Materials · gate 2', 'Comparison flight · today'], es: ['Zona A · 82%', 'Máquina · EX-04', 'GeoVision · progreso 3D', 'Materiales · puerta 2', 'Vuelo comparativo · hoy'] },
         icons: ['fa-building', 'fa-truck-pickup', 'fa-cube', 'fa-boxes-stacked', 'fa-helicopter'],
         metrics: { pt: [['Progresso','67%'],['Variação','+4,2%'],['Ativos','14']], en: [['Progress','67%'],['Change','+4.2%'],['Assets','14']], es: [['Progreso','67%'],['Variación','+4,2%'],['Activos','14']] },
-        aria: { pt: 'Sistema GeoVision para Construção', en: 'GeoVision system for Construction', es: 'Sistema GeoVision para Construcción' }
+        aria: { pt: 'Sistema GeoVision para Construção e Infraestruturas', en: 'GeoVision system for Construction and Infrastructure', es: 'Sistema GeoVision para Construcción e Infraestructuras' }
       },
-      ambiental: {
+      environment: {
         icon: 'fa-tree',
         labels: { pt: ['Rio · qualidade boa', 'Parcela R4 · 420 ha', 'GeoVision · mudança + IA', 'Estação · online', 'Cobertura vegetal · +8%'], en: ['River · good quality', 'Plot R4 · 420 ha', 'GeoVision · change + AI', 'Station · online', 'Vegetation cover · +8%'], es: ['Río · calidad buena', 'Parcela R4 · 420 ha', 'GeoVision · cambio + IA', 'Estación · en línea', 'Cobertura vegetal · +8%'] },
         icons: ['fa-water', 'fa-tree', 'fa-layer-group', 'fa-tower-broadcast', 'fa-leaf'],
         metrics: { pt: [['Área','420 ha'],['Vegetação','+8%'],['Alertas','1']], en: [['Area','420 ha'],['Vegetation','+8%'],['Alerts','1']], es: [['Área','420 ha'],['Vegetación','+8%'],['Alertas','1']] },
-        aria: { pt: 'Sistema GeoVision para Monitorização Ambiental', en: 'GeoVision system for Environmental Monitoring', es: 'Sistema GeoVision para Monitorización Ambiental' }
+        aria: { pt: 'Sistema GeoVision para Ambiente', en: 'GeoVision system for Environment', es: 'Sistema GeoVision para Medio Ambiente' }
+      },
+      industry_energy_utilities: {
+        icon: 'fa-industry',
+        labels: { pt: ['Linha 2 · online', 'Subestação · normal', 'GeoVision · operação + IA', 'Bomba · P-14', 'Inspeção térmica · hoje'], en: ['Line 2 · online', 'Substation · normal', 'GeoVision · operations + AI', 'Pump · P-14', 'Thermal inspection · today'], es: ['Línea 2 · activa', 'Subestación · normal', 'GeoVision · operación + IA', 'Bomba · P-14', 'Inspección térmica · hoy'] },
+        icons: ['fa-gears', 'fa-bolt', 'fa-layer-group', 'fa-gauge-high', 'fa-temperature-half'],
+        metrics: { pt: [['Disponibilidade','98,7%'],['Energia','Normal'],['Alertas','2']], en: [['Availability','98.7%'],['Power','Normal'],['Alerts','2']], es: [['Disponibilidad','98,7%'],['Energía','Normal'],['Alertas','2']] },
+        aria: { pt: 'Sistema GeoVision para Indústria, Energia e Utilities', en: 'GeoVision system for Industry, Energy and Utilities', es: 'Sistema GeoVision para Industria, Energía y Servicios Públicos' }
+      },
+      ports_logistics: {
+        icon: 'fa-ship',
+        labels: { pt: ['Berço 3 · ocupado', 'Pátio · 72%', 'GeoVision · fluxo + IA', 'Contentor · C41', 'Corredor norte · livre'], en: ['Berth 3 · occupied', 'Yard · 72%', 'GeoVision · flow + AI', 'Container · C41', 'North corridor · clear'], es: ['Muelle 3 · ocupado', 'Patio · 72%', 'GeoVision · flujo + IA', 'Contenedor · C41', 'Corredor norte · libre'] },
+        icons: ['fa-anchor', 'fa-warehouse', 'fa-layer-group', 'fa-box', 'fa-route'],
+        metrics: { pt: [['Ocupação','72%'],['Ativos','146'],['Ocorrências','1']], en: [['Occupancy','72%'],['Assets','146'],['Incidents','1']], es: [['Ocupación','72%'],['Activos','146'],['Incidencias','1']] },
+        aria: { pt: 'Sistema GeoVision para Portos e Logística', en: 'GeoVision system for Ports and Logistics', es: 'Sistema GeoVision para Puertos y Logística' }
       }
     };
 
@@ -1052,10 +1047,10 @@
 
   <script src="assets/js/site.js?v=3"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=27"></script>
+  <script src="assets/js/i18n.js?v=29"></script>
   <script src="assets/js/config.js?v=5"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script src="assets/js/chatbot.js?v=4"></script>
+  <script src="assets/js/chatbot.js?v=5"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <script src="assets/js/theme.js?v=1"></script>
 

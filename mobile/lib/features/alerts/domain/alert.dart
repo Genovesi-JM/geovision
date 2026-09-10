@@ -1,3 +1,5 @@
+import '../../sites/domain/sector.dart';
+
 class GvAlert {
   const GvAlert({
     required this.id,
@@ -51,7 +53,7 @@ class GvAlert {
   factory GvAlert.fromJson(Map<String, dynamic> j) => GvAlert(
         id: j['id'].toString(),
         severity: (j['severity'] ?? 'information').toString(),
-        sector: (j['sector'] ?? 'agriculture').toString(),
+        sector: canonicalSectorId((j['sector'] ?? 'agriculture').toString()),
         title: (j['title'] ?? '').toString(),
         description: (j['description'] ?? '').toString(),
         siteId: j['site_id']?.toString(),

@@ -41,6 +41,7 @@ const workspaces = [
   {
     id: 'workspace-a', organization_id: 'organization-a', name: 'River Operations',
     organization_name: 'Acme Environment', role: 'owner', sector: 'environment',
+    sectors: ['environment', 'mining'],
     modules_enabled: ['assets', 'actions', 'iot', 'services', 'maps', 'analytics', 'reports', 'store', 'orders', 'integrations'],
   },
   {
@@ -335,6 +336,17 @@ test.describe('contextual customer portal', () => {
     expect(requests.filter((request) => request.path === '/portal/experience' && request.workspaceId === 'workspace-b')).toHaveLength(1);
     expect(requests.some((request) => request.path === '/portal/assets/summary' && request.workspaceId === 'workspace-b')).toBeTruthy();
     expect(await page.evaluate(() => localStorage.getItem('gv_workspace_id'))).toBe('workspace-b');
+  });
+
+  test('renders a multi-sector workspace as canonical labels without a CSV pseudo-sector', async ({ page }) => {
+    await installApi(page);
+    await openPortal(page);
+    await expect(page.locator('#portal-workspace-meta')).toContainText(
+      'Ambiente · Mineração',
+    );
+    await expect(page.locator('.page-subtitle').first()).toContainText(
+      'Ambiente · Mineração',
+    );
   });
 
   test('opens a legacy invitation asset target, canonicalizes it, and preserves back navigation', async ({ page }) => {

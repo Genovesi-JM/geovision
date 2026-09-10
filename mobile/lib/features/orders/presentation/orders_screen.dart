@@ -10,6 +10,7 @@ import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../authentication/presentation/auth_controller.dart';
 import '../../account/data/customer_experience_repository.dart';
+import '../../sites/domain/sector.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
@@ -25,11 +26,12 @@ class OrdersScreen extends ConsumerStatefulWidget {
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   static const _storeSectors = {
-    'agro',
-    'environment',
-    'construction',
-    'industry',
-    'infrastructure'
+    PublicSectorIds.agriculture,
+    PublicSectorIds.constructionInfrastructure,
+    PublicSectorIds.environment,
+    PublicSectorIds.mining,
+    PublicSectorIds.industryEnergyUtilities,
+    PublicSectorIds.portsLogistics,
   };
   String category = 'all';
   String sector = 'all';
@@ -159,11 +161,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 scrollDirection: Axis.horizontal,
                 children: {
                   'all': copy.allSectors,
-                  'agro': copy.sector('agro'),
-                  'environment': copy.sector('environment'),
-                  'construction': copy.sector('construction'),
-                  'industry': copy.sector('industry'),
-                  'infrastructure': copy.sector('infrastructure'),
+                  for (final sectorId in PublicSectorIds.values)
+                    sectorId: copy.sector(sectorId),
                 }
                     .entries
                     .map((entry) => Padding(
@@ -297,13 +296,12 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   }
 }
 
-String _storeSector(String value) => switch (value.toUpperCase()) {
-      'AGRICULTURE' || 'AGRO' || 'LIVESTOCK' => 'agro',
-      'ENVIRONMENTAL' || 'ENVIRONMENT' => 'environment',
-      'INFRASTRUCTURE' || 'CONSTRUCTION' => 'infrastructure',
-      'MINING' || 'PORTS_INDUSTRIAL' || 'INDUSTRY' => 'industry',
-      _ => 'all',
-    };
+String _storeSector(String value) {
+  final canonical = canonicalSectorId(value);
+  return _OrdersScreenState._storeSectors.contains(canonical)
+      ? canonical
+      : 'all';
+}
 
 class _CommerceHero extends StatelessWidget {
   const _CommerceHero({required this.copy, required this.onOrders});

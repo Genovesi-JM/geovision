@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.deps import get_current_account, get_current_user
 from app.models import Account, User
@@ -20,44 +20,74 @@ from app.modules.analytics.kpi_catalog import (
     get_solar_kpis,
 )
 from app.schemas import AlertsResponse, DashboardContext, KPIItem, KPIResponse
+from app.sector_taxonomy import (
+    PUBLIC_SECTORS,
+    PUBLIC_SECTORS_BY_ID,
+    normalize_public_sector,
+    normalize_sector_focus,
+)
 
 router = APIRouter(prefix="/kpi", tags=["kpi"])
 
 
+def _account_sectors(account: Account | None) -> list[str]:
+    return [
+        item
+        for item in normalize_sector_focus(
+            account.sector_focus if account else ""
+        ).split(",")
+        if item in PUBLIC_SECTORS
+    ]
+
+
+def _authorized_sector_filter(
+    sector: str | None,
+    account_sectors: list[str],
+) -> str | None:
+    if sector is None:
+        return None
+    requested_sector = normalize_public_sector(sector)
+    if requested_sector not in PUBLIC_SECTORS:
+        raise HTTPException(status_code=422, detail="Unsupported sector filter")
+    if requested_sector not in account_sectors:
+        raise HTTPException(
+            status_code=403, detail="Sector is not enabled for this account"
+        )
+    return requested_sector
+
+
 @router.get("/summary", response_model=KPIResponse)
 def kpi_summary(
-    sector: Optional[str] = Query(None, description="Filter by sector"),
+    sector: Optional[str] = Query(None, max_length=80, description="Filter by sector"),
     user: User = Depends(get_current_user),
     account: Account = Depends(get_current_account),
 ):
     """Get KPI summary, optionally filtered by sector."""
-    account_sectors = []
-    if account and account.sector_focus:
-        account_sectors = [s.strip() for s in account.sector_focus.split(",") if s.strip()]
+    account_sectors = _account_sectors(account)
+    requested_sector = _authorized_sector_filter(sector, account_sectors)
 
-    if sector and sector in account_sectors:
-        items = get_kpis_for_sectors([sector])
+    if requested_sector and requested_sector in account_sectors:
+        items = get_kpis_for_sectors([requested_sector])
     elif account_sectors:
         items = get_kpis_for_sectors(account_sectors)
     else:
         items = get_generic_kpis()
 
-    return KPIResponse(items=items, sector=sector)
+    return KPIResponse(items=items, sector=requested_sector)
 
 
 @router.get("/alerts", response_model=AlertsResponse)
 def kpi_alerts(
-    sector: Optional[str] = Query(None, description="Filter by sector"),
+    sector: Optional[str] = Query(None, max_length=80, description="Filter by sector"),
     user: User = Depends(get_current_user),
     account: Account = Depends(get_current_account),
 ):
     """Get alerts, optionally filtered by sector."""
-    account_sectors = []
-    if account and account.sector_focus:
-        account_sectors = [s.strip() for s in account.sector_focus.split(",") if s.strip()]
+    account_sectors = _account_sectors(account)
+    requested_sector = _authorized_sector_filter(sector, account_sectors)
 
-    if sector and sector in account_sectors:
-        sectors_to_query = [sector]
+    if requested_sector and requested_sector in account_sectors:
+        sectors_to_query = [requested_sector]
     elif account_sectors:
         sectors_to_query = account_sectors
     else:
@@ -73,12 +103,15 @@ def kpi_alerts(
         total=len(alerts),
         critical_count=critical_count,
         warning_count=warning_count,
+        availability="NO_DATA",
     )
 
 
 @router.get("/context", response_model=DashboardContext)
 def dashboard_context(
-    sector: Optional[str] = Query(None, description="Active sector filter"),
+    sector: Optional[str] = Query(
+        None, max_length=80, description="Active sector filter"
+    ),
     user: User = Depends(get_current_user),
     account: Account = Depends(get_current_account),
 ):
@@ -89,12 +122,11 @@ def dashboard_context(
     to give accurate assistance based on what the user is seeing.
     """
     account_name = account.name if account else "Conta GeoVision"
-    account_sectors = []
-    if account and account.sector_focus:
-        account_sectors = [s.strip() for s in account.sector_focus.split(",") if s.strip()]
+    account_sectors = _account_sectors(account)
+    requested_sector = _authorized_sector_filter(sector, account_sectors)
 
-    if sector and sector in account_sectors:
-        kpis = get_kpis_for_sectors([sector])
+    if requested_sector and requested_sector in account_sectors:
+        kpis = get_kpis_for_sectors([requested_sector])
     elif account_sectors:
         kpis = get_kpis_for_sectors(account_sectors)
     else:
@@ -102,22 +134,18 @@ def dashboard_context(
 
     alerts = get_sector_alerts(account_sectors if account_sectors else [])
 
-    sector_names = {
-        "agro": "Agricultura e Pecuaria",
-        "environment": "Monitorizacao Ambiental",
-        "mining": "Mineracao",
-        "construction": "Construcao",
-        "infrastructure": "Infraestruturas",
-        "solar": "Energia Solar",
-        "demining": "Desminagem",
-    }
+    sector_names = {key: item.label_pt for key, item in PUBLIC_SECTORS_BY_ID.items()}
 
     sector_display = (
         ", ".join(sector_names.get(item, item) for item in account_sectors)
         if account_sectors
         else "Geral"
     )
-    active_sector_display = sector_names.get(sector, sector) if sector else "todos os setores"
+    active_sector_display = (
+        sector_names.get(requested_sector, requested_sector)
+        if requested_sector
+        else "todos os setores"
+    )
 
     critical_alerts = [alert for alert in alerts if alert.severity == "critical"]
     warning_alerts = [alert for alert in alerts if alert.severity == "warning"]
@@ -143,23 +171,17 @@ def dashboard_context(
     if warning_alerts:
         summary_parts.append(f"Avisos: {len(warning_alerts)}.")
     if not critical_alerts and not warning_alerts:
-        summary_parts.append("Sem alertas criticos ou avisos.")
+        summary_parts.append("Alertas: sem fonte de dados ligada.")
 
     return DashboardContext(
         account_name=account_name,
         sectors=account_sectors,
-        active_sector=sector,
+        active_sector=requested_sector,
         kpis=kpis,
         alerts=alerts,
-        services_count=len([kpi for kpi in kpis if "service" in kpi.id.lower()]) or 2,
-        hardware_count=len(
-            [
-                kpi
-                for kpi in kpis
-                if "hardware" in kpi.id.lower() or "sensor" in kpi.id.lower()
-            ]
-        )
-        or 3,
+        alerts_availability="NO_DATA",
+        services_count=None,
+        hardware_count=None,
         summary_text=" ".join(summary_parts),
     )
 
@@ -174,30 +196,30 @@ def kpi_details(
         KPIItem(
             id="uptime",
             label="Disponibilidade",
-            value=0,
+            value="—",
             unit="%",
-            status="ok",
-            trend="stable",
+            status=None,
+            trend=None,
             updated_at=_now_minus(30),
             description="Disponibilidade dos servicos GeoVision.",
         ),
         KPIItem(
             id="sla",
             label="SLA Atingido",
-            value=0,
+            value="—",
             unit="%",
-            status="ok",
-            trend="stable",
+            status=None,
+            trend=None,
             updated_at=_now_minus(60),
             description="Percentagem de cumprimento dos SLAs acordados.",
         ),
         KPIItem(
             id="tickets",
             label="Tickets em Aberto",
-            value=0,
+            value="—",
             unit="",
-            status="ok",
-            trend="stable",
+            status=None,
+            trend=None,
             updated_at=_now_minus(12),
             description="Pedidos de suporte em processamento.",
         ),

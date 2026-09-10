@@ -1,3 +1,5 @@
+import '../../sites/domain/sector.dart';
+
 class GvProduct {
   const GvProduct({
     required this.id,
@@ -104,7 +106,10 @@ class GvProduct {
         unit: (j['unit'] ?? j['unit_label']) as String?,
         stockStatus: (j['stock_status'] ?? 'in_stock').toString(),
         featured: j['featured'] == true || j['is_featured'] == true,
-        sectors: (j['sectors'] as List?)?.map((v) => v.toString()).toList() ??
+        sectors: (j['sectors'] as List?)
+                ?.map((value) => canonicalSectorId(value.toString()))
+                .toSet()
+                .toList() ??
             const [],
         deliverables:
             (j['deliverables'] as List?)?.map((v) => v.toString()).toList() ??

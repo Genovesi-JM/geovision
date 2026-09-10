@@ -12,7 +12,6 @@ from app.models import User
 from app.modules.assets.domain import (
     ASSET_TYPE_REGISTRY,
     SUPPORTED_GEOMETRY_TYPES,
-    AssetSector,
     AssetStatus,
     AssetValidationError,
 )
@@ -32,6 +31,7 @@ from app.modules.assets.services import (
     update_asset,
 )
 from app.modules.identity.domain import AuthorizationContext
+from app.sector_taxonomy import PUBLIC_SECTOR_DEFINITIONS
 
 
 router = APIRouter(prefix="/assets", tags=["assets"])
@@ -72,9 +72,13 @@ def _bbox(value: str | None) -> tuple[float, float, float, float] | None:
         )
     min_x, min_y, max_x, max_y = coordinates
     if not (-180 <= min_x <= 180 and -180 <= max_x <= 180):
-        raise HTTPException(status_code=422, detail="bbox longitude is outside EPSG:4326")
+        raise HTTPException(
+            status_code=422, detail="bbox longitude is outside EPSG:4326"
+        )
     if not (-90 <= min_y <= 90 and -90 <= max_y <= 90):
-        raise HTTPException(status_code=422, detail="bbox latitude is outside EPSG:4326")
+        raise HTTPException(
+            status_code=422, detail="bbox latitude is outside EPSG:4326"
+        )
     return min_x, min_y, max_x, max_y
 
 
@@ -118,7 +122,7 @@ def _filtered_assets(
 def asset_registry(user: User = Depends(get_current_user)):
     del user
     return AssetRegistryOut(
-        sectors=sorted(sector.value for sector in AssetSector),
+        sectors=[sector.asset_sector for sector in PUBLIC_SECTOR_DEFINITIONS],
         common_asset_types=sorted(ASSET_TYPE_REGISTRY),
         geometry_types=sorted(SUPPORTED_GEOMETRY_TYPES),
     )
@@ -238,7 +242,9 @@ def asset_create(
         raise _asset_error(exc) from exc
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Asset could not be created") from exc
+        raise HTTPException(
+            status_code=409, detail="Asset could not be created"
+        ) from exc
 
 
 @router.get("/{asset_id}", response_model=AssetOut)
@@ -248,7 +254,9 @@ def asset_read(
     db: Session = Depends(get_db),
 ):
     try:
-        return AssetOut(**asset_payload(db, get_asset(db, context=context, asset_id=asset_id)))
+        return AssetOut(
+            **asset_payload(db, get_asset(db, context=context, asset_id=asset_id))
+        )
     except (AssetAccessError, AssetValidationError, ValueError) as exc:
         raise _asset_error(exc) from exc
 
@@ -263,7 +271,9 @@ def asset_update(
 ):
     changed_fields = set(payload.model_fields_set)
     if not changed_fields:
-        raise HTTPException(status_code=422, detail="At least one asset field is required")
+        raise HTTPException(
+            status_code=422, detail="At least one asset field is required"
+        )
     try:
         row = update_asset(
             db,
@@ -281,7 +291,9 @@ def asset_update(
         raise _asset_error(exc) from exc
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Asset could not be updated") from exc
+        raise HTTPException(
+            status_code=409, detail="Asset could not be updated"
+        ) from exc
 
 
 @router.delete("/{asset_id}", response_model=AssetOut)

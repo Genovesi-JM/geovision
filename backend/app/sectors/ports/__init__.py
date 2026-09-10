@@ -1,4 +1,4 @@
-"""Activated Ports and Industrial sector package."""
+"""Activated Ports and Logistics sector package."""
 
 from app.core.routing import RouterMount
 from app.sectors.contracts import SectorModule
@@ -11,8 +11,8 @@ register_ports()
 register_ports_report_context()
 
 definition = SectorModule(
-    name="ports",
-    display_name="Ports and Industrial",
+    name="ports_logistics",
+    display_name="Ports and Logistics",
     activation_phase=31,
     module_dependencies=(
         "assets",
@@ -26,16 +26,16 @@ definition = SectorModule(
         "actions",
         "reports",
     ),
-    legacy_identifiers=("ports", "industrial", "industry"),
+    legacy_identifiers=("ports_logistics", "ports", "logistics", "ports_industrial"),
     enabled_by_default=True,
     asset_types=tuple(sorted(SUPPORTED_ASSET_TYPES)),
     dataset_types=tuple(sorted(SUPPORTED_DATASET_TYPES)),
     routes=(
         RouterMount(
-            "sector.ports",
+            "sector.ports_logistics",
             "analytics",
             "app.sectors.ports.router",
-            72,
+            73,
             secondary_owners=(
                 "actions",
                 "assets",

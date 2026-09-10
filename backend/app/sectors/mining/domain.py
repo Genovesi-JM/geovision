@@ -30,7 +30,7 @@ SECTOR = "MINING"
 ALGORITHM_VERSION = "1.0.0"
 
 # Mining vocabulary extends the common Asset/Dataset core. ``industry`` is not
-# an alias here because the canonical core maps it to PORTS_INDUSTRIAL.
+# an alias here because the canonical core maps it to PORTS_LOGISTICS.
 SUPPORTED_ASSET_TYPES = frozenset(
     {
         "ENVIRONMENTAL_MONITORING_ZONE",

@@ -179,20 +179,30 @@ String _siteText(String language, String pt, String en, String es, String fr) =>
     switch (language) { 'pt' => pt, 'es' => es, 'fr' => fr, _ => en };
 
 String _localizedSector(Sector sector, String language) => switch (sector) {
-      Sector.agro => _siteText(
+      Sector.agriculture => _siteText(
           language,
-          'Agricultura e pecuária',
+          'Agricultura & Pecuária',
           'Agriculture & livestock',
           'Agricultura y ganadería',
           'Agriculture et élevage'),
+      Sector.constructionInfrastructure => _siteText(
+          language,
+          'Construção & Infraestruturas',
+          'Construction & infrastructure',
+          'Construcción e infraestructuras',
+          'Construction et infrastructures'),
       Sector.environment => _siteText(language, 'Ambiente', 'Environment',
           'Medio ambiente', 'Environnement'),
-      Sector.construction => _siteText(language, 'Construção', 'Construction',
-          'Construcción', 'Construction'),
-      Sector.industry => _siteText(language, 'Indústria e mineração',
-          'Industry & mining', 'Industria y minería', 'Industrie et mines'),
-      Sector.infrastructure => _siteText(language, 'Infraestruturas',
-          'Infrastructure', 'Infraestructuras', 'Infrastructures'),
+      Sector.mining =>
+        _siteText(language, 'Mineração', 'Mining', 'Minería', 'Mines'),
+      Sector.industryEnergyUtilities => _siteText(
+          language,
+          'Indústria, Energia & Utilities',
+          'Industry, Energy & Utilities',
+          'Industria, Energía & Utilities',
+          'Industrie, Énergie & Services publics'),
+      Sector.portsLogistics => _siteText(language, 'Portos & Logística',
+          'Ports & Logistics', 'Puertos & Logística', 'Ports & Logistique'),
     };
 
 class _FilterChip extends StatelessWidget {

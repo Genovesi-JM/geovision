@@ -128,4 +128,7 @@ routes remain mounted while clients move to the normalized APIs.
 Before live sector activation, Gate 14 requires representative datasets,
 approved thresholds, algorithm/version records, confidence calibration and
 expert review. A working calculator is not evidence that its result is fit for
-an agronomic, engineering, environmental, mining or port decision.
+an agronomic, construction, infrastructure, environmental, mining,
+industrial, energy, utility, port, or logistics decision. The six public
+identities and their technical KPI sectors are defined in
+[`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md).

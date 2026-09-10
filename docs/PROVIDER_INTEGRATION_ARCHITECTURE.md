@@ -175,13 +175,18 @@ canonical organization/workspace/user UUID keys. Cold-start failure denies
 access, a failed refresh may use a bounded last-known-good snapshot, and an
 expired snapshot denies access.
 
-The Agriculture, Infrastructure, Environmental, Mining and Ports HTTP modules
-consume their `geovision.sectors.<sector>` decision for the current workspace
-member and combine it with their existing workspace/module gate. Local systems
-with no configured rollout source preserve the established enabled-by-default
-baseline; after Azure is configured, an unavailable or absent decision denies.
-The evaluator accepts the provisioned store's mixed snapshot by selecting only
-reviewed GeoVision feature-flag entries and ignoring unrelated configuration.
+The Agriculture, Infrastructure, Environmental, Mining, Industry/Energy/
+Utilities, and Ports/Logistics HTTP modules consume their reviewed sector
+rollout decision for the current workspace member and combine it with their
+existing workspace/module gate. Phase 34 adds
+`geovision.sectors.industry_energy_utilities`; Portos & Logística temporarily
+retains the deployed `geovision.sectors.ports` flag key while its public/module
+identity is `ports_logistics`. Local systems with no configured rollout source
+preserve the established enabled-by-default baseline; after Azure is
+configured, an unavailable or absent decision denies. The evaluator accepts
+the provisioned store's mixed snapshot by selecting only reviewed GeoVision
+feature-flag entries and ignoring unrelated configuration. See the
+[canonical sector taxonomy](SECTOR_TAXONOMY.md) for the cross-surface mapping.
 
 Credential and webhook fields accept only canonical Azure Key Vault HTTPS
 references:

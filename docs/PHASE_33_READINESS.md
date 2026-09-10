@@ -4,8 +4,16 @@ This record closes the GeoVision refactor playbook implementation through
 Phase 33. It distinguishes code completion from deployment approval. The
 classification on 10 September 2026 is:
 
-- **Implementation scope: complete.** The repository contains the agreed
-  five-sector demonstration, service and IoT customer journeys, tenant tests,
+> **Phase 34 update:** this remains the evidence record for the Phase 33 tree.
+> Phase 34 subsequently established the canonical six-sector taxonomy in
+> [`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md), separated
+> Indústria, Energia & Utilities from Mineração and Portos & Logística, and
+> expanded the compatibility-named Phase 33 fixture to six sectors. Re-run the
+> release gates for the Phase 34 commit; the evidence counts and digest below
+> must not be reused as Phase 34 evidence.
+
+- **Implementation scope at Phase 33: complete.** The repository contained the
+  then-agreed five-sector demonstration, service and IoT customer journeys, tenant tests,
   deployment foundations, and engineering documentation.
 - **Pilot-ready with a guardrail.** Use one active Workspace per Organization
   for any pilot that enables the legacy IoT fleet-administration routes.
@@ -41,15 +49,16 @@ Workspace in each IoT-enabled Organization.
 
 ## C. Changes completed
 
-### Five-sector demonstration
+### Six-sector demonstration after Phase 34 alignment
 
 `backend/scripts/seed_phase33_demo.py` creates one deterministic, local-only,
-credential-free synthetic portfolio covering Agriculture, Infrastructure,
-Environmental, Mining, and Ports/Industrial. Every sector has two acquisitions
-and linked dataset, KPI, observation, action, and report history, including one
-published report. An existing active local password account can be attached by
-exact email without creating, resetting, or printing credentials. The seed is
-idempotent and refuses deployed environments.
+credential-free synthetic portfolio covering the six canonical sectors. Every
+sector has two acquisitions and linked dataset, KPI, observation, action, and
+report history, including one published report. An existing active local
+password account can be attached by exact email without creating, resetting,
+or printing credentials. The seed is idempotent and refuses deployed
+environments. Its Phase 33 filename and deterministic identifiers remain for
+compatibility; they do not reduce the Phase 34 portfolio to five sectors.
 
 ### Service-to-customer journey
 
@@ -98,16 +107,18 @@ from racing the device/channel KPI-definition lookup.
 
 ## D. Migration
 
-`service_request_journey_v1` is the sole Alembic head after
-`integration_registry_v1`. It adds the service-request scope, journey,
+`service_request_journey_v1` was the sole Alembic head for the Phase 33 closure
+after `integration_registry_v1`. It adds the service-request scope, journey,
 optimistic-version, digest, check, foreign-key, and partial-unique constraints;
 normalizes bounded legacy state; maps only resolvable Site/Asset history; adds
 Workspace scope to AccountEvent; and backfills an AccountEvent only when its
 Organization has exactly one active Workspace. Ambiguous history remains NULL
-and is excluded from customer APIs. Upgrade, downgrade, re-upgrade, row
-preservation, constraints, PostGIS state, a real two-transaction service-request
-insert race, and a two-worker IoT repair serialization race were rehearsed
-against PostgreSQL/PostGIS 16/3.5.
+and is excluded from customer APIs. Its upgrade, downgrade, re-upgrade, row
+preservation, constraints, PostGIS state, a real two-transaction
+service-request insert race, and a two-worker IoT repair serialization race
+were rehearsed against PostgreSQL/PostGIS 16/3.5. Phase 34 adds
+`phase34_sector_taxonomy_v1` after this historical head and requires fresh
+migration evidence of its own.
 
 ## E. Automated evidence
 

@@ -4,9 +4,22 @@ from __future__ import annotations
 
 from enum import Enum
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
+
+from app.sector_taxonomy import (
+    PUBLIC_SECTORS,
+    asset_sector_for_public,
+    normalize_public_sector,
+)
 
 
 class CatalogItemType(str, Enum):
@@ -51,6 +64,7 @@ _SENSITIVE_KEY_PARTS = (
     "credential",
     "connection_string",
 )
+CatalogSectorValue = Annotated[str, StringConstraints(max_length=80)]
 
 
 def _reject_sensitive_keys(value: Any, path: str = "metadata") -> Any:
@@ -66,6 +80,26 @@ def _reject_sensitive_keys(value: Any, path: str = "metadata") -> Any:
     return value
 
 
+def _canonical_catalog_sectors(value: list[str] | None) -> list[str] | None:
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        raise ValueError("sectors must be a list")
+    if len(value) > 6:
+        raise ValueError("sectors cannot contain more than six selections")
+    normalized: list[str] = []
+    for raw_sector in value:
+        if not isinstance(raw_sector, str) or len(raw_sector) > 80:
+            raise ValueError("each sector must be a string of at most 80 characters")
+        public_sector = normalize_public_sector(raw_sector)
+        if public_sector not in PUBLIC_SECTORS:
+            raise ValueError(f"unsupported sector '{raw_sector}'")
+        asset_sector = asset_sector_for_public(public_sector)
+        if asset_sector is not None and asset_sector not in normalized:
+            normalized.append(asset_sector)
+    return normalized
+
+
 class CatalogItemWrite(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -74,7 +108,7 @@ class CatalogItemWrite(BaseModel):
     description: str | None = None
     item_type: CatalogItemType
     category: str | None = Field(default=None, max_length=80)
-    sectors: list[str] = Field(default_factory=list, max_length=20)
+    sectors: list[CatalogSectorValue] = Field(default_factory=list, max_length=6)
     asset_types: list[str] = Field(default_factory=list, max_length=50)
     customer_content: dict[str, Any] = Field(default_factory=dict)
     deliverables: list[str] = Field(default_factory=list, max_length=100)
@@ -95,6 +129,10 @@ class CatalogItemWrite(BaseModel):
     installed_product_type: str | None = Field(default=None, max_length=80)
     supplier_id: str | None = Field(default=None, max_length=36)
 
+    _normalize_sectors = field_validator("sectors", mode="before")(
+        _canonical_catalog_sectors
+    )
+
     @field_validator("currency")
     @classmethod
     def normalize_currency(cls, value: str) -> str:
@@ -109,7 +147,9 @@ class CatalogItemWrite(BaseModel):
             if not 3 <= len(key) <= 5:
                 raise ValueError("pricing currency keys must be ISO-style codes")
             if isinstance(amount, bool) or not isinstance(amount, int) or amount < 0:
-                raise ValueError("pricing values must be non-negative minor-unit integers")
+                raise ValueError(
+                    "pricing values must be non-negative minor-unit integers"
+                )
             normalized[key] = amount
         return normalized
 
@@ -120,12 +160,17 @@ class CatalogItemWrite(BaseModel):
 
     @model_validator(mode="after")
     def validate_published_price(self):
-        if self.status == CatalogItemStatus.PUBLISHED and self.price_model != PriceModel.QUOTE:
+        if (
+            self.status == CatalogItemStatus.PUBLISHED
+            and self.price_model != PriceModel.QUOTE
+        ):
             prices = dict(self.pricing)
             if self.unit_amount is not None:
                 prices.setdefault(self.currency, self.unit_amount)
             if not prices:
-                raise ValueError("published priced items require unit_amount or pricing")
+                raise ValueError(
+                    "published priced items require unit_amount or pricing"
+                )
         return self
 
 
@@ -144,7 +189,7 @@ class CatalogItemUpdate(BaseModel):
     description: str | None = None
     item_type: CatalogItemType | None = None
     category: str | None = Field(default=None, max_length=80)
-    sectors: list[str] | None = Field(default=None, max_length=20)
+    sectors: list[CatalogSectorValue] | None = Field(default=None, max_length=6)
     asset_types: list[str] | None = Field(default=None, max_length=50)
     customer_content: dict[str, Any] | None = None
     deliverables: list[str] | None = Field(default=None, max_length=100)
@@ -164,6 +209,10 @@ class CatalogItemUpdate(BaseModel):
     fulfilment_type: str | None = Field(default=None, max_length=40)
     installed_product_type: str | None = Field(default=None, max_length=80)
     supplier_id: str | None = Field(default=None, max_length=36)
+
+    _normalize_sectors = field_validator("sectors", mode="before")(
+        _canonical_catalog_sectors
+    )
 
     @field_validator("currency")
     @classmethod
@@ -231,7 +280,9 @@ class SupplierCreate(BaseModel):
     contact_phone: str | None = Field(default=None, max_length=50)
     country_code: str | None = Field(default=None, min_length=2, max_length=2)
     region: str | None = Field(default=None, max_length=120)
-    service_area: list[str | dict[str, Any]] = Field(default_factory=list, max_length=100)
+    service_area: list[str | dict[str, Any]] = Field(
+        default_factory=list, max_length=100
+    )
     capabilities: list[str] = Field(default_factory=list, max_length=100)
     certifications: list[dict[str, Any]] = Field(default_factory=list, max_length=100)
     insurance: dict[str, Any] = Field(default_factory=dict)
@@ -249,7 +300,9 @@ class SupplierCreate(BaseModel):
     @field_validator("capabilities")
     @classmethod
     def normalize_capabilities(cls, values: list[str]) -> list[str]:
-        return list(dict.fromkeys(value.strip().upper() for value in values if value.strip()))
+        return list(
+            dict.fromkeys(value.strip().upper() for value in values if value.strip())
+        )
 
     @field_validator(
         "service_area", "certifications", "insurance", "document_refs", "metadata"
@@ -268,7 +321,9 @@ class SupplierUpdate(BaseModel):
     contact_phone: str | None = Field(default=None, max_length=50)
     country_code: str | None = Field(default=None, min_length=2, max_length=2)
     region: str | None = Field(default=None, max_length=120)
-    service_area: list[str | dict[str, Any]] | None = Field(default=None, max_length=100)
+    service_area: list[str | dict[str, Any]] | None = Field(
+        default=None, max_length=100
+    )
     capabilities: list[str] | None = Field(default=None, max_length=100)
     certifications: list[dict[str, Any]] | None = Field(default=None, max_length=100)
     insurance: dict[str, Any] | None = None
@@ -288,7 +343,9 @@ class SupplierUpdate(BaseModel):
     def normalize_capabilities(cls, values: list[str] | None) -> list[str] | None:
         if values is None:
             return None
-        return list(dict.fromkeys(value.strip().upper() for value in values if value.strip()))
+        return list(
+            dict.fromkeys(value.strip().upper() for value in values if value.strip())
+        )
 
     @field_validator(
         "service_area", "certifications", "insurance", "document_refs", "metadata"

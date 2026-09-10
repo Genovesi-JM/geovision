@@ -7,7 +7,9 @@ import subprocess
 import sys
 
 
-def _alembic(backend_dir: Path, database_path: Path, command: str, revision: str) -> None:
+def _alembic(
+    backend_dir: Path, database_path: Path, command: str, revision: str
+) -> None:
     env = os.environ.copy()
     env["DATABASE_URL"] = f"sqlite:///{database_path}"
     completed = subprocess.run(
@@ -86,9 +88,7 @@ def test_operations_resource_migration_preserves_suppliers_and_round_trips(tmp_p
         ).fetchone() == ("Existing qualified source", "retain me", "[]", "[]")
         codes = {
             row[0]
-            for row in connection.execute(
-                "SELECT code FROM operational_capabilities"
-            )
+            for row in connection.execute("SELECT code FROM operational_capabilities")
         }
         assert {
             "RGB",
@@ -100,7 +100,8 @@ def test_operations_resource_migration_preserves_suppliers_and_round_trips(tmp_p
             "INFRASTRUCTURE",
             "ENVIRONMENTAL",
             "MINING",
-            "PORTS_INDUSTRIAL",
+            "INDUSTRY_ENERGY_UTILITIES",
+            "PORTS_LOGISTICS",
             "IOT_INSTALLATION",
         }.issubset(codes)
 
@@ -127,4 +128,4 @@ def test_operations_resource_migration_preserves_suppliers_and_round_trips(tmp_p
         ).fetchone() == ("Existing qualified source",)
         assert connection.execute(
             "SELECT count(*) FROM operational_capabilities"
-        ).fetchone() == (15,)
+        ).fetchone() == (16,)

@@ -7,26 +7,32 @@ parallel architecture.
 
 ## Add a sector
 
-1. Create `backend/app/sectors/<sector>` implementing the sector module
+1. Decide whether this is a new public sector or a capability reused by one of
+   the six sectors in [`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md). Do not create
+   a seventh customer ID merely for a product, kit, sensor, or use case.
+2. Create `backend/app/sectors/<sector>` implementing the sector module
    contract. Declare only existing common-module dependencies.
-2. Define normalized Asset types and aliases. Do not add vertical-only identity
+3. Define normalized Asset types and aliases. Do not add vertical-only identity
    or workspace tables.
-3. Register versioned KPI definitions/calculators and cautious rules through
+4. Register versioned KPI definitions/calculators and cautious rules through
    `app.modules.analytics`. Use explicit UNKNOWN/needs-review behavior when
    evidence is incomplete.
-4. Build observations and actions through the common persistence services.
+5. Build observations and actions through the common persistence services.
    Recommendations may reference GeoVision catalogue items, never a public
    third-party seller.
-5. Build map layers and report context through the shared Asset and report
+6. Build map layers and report context through the shared Asset and report
    contracts. Narrative can explain validated structured results but cannot
    create measurements.
-6. Add a clearly synthetic fixture with mission, dataset, KPI, observation,
+7. Add a clearly synthetic fixture with mission, dataset, KPI, observation,
    action, and report history.
-7. Add the package exactly once to `app/sectors/registry.py`; use the canonical
+8. Add the package exactly once to `app/sectors/registry.py`; use the reviewed
    `geovision.sectors.<sector>` rollout decision.
-8. Test coexistence, fixture determinism, tenant/workspace isolation, failure
-   semantics, report provenance, and route uniqueness. Update the product and
-   provider catalogues.
+9. If the public taxonomy changes, update its backend source of truth and all
+   web/mobile/onboarding/account/catalogue/KPI/Asset/fixture mappings in one
+   additive phase, including data and route compatibility.
+10. Test coexistence, fixture determinism, tenant/workspace isolation, failure
+    semantics, report provenance, route uniqueness, exact six-sector order,
+    and legacy normalization. Update the product and provider catalogues.
 
 ## Add a sensor or device capability
 

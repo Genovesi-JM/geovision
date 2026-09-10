@@ -3,7 +3,7 @@
 Sensors carry GeoVision's vision now (drones come later, once piloting experience
 and permissions exist): **connect hardware → stream data → turn data into analytical
 reports.** To make that repeatable, GeoVision ships **DIY solution kits** — homemade,
-ESP32-based nodes with a fixed sensor set per industry. Picking a kit provisions a real
+ESP32-based nodes with a fixed sensor set per use case. Picking a kit provisions a real
 device with the correct channels and starter alert rules in one step.
 
 ## Where it lives
@@ -16,20 +16,27 @@ guaranteed ingestible by the existing MQTT/REST pipeline. No new storefront, bac
 data model was created — kits reuse the existing device/provisioning/alert code.
 
 ## Kits included
-| Kit | Industry | Core channels | Starter alerts | ~BOM |
-|---|---|---|---|---|
-| Cold Chain Starter | cold_chain | temperature, humidity, door, compressor run | over-temp (crit), low battery | ~$65 |
-| Water Tank & Pump | water | tank_level, flow, pump run | low level (warn), critically low (crit) | ~$59 |
-| Agriculture Field Node (solar) | agriculture | soil moisture/temp, air temp/humidity, rainfall | dry soil, frost risk | ~$135 |
-| Property & Leak Guard | facilities | door, motion, water leak | leak (crit), after-hours motion | ~$44 |
-| Environment & Air | environment | CO₂, PM2.5, temp, humidity, noise | high CO₂, high PM2.5 | ~$92 |
+
+Kit use cases are catalogue tags, not extra public sectors. Their applicability
+is projected through the six-sector mapping in
+[`../SECTOR_TAXONOMY.md`](../SECTOR_TAXONOMY.md).
+
+| Kit | Use case | Core channels | Starter alerts | ~BOM | Availability |
+|---|---|---|---|---|---|
+| Cold Chain Starter | cold_chain | temperature, humidity, door, compressor run | over-temp (crit), low battery | ~$65 | Standby |
+| Water Tank & Pump | water | tank_level, flow, pump run | low level (warn), critically low (crit) | ~$59 | Active |
+| Agriculture Field Node (solar) | agriculture | soil moisture/temp, air temp/humidity, rainfall | dry soil, frost risk | ~$135 | Active |
+| Property & Leak Guard | facilities | door, motion, water leak | leak (crit), after-hours motion | ~$44 | Active |
+| Environment & Air | environment | CO₂, PM2.5, temp, humidity, noise | high CO₂, high PM2.5 | ~$92 | Active |
 
 `battery` and `signal` ride along on every kit. Prices are DIY component estimates (USD);
 the sellable price adds assembly, install and the recurring monitoring subscription — see
 [SENSOR_KPI_MONETISATION.md](SENSOR_KPI_MONETISATION.md).
 
-The earlier Energy & Power prototype remains in the code as a standby concept, but it is
-not listed, provisionable or sold in the current GeoVision offer.
+Cold Chain, Energy & Power, SprayControl, and SeedFlow remain standby concepts.
+Their definitions are retained for reviewed future work, but they are not
+listed, detailed, provisionable, or sold. A public sector or a kit definition
+alone does not prove operational availability.
 
 ## API
 - `GET /iot/kits` — list kits (each includes `diy_bom`, `bom_total_usd`, `channels`, `alert_rules`, `kpis`).

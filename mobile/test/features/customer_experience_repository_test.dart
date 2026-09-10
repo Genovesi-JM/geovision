@@ -48,6 +48,7 @@ class _ExperienceAdapter implements HttpClientAdapter {
           'organization_name': 'Customer',
           'role': 'member',
           'sector': 'AGRICULTURE',
+          'sectors': ['AGRICULTURE', 'mining'],
           'modules_enabled': ['assets'],
         },
       ],
@@ -82,6 +83,8 @@ void main() {
 
     expect(adapter.headers, ['revoked-workspace', null]);
     expect(experience.activeWorkspaceId, 'default-workspace');
+    expect(experience.activeWorkspace?.sector, 'agriculture');
+    expect(experience.activeWorkspace?.sectors, ['agriculture', 'mining']);
     expect(client.workspaceId, 'default-workspace');
     expect(
       store.readJson('customer_workspace_selection')?.data['workspace_id'],

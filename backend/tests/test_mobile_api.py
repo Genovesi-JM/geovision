@@ -1,5 +1,5 @@
 from app.database import SessionLocal
-from app.models import CompanyUser, Site
+from app.models import Asset, CompanyUser, Site
 
 
 def _login_headers(client):
@@ -33,6 +33,24 @@ def _create_customer_site(*, sector="agriculture", name="Mobile Test Farm"):
         db.add(site)
         db.commit()
         return site.id
+    finally:
+        db.close()
+
+
+def _delete_customer_site(site_id: str) -> None:
+    db = SessionLocal()
+    try:
+        asset = (
+            db.query(Asset)
+            .filter(Asset.legacy_source == "site", Asset.legacy_source_id == site_id)
+            .one_or_none()
+        )
+        if asset is not None:
+            db.delete(asset)
+        site = db.get(Site, site_id)
+        if site is not None:
+            db.delete(site)
+        db.commit()
     finally:
         db.close()
 
@@ -92,10 +110,12 @@ def test_mobile_environment_site_returns_environment_kpis(client):
 def test_mobile_site_sectors_use_current_public_identifiers(client):
     headers = _login_headers(client)
     cases = {
-        "construction": "progress_percent",
+        "agriculture": "soil_moisture",
+        "construction_infrastructure": "data_freshness",
         "environment": "air_quality",
-        "industry": "extraction_volume",
-        "infrastructure": "data_freshness",
+        "mining": "extraction_volume",
+        "industry_energy_utilities": "data_freshness",
+        "ports_logistics": "tracking_coverage",
     }
     for sector, expected_kpi in cases.items():
         response = client.post(
@@ -110,8 +130,34 @@ def test_mobile_site_sectors_use_current_public_identifiers(client):
             },
         )
         assert response.status_code == 201, response.text
-        assert response.json()["sector"] == sector
-        assert expected_kpi in {item["id"] for item in response.json()["kpis"]}
+        site_id = response.json()["id"]
+        try:
+            assert response.json()["sector"] == sector
+            assert expected_kpi in {item["id"] for item in response.json()["kpis"]}
+        finally:
+            _delete_customer_site(site_id)
+
+
+def test_mobile_site_creation_requires_an_explicit_supported_sector(client):
+    headers = _login_headers(client)
+    payload = {
+        "name": "Site without classification",
+        "country": "Angola",
+        "province": "Luanda",
+        "municipality": "Viana",
+    }
+
+    assert (
+        client.post("/mobile/sites", headers=headers, json=payload).status_code == 422
+    )
+    assert (
+        client.post(
+            "/mobile/sites",
+            headers=headers,
+            json={**payload, "sector": "future_special"},
+        ).status_code
+        == 422
+    )
 
 
 def test_mobile_legacy_sector_alias_is_returned_canonically(client):
@@ -121,14 +167,32 @@ def test_mobile_legacy_sector_alias_is_returned_canonically(client):
         headers=headers,
         json={
             "name": "Legacy agriculture input",
-            "sector": "agriculture",
+            "sector": "agro",
             "country": "Angola",
             "province": "Huambo",
             "municipality": "Caála",
         },
     )
     assert response.status_code == 201, response.text
-    assert response.json()["sector"] == "agro"
+    site_id = response.json()["id"]
+    try:
+        assert response.json()["sector"] == "agriculture"
+    finally:
+        _delete_customer_site(site_id)
+
+
+def test_mobile_hides_legacy_sites_that_need_sector_review(client):
+    headers = _login_headers(client)
+    site_id = _create_customer_site(
+        sector="future/special",
+        name="Legacy site pending taxonomy review",
+    )
+    try:
+        response = client.get("/mobile/sites", headers=headers)
+        assert response.status_code == 200, response.text
+        assert site_id not in {site["id"] for site in response.json()}
+    finally:
+        _delete_customer_site(site_id)
 
 
 def test_mobile_routes_require_authentication(client):

@@ -153,13 +153,22 @@ dados@geovisionops.com
 rag@geovisionops.com
 ```
 
-### Sectores (Contas de Suporte)
+### Sectores (aliases de suporte; sujeitos a configuração)
+
+Estes endereços são aliases de encaminhamento, não identificadores de produto
+nem prova de que a caixa existe. O nome apresentado ao cliente deve seguir a
+taxonomia canónica de seis setores em
+[`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md). `agro@`, `infrastructure@` e
+`solar@` podem permanecer como aliases legados durante a migração; `demining@`
+é uma capacidade especializada, não um sétimo setor.
+
 ```
+agriculture@geovisionops.com
+construction@geovisionops.com
+environment@geovisionops.com
 mining@geovisionops.com
-agro@geovisionops.com
-infrastructure@geovisionops.com
-demining@geovisionops.com
-solar@geovisionops.com
+industry@geovisionops.com
+ports@geovisionops.com
 ```
 
 ---
@@ -178,7 +187,8 @@ Especialista em OperaÃ§Ãµes de Voo
 ðŸŒ www.geovisionops.com
 
 GeoVision â€” InteligÃªncia AÃ©rea para Angola
-Mining | Infrastructure | Agriculture | Demining | Solar
+Agricultura & Pecuária | Construção & Infraestruturas | Ambiente | Mineração |
+Indústria, Energia & Utilities | Portos & Logística
 
 [Logo pequeno]
 ```

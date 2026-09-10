@@ -1,6 +1,12 @@
-# Ports and Industrial Provider Boundaries
+# Ports and Logistics Provider Boundaries
 
-Phase 31 adds optional provider seams around the Ports and Industrial sector.
+Phase 31 added optional provider seams around the sector then called Ports and
+Industrial. Phase 34 makes the customer and technical identity unambiguous:
+this package is now **Portos & Logística**, with public ID `ports_logistics` and
+technical sector `PORTS_LOGISTICS`. Indústria, Energia & Utilities is a
+separate sector and package. The filename is retained as a documentation link
+compatibility path, not as the current sector name.
+
 GeoVision remains the system of record for assets, zones, acquisitions,
 datasets, observations, KPIs, actions, reports, and IoT assignments. External
 references are opaque context; they never replace a GeoVision UUID and never
@@ -14,14 +20,17 @@ boundaries. The sector implementation remains authoritative in
 `backend/tests/test_ports_industrial_sector.py`; this guide does not redefine
 its evidence rules or persistence.
 
-| Core Phase 31 API | Purpose |
+| Canonical API | Purpose |
 |---|---|
-| `GET /sectors/ports/capabilities` | Feature state, vocabulary, KPIs, comparisons, layers, and guardrails |
-| `POST /assets/{asset_id}/ports/evaluate` | Evaluate tenant-owned, quality-gated evidence |
-| `GET /assets/{asset_id}/ports/inspection-history` | Asset/zone-centric repeated-inspection history |
-| `GET /assets/{asset_id}/ports/comparisons` | Compatible visual, thermal, and 3D comparison evidence |
-| `GET /assets/{asset_id}/ports/map-layers` | Asset, observation, and supported dataset layers |
-| `GET /assets/{asset_id}/ports/report-context` | Evidence-linked report context and limitations |
+| `GET /sectors/ports-logistics/capabilities` | Feature state, vocabulary, KPIs, comparisons, layers, and guardrails |
+| `POST /assets/{asset_id}/ports-logistics/evaluate` | Evaluate tenant-owned, quality-gated evidence |
+| `GET /assets/{asset_id}/ports-logistics/inspection-history` | Asset/zone-centric repeated-inspection history |
+| `GET /assets/{asset_id}/ports-logistics/comparisons` | Compatible visual, thermal, and 3D comparison evidence |
+| `GET /assets/{asset_id}/ports-logistics/map-layers` | Asset, observation, and supported dataset layers |
+| `GET /assets/{asset_id}/ports-logistics/report-context` | Evidence-linked report context and limitations |
+
+The Phase 31 `/sectors/ports/*` and `/assets/{asset_id}/ports/*` paths remain
+hidden compatibility aliases. New clients must use the canonical paths above.
 
 The core KPI set covers inspection status and freshness, specialist-validated
 condition summary, reinspection state, new visual and thermal candidate counts,
@@ -37,16 +46,18 @@ scaffold is invoked by the core sector evaluation path.
 ## Asset-centric use
 
 Maritime and enterprise-system values may supplement the history of a canonical
-port or industrial asset. They do not define the asset and cannot turn an image,
-temperature difference, AIS position, model value, or provider status into a
-defect, engineering conclusion, safety decision, or navigation instruction.
+port, terminal, yard, corridor, or logistics asset. They do not define the
+asset and cannot turn an image, temperature difference, AIS position, model
+value, or provider status into a defect, engineering conclusion, safety
+decision, or navigation instruction.
 Repeated-inspection comparisons must remain tied to the same canonical asset or
 child zone and to compatible, quality-passed evidence.
 
 IoT devices continue to use the common auditable `DeviceAssignment` boundary.
-The Ports sector must not introduce another device-assignment or telemetry
-system. AEMET weather, Copernicus satellite, and MITECO GIS context also remain
-in their existing provider ports and are not proxied by the maritime adapter.
+The Portos & Logística sector must not introduce another device-assignment or
+telemetry system. AEMET weather, Copernicus satellite, and MITECO GIS context
+also remain in their existing provider ports and are not proxied by the
+maritime adapter.
 
 ## Maritime contract
 

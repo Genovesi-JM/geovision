@@ -8,6 +8,8 @@ without duplicating identity, Asset, intelligence, order, or report models.
 Provider contract details are documented in
 [the provider integration architecture](PROVIDER_INTEGRATION_ARCHITECTURE.md),
 and the canonical data graph is in [entity relationships](ENTITY_RELATIONSHIPS.md).
+The public-to-technical sector mapping is defined separately in the
+[canonical sector taxonomy](SECTOR_TAXONOMY.md).
 
 ## Runtime and composition
 
@@ -220,10 +222,11 @@ versioned intelligence interfaces.
 | `sectors/agriculture` | 18 | Enabled with source-fused KPIs, cautious rules, map layers and structured report context; legacy identifiers remain accepted |
 | `sectors/infrastructure` | 28 | Enabled with construction/progress KPIs, cautious rules, maps, reports, and synthetic fixtures |
 | `sectors/environmental` | 29 | Enabled; existing `environment` and `ambiental` identifiers remain compatible |
-| `sectors/mining` | 30 | Enabled; existing mining/industry normalization remains compatible |
-| `sectors/ports` | 31 | Enabled with Ports/Industrial KPIs, inspections, maps, reports, and synthetic fixtures |
+| `sectors/mining` | 30 | Enabled as a distinct specialized sector; `quarry` remains compatible, but industry is no longer normalized into mining |
+| `sectors/industry` | 34 | Enabled as the distinct `industry_energy_utilities` capability package with source-required operational KPI metadata and fail-closed evidence guardrails; historical industry/energy entitlement names remain readable |
+| `sectors/ports` | 31, renamed in Phase 34 | Enabled as `ports_logistics` with inspection KPIs, comparisons, maps, reports, and synthetic fixtures; the package directory and old Ports routes remain compatibility surfaces |
 
-All five packages are enabled and can coexist on the same common data model.
+All six packages are enabled and can coexist on the same common data model.
 Sector routes are composed explicitly alongside domain/integration routes, and
 common modules never import sector packages. Member/workspace rollout may deny
 a sector after Azure App Configuration is configured; an absent external

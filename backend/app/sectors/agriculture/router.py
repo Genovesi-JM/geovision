@@ -89,6 +89,8 @@ def agriculture_capabilities(
 ):
     return {
         "sector": SECTOR,
+        "public_sector": "agriculture",
+        "maturity": "available",
         "enabled": _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,
         "analysis_schema": ANALYSIS_SCHEMA,

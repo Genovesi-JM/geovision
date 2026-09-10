@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../../sites/domain/sector.dart';
+
 class StoreCopy {
   StoreCopy._(this.language);
   final String language;
@@ -141,17 +143,28 @@ class StoreCopy {
       'Mapa de demostración · preparado para Google Maps y una API logística',
       'Carte de démonstration · prête pour Google Maps et une API logistique');
 
-  String sector(String id) => switch (id) {
-        'agro' => pick('Agro e pecuária', 'Agriculture & livestock',
-            'Agro y ganadería', 'Agriculture et élevage'),
-        'environment' =>
+  String sector(String id) => switch (canonicalSectorId(id)) {
+        PublicSectorIds.agriculture => pick(
+            'Agricultura & Pecuária',
+            'Agriculture & livestock',
+            'Agro y ganadería',
+            'Agriculture et élevage'),
+        PublicSectorIds.constructionInfrastructure => pick(
+            'Construção & Infraestruturas',
+            'Construction & infrastructure',
+            'Construcción e infraestructuras',
+            'Construction et infrastructures'),
+        PublicSectorIds.environment =>
           pick('Ambiente', 'Environment', 'Medio ambiente', 'Environnement'),
-        'construction' =>
-          pick('Construção', 'Construction', 'Construcción', 'Construction'),
-        'industry' => pick('Indústria e mineração', 'Industry & mining',
-            'Industria y minería', 'Industrie et mines'),
-        'infrastructure' => pick('Infraestruturas', 'Infrastructure',
-            'Infraestructuras', 'Infrastructures'),
+        PublicSectorIds.mining =>
+          pick('Mineração', 'Mining', 'Minería', 'Mines'),
+        PublicSectorIds.industryEnergyUtilities => pick(
+            'Indústria, Energia & Utilities',
+            'Industry, Energy & Utilities',
+            'Industria, Energía & Utilities',
+            'Industrie, Énergie & Services publics'),
+        PublicSectorIds.portsLogistics => pick('Portos & Logística',
+            'Ports & Logistics', 'Puertos & Logística', 'Ports & Logistique'),
         _ => id,
       };
 }

@@ -19,8 +19,12 @@ _SECTOR_FLAG_NAMES = {
     "environmental": "environmental",
     "infrastructure": "infrastructure",
     "mining": "mining",
+    "industry": "industry_energy_utilities",
+    "industry_energy_utilities": "industry_energy_utilities",
     "ports": "ports",
     "ports_industrial": "ports",
+    # Keep the deployed flag key while the public taxonomy uses ports_logistics.
+    "ports_logistics": "ports",
 }
 
 

@@ -1784,7 +1784,7 @@
 
                 <div><label>Tipo execução</label><select class="form-select" id="pf-execution-type"><option value="">—</option><option value="pontual">Pontual</option><option value="recorrente">Recorrente</option></select></div>
                 <div style="grid-column:1/-1;"><label data-i18n="adm.description">Descrição</label><textarea class="form-input" id="pf-description" rows="2"></textarea></div>
-                <div style="grid-column:1/-1;"><label data-i18n="adm.sectorsComma">Setores (separados por vírgula)</label><input class="form-input" id="pf-sectors" placeholder="mining, agro, infrastructure" /></div>
+                <div style="grid-column:1/-1;"><label data-i18n="adm.sectorsComma">Setores (separados por vírgula)</label><input class="form-input" id="pf-sectors" placeholder="agriculture, mining, ports_logistics" /></div>
                 <div><label data-i18n="adm.durationHours">Duração (horas)</label><input class="form-input" id="pf-duration" type="number" min="0" /></div>
                 <div><label data-i18n="adm.minArea">Área mínima (ha)</label><input class="form-input" id="pf-min-area" type="number" min="0" /></div>
                 <div style="display:flex;gap:1.5rem;align-items:center;grid-column:1/-1;">
@@ -1932,11 +1932,12 @@
           <div class="form-group">
             <label class="form-label" data-i18n="nav.sectors">Setores</label>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agro" /> <span data-i18n="admin.modal.sectorAgro">Agropecuária</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="sectors.mineracao">Mineração</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="login.construction">Construção</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="infrastructure" /> <span data-i18n="sectors.infraestruturas">Infraestruturas</span></label>
-              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="ambiental" /> <span data-i18n="admin.modal.sectorAmbiental">Ambiental & Reflorestação</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agriculture" /> <span data-i18n="public.sector.agriculture">Agricultura &amp; Pecuária</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction_infrastructure" /> <span data-i18n="public.sector.constructionInfrastructure">Construção &amp; Infraestruturas</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="environment" /> <span data-i18n="public.sector.environment">Ambiente</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="public.sector.mining">Mineração</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="industry_energy_utilities" /> <span data-i18n="public.sector.industryEnergyUtilities">Indústria, Energia &amp; Utilities</span></label>
+              <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="ports_logistics" /> <span data-i18n="public.sector.portsLogistics">Portos &amp; Logística</span></label>
             </div>
           </div>
           <div class="form-group">
@@ -2009,11 +2010,12 @@
             <div class="form-group">
               <label class="form-label" data-i18n="nav.sectors">Setores</label>
               <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agro" /> <span data-i18n="admin.modal.sectorAgro">Agropecuária</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="sectors.mineracao">Mineração</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction" /> <span data-i18n="login.construction">Construção</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="infrastructure" /> <span data-i18n="sectors.infraestruturas">Infraestruturas</span></label>
-                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="ambiental" /> <span data-i18n="admin.modal.sectorAmbiental">Ambiental & Reflorestação</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="agriculture" /> <span data-i18n="public.sector.agriculture">Agricultura &amp; Pecuária</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="construction_infrastructure" /> <span data-i18n="public.sector.constructionInfrastructure">Construção &amp; Infraestruturas</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="environment" /> <span data-i18n="public.sector.environment">Ambiente</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="mining" /> <span data-i18n="public.sector.mining">Mineração</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="industry_energy_utilities" /> <span data-i18n="public.sector.industryEnergyUtilities">Indústria, Energia &amp; Utilities</span></label>
+                <label style="font-size: 0.85rem;"><input type="checkbox" name="sectors" value="ports_logistics" /> <span data-i18n="public.sector.portsLogistics">Portos &amp; Logística</span></label>
               </div>
             </div>
           </div>
@@ -2115,8 +2117,30 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=27"></script>
+  <script src="assets/js/i18n.js?v=29"></script>
+  <script src="assets/js/account-profiles.js?v=5"></script>
   <script>
+    const publicSectorTaxonomy = window.GV_SECTOR_TAXONOMY;
+    const normalizeAdminSector = (value) => publicSectorTaxonomy.normalizeSector(value);
+    const normalizeAdminSectors = (values) => publicSectorTaxonomy.normalizeSectors(values);
+    const normalizeAdminProductSectors = (values) => {
+      const direct = Array.isArray(values) ? null : normalizeAdminSector(values);
+      if (direct) return [direct];
+      const source = Array.isArray(values) ? values : String(values || '').split(',');
+      return [...new Set(source.flatMap((value) => {
+        const legacy = String(value || '').trim().toLowerCase();
+        if (legacy === 'ports_industrial') {
+          return ['industry_energy_utilities', 'ports_logistics'];
+        }
+        const normalized = normalizeAdminSector(value);
+        return normalized ? [normalized] : [];
+      }))];
+    };
+    const publicSectorLabel = (value) => {
+      const sector = normalizeAdminSector(value);
+      return (sector && publicSectorTaxonomy.labels[sector]) || value || '—';
+    };
+
     // ============ VIEW NAVIGATION ============
     const viewLinks = document.querySelectorAll('.sidebar-link[data-view]');
     const viewPanels = document.querySelectorAll('.view-panel');
@@ -2290,7 +2314,7 @@
         tax_id: formData.get('tax_id'),
         address: formData.get('address'),
         subscription_plan: formData.get('subscription_plan'),
-        sectors: formData.getAll('sectors'),
+        sectors: normalizeAdminSectors(formData.getAll('sectors')),
       };
 
       try {
@@ -2329,8 +2353,9 @@
       form.querySelector('[name="status"]').value = c.status || 'active';
       form.querySelector('[name="address"]').value = c.address || '';
       // Set sector checkboxes
+      const clientSectors = new Set(normalizeAdminSectors(c.sectors || []));
       form.querySelectorAll('[name="sectors"]').forEach(cb => {
-        cb.checked = (c.sectors || []).includes(cb.value);
+        cb.checked = clientSectors.has(cb.value);
       });
       showModal('modal-edit-client');
     }
@@ -2347,7 +2372,7 @@
         address: formData.get('address') || null,
         subscription_plan: formData.get('subscription_plan'),
         status: formData.get('status'),
-        sectors: formData.getAll('sectors'),
+        sectors: normalizeAdminSectors(formData.getAll('sectors')),
       };
       try {
         const response = await fetch(`${API_BASE}/admin/companies/${clientId}`, {
@@ -2822,11 +2847,6 @@
     let allAdminProducts = [];
     let editingProductId = null;
 
-    const SECTOR_LABELS = {
-      mining: 'Mineração', infrastructure: 'Infraestrutura', agro: 'Agricultura',
-      demining: 'Desminagem', solar: 'Solar', livestock: 'Pecuária', construction: 'Construção'
-    };
-
     async function loadProducts() {
       const token = localStorage.getItem('gv_token');
       const typeFilter = document.getElementById('prod-filter-type')?.value || '';
@@ -2861,7 +2881,7 @@
         const priceFormatted = (p.price / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 });
         const priceUsd = p.price_usd ? '$' + (p.price_usd / 100).toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—';
         const priceEur = p.price_eur ? '€' + (p.price_eur / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 }) : '—';
-        const sectors = (p.sectors || []).map(s => `<span class="badge badge-trial" style="font-size:.65rem;margin:1px;">${SECTOR_LABELS[s] || s}</span>`).join(' ');
+        const sectors = normalizeAdminProductSectors(p.sectors || []).map(s => `<span class="badge badge-trial" style="font-size:.65rem;margin:1px;">${publicSectorLabel(s)}</span>`).join(' ');
         const typeLabel = p.product_type === 'hardware' ? '<i class="fa-solid fa-microchip"></i> Hardware' : '<i class="fa-solid fa-plane"></i> Serviço';
         const stockDisplay = p.track_inventory
           ? `<span style="font-weight:600;color:${p.stock_quantity > 0 ? 'var(--accent-green)' : '#ef4444'}">${p.stock_quantity}</span>
@@ -2913,7 +2933,7 @@
           document.getElementById('pf-price-eur').value = p.price_eur || 0;
           document.getElementById('pf-execution-type').value = p.execution_type || '';
           document.getElementById('pf-description').value = p.description || '';
-          document.getElementById('pf-sectors').value = (p.sectors || []).join(', ');
+          document.getElementById('pf-sectors').value = normalizeAdminProductSectors(p.sectors || []).join(', ');
           document.getElementById('pf-duration').value = p.duration_hours || '';
           document.getElementById('pf-min-area').value = p.min_area_ha || '';
           document.getElementById('pf-active').checked = p.is_active;
@@ -2936,8 +2956,7 @@
       e.preventDefault();
       const token = localStorage.getItem('gv_token');
       const id = document.getElementById('pf-id').value;
-      const sectors = document.getElementById('pf-sectors').value
-        .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      const sectors = normalizeAdminProductSectors(document.getElementById('pf-sectors').value);
 
       const body = {
         name: document.getElementById('pf-name').value,

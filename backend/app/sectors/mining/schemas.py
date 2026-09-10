@@ -16,6 +16,8 @@ class MiningEvaluationRequest(BaseModel):
 
 class MiningCapabilitiesOut(BaseModel):
     sector: str
+    public_sector: str
+    maturity: str
     enabled: bool
     algorithm_bundle_version: str
     analysis_schema: str

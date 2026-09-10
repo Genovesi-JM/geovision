@@ -8,6 +8,7 @@ E-commerce endpoints for:
 - Order management
 - Customer profile (Minhas Compras)
 """
+
 import logging
 from typing import Any, Optional, List
 from datetime import datetime
@@ -20,10 +21,14 @@ from app.core.config import settings
 from app.models import Order, User
 from sqlalchemy.orm import Session
 from app.deps import get_db
-from app.services.cart import get_cart_service, get_sector_labels
+from app.services.cart import CartSectorValidationError, get_cart_service
 from app.services.orders import PaymentMethod, get_order_service
 from app.services.erp_sync import publish_account_event
-from app.account_profiles import normalize_public_sector
+from app.sector_taxonomy import (
+    PUBLIC_SECTOR_DEFINITIONS,
+    PUBLIC_SECTORS,
+    normalize_public_sector,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +38,7 @@ router = APIRouter(prefix="/shop", tags=["Shop"])
 
 
 # ============ SCHEMAS ============
+
 
 # Cart
 class AddToCartRequest(BaseModel):
@@ -110,7 +116,10 @@ class BillingInfo(BaseModel):
 
 
 class CheckoutRequest(BaseModel):
-    payment_method: str = Field(..., description="multicaixa_express, visa_mastercard, iban_angola, iban_international, paypal")
+    payment_method: str = Field(
+        ...,
+        description="multicaixa_express, visa_mastercard, iban_angola, iban_international, paypal",
+    )
     currency: str = Field(default="AOA", description="AOA, USD, or EUR")
     billing_info: BillingInfo
     customer_notes: Optional[str] = None
@@ -239,6 +248,10 @@ class SectorMismatchWarning(BaseModel):
 class SectorLabel(BaseModel):
     key: str
     label: str
+    slug: str
+    asset_sector: str
+    capability_sector: str
+    maturity: str
 
 
 # ============ STATUS LABELS ============
@@ -261,11 +274,16 @@ STATUS_LABELS = {
 
 # ============ PRODUCT ENDPOINTS ============
 
+
 @router.get("/products", response_model=List[ProductResponse])
 async def list_products(
     category: Optional[str] = Query(None, description="Filter by category"),
-    sector: Optional[str] = Query(None, description="Filter by sector (e.g., agriculture, mining)"),
-    product_type: Optional[str] = Query(None, description="Filter by type (physical, digital, service, subscription)"),
+    sector: Optional[str] = Query(
+        None, max_length=80, description="Filter by sector (e.g., agriculture, mining)"
+    ),
+    product_type: Optional[str] = Query(
+        None, description="Filter by type (physical, digital, service, subscription)"
+    ),
     search: Optional[str] = Query(None, description="Search by name"),
     db: Session = Depends(get_db),
 ):
@@ -274,27 +292,29 @@ async def list_products(
     """
     cart_service = get_cart_service(db)
     products = cart_service.list_products()
-    
+
     # Apply filters
     if category:
         products = [p for p in products if p.get("category") == category]
-    
+
     if sector:
         requested_sector = normalize_public_sector(sector)
+        if requested_sector not in PUBLIC_SECTORS:
+            raise HTTPException(status_code=422, detail="Unsupported sector filter")
         products = [
-            p for p in products
-            if requested_sector in {
-                normalize_public_sector(item) for item in p.get("sectors", [])
-            }
+            p
+            for p in products
+            if requested_sector
+            in {normalize_public_sector(item) for item in p.get("sectors", [])}
         ]
-    
+
     if product_type:
         products = [p for p in products if p.get("product_type") == product_type]
-    
+
     if search:
         search_lower = search.lower()
         products = [p for p in products if search_lower in p.get("name", "").lower()]
-    
+
     return [
         ProductResponse(
             id=p["id"],
@@ -330,10 +350,10 @@ async def get_product(product_id: str, db: Session = Depends(get_db)):
     """Get product details."""
     cart_service = get_cart_service(db)
     product = cart_service.get_product(product_id)
-    
+
     if not product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
-    
+
     return ProductResponse(
         id=product["id"],
         name=product["name"],
@@ -363,20 +383,27 @@ async def get_product(product_id: str, db: Session = Depends(get_db)):
 
 # ============ SECTOR ENDPOINTS ============
 
+
 @router.get("/sectors", response_model=List[SectorLabel])
 async def list_sectors():
-    """List available sectors with labels."""
-    sector_labels = get_sector_labels()
+    """Return the ordered public taxonomy used across every client surface."""
     return [
-        SectorLabel(key=k, label=v)
-        for k, v in sector_labels.items()
+        SectorLabel(
+            key=sector.id,
+            label=sector.label_pt,
+            slug=sector.slug_pt,
+            asset_sector=sector.asset_sector,
+            capability_sector=sector.capability_sector,
+            maturity=sector.maturity,
+        )
+        for sector in PUBLIC_SECTOR_DEFINITIONS
     ]
 
 
 @router.post("/check-sector-mismatch")
 async def check_sector_mismatch(
     product_id: str = Body(..., embed=True),
-    account_sector: Optional[str] = Body(None, embed=True),
+    account_sector: Optional[str] = Body(None, embed=True, max_length=80),
     db: Session = Depends(get_db),
 ):
     """
@@ -384,18 +411,23 @@ async def check_sector_mismatch(
     Returns warning info if mismatch - does NOT block purchase.
     """
     cart_service = get_cart_service(db)
-    warning = cart_service.check_sector_mismatch(product_id, account_sector)
-    
+    try:
+        warning = cart_service.check_sector_mismatch(product_id, account_sector)
+    except CartSectorValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     if warning:
         return warning
-    
+
     return {"warning": False, "sector_mismatch": False}
 
 
 @router.get("/cart/{cart_id}/with-warnings")
 async def get_cart_with_warnings(
     cart_id: str,
-    account_sector: Optional[str] = Query(None, description="Account sector for mismatch checking"),
+    account_sector: Optional[str] = Query(
+        None, max_length=80, description="Account sector for mismatch checking"
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -405,18 +437,21 @@ async def get_cart_with_warnings(
     cart_service = get_cart_service(db)
     try:
         return cart_service.get_cart_with_warnings(cart_id, account_sector)
+    except CartSectorValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 # ============ CART ENDPOINTS ============
 
+
 @router.get("/cart/{cart_id}", response_model=CartResponse)
 async def get_cart(cart_id: str, db: Session = Depends(get_db)):
     """Get cart contents."""
     cart_service = get_cart_service(db)
     cart = cart_service.get_or_create_cart(session_id=cart_id)
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -434,7 +469,9 @@ async def get_cart(cart_id: str, db: Session = Depends(get_db)):
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -453,17 +490,21 @@ async def get_cart(cart_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/cart/{cart_id}/items", response_model=CartResponse)
-async def add_to_cart(cart_id: str, request: AddToCartRequest, db: Session = Depends(get_db)):
+async def add_to_cart(
+    cart_id: str, request: AddToCartRequest, db: Session = Depends(get_db)
+):
     """Add item to cart."""
     cart_service = get_cart_service(db)
-    
+
     scheduled = None
     if request.scheduled_date:
-        scheduled = datetime.fromisoformat(request.scheduled_date.replace("Z", "+00:00"))
-    
+        scheduled = datetime.fromisoformat(
+            request.scheduled_date.replace("Z", "+00:00")
+        )
+
     # Ensure cart exists
     cart_service.get_or_create_cart(session_id=cart_id)
-    
+
     try:
         cart = cart_service.add_item(
             cart_id=cart_id,
@@ -475,7 +516,7 @@ async def add_to_cart(cart_id: str, request: AddToCartRequest, db: Session = Dep
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -493,7 +534,9 @@ async def add_to_cart(cart_id: str, request: AddToCartRequest, db: Session = Dep
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -512,14 +555,19 @@ async def add_to_cart(cart_id: str, request: AddToCartRequest, db: Session = Dep
 
 
 @router.put("/cart/{cart_id}/items/{item_id}", response_model=CartResponse)
-async def update_cart_item(cart_id: str, item_id: str, request: UpdateCartItemRequest, db: Session = Depends(get_db)):
+async def update_cart_item(
+    cart_id: str,
+    item_id: str,
+    request: UpdateCartItemRequest,
+    db: Session = Depends(get_db),
+):
     """Update cart item quantity."""
     cart_service = get_cart_service(db)
     cart = cart_service.update_item_quantity(cart_id, item_id, request.quantity)
-    
+
     if not cart:
         raise HTTPException(status_code=404, detail="Item não encontrado")
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -537,7 +585,9 @@ async def update_cart_item(cart_id: str, item_id: str, request: UpdateCartItemRe
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -560,10 +610,10 @@ async def remove_cart_item(cart_id: str, item_id: str, db: Session = Depends(get
     """Remove item from cart."""
     cart_service = get_cart_service(db)
     cart = cart_service.remove_item(cart_id, item_id)
-    
+
     if not cart:
         raise HTTPException(status_code=404, detail="Item não encontrado")
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -581,7 +631,9 @@ async def remove_cart_item(cart_id: str, item_id: str, db: Session = Depends(get
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -600,7 +652,9 @@ async def remove_cart_item(cart_id: str, item_id: str, db: Session = Depends(get
 
 
 @router.patch("/cart/{cart_id}/currency", response_model=CartResponse)
-async def update_cart_currency(cart_id: str, request: UpdateCurrencyRequest, db: Session = Depends(get_db)):
+async def update_cart_currency(
+    cart_id: str, request: UpdateCurrencyRequest, db: Session = Depends(get_db)
+):
     """Update cart currency and recalculate all item prices."""
     cart_service = get_cart_service(db)
     try:
@@ -625,7 +679,9 @@ async def update_cart_currency(cart_id: str, request: UpdateCurrencyRequest, db:
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -644,18 +700,20 @@ async def update_cart_currency(cart_id: str, request: UpdateCurrencyRequest, db:
 
 
 @router.post("/cart/{cart_id}/coupon", response_model=CartResponse)
-async def apply_coupon(cart_id: str, request: ApplyCouponRequest, db: Session = Depends(get_db)):
+async def apply_coupon(
+    cart_id: str, request: ApplyCouponRequest, db: Session = Depends(get_db)
+):
     """Apply coupon to cart."""
     cart_service = get_cart_service(db)
     result = cart_service.apply_coupon(cart_id, request.code)
-    
+
     if not result.valid:
         raise HTTPException(status_code=400, detail=result.message)
-    
+
     cart = cart_service.get_cart(cart_id)
     if not cart:
         raise HTTPException(status_code=404, detail="Carrinho não encontrado")
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -673,7 +731,9 @@ async def apply_coupon(cart_id: str, request: ApplyCouponRequest, db: Session = 
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -696,10 +756,10 @@ async def remove_coupon(cart_id: str, db: Session = Depends(get_db)):
     """Remove coupon from cart."""
     cart_service = get_cart_service(db)
     cart = cart_service.remove_coupon(cart_id)
-    
+
     if not cart:
         raise HTTPException(status_code=404, detail="Carrinho não encontrado")
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -717,7 +777,9 @@ async def remove_coupon(cart_id: str, db: Session = Depends(get_db)):
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -736,14 +798,16 @@ async def remove_coupon(cart_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/cart/{cart_id}/delivery", response_model=CartResponse)
-async def set_delivery(cart_id: str, request: SetDeliveryRequest, db: Session = Depends(get_db)):
+async def set_delivery(
+    cart_id: str, request: SetDeliveryRequest, db: Session = Depends(get_db)
+):
     """Set delivery method for cart."""
     cart_service = get_cart_service(db)
     cart = cart_service.set_delivery(cart_id, request.delivery_method)
-    
+
     if not cart:
         raise HTTPException(status_code=404, detail="Carrinho não encontrado")
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -761,7 +825,9 @@ async def set_delivery(cart_id: str, request: SetDeliveryRequest, db: Session = 
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -780,14 +846,16 @@ async def set_delivery(cart_id: str, request: SetDeliveryRequest, db: Session = 
 
 
 @router.post("/cart/{cart_id}/site", response_model=CartResponse)
-async def set_cart_site(cart_id: str, request: SetSiteRequest, db: Session = Depends(get_db)):
+async def set_cart_site(
+    cart_id: str, request: SetSiteRequest, db: Session = Depends(get_db)
+):
     """Set site for service products."""
     cart_service = get_cart_service(db)
     cart = cart_service.set_site(cart_id, request.site_id)
-    
+
     if not cart:
         raise HTTPException(status_code=404, detail="Carrinho não encontrado")
-    
+
     return CartResponse(
         id=cart.id,
         user_id=cart.user_id,
@@ -805,7 +873,9 @@ async def set_cart_site(cart_id: str, request: SetSiteRequest, db: Session = Dep
                 total_price=item.total_price,
                 tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount,
-                scheduled_date=item.scheduled_date.isoformat() if item.scheduled_date else None,
+                scheduled_date=item.scheduled_date.isoformat()
+                if item.scheduled_date
+                else None,
                 custom_options=item.custom_options,
             )
             for item in cart.items
@@ -833,6 +903,7 @@ async def clear_cart(cart_id: str, db: Session = Depends(get_db)):
 
 # ============ CHECKOUT ENDPOINTS ============
 
+
 @router.get("/stripe-config")
 def get_stripe_config():
     """Return Stripe publishable key for frontend initialization."""
@@ -857,12 +928,35 @@ def get_payment_methods():
     paypal_ready = bool(settings.paypal_client_id and settings.paypal_secret)
     methods = [
         {"method": "iban_angola", "enabled": True, "settles": True, "gateway": False},
-        {"method": "iban_international", "enabled": True, "settles": True, "gateway": False},
-        {"method": "multicaixa_express", "enabled": multicaixa_ready, "settles": multicaixa_ready, "gateway": True},
-        {"method": "visa_mastercard", "enabled": stripe_ready, "settles": stripe_ready, "gateway": True},
-        {"method": "paypal", "enabled": paypal_ready, "settles": paypal_ready, "gateway": True},
+        {
+            "method": "iban_international",
+            "enabled": True,
+            "settles": True,
+            "gateway": False,
+        },
+        {
+            "method": "multicaixa_express",
+            "enabled": multicaixa_ready,
+            "settles": multicaixa_ready,
+            "gateway": True,
+        },
+        {
+            "method": "visa_mastercard",
+            "enabled": stripe_ready,
+            "settles": stripe_ready,
+            "gateway": True,
+        },
+        {
+            "method": "paypal",
+            "enabled": paypal_ready,
+            "settles": paypal_ready,
+            "gateway": True,
+        },
     ]
-    return {"methods": methods, "any_gateway_live": stripe_ready or multicaixa_ready or paypal_ready}
+    return {
+        "methods": methods,
+        "any_gateway_live": stripe_ready or multicaixa_ready or paypal_ready,
+    }
 
 
 @router.post("/checkout/{cart_id}", response_model=CheckoutResponse)
@@ -877,23 +971,23 @@ async def checkout(
 ):
     """
     Process checkout and create order.
-    
+
     Supports both authenticated users and guest checkout.
-    
+
     Payment methods:
     - multicaixa_express: Returns QR code for Multicaixa app
     - visa_mastercard: Returns Stripe Payment Element
     - iban_angola: Returns Angolan bank transfer details
     - iban_international: Returns international wire transfer details
     """
-    
+
     # Validate payment method
     try:
         payment_method = PaymentMethod(request.payment_method)
     except ValueError:
         raise HTTPException(
             status_code=400,
-            detail=f"Método de pagamento inválido: {request.payment_method}"
+            detail=f"Método de pagamento inválido: {request.payment_method}",
         )
 
     # Validate currency
@@ -903,16 +997,17 @@ async def checkout(
 
     # Validate currency ↔ payment method compatibility
     from app.services.orders import CURRENCY_PAYMENT_METHODS
+
     allowed = CURRENCY_PAYMENT_METHODS.get(req_currency, [])
     if payment_method not in allowed:
         raise HTTPException(
             status_code=400,
             detail=f"Método {payment_method.value} não disponível para {req_currency}. "
-                   f"Opções: {', '.join(m.value for m in allowed)}"
+            f"Opções: {', '.join(m.value for m in allowed)}",
         )
 
     order_service = get_order_service(db)
-    
+
     authorization = getattr(user, "_authorization_context", None) if user else None
     result = await order_service.checkout(
         cart_id=cart_id,
@@ -941,10 +1036,14 @@ async def checkout(
                     resource_type="order",
                     resource_id=order.id,
                     title=f"Pedido {order.order_number or order.id[:8]} criado",
-                    payload={"status": order.status, "total_cents": int(order.total), "currency": order.currency},
+                    payload={
+                        "status": order.status,
+                        "total_cents": int(order.total),
+                        "currency": order.currency,
+                    },
                 )
             db.commit()
-    
+
     return CheckoutResponse(
         success=result.success,
         order_id=result.order_id,
@@ -958,6 +1057,7 @@ async def checkout(
 
 # ============ ORDER ENDPOINTS ============
 
+
 @router.get("/orders", response_model=List[OrderSummaryResponse])
 async def list_orders(
     status: Optional[str] = Query(None, description="Filter by status"),
@@ -966,14 +1066,14 @@ async def list_orders(
     db: Session = Depends(get_db),
 ):
     """List orders for the authenticated user."""
-    
+
     order_service = get_order_service(db)
     orders = order_service.list_orders(
         user_id=str(user.id),
         status=status,
         limit=limit,
     )
-    
+
     return [
         OrderSummaryResponse(
             id=order.id,
@@ -990,17 +1090,19 @@ async def list_orders(
 
 
 @router.get("/orders/{order_id}", response_model=OrderResponse)
-async def get_order(order_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_order(
+    order_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Get full order details with timeline."""
-    
+
     order_service = get_order_service(db)
     order = order_service.get_order(order_id)
-    
+
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     if str(order.user_id or "") != str(user.id) and user.role != "admin":
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-    
+
     return OrderResponse(
         id=order.id,
         order_number=order.order_number,
@@ -1057,8 +1159,12 @@ async def get_order(order_id: str, user: User = Depends(get_current_user), db: S
         ],
         delivery_method=order.delivery_method,
         assigned_team=order.assigned_team,
-        scheduled_start=order.scheduled_start.isoformat() if order.scheduled_start else None,
-        estimated_delivery=order.estimated_delivery.isoformat() if order.estimated_delivery else None,
+        scheduled_start=order.scheduled_start.isoformat()
+        if order.scheduled_start
+        else None,
+        estimated_delivery=order.estimated_delivery.isoformat()
+        if order.estimated_delivery
+        else None,
         customer_notes=order.customer_notes,
         created_at=order.created_at.isoformat(),
         updated_at=order.updated_at.isoformat(),
@@ -1067,17 +1173,21 @@ async def get_order(order_id: str, user: User = Depends(get_current_user), db: S
 
 
 @router.get("/orders/number/{order_number}", response_model=OrderResponse)
-async def get_order_by_number(order_number: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_order_by_number(
+    order_number: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Get order by order number (e.g., GV-2025-000001)."""
-    
+
     order_service = get_order_service(db)
     order = order_service.get_order_by_number(order_number)
-    
+
     if not order:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
     if str(order.user_id or "") != str(user.id) and user.role != "admin":
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
-    
+
     return OrderResponse(
         id=order.id,
         order_number=order.order_number,
@@ -1134,8 +1244,12 @@ async def get_order_by_number(order_number: str, user: User = Depends(get_curren
         ],
         delivery_method=order.delivery_method,
         assigned_team=order.assigned_team,
-        scheduled_start=order.scheduled_start.isoformat() if order.scheduled_start else None,
-        estimated_delivery=order.estimated_delivery.isoformat() if order.estimated_delivery else None,
+        scheduled_start=order.scheduled_start.isoformat()
+        if order.scheduled_start
+        else None,
+        estimated_delivery=order.estimated_delivery.isoformat()
+        if order.estimated_delivery
+        else None,
         customer_notes=order.customer_notes,
         created_at=order.created_at.isoformat(),
         updated_at=order.updated_at.isoformat(),
@@ -1146,6 +1260,7 @@ async def get_order_by_number(order_number: str, user: User = Depends(get_curren
 class CancelOrderRequest(BaseModel):
     reason: Optional[str] = None
 
+
 @router.post("/orders/{order_id}/cancel")
 async def cancel_order(
     order_id: str,
@@ -1154,7 +1269,7 @@ async def cancel_order(
     db: Session = Depends(get_db),
 ):
     """Cancel an order."""
-    
+
     order_service = get_order_service(db)
     order = order_service.get_order(order_id)
     if not order or str(order.user_id or "") != str(user.id):
@@ -1165,14 +1280,17 @@ async def cancel_order(
         reason=request.reason,
         cancelled_by="Cliente",
     )
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível cancelar o pedido")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível cancelar o pedido"
+        )
+
     return {"message": "Pedido cancelado com sucesso"}
 
 
 # ============ MY ACCOUNT ENDPOINTS (Minhas Compras) ============
+
 
 @router.get("/me/orders", response_model=List[OrderSummaryResponse])
 async def my_orders(
@@ -1181,13 +1299,13 @@ async def my_orders(
     db: Session = Depends(get_db),
 ):
     """Get customer's orders (Minhas Compras)."""
-    
+
     order_service = get_order_service(db)
     orders = order_service.list_orders(
         user_id=str(user.id),
         status=status,
     )
-    
+
     return [
         OrderSummaryResponse(
             id=order.id,
@@ -1204,12 +1322,14 @@ async def my_orders(
 
 
 @router.get("/me/deliverables", response_model=List[DeliverableResponse])
-async def my_deliverables(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def my_deliverables(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Get all deliverables from customer's orders."""
-    
+
     order_service = get_order_service(db)
     orders = order_service.list_orders(user_id=str(user.id))
-    
+
     deliverables = []
     for order in orders:
         for d in order.deliverables:
@@ -1227,14 +1347,16 @@ async def my_deliverables(user: User = Depends(get_current_user), db: Session = 
                         created_at=d.created_at.isoformat(),
                     )
                 )
-    
+
     return deliverables
 
 
 # ============ ADMIN ENDPOINTS ============
 
+
 class ConfirmPaymentRequest(BaseModel):
     payment_reference: Optional[str] = None
+
 
 @router.post("/admin/orders/{order_id}/confirm-payment")
 async def admin_confirm_payment(
@@ -1246,17 +1368,19 @@ async def admin_confirm_payment(
     """
     Admin: Confirm payment (for IBAN transfers).
     """
-    
+
     order_service = get_order_service(db)
     success = await order_service.confirm_payment(
         order_id=order_id,
         payment_reference=request.payment_reference,
         confirmed_by="Admin",
     )
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível confirmar o pagamento")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível confirmar o pagamento"
+        )
+
     return {"message": "Pagamento confirmado com sucesso"}
 
 
@@ -1271,11 +1395,11 @@ async def admin_assign_team(
     """
     Admin: Assign team for service execution.
     """
-    
+
     scheduled = None
     if scheduled_start:
         scheduled = datetime.fromisoformat(scheduled_start.replace("Z", "+00:00"))
-    
+
     order_service = get_order_service(db)
     success = await order_service.assign_team(
         order_id=order_id,
@@ -1283,30 +1407,37 @@ async def admin_assign_team(
         scheduled_start=scheduled,
         assigned_by="Admin",
     )
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível atribuir a equipa")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível atribuir a equipa"
+        )
+
     return {"message": f"Equipa {team_name} atribuída com sucesso"}
 
 
 @router.post("/admin/orders/{order_id}/start-service")
-async def admin_start_service(order_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+async def admin_start_service(
+    order_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)
+):
     """
     Admin: Mark service as started (check-in).
     """
-    
+
     order_service = get_order_service(db)
     success = await order_service.start_service(order_id, started_by="Equipa")
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível iniciar o serviço")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível iniciar o serviço"
+        )
+
     return {"message": "Serviço iniciado com sucesso"}
 
 
 class CompleteServiceRequest(BaseModel):
     notes: Optional[str] = None
+
 
 @router.post("/admin/orders/{order_id}/complete-service")
 async def admin_complete_service(
@@ -1318,23 +1449,26 @@ async def admin_complete_service(
     """
     Admin: Mark service as completed (check-out).
     """
-    
+
     order_service = get_order_service(db)
     success = await order_service.complete_service(
         order_id=order_id,
         completed_by="Equipa",
         notes=request.notes,
     )
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível completar o serviço")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível completar o serviço"
+        )
+
     return {"message": "Serviço concluído com sucesso"}
 
 
 class ShipOrderRequest(BaseModel):
     tracking_number: Optional[str] = None
     carrier: Optional[str] = None
+
 
 @router.post("/admin/orders/{order_id}/ship")
 async def admin_ship_order(
@@ -1346,32 +1480,38 @@ async def admin_ship_order(
     """
     Admin: Mark physical order as shipped.
     """
-    
+
     order_service = get_order_service(db)
     success = await order_service.ship_order(
         order_id=order_id,
         tracking_number=request.tracking_number,
         carrier=request.carrier,
     )
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível marcar como enviado")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível marcar como enviado"
+        )
+
     return {"message": "Pedido marcado como enviado"}
 
 
 @router.post("/admin/orders/{order_id}/deliver")
-async def admin_deliver_order(order_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+async def admin_deliver_order(
+    order_id: str, admin: User = Depends(require_admin), db: Session = Depends(get_db)
+):
     """
     Admin: Mark order as delivered.
     """
-    
+
     order_service = get_order_service(db)
     success = await order_service.deliver_order(order_id, delivered_by="Transportadora")
-    
+
     if not success:
-        raise HTTPException(status_code=400, detail="Não foi possível marcar como entregue")
-    
+        raise HTTPException(
+            status_code=400, detail="Não foi possível marcar como entregue"
+        )
+
     return {"message": "Pedido marcado como entregue"}
 
 
@@ -1380,6 +1520,7 @@ class AddDeliverableRequest(BaseModel):
     deliverable_type: str
     download_url: Optional[str] = None
     description: Optional[str] = None
+
 
 @router.post("/admin/orders/{order_id}/deliverables")
 async def admin_add_deliverable(
@@ -1391,7 +1532,7 @@ async def admin_add_deliverable(
     """
     Admin: Add deliverable file to order.
     """
-    
+
     order_service = get_order_service(db)
     deliverable_id = await order_service.add_deliverable(
         order_id=order_id,
@@ -1400,8 +1541,13 @@ async def admin_add_deliverable(
         download_url=request.download_url,
         description=request.description,
     )
-    
+
     if not deliverable_id:
-        raise HTTPException(status_code=400, detail="Não foi possível adicionar o ficheiro")
-    
-    return {"message": "Ficheiro adicionado com sucesso", "deliverable_id": deliverable_id}
+        raise HTTPException(
+            status_code=400, detail="Não foi possível adicionar o ficheiro"
+        )
+
+    return {
+        "message": "Ficheiro adicionado com sucesso",
+        "deliverable_id": deliverable_id,
+    }

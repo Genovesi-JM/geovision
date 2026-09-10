@@ -7,6 +7,11 @@ is that GeoVision already contains substantial web, mobile, commerce, IoT and
 operational functionality, but its boundaries and infrastructure do not yet
 match the Azure-first modular-monolith direction in the playbook.
 
+> This is an intentionally historical snapshot. Its five legacy customer
+> identifiers and combined mining/industry/ports observations below are not the
+> current contract. Phase 34 supersedes them with the six values in
+> [`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md).
+
 ## Revision and working tree
 
 - Repository: `/Users/genovesimaria/geovision`
@@ -122,11 +127,12 @@ Store, Alerts and More. Work, reports, devices, drones, support, payments and
 GAIA remain secondary routes. This differs from the playbook target of Home,
 Assets, Actions, Services and More and is intentionally deferred to Phase 22.
 
-Current canonical sector identifiers are `agro`, `environment`, `construction`,
-`industry` and `infrastructure`. Mining is normalized into industry, livestock
-into agriculture and there is no distinct ports module. Agriculture has a full
-mobile KPI catalogue; the other mobile sectors currently share two basic
-infrastructure KPIs.
+At the recorded baseline, the application treated `agro`, `environment`,
+`construction`, `industry` and `infrastructure` as its identifiers. Mining was
+normalized into industry, livestock into agriculture, and there was no distinct
+ports module. This is evidence of the mismatch Phase 34 corrects, not current
+guidance. Agriculture then had a full mobile KPI catalogue; the other mobile
+sectors shared two basic infrastructure KPIs.
 
 The shop is first-party: customers buy GeoVision products and services. No
 public seller registration, storefront ownership or contractor bidding model

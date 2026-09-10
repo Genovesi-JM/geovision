@@ -27,47 +27,47 @@ abstract final class KpiCatalogue {
         id: 'ndvi_avg',
         label: 'Average NDVI',
         unit: '',
-        sector: Sector.agro,
+        sector: Sector.agriculture,
         description: 'Mean vegetation vigour across monitored fields.'),
     KpiDefinition(
         id: 'ndre',
         label: 'NDRE',
         unit: '',
-        sector: Sector.agro,
+        sector: Sector.agriculture,
         description: 'Red-edge index — nitrogen / canopy status.'),
     KpiDefinition(
         id: 'vegetation_coverage',
         label: 'Vegetation coverage',
         unit: '%',
-        sector: Sector.agro),
+        sector: Sector.agriculture),
     KpiDefinition(
         id: 'water_stress',
         label: 'Water stress',
         unit: '%',
-        sector: Sector.agro,
+        sector: Sector.agriculture,
         higherIsBetter: false),
     KpiDefinition(
         id: 'infestation_risk',
         label: 'Infestation risk',
         unit: '%',
-        sector: Sector.agro,
+        sector: Sector.agriculture,
         higherIsBetter: false),
     KpiDefinition(
         id: 'anomaly_count',
         label: 'Anomalies',
         unit: '',
-        sector: Sector.agro,
+        sector: Sector.agriculture,
         higherIsBetter: false),
     KpiDefinition(
         id: 'cultivated_area',
         label: 'Cultivated area',
         unit: 'ha',
-        sector: Sector.agro),
+        sector: Sector.agriculture),
     KpiDefinition(
         id: 'chem_cost_ha',
         label: 'Chemical cost / ha',
         unit: 'USD',
-        sector: Sector.agro,
+        sector: Sector.agriculture,
         higherIsBetter: false),
   ];
 
@@ -76,24 +76,25 @@ abstract final class KpiCatalogue {
         id: 'defect_count',
         label: 'Defects detected',
         unit: '',
-        sector: Sector.infrastructure,
+        sector: Sector.constructionInfrastructure,
         higherIsBetter: false),
     KpiDefinition(
         id: 'thermal_anomaly',
         label: 'Thermal anomalies',
         unit: '',
-        sector: Sector.infrastructure,
+        sector: Sector.constructionInfrastructure,
         higherIsBetter: false),
   ];
 
   static List<KpiDefinition> forSector(Sector s) {
     switch (s) {
-      case Sector.agro:
+      case Sector.agriculture:
         return agriculture;
+      case Sector.constructionInfrastructure:
       case Sector.environment:
-      case Sector.construction:
-      case Sector.industry:
-      case Sector.infrastructure:
+      case Sector.mining:
+      case Sector.industryEnergyUtilities:
+      case Sector.portsLogistics:
         return infrastructure;
     }
   }

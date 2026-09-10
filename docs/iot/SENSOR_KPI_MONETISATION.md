@@ -122,6 +122,12 @@ scheduling, frost/heat alerts, pump run-hours, fertigation EC/pH in-range, yield
 Which stack layers each vertical typically needs (beyond the always-on edge + enclosure + platform).
 Legend: ● core · ○ common upsell · – rare
 
+Here, “Industry” means a deployment/use-case column, not the GeoVision public
+sector taxonomy. Products and account filters map these use cases to the six
+canonical sectors in [`../SECTOR_TAXONOMY.md`](../SECTOR_TAXONOMY.md); water,
+cold chain, facilities, livestock, and similar columns are not additional
+public sectors.
+
 | Layer \ Industry | Agriculture | Water & Sanitation | Energy & Solar | Cold Chain | Facilities/Retail | Telecom/Remote | Industrial | Environment/Construction | Livestock | Fleet/Logistics |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
 | Vertical sensors | ● | ● | ● | ● | ● | ● | ● | ● | ● | ● |

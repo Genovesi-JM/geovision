@@ -1,4 +1,4 @@
-"""Permission-checked Ports and Industrial intelligence APIs."""
+"""Permission-checked Ports and Logistics intelligence APIs."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ from app.sectors.ports.services import (
 )
 
 
-router = APIRouter(tags=["ports"])
+router = APIRouter(tags=["ports-logistics"])
 
 
 def _rollout_enabled(db: Session, context: AuthorizationContext) -> bool:
@@ -82,13 +82,23 @@ def _ports_error(exc: PortsError) -> HTTPException:
     )
 
 
-@router.get("/sectors/ports/capabilities", response_model=PortsCapabilitiesOut)
+@router.get(
+    "/sectors/ports/capabilities",
+    response_model=PortsCapabilitiesOut,
+    include_in_schema=False,
+)
+@router.get(
+    "/sectors/ports-logistics/capabilities",
+    response_model=PortsCapabilitiesOut,
+)
 def ports_capabilities(
     context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
     return {
         "sector": SECTOR,
+        "public_sector": "ports_logistics",
+        "maturity": "expansion",
         "enabled": ports_enabled_for_context(db, context=context)
         and _rollout_enabled(db, context),
         "algorithm_bundle_version": ALGORITHM_VERSION,
@@ -124,7 +134,15 @@ def ports_capabilities(
     }
 
 
-@router.post("/assets/{asset_id}/ports/evaluate", response_model=PortsEvaluationOut)
+@router.post(
+    "/assets/{asset_id}/ports/evaluate",
+    response_model=PortsEvaluationOut,
+    include_in_schema=False,
+)
+@router.post(
+    "/assets/{asset_id}/ports-logistics/evaluate",
+    response_model=PortsEvaluationOut,
+)
 def ports_evaluate(
     asset_id: str,
     payload: PortsEvaluationRequest,
@@ -157,6 +175,11 @@ def ports_evaluate(
 @router.get(
     "/assets/{asset_id}/ports/inspection-history",
     response_model=PortsInspectionHistoryOut,
+    include_in_schema=False,
+)
+@router.get(
+    "/assets/{asset_id}/ports-logistics/inspection-history",
+    response_model=PortsInspectionHistoryOut,
 )
 def ports_history(
     asset_id: str,
@@ -174,6 +197,11 @@ def ports_history(
 @router.get(
     "/assets/{asset_id}/ports/comparisons",
     response_model=PortsComparisonsOut,
+    include_in_schema=False,
+)
+@router.get(
+    "/assets/{asset_id}/ports-logistics/comparisons",
+    response_model=PortsComparisonsOut,
 )
 def ports_comparison_list(
     asset_id: str,
@@ -188,7 +216,15 @@ def ports_comparison_list(
         raise _ports_error(exc) from exc
 
 
-@router.get("/assets/{asset_id}/ports/map-layers", response_model=PortsMapLayersOut)
+@router.get(
+    "/assets/{asset_id}/ports/map-layers",
+    response_model=PortsMapLayersOut,
+    include_in_schema=False,
+)
+@router.get(
+    "/assets/{asset_id}/ports-logistics/map-layers",
+    response_model=PortsMapLayersOut,
+)
 def ports_layers(
     asset_id: str,
     context: AuthorizationContext = Depends(get_authorization_context),
@@ -204,6 +240,11 @@ def ports_layers(
 
 @router.get(
     "/assets/{asset_id}/ports/report-context",
+    response_model=PortsReportContextOut,
+    include_in_schema=False,
+)
+@router.get(
+    "/assets/{asset_id}/ports-logistics/report-context",
     response_model=PortsReportContextOut,
 )
 def ports_context(

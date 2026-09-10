@@ -13,19 +13,24 @@ remain readable through any explicitly selected workspace in that organization
 until their owning clients are migrated. Parent and child assets must belong to
 the same organization and selected workspace scope.
 
-The stable sectors are:
+The stable technical Asset sectors are:
 
 - `AGRICULTURE`
 - `INFRASTRUCTURE`
 - `ENVIRONMENTAL`
 - `MINING`
-- `PORTS_INDUSTRIAL`
+- `INDUSTRY_ENERGY_UTILITIES`
+- `PORTS_LOGISTICS`
 
 Sector and asset-type values use uppercase identifiers. The registry lists the
 common types, but persistence intentionally accepts future well-formed
 identifiers without a schema migration. A future sector module can therefore
 add `WIND_TURBINE`, for example, without adding agriculture-specific columns to
-the common table.
+the common table. Customer-facing IDs are a separate vocabulary; use the
+[canonical sector taxonomy](SECTOR_TAXONOMY.md) when translating between the
+two. `PORTS_INDUSTRIAL` remains a read-time legacy alias for
+`PORTS_LOGISTICS`, not a canonical value and not an instruction to combine
+ports/logistics with industry/energy/utilities.
 
 New canonical metadata writes are limited to 64 KiB and reject fields whose
 names indicate passwords, tokens, API keys, credentials, or private keys.

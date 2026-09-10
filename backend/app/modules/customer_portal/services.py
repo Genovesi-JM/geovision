@@ -59,6 +59,7 @@ from app.modules.organizations.services import (
     OrganizationAccessError,
     resolve_workspace_access,
 )
+from app.sector_taxonomy import normalize_capability_modules, public_sector_values
 
 
 class CustomerPortalError(RuntimeError):
@@ -245,14 +246,21 @@ def _workspace_out(
     organization: Company,
     role: str,
 ) -> PortalWorkspaceOut:
+    sectors = public_sector_values(workspace.sector_focus)
     return PortalWorkspaceOut(
         id=workspace.id,
         organization_id=organization.id,
         name=workspace.name,
         organization_name=organization.name,
         role=role,
-        sector=workspace.sector_focus,
-        modules_enabled=_json_list(workspace.modules_enabled),
+        # Keep the historical singular field as a primary-sector projection.
+        # The complete selection is exposed separately and never encoded as a
+        # comma-delimited pseudo identifier.
+        sector=sectors[0] if sectors else "",
+        sectors=sectors,
+        modules_enabled=normalize_capability_modules(
+            _json_list(workspace.modules_enabled)
+        ),
     )
 
 
@@ -424,7 +432,9 @@ def _content_facts(
 
     return {
         "assets": len(assets),
-        "spatial_assets": sum(_safe_geometry(asset.geometry_geojson) is not None for asset in assets),
+        "spatial_assets": sum(
+            _safe_geometry(asset.geometry_geojson) is not None for asset in assets
+        ),
         "actions": count_for(
             Action,
             Action.organization_id == organization.id,
@@ -524,7 +534,13 @@ def _capability_flags(
 
     advanced_active = subscription["status"] != "expired"
     plan = str(subscription["tier"] or subscription["plan"]).casefold()
-    integration_plan = plan in {"professional", "growth", "scale", "enterprise", "custom"}
+    integration_plan = plan in {
+        "professional",
+        "growth",
+        "scale",
+        "enterprise",
+        "custom",
+    }
     flags: dict[PortalCapability, bool] = {
         "overview": can("workspace:read"),
         "assets": can("asset:read") and (module("assets") or content["assets"] > 0),
@@ -534,14 +550,14 @@ def _capability_flags(
         and (module("monitoring") or content["devices"] > 0),
         "services": can("workspace:read")
         and (module("services") or content["services"] > 0 or content["orders"] > 0),
-        "map": can("asset:read")
-        and (module("map") or content["spatial_assets"] > 0),
+        "map": can("asset:read") and (module("map") or content["spatial_assets"] > 0),
         "analytics": can("asset:read")
         and advanced_active
         and (module("analytics") or content["kpis"] > 0 or content["observations"] > 0),
-        "reports": can("report:read")
-        and (module("reports") or content["reports"] > 0),
-        "catalog": can("workspace:read") and module("catalog") and content["catalog"] > 0,
+        "reports": can("report:read") and (module("reports") or content["reports"] > 0),
+        "catalog": can("workspace:read")
+        and module("catalog")
+        and content["catalog"] > 0,
         "orders": can("workspace:read") and (module("orders") or content["orders"] > 0),
         "billing": can("billing:read"),
         "team": can("organization:manage_members"),
@@ -639,7 +655,9 @@ def _safe_geometry(value: str | dict[str, Any] | None) -> dict[str, Any] | None:
         return None
 
 
-def _safe_point(latitude: float | None, longitude: float | None) -> dict[str, Any] | None:
+def _safe_point(
+    latitude: float | None, longitude: float | None
+) -> dict[str, Any] | None:
     try:
         return point_geometry(latitude, longitude)
     except (AssetValidationError, TypeError, ValueError):
@@ -993,12 +1011,16 @@ def portal_map_layers(
         if feature:
             observation_features.append(feature)
 
-    devices = _workspace_devices_query(
-        db,
-        organization_id=organization.id,
-        workspace_id=workspace.id,
-        asset_ids=asset_ids,
-    ).order_by(IotDevice.name.asc(), IotDevice.id.asc()).all()
+    devices = (
+        _workspace_devices_query(
+            db,
+            organization_id=organization.id,
+            workspace_id=workspace.id,
+            asset_ids=asset_ids,
+        )
+        .order_by(IotDevice.name.asc(), IotDevice.id.asc())
+        .all()
+    )
     device_features = []
     for device in devices:
         target_id = (

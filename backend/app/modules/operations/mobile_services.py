@@ -57,6 +57,7 @@ from app.modules.operations.domain import (
 from app.modules.operations.schemas import ServiceRequestLinkUpdate
 from app.modules.reports.domain import ReportStatus
 from app.services.erp_sync import publish_account_event
+from app.sector_taxonomy import normalize_capability_modules, public_sector_values
 
 
 ActionBucket = Literal["critical", "attention", "scheduled", "completed"]
@@ -238,6 +239,7 @@ def mobile_experience(
             continue
         if access.workspace is None or access.workspace_membership is None:
             continue
+        sectors = public_sector_values(workspace.sector_focus)
         workspaces.append(
             MobileWorkspaceOut(
                 id=workspace.id,
@@ -245,8 +247,11 @@ def mobile_experience(
                 name=workspace.name,
                 organization_name=organization.name,
                 role=access.workspace_membership.role,
-                sector=workspace.sector_focus,
-                modules_enabled=_json_list(workspace.modules_enabled),
+                sector=sectors[0] if sectors else "",
+                sectors=sectors,
+                modules_enabled=normalize_capability_modules(
+                    _json_list(workspace.modules_enabled)
+                ),
             )
         )
     selected_workspace = next(

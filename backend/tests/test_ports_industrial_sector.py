@@ -131,7 +131,7 @@ def _asset(
         "/assets",
         headers=headers,
         json={
-            "sector": "PORTS_INDUSTRIAL",
+            "sector": "PORTS_LOGISTICS",
             "asset_type": asset_type,
             "name": name,
             "parent_asset_id": parent_asset_id,
@@ -256,7 +256,7 @@ def _dataset(
         processing_level="DERIVED",
         quality_status=quality_status,
         status=status,
-        sector="PORTS_INDUSTRIAL",
+        sector="PORTS_LOGISTICS",
         capture_date=captured_at,
         crs=crs,
         metadata_json=json.dumps({"ports_analysis": analysis} if analysis else {}),
@@ -294,7 +294,7 @@ def _materialize_bundle(
             processing_level=item["processing_level"],
             quality_status="PASSED",
             status="ready",
-            sector="PORTS_INDUSTRIAL",
+            sector="PORTS_LOGISTICS",
             capture_date=item["capture_date"],
             crs=item["crs"],
             metadata_json="{}",
@@ -318,8 +318,8 @@ def _materialize_bundle(
 def test_ports_registers_independent_common_core_vocabulary_and_rules():
     assert definition.enabled_by_default is True
     assert definition.activation_phase == 31
-    assert definition.routes[0].key == "sector.ports"
-    assert definition.routes[0].order == 72
+    assert definition.routes[0].key == "sector.ports_logistics"
+    assert definition.routes[0].order == 73
     assert SUPPORTED_ASSET_TYPES == {
         "BERTH",
         "CRANE",
@@ -358,25 +358,25 @@ def test_ports_registers_independent_common_core_vocabulary_and_rules():
         }
     }
     assert all(len(value) == 1 for value in owners.values())
-    assert owners["industry"] == ["ports"]
-    assert len(calculator_registry.registrations("PORTS_INDUSTRIAL")) == len(
+    assert owners["industry"] == ["industry_energy_utilities"]
+    assert len(calculator_registry.registrations("PORTS_LOGISTICS")) == len(
         KPI_DEFINITIONS
     )
-    assert "PORTS_INDUSTRIAL" in report_context_registry.sectors()
+    assert "PORTS_LOGISTICS" in report_context_registry.sectors()
     empty = EvaluationContext(
         asset_id="asset",
-        sector="PORTS_INDUSTRIAL",
+        sector="PORTS_LOGISTICS",
         measured_at=datetime(2026, 9, 10, 8),
     )
     assert all(
         registration.calculate(empty) is None
-        for registration in calculator_registry.registrations("PORTS_INDUSTRIAL")
+        for registration in calculator_registry.registrations("PORTS_LOGISTICS")
     )
-    rule = rule_registry.registrations("PORTS_INDUSTRIAL")[0]
+    rule = rule_registry.registrations("PORTS_LOGISTICS")[0]
     outcome = rule.evaluate(
         EvaluationContext(
             asset_id="tank",
-            sector="PORTS_INDUSTRIAL",
+            sector="PORTS_LOGISTICS",
             measured_at=datetime(2026, 9, 10, 8),
             metadata={
                 "asset_type": "TANK",
@@ -979,7 +979,7 @@ def test_ports_iot_context_uses_assignments_and_snapshot_history(client, db_sess
     seed_shop_products(db_session)
     sync_catalog_from_legacy(db_session)
     evaluated = client.post(
-        f"/assets/{second.id}/ports/evaluate",
+        f"/assets/{second.id}/ports-logistics/evaluate",
         headers=headers,
         json={"as_of": "2026-09-10T08:00:00"},
     )
@@ -1117,12 +1117,12 @@ def test_ports_repeated_inspection_common_lifecycle_report_and_idempotency(
     } == {gantry.id}
     assert all(row.asset_id == gantry.id for row in datasets.values())
 
-    capabilities = client.get("/sectors/ports/capabilities", headers=headers)
+    capabilities = client.get("/sectors/ports-logistics/capabilities", headers=headers)
     assert capabilities.status_code == 200, capabilities.text
     assert capabilities.json()["enabled"] is True
     assert capabilities.json()["analysis_schema"] == ANALYSIS_SCHEMA
     evaluated = client.post(
-        f"/assets/{gantry.id}/ports/evaluate",
+        f"/assets/{gantry.id}/ports-logistics/evaluate",
         headers=headers,
         json={"as_of": "2026-09-10T08:00:00"},
     )
@@ -1146,7 +1146,7 @@ def test_ports_repeated_inspection_common_lifecycle_report_and_idempotency(
         db_session.query(Action).filter(Action.asset_id == gantry.id).count(),
     )
     replay = client.post(
-        f"/assets/{gantry.id}/ports/evaluate",
+        f"/assets/{gantry.id}/ports-logistics/evaluate",
         headers=headers,
         json={"as_of": "2026-09-10T08:00:00"},
     )
@@ -1187,7 +1187,7 @@ def test_ports_repeated_inspection_common_lifecycle_report_and_idempotency(
     }
 
     history = client.get(
-        f"/assets/{gantry.id}/ports/inspection-history", headers=headers
+        f"/assets/{gantry.id}/ports-logistics/inspection-history", headers=headers
     )
     assert history.status_code == 200, history.text
     assert history.json()["total"] == 6
@@ -1203,19 +1203,23 @@ def test_ports_repeated_inspection_common_lifecycle_report_and_idempotency(
         == datasets["Previous gantry visual inspection"].id
     )
 
-    comparisons = client.get(f"/assets/{gantry.id}/ports/comparisons", headers=headers)
+    comparisons = client.get(
+        f"/assets/{gantry.id}/ports-logistics/comparisons", headers=headers
+    )
     assert comparisons.status_code == 200, comparisons.text
     assert {item["availability"] for item in comparisons.json()["items"]} == {
         "AVAILABLE"
     }
-    layers = client.get(f"/assets/{gantry.id}/ports/map-layers", headers=headers)
+    layers = client.get(
+        f"/assets/{gantry.id}/ports-logistics/map-layers", headers=headers
+    )
     assert layers.status_code == 200, layers.text
     assert {"ASSET_BOUNDARY", "RGB_IMAGES", "THERMAL_IMAGES", "MESH_3D"}.issubset(
         {item["kind"] for item in layers.json()["items"]}
     )
 
     report_context = client.get(
-        f"/assets/{gantry.id}/ports/report-context", headers=headers
+        f"/assets/{gantry.id}/ports-logistics/report-context", headers=headers
     )
     assert report_context.status_code == 200, report_context.text
     context_body = report_context.json()
@@ -1255,11 +1259,12 @@ def test_ports_repeated_inspection_common_lifecycle_report_and_idempotency(
     assert created is True
     assert report_row.asset_id == gantry.id
     assert report_row.acquisition_id == mission_ids["current"]
-    assert json.loads(report_row.context_json)["asset"]["sector"] == "PORTS_INDUSTRIAL"
+    assert json.loads(report_row.context_json)["asset"]["sector"] == "PORTS_LOGISTICS"
     assert db_session.query(Report).filter(Report.asset_id == gantry.id).count() == 1
 
     terminal_history = client.get(
-        f"/assets/{terminal_payload['id']}/ports/inspection-history", headers=headers
+        f"/assets/{terminal_payload['id']}/ports-logistics/inspection-history",
+        headers=headers,
     )
     assert terminal_history.status_code == 200
     assert {item["asset_id"] for item in terminal_history.json()["items"]} == {
@@ -1282,13 +1287,14 @@ def test_ports_permissions_workspace_tenant_and_feature_boundaries(client, db_se
     viewer_headers = _headers(viewer, workspace_id)
     assert (
         client.get(
-            f"/assets/{asset['id']}/ports/report-context", headers=viewer_headers
+            f"/assets/{asset['id']}/ports-logistics/report-context",
+            headers=viewer_headers,
         ).status_code
         == 200
     )
     assert (
         client.post(
-            f"/assets/{asset['id']}/ports/evaluate",
+            f"/assets/{asset['id']}/ports-logistics/evaluate",
             headers=viewer_headers,
             json={},
         ).status_code
@@ -1327,25 +1333,27 @@ def test_ports_permissions_workspace_tenant_and_feature_boundaries(client, db_se
         analysis=_analysis(disabled_row.id, "cross-workspace"),
     )
     db_session.commit()
-    capabilities = client.get("/sectors/ports/capabilities", headers=disabled_headers)
+    capabilities = client.get(
+        "/sectors/ports-logistics/capabilities", headers=disabled_headers
+    )
     assert capabilities.status_code == 200
     assert capabilities.json()["enabled"] is False
     assert (
         client.get(
-            f"/assets/{disabled_asset['id']}/ports/map-layers",
+            f"/assets/{disabled_asset['id']}/ports-logistics/map-layers",
             headers=disabled_headers,
         ).status_code
         == 403
     )
     assert (
         client.get(
-            f"/assets/{asset['id']}/ports/report-context",
+            f"/assets/{asset['id']}/ports-logistics/report-context",
             headers=disabled_headers,
         ).status_code
         == 404
     )
     original_history = client.get(
-        f"/assets/{asset['id']}/ports/inspection-history", headers=headers
+        f"/assets/{asset['id']}/ports-logistics/inspection-history", headers=headers
     )
     assert original_history.status_code == 200
     assert hidden_dataset.id not in {
@@ -1354,7 +1362,7 @@ def test_ports_permissions_workspace_tenant_and_feature_boundaries(client, db_se
 
     _, _, _, outsider_headers = _workspace(client, db_session, prefix="ports-outsider")
     hidden = client.get(
-        f"/assets/{asset['id']}/ports/report-context",
+        f"/assets/{asset['id']}/ports-logistics/report-context",
         headers=outsider_headers,
     )
     assert hidden.status_code == 404

@@ -24,16 +24,16 @@ abstract final class AccountProfiles {
   static const public = <AccountProfileDefinition>[
     AccountProfileDefinition(
       id: 'farm',
-      defaultSector: 'agro',
-      allowedSectors: ['agro', 'environment'],
+      defaultSector: 'agriculture',
+      allowedSectors: ['agriculture', 'environment'],
       defaultUseCases: ['soil', 'water', 'weather'],
       allowedUseCases: ['soil', 'irrigation', 'water', 'weather', 'livestock'],
       isCompany: false,
     ),
     AccountProfileDefinition(
       id: 'construction',
-      defaultSector: 'construction',
-      allowedSectors: ['construction', 'environment'],
+      defaultSector: 'construction_infrastructure',
+      allowedSectors: ['construction_infrastructure', 'environment'],
       defaultUseCases: ['progress', 'site_environment'],
       allowedUseCases: [
         'progress',
@@ -59,8 +59,12 @@ abstract final class AccountProfiles {
     ),
     AccountProfileDefinition(
       id: 'industry',
-      defaultSector: 'industry',
-      allowedSectors: ['industry', 'infrastructure'],
+      defaultSector: 'industry_energy_utilities',
+      allowedSectors: [
+        'industry_energy_utilities',
+        'mining',
+        'ports_logistics',
+      ],
       defaultUseCases: ['site_environment', 'maintenance'],
       allowedUseCases: [
         'site_environment',
@@ -75,11 +79,12 @@ abstract final class AccountProfiles {
       id: 'device',
       defaultSector: 'environment',
       allowedSectors: [
+        'agriculture',
+        'construction_infrastructure',
         'environment',
-        'agro',
-        'infrastructure',
-        'construction',
-        'industry'
+        'mining',
+        'industry_energy_utilities',
+        'ports_logistics'
       ],
       defaultUseCases: ['device_monitoring'],
       allowedUseCases: [
@@ -94,13 +99,14 @@ abstract final class AccountProfiles {
     ),
     AccountProfileDefinition(
       id: 'enterprise',
-      defaultSector: 'infrastructure',
+      defaultSector: 'construction_infrastructure',
       allowedSectors: [
-        'agro',
+        'agriculture',
+        'construction_infrastructure',
         'environment',
-        'construction',
-        'industry',
-        'infrastructure'
+        'mining',
+        'industry_energy_utilities',
+        'ports_logistics'
       ],
       defaultUseCases: ['site_environment', 'maintenance'],
       allowedUseCases: [

@@ -55,7 +55,7 @@ from app.modules.operations.mobile_services import (
     require_mobile_workspace,
 )
 from app.services.erp_sync import publish_account_event
-from app.account_profiles import normalize_public_sector
+from app.sector_taxonomy import PUBLIC_SECTORS, normalize_public_sector
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
 
@@ -74,13 +74,12 @@ DJI_AUTOMATION_SUPPORT = {
 
 
 _MOBILE_KPI_SECTORS = {
-    "agro": "agro",
+    "agriculture": "agriculture",
     "environment": "environment",
-    "construction": "construction",
-    # The current public profile combines industry and mining. The existing
-    # mining KPI definitions remain the closest operational fit.
-    "industry": "mining",
-    "infrastructure": "infrastructure",
+    "construction_infrastructure": "construction_infrastructure",
+    "mining": "mining",
+    "industry_energy_utilities": "industry_energy_utilities",
+    "ports_logistics": "ports_logistics",
 }
 
 
@@ -156,13 +155,16 @@ def _site_kpis(site: Site) -> list[dict[str, Any]]:
 
 
 def _site_payload(site: Site) -> dict[str, Any]:
+    sector = normalize_public_sector(site.sector)
+    if sector not in PUBLIC_SECTORS:
+        raise ValueError("Site sector is not mapped to the public taxonomy")
     location = ", ".join(
         part for part in (site.municipality, site.province, site.country) if part
     )
     return {
         "id": site.id,
         "name": site.name,
-        "sector": normalize_public_sector(site.sector) or "agro",
+        "sector": sector,
         "status": "active" if site.is_active else "offline",
         "location": location,
         "center": {
@@ -183,17 +185,19 @@ def list_sites(
     db: Session = Depends(get_db),
 ):
     try:
-        return [_site_payload(site) for site in list_mobile_sites(db, context=context)]
+        sites = list_mobile_sites(db, context=context)
+        return [
+            _site_payload(site)
+            for site in sites
+            if normalize_public_sector(site.sector) in PUBLIC_SECTORS
+        ]
     except MobileExperienceError as exc:
         raise _mobile_error(exc) from exc
 
 
 class SiteCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
-    sector: str = Field(
-        default="agro",
-        pattern="^(agro|agriculture|livestock|environment|construction|industry|infrastructure|mining|ambiental)$",
-    )
+    sector: str = Field(min_length=2, max_length=50)
     country: str = Field(min_length=2, max_length=100)
     province: str = Field(min_length=2, max_length=100)
     municipality: str = Field(min_length=2, max_length=100)
@@ -204,7 +208,10 @@ class SiteCreate(BaseModel):
     @field_validator("sector")
     @classmethod
     def canonical_sector(cls, value: str) -> str:
-        return normalize_public_sector(value)
+        canonical = normalize_public_sector(value)
+        if canonical not in PUBLIC_SECTORS:
+            raise ValueError("sector must be one of the six GeoVision public sectors")
+        return canonical
 
 
 @router.post("/sites", status_code=status.HTTP_201_CREATED)

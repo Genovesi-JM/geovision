@@ -25,6 +25,11 @@ management endpoints retain their historical tenant boundary during the
 compatibility period; customer intelligence and deep links use the canonical
 workspace Asset boundary.
 
+Any sector choice uses the ordered six public IDs in
+[`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md). Browser and mobile onboarding show
+the same Portuguese labels and submit canonical IDs; accepted legacy aliases
+are an input-compatibility measure and are not returned as a second taxonomy.
+
 ## Service-first onboarding
 
 ```text

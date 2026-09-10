@@ -1,4 +1,4 @@
-"""Asset-centric inspection intelligence for Ports and Industrial workspaces."""
+"""Asset-centric inspection intelligence for Ports and Logistics workspaces."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ from app.sectors.ports.domain import (
 
 
 ANALYSIS_SCHEMA = "geovision.ports.analysis.v1"
-_MODULE_KEYS = frozenset({"ports", "industrial", "industry", "ports_industrial"})
+_MODULE_KEYS = frozenset({"ports_logistics", "ports", "logistics", "ports_industrial"})
 _IDENTIFIER = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,159}$")
 _VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.+-]{0,39}$")
 _PARENT_TYPES = frozenset({"PORT", "TERMINAL"})
@@ -213,7 +213,7 @@ def _assert_ports_asset(asset: Asset) -> None:
     if asset.sector != SECTOR:
         raise PortsError(
             "sector_mismatch",
-            "Ports intelligence is available only for Ports/Industrial assets",
+            "Ports intelligence is available only for Ports/Logistics assets",
         )
     if asset.asset_type not in SUPPORTED_ASSET_TYPES:
         raise PortsError(
@@ -230,7 +230,7 @@ def _require_feature(db: Session, asset: Asset) -> Account:
         or not _workspace_enabled(workspace)
     ):
         raise PortsError(
-            "feature_disabled", "Ports/Industrial is not enabled for this workspace"
+            "feature_disabled", "Ports/Logistics is not enabled for this workspace"
         )
     return workspace
 

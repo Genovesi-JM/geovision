@@ -140,6 +140,17 @@
       scroll-margin-top: 100px;
     }
 
+    .sector-summary { position: relative; }
+    .sector-anchor-alias {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      pointer-events: none;
+      scroll-margin-top: 90px;
+    }
+
     .sector-header {
       display: flex;
       align-items: flex-start;
@@ -530,36 +541,41 @@
       <p data-i18n="commercial.sectors.subtitle">Cada solução parte de um problema concreto. Indicamos claramente o que pode ser comprado, testado em piloto ou desenvolvido como projeto.</p>
     </header>
     <nav class="sector-jump" aria-label="Setores">
-      <a href="#agropecuaria" data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</a><a href="#construcao" data-i18n="commercial.sector.construction">Construção &amp; Infraestruturas</a><a href="#ambiental" data-i18n="commercial.sector.environment">Ambiente</a><a href="#mineracao" data-i18n="sectors.mineracao">Mineração</a><a href="#industria" data-i18n="commercial.sector.utilities">Indústria, Energia &amp; Utilities</a><a href="#logistica" data-i18n="commercial.sector.logistics">Portos &amp; Logística</a>
+      <a href="#agricultura-pecuaria" data-i18n="public.sector.agriculture">Agricultura &amp; Pecuária</a><a href="#construcao-infraestruturas" data-i18n="public.sector.constructionInfrastructure">Construção &amp; Infraestruturas</a><a href="#ambiente" data-i18n="public.sector.environment">Ambiente</a><a href="#mineracao" data-i18n="public.sector.mining">Mineração</a><a href="#industria-energia-utilities" data-i18n="public.sector.industryEnergyUtilities">Indústria, Energia &amp; Utilities</a><a href="#portos-logistica" data-i18n="public.sector.portsLogistics">Portos &amp; Logística</a>
     </nav>
 
-    <section class="sector-summary" id="agropecuaria">
-      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-seedling"></i></div><div><h2 data-i18n="sectors.agropecuaria">Agricultura &amp; Pecuária</h2><p data-i18n="commercial.sectors.agroDesc">Solo, água, clima, culturas, animais e equipamentos numa única visão, com sensores, tracking, mapas e dados aéreos.</p></div><span class="maturity-badge" data-i18n="commercial.status.available">Disponível por configuração</span></div>
-      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.soil">Humidade do solo</li><li data-i18n="commercial.use.irrigation">Água e rega</li><li data-i18n="commercial.use.weather">Condições meteorológicas</li><li data-i18n="commercial.use.livestockTracking">Animais, GPS e geofences</li><li data-i18n="commercial.use.cropImagery">Imagens RGB e multiespectrais por projeto</li><li data-i18n="commercial.use.equipmentTracking">Tracking e estado de equipamentos compatíveis</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.agroKpi">Veja alertas de solo e rega, posição de ativos e alterações identificadas em campanhas aéreas.</strong><p data-i18n="commercial.sectors.projectNote">Mapeamento avançado, precisão e entregáveis são confirmados no escopo técnico.</p><a href="loja.html?sector=agro" data-i18n="commercial.cta.seeServices">Ver serviços →</a></div></div>
+    <section class="sector-summary" id="agricultura-pecuaria" data-sector-id="agriculture">
+      <span class="sector-anchor-alias" id="agropecuaria" aria-hidden="true"></span>
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-seedling"></i></div><div><h2 data-i18n="public.sector.agriculture">Agricultura &amp; Pecuária</h2><p data-i18n="commercial.sectors.agroDesc">Solo, água, clima, culturas, animais e equipamentos numa única visão, com sensores, tracking, mapas e dados aéreos.</p></div><span class="maturity-badge" data-i18n="commercial.status.available">Disponível por configuração</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.soil">Humidade do solo</li><li data-i18n="commercial.use.irrigation">Água e rega</li><li data-i18n="commercial.use.weather">Condições meteorológicas</li><li data-i18n="commercial.use.livestockTracking">Animais, GPS e geofences</li><li data-i18n="commercial.use.cropImagery">Imagens RGB e multiespectrais por projeto</li><li data-i18n="commercial.use.equipmentTracking">Tracking e estado de equipamentos compatíveis</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.agroKpi">Veja alertas de solo e rega, posição de ativos e alterações identificadas em campanhas aéreas.</strong><p data-i18n="commercial.sectors.projectNote">Mapeamento avançado, precisão e entregáveis são confirmados no escopo técnico.</p><a href="loja.html?sector=agriculture" data-i18n="commercial.cta.seeServices">Ver serviços →</a></div></div>
     </section>
 
-    <section class="sector-summary" id="construcao"><span id="infraestruturas"></span>
-      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-helmet-safety"></i></div><div><h2 data-i18n="commercial.sector.construction">Construção &amp; Infraestruturas</h2><p data-i18n="commercial.sectors.constructionDesc">Do sensor no terreno à visão aérea, acompanhe evolução, ativos e condições do projeto numa única plataforma.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.request">Projetos personalizados</span></div>
-      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.progress">Registo de progresso</li><li data-i18n="commercial.use.siteSensors">Poeira, ruído, ambiente e água</li><li data-i18n="commercial.use.equipmentTracking">Tracking e estado de equipamentos compatíveis</li><li data-i18n="commercial.use.aerialProgress">Mapeamento, progresso e inspeção aérea</li><li data-i18n="commercial.use.inspections">Inspeções e não conformidades</li><li data-i18n="commercial.use.timelineReports">Timeline, mapa, alertas e relatórios</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.constructionKpi">Veja evolução documentada, inspeções abertas, ativos e itens que precisam de atenção.</strong><p data-i18n="commercial.sectors.projectNote">Mapeamento avançado, precisão e entregáveis são confirmados no escopo técnico.</p><a href="loja.html?sector=construction" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
+    <section class="sector-summary" id="construcao-infraestruturas" data-sector-id="construction_infrastructure">
+      <span class="sector-anchor-alias" id="construcao" aria-hidden="true"></span><span class="sector-anchor-alias" id="infraestruturas" aria-hidden="true"></span>
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-helmet-safety"></i></div><div><h2 data-i18n="public.sector.constructionInfrastructure">Construção &amp; Infraestruturas</h2><p data-i18n="commercial.sectors.constructionDesc">Do sensor no terreno à visão aérea, acompanhe evolução, ativos e condições do projeto numa única plataforma.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.request">Projetos personalizados</span></div>
+      <div class="sector-summary-body"><ul><li data-i18n="commercial.use.progress">Registo de progresso</li><li data-i18n="commercial.use.siteSensors">Poeira, ruído, ambiente e água</li><li data-i18n="commercial.use.equipmentTracking">Tracking e estado de equipamentos compatíveis</li><li data-i18n="commercial.use.aerialProgress">Mapeamento, progresso e inspeção aérea</li><li data-i18n="commercial.use.inspections">Inspeções e não conformidades</li><li data-i18n="commercial.use.timelineReports">Timeline, mapa, alertas e relatórios</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.constructionKpi">Veja evolução documentada, inspeções abertas, ativos e itens que precisam de atenção.</strong><p data-i18n="commercial.sectors.projectNote">Mapeamento avançado, precisão e entregáveis são confirmados no escopo técnico.</p><a href="loja.html?sector=construction_infrastructure" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
     </section>
 
-    <section class="sector-summary" id="ambiental">
-      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-leaf"></i></div><div><h2 data-i18n="commercial.sector.environment">Ambiente</h2><p data-i18n="commercial.sectors.environmentDesc">Do sensor no terreno à análise de grandes áreas: reúna condições, mapas e alterações ao longo do tempo.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.request">Projetos personalizados</span></div>
+    <section class="sector-summary" id="ambiente" data-sector-id="environment">
+      <span class="sector-anchor-alias" id="ambiental" aria-hidden="true"></span>
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-leaf"></i></div><div><h2 data-i18n="public.sector.environment">Ambiente</h2><p data-i18n="commercial.sectors.environmentDesc">Do sensor no terreno à análise de grandes áreas: reúna condições, mapas e alterações ao longo do tempo.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.request">Projetos personalizados</span></div>
       <div class="sector-summary-body"><ul><li data-i18n="commercial.use.airWater">Ar, água e microclima</li><li data-i18n="commercial.use.groundConditions">Poeira, ruído e meteorologia</li><li data-i18n="commercial.use.landCover">Cobertura e uso do solo</li><li data-i18n="commercial.use.erosionChange">Vegetação, erosão e alteração ambiental</li><li data-i18n="commercial.use.reforestation">Acompanhamento de reflorestação</li><li data-i18n="commercial.use.timelineReports">Histórico, mapas, alertas e relatórios</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.environmentKpi">Indicadores definidos por projeto, fonte e método de observação.</strong><p data-i18n="commercial.sectors.safetyNote">Aplicações de segurança ou humanitárias exigem parceiros habilitados e validação específica.</p><a href="loja.html?sector=environment" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
     </section>
 
-    <section class="sector-summary" id="mineracao">
-      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-gem"></i></div><div><h2 data-i18n="sectors.mineracao">Mineração</h2><p data-i18n="commercial.sectors.miningDesc">Visibilidade integrada sobre áreas, ativos e operações através de sensores, tracking, mapas e campanhas aéreas.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.specialized">Aplicações especializadas</span></div>
+    <section class="sector-summary" id="mineracao" data-sector-id="mining">
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-gem"></i></div><div><h2 data-i18n="public.sector.mining">Mineração</h2><p data-i18n="commercial.sectors.miningDesc">Visibilidade integrada sobre áreas, ativos e operações através de sensores, tracking, mapas e campanhas aéreas.</p></div><span class="maturity-badge on-request" data-i18n="commercial.status.specialized">Aplicações especializadas</span></div>
       <div class="sector-summary-body"><ul><li data-i18n="commercial.use.inventory">Inventário e volumetria por campanha</li><li data-i18n="commercial.use.aerialInspection">Mapeamento e inspeção aérea</li><li data-i18n="commercial.use.environmentalSensors">Sensores ambientais</li><li data-i18n="commercial.use.assetTracking">Tracking de ativos compatíveis</li><li data-i18n="commercial.use.historicalTrends">Tendências históricas e mapa do local</li><li data-i18n="commercial.use.technicalReview">Identificação de alterações e apoio à revisão técnica</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.miningKpi">Métricas, tolerâncias e responsabilidade técnica são acordadas no projeto.</strong><p data-i18n="commercial.sectors.miningSafety">A GeoVision não substitui sistemas certificados nem determina a estabilidade geotécnica final.</p><a href="about.html#contact" data-i18n="commercial.cta.requestProposal">Pedir proposta →</a></div></div>
     </section>
 
-    <section class="sector-summary" id="industria">
-      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-industry"></i></div><div><h2 data-i18n="commercial.sector.utilities">Indústria, Energia &amp; Utilities</h2><p data-i18n="commercial.sectors.industryDesc">Consolide condições de vários locais, equipamentos e rotinas de inspeção numa vista comum.</p></div><span class="maturity-badge expansion" data-i18n="commercial.status.expansion">Em expansão</span></div>
+    <section class="sector-summary" id="industria-energia-utilities" data-sector-id="industry_energy_utilities">
+      <span class="sector-anchor-alias" id="industria" aria-hidden="true"></span>
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-industry"></i></div><div><h2 data-i18n="public.sector.industryEnergyUtilities">Indústria, Energia &amp; Utilities</h2><p data-i18n="commercial.sectors.industryDesc">Consolide condições de vários locais, equipamentos e rotinas de inspeção numa vista comum.</p></div><span class="maturity-badge expansion" data-i18n="commercial.status.expansion">Em expansão</span></div>
       <div class="sector-summary-body"><ul><li data-i18n="commercial.use.multiSite">Vários locais e ativos</li><li data-i18n="commercial.use.remoteAssets">Ativos remotos e corredores</li><li data-i18n="commercial.use.equipment">Estado de equipamentos</li><li data-i18n="commercial.use.environmentalConditions">Condições ambientais</li><li data-i18n="commercial.use.aerialInspection">Mapeamento e inspeção aérea</li><li data-i18n="commercial.use.maintenance">Inspeções e manutenção</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.industryKpi">KPIs configurados conforme os dados e processos já existentes.</strong><p data-i18n="commercial.sectors.integrationNote">Integrações e automações são validadas tecnicamente antes da proposta.</p><a href="about.html#contact" data-i18n="commercial.cta.talk">Falar connosco →</a></div></div>
     </section>
 
-    <section class="sector-summary" id="logistica">
-      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-ship"></i></div><div><h2 data-i18n="commercial.sector.logistics">Portos &amp; Logística</h2><p data-i18n="commercial.sectors.logisticsDesc">Casos de uso para pátios, corredores, inventário visual e coordenação de ativos distribuídos.</p></div><span class="maturity-badge expansion" data-i18n="commercial.status.expansion">Em expansão</span></div>
+    <section class="sector-summary" id="portos-logistica" data-sector-id="ports_logistics">
+      <span class="sector-anchor-alias" id="logistica" aria-hidden="true"></span>
+      <div class="sector-summary-head"><div class="sector-summary-icon"><i class="fa-solid fa-ship"></i></div><div><h2 data-i18n="public.sector.portsLogistics">Portos &amp; Logística</h2><p data-i18n="commercial.sectors.logisticsDesc">Casos de uso para pátios, corredores, inventário visual e coordenação de ativos distribuídos.</p></div><span class="maturity-badge expansion" data-i18n="commercial.status.expansion">Em expansão</span></div>
       <div class="sector-summary-body"><ul><li data-i18n="commercial.use.assetTracking">Tracking de ativos compatíveis</li><li data-i18n="commercial.use.yards">Pátios e zonas operacionais</li><li data-i18n="commercial.use.routes">Corredores e acessos</li><li data-i18n="commercial.use.infrastructureCondition">Infraestrutura e condições ambientais</li><li data-i18n="commercial.use.aerialInspection">Mapeamento e inspeção aérea</li><li data-i18n="commercial.use.incidents">Registo de ocorrências</li></ul><div class="sector-action"><strong data-i18n="commercial.sectors.logisticsKpi">O primeiro piloto define dados, frequência e indicadores úteis.</strong><p data-i18n="commercial.sectors.integrationNote">Integrações e automações são validadas tecnicamente antes da proposta.</p><a href="about.html#contact" data-i18n="commercial.cta.talk">Falar connosco →</a></div></div>
     </section>
   </main>
@@ -733,7 +749,7 @@
             <h4 data-i18n="sectors.cta.agropecuaria">Pronto para otimizar a sua operação agropecuária?</h4>
             <p data-i18n="sectors.cta.agropecuaria.sub">Do diagnóstico à execução — pipeline completo de agricultura de precisão e gestão pecuária.</p>
           </div>
-          <a href="loja.html?sector=agro" class="btn btn-primary"><span data-i18n="sectors.viewservices.agro">Ver Serviços Agro</span> →</a>
+          <a href="loja.html?sector=agriculture" class="btn btn-primary"><span data-i18n="sectors.viewservices.agro">Ver Serviços Agro</span> →</a>
         </div>
       </section>
 
@@ -940,7 +956,7 @@
             <h4 data-i18n="sectors.cta.construcao">Documente os seus projetos de construção a partir do ar</h4>
             <p data-i18n="sectors.cta.construcao.sub">Obtenha um registo visual transparente de cada fase para melhor controlo de projeto.</p>
           </div>
-          <a href="loja.html?sector=construction" class="btn btn-primary"><span data-i18n="sectors.viewservices.construcao">Ver Serviços de Construção</span> →</a>
+          <a href="loja.html?sector=construction_infrastructure" class="btn btn-primary"><span data-i18n="sectors.viewservices.construcao">Ver Serviços de Construção</span> →</a>
         </div>
       </section>
 
@@ -1039,7 +1055,7 @@
             <h4 data-i18n="sectors.cta.infraestruturas">Monitorize os seus ativos de infraestrutura de forma eficiente</h4>
             <p data-i18n="sectors.cta.infraestruturas.sub">Planeie a manutenção com base em dados reais de condição, não em pressupostos.</p>
           </div>
-          <a href="loja.html?sector=infrastructure" class="btn btn-primary"><span data-i18n="sectors.viewservices.infraestruturas">Ver Serviços de Infraestruturas</span> →</a>
+          <a href="loja.html?sector=construction_infrastructure" class="btn btn-primary"><span data-i18n="sectors.viewservices.infraestruturas">Ver Serviços de Infraestruturas</span> →</a>
         </div>
       </section>
 
@@ -1141,7 +1157,7 @@
             <h4 data-i18n="sectors.cta.ambiental">Reforce as suas operações ambientais e de segurança territorial</h4>
             <p data-i18n="sectors.cta.ambiental.sub">Contacte-nos para discutir como a inteligência visual pode apoiar a sua missão.</p>
           </div>
-          <a href="loja.html?sector=ambiental" class="btn btn-primary"><span data-i18n="sectors.viewservices.ambiental">Ver Serviços Ambientais</span> →</a>
+          <a href="loja.html?sector=environment" class="btn btn-primary"><span data-i18n="sectors.viewservices.ambiental">Ver Serviços Ambientais</span> →</a>
         </div>
       </section>
 
@@ -1219,10 +1235,10 @@
   </script>
   <script src="assets/js/site.js?v=3"></script>
   <script src="assets/js/session.js?v=1"></script>
-  <script src="assets/js/i18n.js?v=27"></script>
+  <script src="assets/js/i18n.js?v=29"></script>
   <script src="assets/js/config.js?v=5"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script src="assets/js/chatbot.js?v=4"></script>
+  <script src="assets/js/chatbot.js?v=5"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <script src="assets/js/theme.js?v=1"></script>
 </body>

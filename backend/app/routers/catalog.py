@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
 from app.models import CatalogItem, ProcurementSupplier, User
+from app.sector_taxonomy import PUBLIC_SECTORS, normalize_public_sector
 from app.modules.catalog.schemas import (
     CatalogItemCreate,
     CatalogItemInternal,
@@ -54,7 +55,9 @@ def require_catalog_staff(
 ) -> User:
     permissions = internal_permissions(active_internal_roles(db, user))
     if not permissions.intersection(_CATALOG_MANAGEMENT_PERMISSIONS):
-        raise HTTPException(status_code=403, detail="Catalogue staff permission required")
+        raise HTTPException(
+            status_code=403, detail="Catalogue staff permission required"
+        )
     return user
 
 
@@ -76,12 +79,15 @@ def _raise_catalog_error(exc: CatalogError) -> None:
 @router.get("/items", response_model=list[CatalogItemPublic])
 def browse_catalog(
     item_type: str | None = Query(default=None),
-    sector: str | None = Query(default=None),
+    sector: str | None = Query(default=None, max_length=80),
     asset_type: str | None = Query(default=None),
     search: str | None = Query(default=None, max_length=200),
     db: Session = Depends(get_db),
 ):
     """Browse only customer-published, GeoVision-owned offers."""
+
+    if sector and normalize_public_sector(sector) not in PUBLIC_SECTORS:
+        raise HTTPException(status_code=422, detail="Unsupported sector filter")
 
     return [
         public_item(item)
@@ -118,7 +124,9 @@ def staff_catalog_items(
 
 
 @router.get("/internal/items/{item_id}", response_model=CatalogItemInternal)
-def staff_catalog_item(item_id: str, actor: CatalogStaff, db: Session = Depends(get_db)):
+def staff_catalog_item(
+    item_id: str, actor: CatalogStaff, db: Session = Depends(get_db)
+):
     del actor
     item = db.get(CatalogItem, item_id)
     if item is None:
@@ -146,7 +154,9 @@ def staff_create_catalog_item(
         _raise_catalog_error(exc)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Catalogue code or slug already exists") from exc
+        raise HTTPException(
+            status_code=409, detail="Catalogue code or slug already exists"
+        ) from exc
 
 
 @router.patch("/internal/items/{item_id}", response_model=CatalogItemInternal)
@@ -169,7 +179,9 @@ def staff_update_catalog_item(
         _raise_catalog_error(exc)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Catalogue update conflicts with an existing item") from exc
+        raise HTTPException(
+            status_code=409, detail="Catalogue update conflicts with an existing item"
+        ) from exc
 
 
 @router.get("/internal/suppliers", response_model=list[SupplierInternal])
@@ -216,7 +228,9 @@ def staff_create_supplier(
         _raise_catalog_error(exc)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Internal supplier code already exists") from exc
+        raise HTTPException(
+            status_code=409, detail="Internal supplier code already exists"
+        ) from exc
 
 
 @router.get("/internal/suppliers/{supplier_id}", response_model=SupplierInternal)
@@ -252,7 +266,9 @@ def staff_update_supplier(
         _raise_catalog_error(exc)
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=409, detail="Supplier update conflicts with existing data") from exc
+        raise HTTPException(
+            status_code=409, detail="Supplier update conflicts with existing data"
+        ) from exc
 
 
 @router.delete(

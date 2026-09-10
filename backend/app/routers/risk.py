@@ -2,8 +2,10 @@
 Risk Assessment Router
 
 Endpoints for risk assessment using rule-based engine.
-Sectors: Mining, Infrastructure, Construction, Agriculture, Demining
+Public sectors use GeoVision's canonical six-sector taxonomy. Rule packs are
+currently configured only where explicit threshold evidence exists.
 """
+
 import logging
 from typing import List
 from datetime import datetime, timedelta
@@ -19,12 +21,15 @@ from app.modules.identity.domain import AuthorizationContext
 from app.modules.organizations.domain import permission_granted
 
 from app.services.risk_engine import (
-    get_risk_engine,
-    SectorType,
+    RISK_RULE_THRESHOLDS,
     RiskAssessmentRequest,
     RiskAssessmentResponse,
     RiskAlertSchema,
+    RiskEngineNotConfiguredError,
+    RiskEvidenceError,
     RuleResultSchema,
+    SectorType,
+    get_risk_engine,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,6 +42,7 @@ router = APIRouter(
 
 
 # ============ SCHEMAS ============
+
 
 class RiskHistoryItem(BaseModel):
     assessment_id: str
@@ -59,6 +65,7 @@ class RiskHistoryResponse(BaseModel):
 
 
 # ============ ENDPOINTS ============
+
 
 def _authorized_site(
     db: Session,
@@ -86,37 +93,68 @@ def _authorized_site(
         raise HTTPException(status_code=404, detail="Site not found")
     return site
 
+
+def _require_site_sector(site: Site, requested_sector: SectorType) -> None:
+    try:
+        site_sector = SectorType(site.sector)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Site sector is outside the supported taxonomy",
+        ) from exc
+    if requested_sector is not site_sector:
+        raise HTTPException(
+            status_code=409,
+            detail="Requested risk sector does not match the site sector",
+        )
+
+
 @router.post("/assess", response_model=RiskAssessmentResponse)
 async def assess_risk(
     request: RiskAssessmentRequest,
     context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    _authorized_site(
+    site = _authorized_site(
         db,
         context=context,
         site_id=request.site_id,
         permission="asset:update",
     )
+    _require_site_sector(site, request.sector)
     engine = get_risk_engine()
-    result = engine.assess(site_id=request.site_id, sector=request.sector, data=request.data)
+    try:
+        result = engine.assess(
+            site_id=request.site_id, sector=request.sector, data=request.data
+        )
+    except RiskEngineNotConfiguredError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except RiskEvidenceError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     # Persist to DB
     import json as _json
+
     ra = RiskAssessmentModel(
-        id=result.assessment_id, site_id=result.site_id,
-        sector=result.sector.value, risk_score=result.risk_score,
+        id=result.assessment_id,
+        site_id=result.site_id,
+        sector=result.sector.value,
+        risk_score=result.risk_score,
         risk_level=result.risk_level.value,
         triggered_count=len(result.triggered_rules),
-        details_json=_json.dumps({
-            "triggered_rules": [r.rule_id for r in result.triggered_rules],
-            "recommendations": result.recommendations,
-        }),
+        details_json=_json.dumps(
+            {
+                "triggered_rules": [r.rule_id for r in result.triggered_rules],
+                "recommendations": result.recommendations,
+            }
+        ),
     )
     db.add(ra)
     db.commit()
 
-    logger.info(f"Risk assessment for site {request.site_id}: score={result.risk_score}, level={result.risk_level.value}")
+    logger.info(
+        f"Risk assessment for site {request.site_id}: score={result.risk_score}, level={result.risk_level.value}"
+    )
 
     return RiskAssessmentResponse(
         assessment_id=result.assessment_id,
@@ -125,16 +163,31 @@ async def assess_risk(
         risk_score=result.risk_score,
         risk_level=result.risk_level.value,
         triggered_rules=[
-            RuleResultSchema(rule_id=r.rule_id, rule_name=r.rule_name, triggered=r.triggered,
-                             score_contribution=r.score_contribution, message=r.message,
-                             severity=r.severity.value, data=r.data)
+            RuleResultSchema(
+                rule_id=r.rule_id,
+                rule_name=r.rule_name,
+                triggered=r.triggered,
+                score_contribution=r.score_contribution,
+                message=r.message,
+                severity=r.severity.value,
+                data=r.data,
+            )
             for r in result.triggered_rules
         ],
         alerts=[
-            RiskAlertSchema(id=a.id, title=a.title, message=a.message, severity=a.severity.value,
-                            sector=a.sector.value, source=a.source, metric_name=a.metric_name,
-                            metric_value=a.metric_value, threshold=a.threshold,
-                            recommendation=a.recommendation, created_at=a.created_at)
+            RiskAlertSchema(
+                id=a.id,
+                title=a.title,
+                message=a.message,
+                severity=a.severity.value,
+                sector=a.sector.value,
+                source=a.source,
+                metric_name=a.metric_name,
+                metric_value=a.metric_value,
+                threshold=a.threshold,
+                recommendation=a.recommendation,
+                created_at=a.created_at,
+            )
             for a in result.alerts
         ],
         recommendations=result.recommendations,
@@ -150,12 +203,13 @@ async def get_risk_history(
     context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    _authorized_site(
+    site = _authorized_site(
         db,
         context=context,
         site_id=site_id,
         permission="asset:read",
     )
+    _require_site_sector(site, sector)
     cutoff = utc_now() - timedelta(days=days)
     rows = (
         db.query(RiskAssessmentModel)
@@ -169,8 +223,10 @@ async def get_risk_history(
     )
 
     if not rows:
-        return RiskHistoryResponse(site_id=site_id, sector=sector.value,
-                                   assessments=[], trend="stable", avg_score_7d=0, avg_score_30d=0)
+        raise HTTPException(
+            status_code=404,
+            detail="No risk assessments found for this site and sector",
+        )
 
     cutoff_7d = utc_now() - timedelta(days=7)
     scores_7d = [r.risk_score for r in rows if r.created_at >= cutoff_7d]
@@ -182,18 +238,30 @@ async def get_risk_history(
     if len(scores_7d) >= 2:
         recent_avg = sum(scores_7d[-3:]) / min(3, len(scores_7d))
         earlier_avg = sum(scores_7d[:3]) / min(3, len(scores_7d))
-        trend = "improving" if recent_avg < earlier_avg - 5 else ("worsening" if recent_avg > earlier_avg + 5 else "stable")
+        trend = (
+            "improving"
+            if recent_avg < earlier_avg - 5
+            else ("worsening" if recent_avg > earlier_avg + 5 else "stable")
+        )
     else:
         trend = "stable"
 
     return RiskHistoryResponse(
-        site_id=site_id, sector=sector.value,
+        site_id=site_id,
+        sector=sector.value,
         assessments=[
-            RiskHistoryItem(assessment_id=r.id, risk_score=r.risk_score, risk_level=r.risk_level,
-                            triggered_count=r.triggered_count or 0, assessed_at=r.created_at)
+            RiskHistoryItem(
+                assessment_id=r.id,
+                risk_score=r.risk_score,
+                risk_level=r.risk_level,
+                triggered_count=r.triggered_count or 0,
+                assessed_at=r.created_at,
+            )
             for r in rows
         ],
-        trend=trend, avg_score_7d=round(avg_7d, 1), avg_score_30d=round(avg_30d, 1),
+        trend=trend,
+        avg_score_7d=round(avg_7d, 1),
+        avg_score_30d=round(avg_30d, 1),
     )
 
 
@@ -201,61 +269,24 @@ async def get_risk_history(
 async def get_sector_thresholds(sector: SectorType):
     """
     Get risk threshold definitions for a sector.
-    
+
     Useful for configuring monitoring dashboards.
     """
-    thresholds = {
-        SectorType.MINING: {
-            "tailings_level_pct": {"warning": 80, "critical": 90, "unit": "%"},
-            "terrain_displacement_mm": {"warning": 20, "critical": 50, "unit": "mm"},
-            "esg_score": {"warning": 75, "critical": 60, "unit": "%", "inverse": True},
-            "dust_concentration_ppm": {"warning": 50, "critical": 100, "unit": "PPM"},
-            "water_quality_index": {"warning": 70, "critical": 50, "unit": "index", "inverse": True},
-            "extraction_efficiency_pct": {"warning": 80, "critical": 70, "unit": "%", "inverse": True},
-        },
-        SectorType.INFRASTRUCTURE: {
-            "structural_health_index": {"warning": 80, "critical": 60, "unit": "index", "inverse": True},
-            "timeline_delay_days": {"warning": 7, "critical": 30, "unit": "days"},
-            "budget_overrun_pct": {"warning": 10, "critical": 20, "unit": "%"},
-            "safety_incidents_30d": {"warning": 1, "critical": 3, "unit": "count"},
-            "material_quality_pass_rate": {"warning": 95, "critical": 90, "unit": "%", "inverse": True},
-        },
-        SectorType.CONSTRUCTION: {
-            "safety_score": {"warning": 80, "critical": 60, "unit": "%", "inverse": True},
-            "progress_variance_pct": {"warning": 10, "critical": 20, "unit": "%"},
-            "quality_defects_per_1000": {"warning": 5, "critical": 15, "unit": "per 1000"},
-            "equipment_downtime_pct": {"warning": 10, "critical": 25, "unit": "%"},
-        },
-        SectorType.AGRO: {
-            "ndvi_avg": {"warning": 0.4, "critical": 0.25, "unit": "index", "inverse": True},
-            "soil_moisture_pct": {"warning": 30, "critical": 20, "unit": "%", "inverse": True},
-            "pest_detection_count": {"warning": 5, "critical": 15, "unit": "count"},
-            "irrigation_efficiency_pct": {"warning": 70, "critical": 50, "unit": "%", "inverse": True},
-        },
-        SectorType.DEMINING: {
-            "clearance_progress_pct": {"warning": None, "critical": None, "unit": "%"},
-            "safety_protocol_compliance": {"warning": 95, "critical": 90, "unit": "%", "inverse": True},
-            "terrain_hazard_score": {"warning": 60, "critical": 80, "unit": "score"},
-            "equipment_calibration_days": {"warning": 7, "critical": 14, "unit": "days since"},
-        },
-    }
-    
-    if sector not in thresholds:
-        return {
-            "sector": sector.value,
-            "thresholds": {},
-            "message": f"Thresholds for {sector.value} not configured yet"
-        }
-    
+    if sector not in RISK_RULE_THRESHOLDS:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Risk rules are not configured for sector: {sector.value}",
+        )
+
     return {
         "sector": sector.value,
-        "thresholds": thresholds[sector],
+        "thresholds": RISK_RULE_THRESHOLDS[sector],
         "risk_levels": {
             "low": "score < 25",
             "medium": "25 <= score < 50",
             "high": "50 <= score < 75",
-            "critical": "score >= 75"
-        }
+            "critical": "score >= 75",
+        },
     }
 
 
@@ -266,11 +297,11 @@ async def simulate_assessment(
 ):
     """
     Simulate a risk assessment with predefined scenarios.
-    
+
     Useful for testing dashboard alerts and notifications.
     """
     import uuid
-    
+
     scenarios = {
         SectorType.MINING: {
             "normal": {
@@ -298,7 +329,7 @@ async def simulate_assessment(
                 "extraction_efficiency_pct": 65,
             },
         },
-        SectorType.INFRASTRUCTURE: {
+        SectorType.CONSTRUCTION_INFRASTRUCTURE: {
             "normal": {
                 "structural_health_index": 95,
                 "timeline_delay_days": 2,
@@ -322,22 +353,20 @@ async def simulate_assessment(
             },
         },
     }
-    
+
     if sector not in scenarios:
         raise HTTPException(
             status_code=400,
-            detail=f"Simulation not available for sector: {sector.value}"
+            detail=f"Simulation not available for sector: {sector.value}",
         )
-    
+
     data = scenarios[sector][scenario]
-    
+
     engine = get_risk_engine()
     result = engine.assess(
-        site_id=f"simulation-{uuid.uuid4().hex[:8]}",
-        sector=sector,
-        data=data
+        site_id=f"simulation-{uuid.uuid4().hex[:8]}", sector=sector, data=data
     )
-    
+
     return {
         "scenario": scenario,
         "sector": sector.value,
@@ -348,5 +377,5 @@ async def simulate_assessment(
             "triggered_rules": len(result.triggered_rules),
             "alerts": len(result.alerts),
             "recommendations": result.recommendations,
-        }
+        },
     }

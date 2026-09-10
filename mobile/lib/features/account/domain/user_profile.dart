@@ -1,3 +1,5 @@
+import '../../sites/domain/sector.dart';
+
 class UserProfile {
   const UserProfile({
     required this.id,
@@ -74,7 +76,8 @@ class UserProfile {
       dashboardProfile:
           (account['dashboard_profile'] ?? j['dashboard_profile'] ?? 'farm')
               .toString(),
-      sectors: stringList(account['sectors'] ?? account['sector_focus']),
+      sectors: parseCanonicalSectorIds(
+          account['sectors'] ?? account['sector_focus']),
       useCases: stringList(account['use_cases']),
     );
   }

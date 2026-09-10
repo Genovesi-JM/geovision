@@ -7,10 +7,13 @@ website/app implementation discussion.
 
 ## Platform capability now
 
-- Agriculture, Infrastructure, Environmental, Mining, and Ports/Industrial are
-  implemented backend sector modules on one shared platform. Their availability
-  in a customer workspace remains controlled by entitlement, modules, and
-  rollout flags.
+- The six public sectors are Agricultura & Pecuária, Construção &
+  Infraestruturas, Ambiente, Mineração, Indústria, Energia & Utilities, and
+  Portos & Logística. They use one shared platform and the canonical IDs in
+  [`SECTOR_TAXONOMY.md`](SECTOR_TAXONOMY.md); mining is not an industry alias,
+  and ports/logistics is not an industrial bucket. Availability in a customer
+  workspace remains controlled by entitlement, modules, rollout flags,
+  evidence, and delivery maturity.
 - A simple entry experience for a farm, property/site, or individual device, backed by
   the same platform as the advanced enterprise experience.
 - Connected-sensor software for near-real-time readings, device health, alerts,
@@ -25,15 +28,20 @@ website/app implementation discussion.
 
 ## Keep in code, but do not imply live commercial availability
 
-- Mining and Ports/Industrial backend workflows are implemented, but the public
-  website and sales offer must describe them only when GeoVision has validated
-  delivery capability for the intended customer and region. Utilities and
-  oil-and-gas-specific offers remain outside the current promise.
+- Mining and Portos & Logística backend workflows are implemented, but the
+  sales offer must describe them only when GeoVision has validated delivery
+  capability for the intended customer and region. Indústria, Energia &
+  Utilities is a distinct expanding sector with capability discovery and
+  source-dependent operational KPIs; it is not proof of a connected energy,
+  industrial-control, compliance, or utility provider. Oil-and-gas-specific
+  offers remain outside the current promise.
 - LiDAR, advanced thermal/multispectral, spraying, very-high-precision surveying, and
   other specialised flights until a paid project justifies rental, partnership, or purchase.
 - Advanced predictive AI before sufficient field data exists.
-- Energy and power monitoring. The prototype definition may remain on standby, but it is
-  not listed, provisionable, recommended, or sold as part of the current offer.
+- Energy and power monitoring may be described only as a scoped
+  Indústria, Energia & Utilities project after its sensors, sources,
+  integration, safety, and delivery requirements are validated. It must not be
+  presented as provisioned, automated, or live from the sector label alone.
 - The tenant integration registry, rollout controls, and named construction,
   asset-management, GIS, and maritime provider scaffolds. These are internal
   platform capabilities, not a promise that any customer-owned provider is

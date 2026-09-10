@@ -1,3 +1,5 @@
+import '../../sites/domain/sector.dart';
+
 class RegistrationRequest {
   const RegistrationRequest({
     required this.email,
@@ -19,16 +21,19 @@ class RegistrationRequest {
   final List<String> useCases;
   final String? organisation;
 
-  Map<String, dynamic> toJson() => {
-        'email': email.trim().toLowerCase(),
-        'password': password,
-        'full_name': fullName.trim(),
-        if (intent?.trim().isNotEmpty == true) 'intent': intent!.trim(),
-        'customer_type': customerType,
-        'sectors': sectors,
-        'sector_focus': sectors.join(','),
-        'use_cases': useCases,
-        if (organisation?.trim().isNotEmpty == true)
-          'org_name': organisation!.trim(),
-      };
+  Map<String, dynamic> toJson() {
+    final canonicalSectors = sectors.map(canonicalSectorId).toSet().toList();
+    return {
+      'email': email.trim().toLowerCase(),
+      'password': password,
+      'full_name': fullName.trim(),
+      if (intent?.trim().isNotEmpty == true) 'intent': intent!.trim(),
+      'customer_type': customerType,
+      'sectors': canonicalSectors,
+      'sector_focus': canonicalSectors.join(','),
+      'use_cases': useCases,
+      if (organisation?.trim().isNotEmpty == true)
+        'org_name': organisation!.trim(),
+    };
+  }
 }

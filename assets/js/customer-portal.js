@@ -239,15 +239,27 @@ function normalizeWorkspace(raw) {
   if (!isRecord(raw) || !safeId(raw.id) || !safeId(raw.organization_id)) return null;
   const role = asString(raw.role);
   if (!role) return null;
+  const taxonomy = window.GV_SECTOR_TAXONOMY;
+  const sectors = taxonomy?.normalizeSectors
+    ? taxonomy.normalizeSectors(Array.isArray(raw.sectors) ? raw.sectors : raw.sector)
+    : asArray(raw.sectors).filter((item) => typeof item === "string");
+  const primarySector = sectors[0] || (taxonomy?.normalizeSector?.(raw.sector) ?? "");
   return {
     id: raw.id,
     organizationId: raw.organization_id,
     name: asString(raw.name, "Workspace"),
     organizationName: asString(raw.organization_name, "Organization"),
     role,
-    sector: asString(raw.sector, "generic"),
+    sector: primarySector,
+    sectors,
     modules: asArray(raw.modules_enabled).filter((item) => typeof item === "string"),
   };
+}
+
+function workspaceSectorLabel(workspace) {
+  const labels = window.GV_SECTOR_TAXONOMY?.labels || {};
+  const sectors = workspace?.sectors?.length ? workspace.sectors : [workspace?.sector].filter(Boolean);
+  return sectors.map((sector) => labels[sector] || sector).join(" · ") || "—";
 }
 
 function normalizeAssetTree(rawNodes, depth = 0, seen = new Set()) {
@@ -729,7 +741,7 @@ class CustomerPortal {
       select.disabled = this.experience.workspaces.length < 2;
     }
     const meta = document.getElementById("portal-workspace-meta");
-    if (meta) meta.textContent = `${this.experience.organizationName} · ${this.experience.activeWorkspace.sector}`;
+    if (meta) meta.textContent = `${this.experience.organizationName} · ${workspaceSectorLabel(this.experience.activeWorkspace)}`;
     const role = this.experience.activeWorkspace.role;
     const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
     ["user-role", "dash-user-info-role"].forEach((id) => {
@@ -872,7 +884,7 @@ class CustomerPortal {
     const header = node("div", { className: "page-header" }, [
       node("div", { className: "page-eyebrow", text: this.experience.organizationName }),
       node("h1", { className: "page-title", text: this.experience.activeWorkspace.name, id: "portal-overview-title", attrs: { tabindex: "-1" } }),
-      node("p", { className: "page-subtitle", text: `${this.experience.activeWorkspace.sector} · Updated decision view` }),
+      node("p", { className: "page-subtitle", text: `${workspaceSectorLabel(this.experience.activeWorkspace)} · Updated decision view` }),
     ]);
     const decisionHeading = node("h2", { className: "card-title", text: "What needs a decision now" });
     const decisionGrid = node("div", { className: "portal-decision-grid", id: "portal-decision-kpis", attrs: { "aria-busy": "true" } });

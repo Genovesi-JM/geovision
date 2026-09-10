@@ -1,4 +1,4 @@
-import { initCustomerPortal } from "./customer-portal.js";
+import { initCustomerPortal } from "./customer-portal.js?v=2";
 
 const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
@@ -19,23 +19,57 @@ function escapeHTML(str) {
 }
 
 const SECTOR_LABELS = {
-  agro: "Agro & Pecuária",
+  agriculture: "Agricultura & Pecuária",
+  construction_infrastructure: "Construção & Infraestruturas",
   environment: "Ambiente",
-  industry: "Indústria & Mineração",
   mining: "Mineração",
-  demining: "Desminagem",
-  construction: "Construção",
-  infrastructure: "Infraestruturas",
-  solar: "Solar",
+  industry_energy_utilities: "Indústria, Energia & Utilities",
+  ports_logistics: "Portos & Logística",
+};
+const SECTOR_LABEL_KEYS = {
+  agriculture: "public.sector.agriculture",
+  construction_infrastructure: "public.sector.constructionInfrastructure",
+  environment: "public.sector.environment",
+  mining: "public.sector.mining",
+  industry_energy_utilities: "public.sector.industryEnergyUtilities",
+  ports_logistics: "public.sector.portsLogistics",
+};
+const FALLBACK_SECTOR_ALIASES = {
+  agro: "agriculture", agropecuaria: "agriculture", agriculture: "agriculture", agricultura: "agriculture", agricultura_e_pecuaria: "agriculture", agricultura_pecuaria: "agriculture", agriculture_livestock: "agriculture", livestock: "agriculture",
+  construction: "construction_infrastructure", construction_and_infrastructure: "construction_infrastructure", construction_infrastructure: "construction_infrastructure", construcao_e_infraestruturas: "construction_infrastructure", construcao_infraestrutura: "construction_infrastructure", construcao_infraestruturas: "construction_infrastructure", infrastructure: "construction_infrastructure", infrastructures: "construction_infrastructure",
+  ambiente: "environment", ambiental: "environment", environment: "environment", environmental: "environment",
+  mine: "mining", mines: "mining", mineracao: "mining", mining: "mining", quarry: "mining",
+  industry: "industry_energy_utilities", industria: "industry_energy_utilities", industrial: "industry_energy_utilities", energy: "industry_energy_utilities", energia: "industry_energy_utilities", solar: "industry_energy_utilities", utilities: "industry_energy_utilities", industry_energy: "industry_energy_utilities", industria_e_energia_utilities: "industry_energy_utilities", industria_energia_utilities: "industry_energy_utilities", industria_energia_e_utilities: "industry_energy_utilities", industry_energy_utilities: "industry_energy_utilities",
+  port: "ports_logistics", portos: "ports_logistics", ports: "ports_logistics", ports_and_logistics: "ports_logistics", ports_industrial: "ports_logistics", logistics: "ports_logistics", logistica: "ports_logistics", portos_e_logistica: "ports_logistics", portos_logistica: "ports_logistics", ports_logistics: "ports_logistics",
 };
 
+function normalizePublicSector(value) {
+  const shared = window.GV_SECTOR_TAXONOMY;
+  if (shared && typeof shared.normalizeSector === "function") return shared.normalizeSector(value);
+  const key = String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return FALLBACK_SECTOR_ALIASES[key] || null;
+}
+
+function sectorLabel(value) {
+  const sector = normalizePublicSector(value);
+  if (!sector) return String(value || "Setor");
+  const translated = T(SECTOR_LABEL_KEYS[sector]);
+  return translated === SECTOR_LABEL_KEYS[sector] ? SECTOR_LABELS[sector] : translated;
+}
+
 function getSectorsFromAccount(account) {
-  if (!account || !account.sector_focus) return ["generic"];
-  const raw = account.sector_focus;
-  if (raw.includes(",")) {
-    return raw.split(",").map(s => s.trim()).filter(Boolean);
-  }
-  return [raw];
+  if (!account) return ["generic"];
+  const raw = Array.isArray(account.sectors) && account.sectors.length
+    ? account.sectors
+    : String(account.sector_focus || "").split(",");
+  const sectors = [...new Set(raw.map(normalizePublicSector).filter(Boolean))];
+  return sectors.length ? sectors : ["generic"];
 }
 
 /* ── Empty portfolio — real data comes from backend APIs ── */
@@ -108,7 +142,7 @@ function renderSectorTabs(account, activeSector, onTabClick) {
   sectors.forEach(sector => {
     const tab = document.createElement("button");
     tab.className = "sector-tab" + (activeSector === sector ? " active" : "");
-    tab.textContent = SECTOR_LABELS[sector] || sector;
+    tab.textContent = sectorLabel(sector);
     tab.onclick = () => onTabClick(sector);
     container.appendChild(tab);
   });
@@ -610,7 +644,7 @@ async function renderDeviceMap() {
         L.circle([lat, lng], { radius: radiusM, color: "#38bdf8", weight: 1, fillColor: "#38bdf8", fillOpacity: 0.08 }).addTo(geoLayers.sites);
       }
       const marker = L.marker([lat, lng]);
-      marker.bindPopup(`<strong>${escapeHTML(s.name)}</strong><br>${escapeHTML(s.sector || "")}${s.total_hectares ? ` · ${s.total_hectares} ha` : ""}<br>${deviceCount} ${escapeHTML(T("geo.devices"))}${siteAlerts ? ` · ${siteAlerts} ${escapeHTML(T("geo.alerts"))}` : ""}`);
+      marker.bindPopup(`<strong>${escapeHTML(s.name)}</strong><br>${escapeHTML(sectorLabel(s.sector))}${s.total_hectares ? ` · ${s.total_hectares} ha` : ""}<br>${deviceCount} ${escapeHTML(T("geo.devices"))}${siteAlerts ? ` · ${siteAlerts} ${escapeHTML(T("geo.alerts"))}` : ""}`);
       marker.addTo(geoLayers.sites);
       geoSiteMarkers[s.id] = { marker, lat, lng };
       bounds.push([lat, lng]);
@@ -655,7 +689,7 @@ function renderGeoSide(sites, devices, openByDevice) {
       const siteAlerts = siteDevices.reduce((n, d) => n + (openByDevice[d.id] || 0), 0);
       html += `<div class="geo-item" data-focus-site="${escapeHTML(s.id)}">
         <div class="geo-item-name"><i class="fa-solid fa-location-dot" style="color:#38bdf8"></i> ${escapeHTML(s.name)}${siteAlerts ? ` <span class="geo-badge-alert">${siteAlerts} ⚠</span>` : ""}</div>
-        <div class="geo-item-meta"><span>${escapeHTML(s.sector || "—")}</span>${s.total_hectares ? `<span>${s.total_hectares} ha</span>` : ""}<span>${siteDevices.length} ${escapeHTML(T("geo.devices"))}</span></div>
+        <div class="geo-item-meta"><span>${escapeHTML(sectorLabel(s.sector))}</span>${s.total_hectares ? `<span>${s.total_hectares} ha</span>` : ""}<span>${siteDevices.length} ${escapeHTML(T("geo.devices"))}</span></div>
       </div>`;
     });
   }
@@ -732,7 +766,8 @@ function populateAccountSwitcher(accounts, currentAccountId) {
   accounts.forEach((acct) => {
     const opt = document.createElement("option");
     opt.value = acct.id;
-    opt.textContent = `${acct.name}${acct.sector_focus ? ' · ' + acct.sector_focus : ''}`;
+    const sectors = getSectorsFromAccount(acct).filter((sector) => sector !== "generic");
+    opt.textContent = `${acct.name}${sectors.length ? ' · ' + sectors.map(sectorLabel).join(', ') : ''}`;
     if (acct.id === currentAccountId) opt.selected = true;
     select.appendChild(opt);
   });
@@ -743,7 +778,10 @@ function renderAccountMeta(account) {
   const metaEl = document.getElementById("dash-meta");
   const chips = document.getElementById("modules-chips");
   if (titleEl && account) titleEl.textContent = account.name || "Conta GeoVision";
-  if (metaEl && account) metaEl.textContent = `${account.sector_focus || 'Setor'} · ${account.entity_type || 'Tipo'}`;
+  if (metaEl && account) {
+    const sectors = getSectorsFromAccount(account).filter((sector) => sector !== "generic");
+    metaEl.textContent = `${sectors.length ? sectors.map(sectorLabel).join(', ') : 'Setor'} · ${account.entity_type || 'Tipo'}`;
+  }
   if (account) {
     const sectors = getSectorsFromAccount(account);
     const selected = localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY);
@@ -773,13 +811,6 @@ async function loadKpis(accountId, activeSector) {
   };
   
   // Sector-specific KPI mappings (first 4 KPIs of each sector)
-  const sectorKpiMapping = {
-    agro: ["soil_moisture", "water_level", "data_completeness", "open_incidents"],
-    environment: ["air_quality", "water_level", "leak_events", "data_completeness"],
-    construction: ["progress_percent", "conformity_index", "pending_inspections", "volume_earthwork"],
-    infrastructure: ["data_freshness", "device_health", "maintenance_due", "open_incidents"],
-  };
-  
   try {
     const sectorParam = activeSector ? `?sector=${activeSector}` : "";
     const summary = await apiGet(`/kpi/summary${sectorParam}`, accountId);
@@ -1259,7 +1290,7 @@ function toggleModal(show) {
 
 async function handleAccountCreate(currentAccountId, reloadFn) {
   const name = document.getElementById("account-name-input")?.value?.trim();
-  const sector = document.getElementById("account-sector-input")?.value || "agro";
+  const sector = normalizePublicSector(document.getElementById("account-sector-input")?.value) || "agriculture";
   const customerType = document.getElementById("account-customer-input")?.value || "industry";
   const useCases = Array.from(document.querySelectorAll("#account-use-cases input:checked")).map((c) => c.value);
   const modules = Array.from(document.querySelectorAll("#account-modules input[type=checkbox]:checked")).map((c) => c.value);
@@ -1308,6 +1339,15 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
     const profile = config.profiles[customerType] || config.profiles.industry;
     const sel = document.getElementById("account-sector-input");
     if (!sel) return;
+    if (!sel.dataset.gvCanonicalSectors) {
+      sel.replaceChildren(...Object.keys(config.sectorLabels).map((sector) => {
+        const option = document.createElement("option");
+        option.value = sector;
+        option.textContent = sectorLabel(sector);
+        return option;
+      }));
+      sel.dataset.gvCanonicalSectors = "1";
+    }
     [...sel.options].forEach((o) => { const ok = profile.sectors.includes(o.value); o.hidden = !ok; o.disabled = !ok; });
     sel.value = profile.defaults[0];
     const uses = document.getElementById("account-use-cases");
@@ -1347,7 +1387,11 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   }
 
   let currentAccountId = accountIdHint || localStorage.getItem(SESSION_ACCOUNT_KEY) || null;
-  let activeSector = activeSectorHint !== undefined ? activeSectorHint : (localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY) || null);
+  const requestedActiveSector = activeSectorHint !== undefined
+    ? activeSectorHint
+    : localStorage.getItem(SESSION_ACTIVE_SECTOR_KEY);
+  let activeSector = normalizePublicSector(requestedActiveSector);
+  if (activeSector) localStorage.setItem(SESSION_ACTIVE_SECTOR_KEY, activeSector);
   let meData = null;
   try {
     meData = await apiGet("/me", currentAccountId);
@@ -1377,6 +1421,11 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
 
   const activeAccount =
     (meData && meData.accounts && meData.accounts.find((a) => a.id === currentAccountId)) || null;
+
+  if (activeSector && !getSectorsFromAccount(activeAccount).includes(activeSector)) {
+    activeSector = null;
+    localStorage.removeItem(SESSION_ACTIVE_SECTOR_KEY);
+  }
 
   // Persona-adaptive experience: individuals default to the simple shell,
   // organisations to the full advanced console (user can switch).

@@ -24,17 +24,38 @@ void main() {
           'organization_name': 'Customer One',
           'role': 'member',
           'sector': 'PORTS_INDUSTRIAL',
+          'sectors': ['PORTS_INDUSTRIAL', 'mining'],
           'modules_enabled': ['assets', 'services'],
         },
       ],
     });
 
     expect(experience.activeWorkspace?.name, 'Port operations');
+    expect(experience.activeWorkspace?.sector, 'ports_logistics');
+    expect(
+      experience.activeWorkspace?.sectors,
+      ['ports_logistics', 'mining'],
+    );
     expect(experience.hasCapability('assets'), isTrue);
     expect(experience.hasCapability('services'), isTrue);
     expect(experience.hasCapability('actions'), isFalse);
     expect(experience.hasCapability('billing'), isFalse,
         reason: 'Missing capability flags must fail closed.');
+  });
+
+  test('legacy comma-separated workspace sectors keep a valid primary ID', () {
+    final workspace = CustomerWorkspace.fromJson({
+      'id': 'legacy-workspace',
+      'organization_id': 'organization-1',
+      'name': 'Legacy',
+      'organization_name': 'Customer One',
+      'role': 'member',
+      'sector_focus': 'agriculture,mining',
+      'modules_enabled': <String>[],
+    });
+
+    expect(workspace.sector, 'agriculture');
+    expect(workspace.sectors, ['agriculture', 'mining']);
   });
 
   test('typed customer targets resolve only to allowlisted exact routes', () {

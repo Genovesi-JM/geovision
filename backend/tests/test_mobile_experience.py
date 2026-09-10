@@ -6,6 +6,7 @@ from datetime import timedelta
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
 from app.models import (
+    Account,
     AccountMember,
     Acquisition,
     Action,
@@ -306,6 +307,9 @@ def test_mobile_experience_honors_workspace_modules_permissions_and_memberships(
         name="Mobile Experience South",
         modules=["projects", "reports", "iot"],
     )
+    first_workspace = db_session.get(Account, workspace_a)
+    first_workspace.sector_focus = "agriculture,mining"
+    db_session.commit()
 
     first = client.get("/mobile/experience", headers=_headers(owner, workspace_a))
     assert first.status_code == 200, first.text
@@ -314,6 +318,8 @@ def test_mobile_experience_honors_workspace_modules_permissions_and_memberships(
     assert body["active_organization_id"] == organization_id
     assert {row["id"] for row in body["workspaces"]} == {workspace_a, workspace_b}
     assert body["workspaces"][0]["organization_name"] == "Mobile Experience"
+    assert body["workspaces"][0]["sector"] == "agriculture"
+    assert body["workspaces"][0]["sectors"] == ["agriculture", "mining"]
     assert "reports" not in body["capabilities"]
     assert "devices" not in body["capabilities"]
     assert {

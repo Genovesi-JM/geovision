@@ -5,23 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
-
-PUBLIC_SECTORS = {"agro", "environment", "construction", "industry", "infrastructure"}
-
-# Historical web and mobile builds used a few sector names that no longer match
-# the public account model. Keep accepting them at API boundaries, but always
-# persist and return the current canonical identifier.
-PUBLIC_SECTOR_ALIASES = {
-    "agriculture": "agro",
-    "livestock": "agro",
-    "ambiental": "environment",
-    "mining": "industry",
-}
-
-
-def normalize_public_sector(value: str | None) -> str:
-    key = (value or "").strip().lower()
-    return PUBLIC_SECTOR_ALIASES.get(key, key)
+from app.sector_taxonomy import (
+    PUBLIC_SECTORS,
+    normalize_public_sector_values,
+)
 
 
 @dataclass(frozen=True)
@@ -36,46 +23,130 @@ class CustomerProfile:
 
 CUSTOMER_PROFILES: dict[str, CustomerProfile] = {
     "farm": CustomerProfile(
-        "individual", "farm", "agro", ("agro", "environment"),
+        "individual",
+        "farm",
+        "agriculture",
+        ("agriculture", "environment"),
         ("soil", "water", "weather"),
         ("soil", "irrigation", "water", "weather", "livestock"),
     ),
     "site": CustomerProfile(
-        "individual", "site", "environment", ("environment", "infrastructure"),
+        "individual",
+        "site",
+        "environment",
+        ("environment", "construction_infrastructure"),
         ("air_quality", "water", "leaks"),
         ("comfort", "air_quality", "water", "leaks", "weather"),
     ),
     "construction": CustomerProfile(
-        "company", "construction", "construction", ("construction", "environment"),
+        "company",
+        "construction",
+        "construction_infrastructure",
+        ("construction_infrastructure", "environment"),
         ("progress", "site_environment"),
         ("progress", "inspections", "site_environment", "equipment"),
     ),
     "business": CustomerProfile(
-        "company", "business", "environment", ("environment", "infrastructure", "agro"),
+        "company",
+        "business",
+        "environment",
+        (
+            "agriculture",
+            "construction_infrastructure",
+            "environment",
+            "mining",
+            "industry_energy_utilities",
+            "ports_logistics",
+        ),
         ("site_environment", "maintenance"),
         ("air_quality", "water", "site_environment", "maintenance", "equipment"),
     ),
     "environment": CustomerProfile(
-        "company", "environment", "environment", ("environment",),
+        "company",
+        "environment",
+        "environment",
+        ("environment",),
         ("air_quality", "land_change"),
         ("air_quality", "water", "weather", "land_change", "inspections"),
     ),
     "industry": CustomerProfile(
-        "company", "industry", "industry", ("industry", "infrastructure"),
+        "company",
+        "industry",
+        "industry_energy_utilities",
+        (
+            "industry_energy_utilities",
+            "mining",
+            "ports_logistics",
+        ),
         ("site_environment", "maintenance"),
         ("site_environment", "maintenance", "equipment", "inventory", "inspections"),
     ),
+    "mining": CustomerProfile(
+        "company",
+        "mining",
+        "mining",
+        ("mining", "environment"),
+        ("inventory", "inspections"),
+        ("site_environment", "maintenance", "equipment", "inventory", "inspections"),
+    ),
+    "ports_logistics": CustomerProfile(
+        "company",
+        "ports_logistics",
+        "ports_logistics",
+        (
+            "ports_logistics",
+            "construction_infrastructure",
+            "environment",
+        ),
+        ("inventory", "equipment"),
+        ("site_environment", "maintenance", "equipment", "inventory", "inspections"),
+    ),
     "device": CustomerProfile(
-        "individual", "device", "environment", ("environment", "agro", "infrastructure", "construction", "industry"),
+        "individual",
+        "device",
+        "environment",
+        (
+            "agriculture",
+            "construction_infrastructure",
+            "environment",
+            "mining",
+            "industry_energy_utilities",
+            "ports_logistics",
+        ),
         ("device_monitoring",),
         ("device_monitoring", "air_quality", "soil", "water", "weather", "equipment"),
     ),
     "enterprise": CustomerProfile(
-        "company", "enterprise", "infrastructure", ("agro", "environment", "construction", "industry", "infrastructure"),
+        "company",
+        "enterprise",
+        "construction_infrastructure",
+        (
+            "agriculture",
+            "construction_infrastructure",
+            "environment",
+            "mining",
+            "industry_energy_utilities",
+            "ports_logistics",
+        ),
         ("site_environment", "maintenance"),
-        ("soil", "irrigation", "water", "weather", "livestock", "comfort", "air_quality",
-         "leaks", "progress", "inspections", "site_environment", "maintenance", "equipment",
-         "security", "land_change", "inventory"),
+        (
+            "soil",
+            "irrigation",
+            "water",
+            "weather",
+            "livestock",
+            "comfort",
+            "air_quality",
+            "leaks",
+            "progress",
+            "inspections",
+            "site_environment",
+            "maintenance",
+            "equipment",
+            "security",
+            "land_change",
+            "inventory",
+        ),
     ),
 }
 
@@ -92,18 +163,22 @@ def normalize_account_profile(
     if not profile:
         raise ValueError("Invalid customer_type")
 
-    requested_sectors = [normalize_public_sector(str(s)) for s in (sectors or []) if str(s).strip()]
+    requested_sectors = normalize_public_sector_values(sectors)
     if not requested_sectors and sector_focus:
-        requested_sectors = [normalize_public_sector(s) for s in sector_focus.split(",") if s.strip()]
-    requested_sectors = list(dict.fromkeys(requested_sectors))
+        requested_sectors = normalize_public_sector_values(sector_focus)
     if not requested_sectors:
         requested_sectors = [profile.default_sector]
-    if any(s not in PUBLIC_SECTORS or s not in profile.allowed_sectors for s in requested_sectors):
+    if any(
+        s not in PUBLIC_SECTORS or s not in profile.allowed_sectors
+        for s in requested_sectors
+    ):
         raise ValueError("Invalid sector for customer_type")
 
-    requested_use_cases = list(dict.fromkeys(
-        str(u).strip().lower() for u in (use_cases or []) if str(u).strip()
-    ))
+    requested_use_cases = list(
+        dict.fromkeys(
+            str(u).strip().lower() for u in (use_cases or []) if str(u).strip()
+        )
+    )
     if not requested_use_cases:
         requested_use_cases = list(profile.default_use_cases)
     if any(u not in profile.allowed_use_cases for u in requested_use_cases):

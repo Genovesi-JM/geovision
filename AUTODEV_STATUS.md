@@ -2,6 +2,11 @@
 
 _Updated: 22 July 2026 on branch `autodev/mobile-build`._
 
+This is a historical milestone record. Its older `agro`, `livestock`,
+construction, infrastructure, and combined-sector wording is not the current
+cross-surface contract; use the Phase 34
+[canonical six-sector taxonomy](docs/SECTOR_TAXONOMY.md).
+
 | Check | Result | Evidence |
 |---|---|---|
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |

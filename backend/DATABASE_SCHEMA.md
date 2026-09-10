@@ -428,12 +428,22 @@ def log_action(
 
 ## Sectors
 
-- `agro` - Agriculture
-- `mining` - Mining
-- `livestock` - Livestock
-- `construction` - Construction
-- `infrastructure` - Infrastructure
-- `demining` - Demining/UXO
+Customer-facing records use these canonical values:
+
+- `agriculture` - Agricultura & Pecuária
+- `construction_infrastructure` - Construção & Infraestruturas
+- `environment` - Ambiente
+- `mining` - Mineração
+- `industry_energy_utilities` - Indústria, Energia & Utilities
+- `ports_logistics` - Portos & Logística
+
+Generic Asset and evidence records use the corresponding uppercase technical
+values `AGRICULTURE`, `INFRASTRUCTURE`, `ENVIRONMENTAL`, `MINING`,
+`INDUSTRY_ENERGY_UTILITIES`, and `PORTS_LOGISTICS`. Older values such as
+`agro`, `livestock`, `construction`, `infrastructure`, `environmental`,
+`industry`, and `PORTS_INDUSTRIAL` are read-time migration aliases only. HMA/
+demining is a specialized service/capability, not a seventh public sector. See
+[`docs/SECTOR_TAXONOMY.md`](../docs/SECTOR_TAXONOMY.md) for the complete mapping.
 
 ---
 

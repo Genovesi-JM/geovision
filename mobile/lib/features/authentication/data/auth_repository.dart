@@ -86,7 +86,7 @@ class AuthRepository {
         organisation: 'Fazenda Kilombo Agro',
         customerType: 'farm',
         dashboardProfile: 'farm',
-        sectors: ['agro'],
+        sectors: ['agriculture'],
         useCases: ['soil', 'water', 'weather'],
       ),
     );
