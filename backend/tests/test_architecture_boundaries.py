@@ -25,8 +25,10 @@ from app.sectors.registry import (
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 GENERATED_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}
-PHASE_29_ROUTE_COUNT = 376
-PHASE_29_ROUTE_SHA256 = "e40734f6945471621791ebc8bac35a40346a6b0d723f643c6eb7b7778b10aa81"
+PHASE_30_ROUTE_COUNT = 381
+PHASE_30_ROUTE_SHA256 = (
+    "2835497fcfea0a6007d279cd8bc09d5a1e430fff0d3339db7031d075693d10f1"
+)
 
 
 def _route_contract(application) -> list[str]:
@@ -34,7 +36,9 @@ def _route_contract(application) -> list[str]:
     for route in application.routes:
         if route.path in GENERATED_DOC_PATHS:
             continue
-        methods = sorted((getattr(route, "methods", None) or set()) - {"HEAD", "OPTIONS"})
+        methods = sorted(
+            (getattr(route, "methods", None) or set()) - {"HEAD", "OPTIONS"}
+        )
         if methods:
             rows.extend(f"{method} {route.path}" for method in methods)
         elif isinstance(route, APIWebSocketRoute):
@@ -57,13 +61,17 @@ def _import_targets(path: Path) -> set[str]:
     return targets
 
 
-def test_phase_29_http_and_websocket_contract_is_pinned(client):
+def test_phase_30_http_and_websocket_contract_is_pinned(client):
     routes = _route_contract(client.app)
     payload = "\n".join(routes).encode()
 
-    assert len(routes) == PHASE_29_ROUTE_COUNT, "\n".join(routes)
-    assert len(routes) == len(set(routes)), "duplicate method/path registration detected"
-    assert hashlib.sha256(payload).hexdigest() == PHASE_29_ROUTE_SHA256, "\n".join(routes)
+    assert len(routes) == PHASE_30_ROUTE_COUNT, "\n".join(routes)
+    assert len(routes) == len(set(routes)), (
+        "duplicate method/path registration detected"
+    )
+    assert hashlib.sha256(payload).hexdigest() == PHASE_30_ROUTE_SHA256, "\n".join(
+        routes
+    )
 
 
 def test_application_mount_order_preserves_legacy_router_order():
@@ -85,6 +93,7 @@ def test_application_mount_order_preserves_legacy_router_order():
         "sector.infrastructure",
         "sector.environmental",
         "catalog.products",
+        "sector.mining",
         "orders.legacy",
         "orders.canonical",
         "operations.experience",
@@ -120,6 +129,7 @@ def test_required_domain_and_sector_boundaries_are_registered():
         "agriculture",
         "infrastructure",
         "environmental",
+        "mining",
     ]
     assert routes_for_module("missions")
     assert routes_for_module("reports")
@@ -144,7 +154,9 @@ def test_core_and_common_modules_follow_dependency_direction():
     )
     for path in (APP_ROOT / "core").glob("*.py"):
         for target in _import_targets(path):
-            assert not target.startswith(forbidden_from_core), f"{path}: forbidden import {target}"
+            assert not target.startswith(forbidden_from_core), (
+                f"{path}: forbidden import {target}"
+            )
             if target.startswith("."):
                 assert not target.lstrip(".").startswith(forbidden_relative_core), (
                     f"{path}: forbidden relative import {target}"
@@ -152,8 +164,12 @@ def test_core_and_common_modules_follow_dependency_direction():
 
     for path in (APP_ROOT / "modules").rglob("*.py"):
         for target in _import_targets(path):
-            assert not target.startswith("app.sectors"), f"{path}: common module imports sector {target}"
-            assert not target.startswith("app.routers"), f"{path}: domain module imports router {target}"
+            assert not target.startswith("app.sectors"), (
+                f"{path}: common module imports sector {target}"
+            )
+            assert not target.startswith("app.routers"), (
+                f"{path}: domain module imports router {target}"
+            )
             if target.startswith("."):
                 assert not target.lstrip(".").startswith("sectors"), (
                     f"{path}: common module imports sector {target}"
@@ -166,7 +182,9 @@ def test_core_and_common_modules_follow_dependency_direction():
 def test_routers_do_not_import_other_routers():
     for path in (APP_ROOT / "routers").glob("*.py"):
         for target in _import_targets(path):
-            assert not target.startswith("app.routers"), f"{path}: router-to-router import {target}"
+            assert not target.startswith("app.routers"), (
+                f"{path}: router-to-router import {target}"
+            )
             assert not (target.startswith(".") and not target.startswith("..")), (
                 f"{path}: router-to-router relative import {target}"
             )
@@ -174,7 +192,10 @@ def test_routers_do_not_import_other_routers():
 
 def test_customer_clients_never_call_odoo_directly():
     repository_root = APP_ROOT.parents[1]
-    client_roots = (repository_root / "mobile" / "lib", repository_root / "assets" / "js")
+    client_roots = (
+        repository_root / "mobile" / "lib",
+        repository_root / "assets" / "js",
+    )
     forbidden = ("/json/2", "x-odoo-database", "odoo_base_url", "odoo.com/json")
     for root in client_roots:
         for path in root.rglob("*"):

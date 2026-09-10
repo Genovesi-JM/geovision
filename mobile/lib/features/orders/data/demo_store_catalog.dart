@@ -430,6 +430,184 @@ abstract final class DemoStoreCatalog {
       },
     ),
     GvProduct(
+      id: 'prod_mining_volumetry_survey',
+      name: 'Levantamento Volumétrico Mineiro',
+      category: 'service',
+      priceCents: 114500,
+      priceAkzCents: 95000000,
+      priceEurCents: 105500,
+      currency: 'USD',
+      featured: true,
+      sectors: ['mining'],
+      image: 'assets/images/store/mining-drone-survey.jpg',
+      description:
+          'Levantamento fotogramétrico RTK/PPK para volumes, publicados apenas quando a precisão documentada cumpre as tolerâncias do projeto; não exige LiDAR.',
+      deliverables: [
+        'Registo de qualidade e pontos de controlo',
+        'Resultado volumétrico quando dentro da tolerância',
+        'Ortomosaico e modelo de superfície suportado'
+      ],
+      translations: {
+        'en': {
+          'name': 'Mining Volumetry Survey',
+          'description':
+              'RTK/PPK photogrammetric volume survey, published only when documented accuracy meets project tolerances; LiDAR is not required.'
+        },
+        'es': {
+          'name': 'Levantamiento Volumétrico Minero',
+          'description':
+              'Levantamiento fotogramétrico RTK/PPK para volúmenes, publicado solo cuando la precisión documentada cumple las tolerancias del proyecto; no requiere LiDAR.'
+        },
+        'fr': {
+          'name': 'Relevé volumétrique minier',
+          'description':
+              'Relevé photogrammétrique RTK/PPK des volumes, publié uniquement si la précision documentée respecte les tolérances du projet ; le LiDAR n’est pas requis.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_mining_site_progress_survey',
+      name: 'Levantamento de Progresso Mineiro',
+      category: 'service',
+      priceCents: 84400,
+      priceAkzCents: 70000000,
+      priceEurCents: 77800,
+      currency: 'USD',
+      featured: true,
+      sectors: ['mining'],
+      image: 'assets/images/store/mining-drone-survey.jpg',
+      description:
+          'Levantamentos repetíveis para mudança medida do terreno, apenas entre fontes compatíveis e sem conclusões sobre minério, reservas ou geotecnia.',
+      deliverables: [
+        'Levantamento georreferenciado atual',
+        'Comparação com levantamento anterior compatível',
+        'Relatório de progresso ligado às evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Mining Site Progress Survey',
+          'description':
+              'Repeatable surveys for measured terrain change between compatible sources, without ore, reserve, or geotechnical conclusions.'
+        },
+        'es': {
+          'name': 'Levantamiento de Progreso Minero',
+          'description':
+              'Levantamientos repetibles para cambios medidos del terreno entre fuentes compatibles, sin conclusiones sobre mineral, reservas o geotecnia.'
+        },
+        'fr': {
+          'name': 'Relevé d’avancement minier',
+          'description':
+              'Relevés répétables des changements mesurés du terrain entre sources compatibles, sans conclusion sur le minerai, les réserves ou la géotechnique.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_mining_lidar_specialist_survey',
+      name: 'Levantamento Especializado LiDAR',
+      category: 'service',
+      priceCents: 150500,
+      priceAkzCents: 125000000,
+      priceEurCents: 138900,
+      currency: 'USD',
+      sectors: ['mining'],
+      image: 'assets/images/store/mining-drone-survey.jpg',
+      description:
+          'Aquisição LiDAR opcional quando os requisitos de acesso, vegetação, geometria ou precisão do projeto a justificam após revisão técnica.',
+      deliverables: [
+        'Registo de aquisição e precisão',
+        'Nuvem de pontos georreferenciada',
+        'Produtos de terreno ou superfície suportados'
+      ],
+      translations: {
+        'en': {
+          'name': 'LiDAR Specialist Survey',
+          'description':
+              'Optional LiDAR acquisition when project access, vegetation, geometry, or accuracy requirements justify it after technical review.'
+        },
+        'es': {
+          'name': 'Levantamiento Especializado LiDAR',
+          'description':
+              'Adquisición LiDAR opcional cuando los requisitos de acceso, vegetación, geometría o precisión del proyecto la justifican tras revisión técnica.'
+        },
+        'fr': {
+          'name': 'Relevé spécialisé LiDAR',
+          'description':
+              'Acquisition LiDAR facultative lorsque les exigences d’accès, de végétation, de géométrie ou de précision du projet la justifient après examen technique.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_mining_environmental_monitoring',
+      name: 'Monitorização Ambiental Mineira',
+      category: 'subscription',
+      priceCents: 78500,
+      priceAkzCents: 65000000,
+      priceEurCents: 72200,
+      currency: 'USD',
+      sectors: ['mining'],
+      image: 'assets/images/store/mining-drone-survey.jpg',
+      description:
+          'Observações rastreáveis de zonas acordadas, sem determinar automaticamente impacto, conformidade ou causa.',
+      deliverables: [
+        'Mapa de monitorização ligado às fontes',
+        'Registo de condições observadas',
+        'Resumo de evidências e limitações'
+      ],
+      translations: {
+        'en': {
+          'name': 'Mining Environmental Monitoring',
+          'description':
+              'Traceable observations of agreed monitoring zones without automatically determining impact, compliance, or causation.'
+        },
+        'es': {
+          'name': 'Monitorización Ambiental Minera',
+          'description':
+              'Observaciones trazables de zonas acordadas sin determinar automáticamente el impacto, el cumplimiento o la causa.'
+        },
+        'fr': {
+          'name': 'Suivi environnemental minier',
+          'description':
+              'Observations traçables des zones convenues sans déterminer automatiquement l’impact, la conformité ou la cause.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_mining_repeat_monitoring_plan',
+      name: 'Plano de Monitorização Mineira Recorrente',
+      category: 'subscription',
+      priceCents: 72300,
+      priceAkzCents: 60000000,
+      priceEurCents: 66700,
+      currency: 'USD',
+      featured: true,
+      sectors: ['mining'],
+      image: 'assets/images/store/mining-drone-survey.jpg',
+      description:
+          'Plano recorrente centrado no ativo, com tolerâncias acordadas, controlos de qualidade, comparações históricas e relatórios rastreáveis.',
+      deliverables: [
+        'Cadência e plano de tolerâncias',
+        'Histórico de levantamentos e comparações',
+        'Relatório recorrente ligado às evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Mining Repeat Monitoring Plan',
+          'description':
+              'Recurring asset-centric plan with agreed tolerances, quality controls, historical comparisons, and traceable reports.'
+        },
+        'es': {
+          'name': 'Plan de Monitorización Minera Recurrente',
+          'description':
+              'Plan recurrente centrado en el activo con tolerancias acordadas, controles de calidad, comparaciones históricas e informes trazables.'
+        },
+        'fr': {
+          'name': 'Plan de suivi minier récurrent',
+          'description':
+              'Plan récurrent centré sur l’actif, avec tolérances convenues, contrôles qualité, comparaisons historiques et rapports traçables.'
+        },
+      },
+    ),
+    GvProduct(
       id: 'prod_aerial_basic_mapping',
       name: 'Mapeamento Aéreo Essencial',
       category: 'service',

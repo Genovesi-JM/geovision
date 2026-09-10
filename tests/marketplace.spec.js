@@ -12,7 +12,11 @@ test.describe('GeoVision first-party catalogue', () => {
   });
 
   test('renders only the active catalogue and localizes dynamic product copy', async ({ page }) => {
-    await expect(page.locator('.loja-card')).toHaveCount(30);
+    await page.locator('#sector-filters [data-sector="mining"]').click();
+    await expect(page.locator('.loja-card')).toHaveCount(5);
+    await expect(page.getByRole('heading', { name: 'Voo Volumétrico de Mina' })).toHaveCount(0);
+    await page.locator('#sector-filters [data-sector="all"]').click();
+    await expect(page.locator('.loja-card')).toHaveCount(35);
     // Energy & Power Monitor is a supported Home product (shown as "GV Power").
     await expect(page.getByText('Pulverização de Precisão')).toHaveCount(0);
 
@@ -23,6 +27,8 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Infrastructure Monitoring Plan' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Environmental Evidence Survey' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Targeted Drone Verification' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mining Volumetry Survey' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Mining Repeat Monitoring Plan' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Add');
     await expect(page.locator('.deliverables-preview').first())
       .toContainText('Mapped visual evidence');
@@ -33,6 +39,7 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Cartografía Aérea Esencial' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Cartografía 3D de Infraestructura' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Plan de Monitorización Ambiental' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Levantamiento Volumétrico Minero' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Añadir');
   });
 

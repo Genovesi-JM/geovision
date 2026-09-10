@@ -266,8 +266,8 @@ class Settings(BaseSettings):
     asset_management_provider: str = "none"
     maritime_provider: str = "none"
 
-    # Optional enterprise adapter credentials. Phase 28 provides fail-closed
-    # scaffolds only; setting these values does not activate live connectivity.
+    # Optional enterprise adapter credentials. Scaffolds remain fail closed;
+    # setting these values does not activate live connectivity.
     autodesk_aps_client_id: Optional[str] = Field(default=None, repr=False)
     autodesk_aps_client_secret: Optional[str] = Field(default=None, repr=False)
     procore_client_id: Optional[str] = Field(default=None, repr=False)
@@ -278,6 +278,8 @@ class Settings(BaseSettings):
     trimble_client_secret: Optional[str] = Field(default=None, repr=False)
     arcgis_client_id: Optional[str] = Field(default=None, repr=False)
     arcgis_client_secret: Optional[str] = Field(default=None, repr=False)
+    seequent_client_id: Optional[str] = Field(default=None, repr=False)
+    seequent_client_secret: Optional[str] = Field(default=None, repr=False)
 
     # Shared integration timeout/retry conventions.
     integration_connect_timeout_seconds: float = Field(default=5.0, gt=0)
@@ -473,6 +475,8 @@ class Settings(BaseSettings):
             "trimble_client_secret",
             "arcgis_client_id",
             "arcgis_client_secret",
+            "seequent_client_id",
+            "seequent_client_secret",
             "s3_access_key_id",
             "s3_secret_access_key",
             "azure_storage_connection_string",
@@ -830,6 +834,19 @@ class Settings(BaseSettings):
         }
         if self.gis_provider not in gis_providers:
             raise ValueError("GIS_PROVIDER must be none, fake, arcgis, or miteco")
+        asset_management_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "seequent",
+            "mine_enterprise",
+        }
+        if self.asset_management_provider not in asset_management_providers:
+            raise ValueError(
+                "ASSET_MANAGEMENT_PROVIDER must be none, null, fake, "
+                "deterministic, seequent, or mine_enterprise"
+            )
         if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection):
             raise ValueError("SATELLITE_DEFAULT_COLLECTION is invalid")
         asset_keys = self.satellite_download_asset_key_list
@@ -1058,6 +1075,10 @@ class Settings(BaseSettings):
                 )
             if self.gis_provider in {"fake", "deterministic"}:
                 raise ValueError("deployed environments cannot use the fake GIS provider")
+            if self.asset_management_provider in {"fake", "deterministic"}:
+                raise ValueError(
+                    "deployed environments cannot use the fake asset-management provider"
+                )
             if self.erp_provider == "odoo" and (
                 not self.odoo_webhook_secret or len(self.odoo_webhook_secret) < 32
             ):
@@ -1275,6 +1296,13 @@ class Settings(BaseSettings):
         )
 
     @property
+    def seequent_configuration_complete(self) -> bool:
+        return self._client_credentials_complete(
+            self.seequent_client_id,
+            self.seequent_client_secret,
+        )
+
+    @property
     def database_driver(self) -> str:
         scheme = urlsplit(self.database_url).scheme
         return scheme.split("+", 1)[0] if scheme else "unknown"
@@ -1391,6 +1419,7 @@ class Settings(BaseSettings):
                 "bentley_itwin": self.bentley_itwin_configuration_complete,
                 "trimble": self.trimble_configuration_complete,
                 "arcgis": self.arcgis_configuration_complete,
+                "seequent": self.seequent_configuration_complete,
                 "erpnext": bool(
                     self.erpnext_base_url
                     and self.erpnext_api_key

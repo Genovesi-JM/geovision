@@ -1,6 +1,14 @@
-"""Mining and quarry sector boundary."""
+"""Activated Mining and Quarry sector package."""
 
+from app.core.routing import RouterMount
 from app.sectors.contracts import SectorModule
+
+from .domain import SUPPORTED_ASSET_TYPES, SUPPORTED_DATASET_TYPES, register_mining
+from .reporting import register_mining_report_context
+
+
+register_mining()
+register_mining_report_context()
 
 definition = SectorModule(
     name="mining",
@@ -18,7 +26,26 @@ definition = SectorModule(
         "actions",
         "reports",
     ),
-    legacy_identifiers=("mining", "industry"),
+    legacy_identifiers=("mining", "quarry"),
+    enabled_by_default=True,
+    asset_types=tuple(sorted(SUPPORTED_ASSET_TYPES)),
+    dataset_types=tuple(sorted(SUPPORTED_DATASET_TYPES)),
+    routes=(
+        RouterMount(
+            "sector.mining",
+            "analytics",
+            "app.sectors.mining.router",
+            71,
+            secondary_owners=(
+                "actions",
+                "assets",
+                "datasets",
+                "missions",
+                "processing",
+                "reports",
+            ),
+        ),
+    ),
 )
 
-__all__ = ["definition"]
+__all__ = ["definition", "register_mining", "register_mining_report_context"]

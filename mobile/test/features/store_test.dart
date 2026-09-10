@@ -48,8 +48,15 @@ void main() {
       () {
     final products = DemoData.products();
     final sectors = products.expand((product) => product.sectors).toSet();
-    expect(sectors,
-        containsAll(['agro', 'construction', 'infrastructure', 'environment']));
+    expect(
+        sectors,
+        containsAll([
+          'agro',
+          'construction',
+          'infrastructure',
+          'environment',
+          'mining'
+        ]));
     expect(
         products.every((product) => product.description.length > 45), isTrue);
     expect(
@@ -94,6 +101,11 @@ void main() {
       'prod_env_sensor_installation',
       'prod_env_monitoring_plan',
       'prod_env_specialist_review',
+      'prod_mining_volumetry_survey',
+      'prod_mining_site_progress_survey',
+      'prod_mining_lidar_specialist_survey',
+      'prod_mining_environmental_monitoring',
+      'prod_mining_repeat_monitoring_plan',
       'prod_aerial_basic_mapping',
       'prod_agro_visual_inspection',
       'prod_supply_soil_probe',

@@ -204,8 +204,9 @@ MARITIME_PROVIDER=none
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
 `IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, `PROCESSING_PROVIDER`,
 `WEATHER_PROVIDER`, `SATELLITE_PROVIDER`, `IOT_CLOUD_PROVIDER`,
-`CONSTRUCTION_PROVIDER`, and `GIS_PROVIDER` drive provider boundaries. Queue
-delivery accepts `database`, test-only `in_memory`, `azure_service_bus`, or the
+`CONSTRUCTION_PROVIDER`, `GIS_PROVIDER`, and `ASSET_MANAGEMENT_PROVIDER` drive
+provider boundaries. Queue delivery accepts `database`, test-only `in_memory`,
+`azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
 Entra configuration at startup and control the external-token exchange boundary.
@@ -221,7 +222,15 @@ scaffold. Construction accepts `none`, local/test `fake`, `autodesk_aps`,
 the public official-data `miteco` adapter, or the unavailable `arcgis` scaffold.
 Every named construction vendor and ArcGIS remain explicit unavailable
 scaffolds; supplying credentials does not turn them into live connectors.
-Asset-management and maritime remain reserved seams.
+Asset management accepts `none`/`null`, local/test `fake`/`deterministic`,
+`seequent`, or `mine_enterprise`. Seequent and the generic mine-enterprise
+selection are explicit unavailable scaffolds: Seequent records only whether
+its credential pair is complete, while the generic selection has no invented
+authentication settings and remains unavailable until a concrete provider,
+customer sandbox,
+and Phase 32 registry exist. Both fake names are rejected in
+staging/production, including when selected through a factory override.
+Maritime remains a reserved seam.
 
 Optional enterprise OAuth application credentials are typed and redacted:
 
@@ -236,15 +245,21 @@ TRIMBLE_CLIENT_ID=
 TRIMBLE_CLIENT_SECRET=
 ARCGIS_CLIENT_ID=
 ARCGIS_CLIENT_SECRET=
+SEEQUENT_CLIENT_ID=
+SEEQUENT_CLIENT_SECRET=
 ```
 
 These pairs are future-adapter inputs, not evidence of authorization, tenant
 selection, project access, API entitlement, or production readiness. The
 factories retain only a credential-completeness boolean in unavailable
-scaffolds and never expose credential values. Provider project/model/layer IDs
-belong in `ExternalReference` values associated with authoritative GeoVision
-UUIDs; they are not configuration and never become primary IDs. No generic
-provider registry is created in this phase.
+scaffolds and never expose credential values. Provider
+project/model/layer/asset references belong in `ExternalReference` values
+associated with authoritative GeoVision UUIDs; they are not configuration and
+never become primary IDs. Bentley iTwin stays behind `ConstructionProvider`,
+Bentley Reality Modeling behind `ProcessingProvider`, and ArcGIS/MITECO behind
+`GISProvider`; the asset-management factory does not duplicate them. No generic
+provider registry or persistent external-reference table is created in this
+phase.
 
 In addition to the signing and encryption guards, identity, processing,
 satellite and weather selector structure is validated when settings load;

@@ -124,7 +124,8 @@ backfill can be considered after those ownership boundaries are established.
 | Notifications | `NotificationProvider`, `ExternalDeliveryProvider` | Contextual inbox and provider-pinned delivery rows are durable; SMTP, Azure Notification Hubs, ID-only local and unavailable adapters are selected lazily by an independent worker; live SMTP/APNs/FCM requires Gate 16 |
 | Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
-| GIS and asset management | `GISProvider`, `AssetManagementProvider` | A bounded public MITECO OGC API Features adapter and local contract fake implement `GISProvider`; ArcGIS remains a fail-closed scaffold and asset management remains a placeholder |
+| GIS | `GISProvider` | A bounded public MITECO OGC API Features adapter and local contract fake implement the port; ArcGIS remains a fail-closed scaffold |
+| Asset management | `AssetManagementProvider` | Typed and mapping-compatible synchronization requests use a required idempotency key; Seequent and generic mine-enterprise selections remain fail-closed scaffolds, with a deterministic local/test contract fake |
 | Construction systems | `ConstructionProvider` | Autodesk APS, Procore, Bentley iTwin, and Trimble have fail-closed scaffolds plus a local contract fake |
 | Maritime systems | `MaritimeProvider` | Placeholder port only |
 
@@ -213,6 +214,41 @@ and AEMET weather acquisition remain in their existing adapters and factories;
 the MITECO implementation does not duplicate or proxy either client. Outside
 Spain, MITECO returns a coverage mismatch while global providers can continue
 independently.
+
+### Mining asset-management scaffolds
+
+`AssetManagementProvider` is a narrow cross-sector synchronization seam; it is
+not a mining model, volume calculator, geology engine, safety assessment, or
+system of record. `AssetSynchronizationRequest` keeps the authoritative
+GeoVision UUID separate from an optional opaque provider reference. Writes
+require a keyword-only idempotency key, and the receipt carries explicit
+`measurements_authoritative=false`, `diagnostic_authority=false`, and
+`context_only=true` limits. Legacy mapping requests remain accepted while new
+composition code can use the typed request and receipt.
+
+`ASSET_MANAGEMENT_PROVIDER` accepts `none`/`null`, local/test-only
+`fake`/`deterministic`, `seequent`, or `mine_enterprise`. The deterministic fake
+performs no network I/O and produces the same opaque external reference for the
+same GeoVision UUID, asset kind, and idempotency key. It ignores caller-supplied
+provider references and metadata when producing the receipt, so fixtures cannot
+be mistaken for operational measurements or decisions. Both fake aliases fail
+closed in staging and production, even when passed as a factory override.
+
+Seequent is a named unavailable scaffold. `SEEQUENT_CLIENT_ID` and
+`SEEQUENT_CLIENT_SECRET` are typed, redacted inputs used only to report whether
+the pair is complete; missing credentials yield `provider_not_configured`, and
+a complete pair still yields `adapter_unavailable`. The scaffold imports no
+vendor SDK and performs no request. `mine_enterprise` is always unavailable
+until Phase 32 supplies a persistent provider registry, a concrete customer
+selection, an approved sandbox, and a reviewed authentication contract; this
+phase deliberately invents no generic credential or endpoint settings.
+
+Existing capability boundaries remain authoritative: Bentley iTwin project
+synchronization stays behind `ConstructionProvider`, Bentley Reality Modeling
+stays behind `ProcessingProvider`, and ArcGIS plus MITECO stay behind
+`GISProvider`. The asset-management factory rejects those provider names rather
+than duplicating their clients or implying interchangeable capabilities. No
+database migration or generic external-reference table is introduced.
 
 ### ERP
 

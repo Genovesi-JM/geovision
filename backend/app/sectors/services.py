@@ -11,12 +11,14 @@ from app.sectors.environmental.services import (
 from app.sectors.infrastructure.services import (
     sync_kpi_definitions as sync_infrastructure_kpis,
 )
+from app.sectors.mining.services import sync_kpi_definitions as sync_mining_kpis
 
 
 def sync_enabled_sector_definitions(db: Session) -> None:
     sync_agriculture_kpis(db)
     sync_infrastructure_kpis(db)
     sync_environmental_kpis(db)
+    sync_mining_kpis(db)
     db.commit()
 
 

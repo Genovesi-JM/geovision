@@ -187,6 +187,59 @@ def test_environmental_catalogue_exposes_the_six_supported_actions(client):
     assert expected.keys() <= {item["id"] for item in forest_response.json()}
 
 
+def test_mining_catalogue_exposes_quality_gated_services(client):
+    response = client.get("/catalog/items", params={"sector": "mining"})
+    assert response.status_code == 200, response.text
+    items = {item["id"]: item for item in response.json()}
+
+    expected = {
+        "prod_mining_volumetry_survey": "SERVICE",
+        "prod_mining_site_progress_survey": "SERVICE",
+        "prod_mining_lidar_specialist_survey": "SERVICE",
+        "prod_mining_environmental_monitoring": "MONITORING_PLAN",
+        "prod_mining_repeat_monitoring_plan": "MONITORING_PLAN",
+    }
+    asset_types = {
+        "ENVIRONMENTAL_MONITORING_ZONE",
+        "HAUL_ROAD",
+        "MINE_SITE",
+        "PIT",
+        "QUARRY",
+        "SLOPE",
+        "STOCKPILE_ZONE",
+        "TALUS",
+    }
+    assert expected.keys() <= items.keys()
+    for item_id, item_type in expected.items():
+        item = items[item_id]
+        assert item["item_type"] == item_type
+        assert item["sectors"] == ["MINING"]
+        assert set(item["asset_types"]) == asset_types
+        assert item["deliverables"]
+        assert "supplier_id" not in item
+        assert "metadata" not in item
+        assert set(item["translations"]) == {"pt", "en", "es", "fr"}
+        assert all(
+            translation["name"] and translation["description"]
+            for translation in item["translations"].values()
+        )
+
+    volumetry = items["prod_mining_volumetry_survey"]["description"]
+    assert "project tolerances" in volumetry
+    assert "LiDAR is not required" in volumetry
+    progress = items["prod_mining_site_progress_survey"]["description"]
+    assert "not an ore, reserve, or geotechnical conclusion" in progress
+    environmental = items["prod_mining_environmental_monitoring"]["description"]
+    assert "does not automatically determine" in environmental
+
+    stockpile_response = client.get(
+        "/catalog/items",
+        params={"sector": "mining", "asset_type": "stockpile_zone"},
+    )
+    assert stockpile_response.status_code == 200, stockpile_response.text
+    assert expected.keys() <= {item["id"] for item in stockpile_response.json()}
+
+
 def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
     headers = _login_headers(client, "teste@admin.com")
     suffix = uuid.uuid4().hex[:8]

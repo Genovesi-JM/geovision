@@ -92,6 +92,16 @@ _ENVIRONMENTAL_SERVICE_ASSET_TYPES = (
     "WATER_BODY",
     "WETLAND",
 )
+_MINING_SERVICE_ASSET_TYPES = (
+    "ENVIRONMENTAL_MONITORING_ZONE",
+    "HAUL_ROAD",
+    "MINE_SITE",
+    "PIT",
+    "QUARRY",
+    "SLOPE",
+    "STOCKPILE_ZONE",
+    "TALUS",
+)
 _LEGACY_PRODUCT_ASSET_TYPES = {
     product_id: _INFRASTRUCTURE_SERVICE_ASSET_TYPES
     for product_id in (
@@ -113,6 +123,18 @@ _LEGACY_PRODUCT_ASSET_TYPES.update(
             "prod_env_sensor_installation",
             "prod_env_monitoring_plan",
             "prod_env_specialist_review",
+        )
+    }
+)
+_LEGACY_PRODUCT_ASSET_TYPES.update(
+    {
+        product_id: _MINING_SERVICE_ASSET_TYPES
+        for product_id in (
+            "prod_mining_volumetry_survey",
+            "prod_mining_site_progress_survey",
+            "prod_mining_lidar_specialist_survey",
+            "prod_mining_environmental_monitoring",
+            "prod_mining_repeat_monitoring_plan",
         )
     }
 )

@@ -32,7 +32,9 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_29_OPENAPI_SHA256 = "4a9a986c0e277ce1e84ed7843ad87a94ce8b9966ee74195ab8922193dd2a8322"
+PHASE_30_OPENAPI_SHA256 = (
+    "15fa5d7305bdc5bea01a78dac9dbeb1ba09e2883768bc123f0fe3004c932654b"
+)
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
 DEPLOYED_BACKEND_BASE = "https://api.geovisionops.com"
@@ -432,7 +434,9 @@ def test_storage_service_accepts_fake_without_importing_s3_sdk():
     assert isinstance(provider, ObjectStorageProvider)
     service = StorageService(provider)
 
-    uploaded = service.upload_file(BytesIO(b"geovision"), "datasets/internal-uuid/item.tif")
+    uploaded = service.upload_file(
+        BytesIO(b"geovision"), "datasets/internal-uuid/item.tif"
+    )
 
     assert uploaded[0] == "datasets/internal-uuid/item.tif"
     assert uploaded[1] == len(b"geovision")
@@ -553,7 +557,9 @@ def test_erp_sync_processes_legacy_failed_rows_and_respects_queued_provider(db_s
     assert queued_for_other_provider.provider == "other_erp"
 
 
-def test_erp_sync_schedules_retryable_failures_without_immediate_reprocessing(db_session):
+def test_erp_sync_schedules_retryable_failures_without_immediate_reprocessing(
+    db_session,
+):
     db_session.query(IntegrationOutbox).delete()
     db_session.commit()
     event = enqueue_erp_event(
@@ -621,9 +627,12 @@ def test_erpnext_classifies_http_and_timeout_failures(monkeypatch):
         (500, IntegrationUnavailableError, True),
     )
     for status_code, error_type, retryable in cases:
+
         def raise_http_error(request, timeout, code=status_code):
             del timeout
-            raise HTTPError(request.full_url, code, "provider response", Message(), None)
+            raise HTTPError(
+                request.full_url, code, "provider response", Message(), None
+            )
 
         monkeypatch.setattr(erpnext, "urlopen", raise_http_error)
         with pytest.raises(error_type) as caught:
@@ -694,7 +703,9 @@ def test_erp_routes_report_safe_configuration_failures(monkeypatch, db_session):
     assert secret not in str(unavailable.value.detail)
 
 
-def test_payment_orchestrator_accepts_fake_without_importing_gateway_clients(db_session):
+def test_payment_orchestrator_accepts_fake_without_importing_gateway_clients(
+    db_session,
+):
     adapters_were_loaded = "app.integrations.payments.adapters" in sys.modules
     from app.integrations.payments.normalized import as_billing_payment_provider
     from app.models import Payment
@@ -793,9 +804,7 @@ def test_payment_orchestrator_accepts_fake_without_importing_gateway_clients(db_
     )
     assert normalized_result.status is IntegrationStatus.ACCEPTED
     assert normalized_result.value["provider_reference"] == "external-payment-42"
-    assert (
-        "app.integrations.payments.adapters" in sys.modules
-    ) is adapters_were_loaded
+    assert ("app.integrations.payments.adapters" in sys.modules) is adapters_were_loaded
 
 
 def test_normalized_payment_preserves_retryable_provider_unavailable():
@@ -959,7 +968,9 @@ def test_payment_boundaries_fail_closed_without_exposing_adapter_errors(db_sessi
     db_session.add_all([pending_row, completed_row])
     db_session.commit()
 
-    assert asyncio.run(orchestrator.check_status(pending_row.id)) is PaymentStatus.PENDING
+    assert (
+        asyncio.run(orchestrator.check_status(pending_row.id)) is PaymentStatus.PENDING
+    )
     refund = asyncio.run(orchestrator.refund(completed_row.id))
     assert refund.success is False
     assert refund.error_message == "Payment provider is unavailable"
@@ -1005,9 +1016,7 @@ def test_legacy_service_exports_remain_lazy_and_compatible():
         )
     )
     assert ("app.integrations.storage.s3" in sys.modules) is s3_was_loaded
-    assert (
-        "app.integrations.payments.adapters" in sys.modules
-    ) is adapters_were_loaded
+    assert ("app.integrations.payments.adapters" in sys.modules) is adapters_were_loaded
 
 
 def test_s3_provider_uses_shared_timeout_and_attempt_conventions(monkeypatch):
@@ -1073,7 +1082,11 @@ def test_s3_provider_normalizes_unexpected_upload_exceptions():
 
 def test_s3_provider_classifies_sdk_failures_and_hides_constructor_errors(monkeypatch):
     from boto3.exceptions import S3UploadFailedError
-    from botocore.exceptions import ClientError, NoCredentialsError, ParamValidationError
+    from botocore.exceptions import (
+        ClientError,
+        NoCredentialsError,
+        ParamValidationError,
+    )
 
     from app.core.integration import IntegrationUnavailableError
     from app.integrations.storage import s3 as s3_module
@@ -1352,10 +1365,10 @@ def test_deployed_credential_writes_never_fall_back_to_plaintext(monkeypatch):
     assert sentinel not in str(unavailable.value)
 
 
-def test_phase_29_openapi_contract_is_byte_stable(client):
+def test_phase_30_openapi_contract_is_byte_stable(client):
     payload = json.dumps(
         client.app.openapi(),
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_29_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_30_OPENAPI_SHA256
