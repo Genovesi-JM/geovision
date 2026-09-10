@@ -80,6 +80,18 @@ _INFRASTRUCTURE_SERVICE_ASSET_TYPES = (
     "SITE",
     "STRUCTURE",
 )
+_ENVIRONMENTAL_SERVICE_ASSET_TYPES = (
+    "COASTAL_AREA",
+    "ENVIRONMENTAL_SITE",
+    "FOREST",
+    "HABITAT",
+    "LAND_PARCEL",
+    "PROTECTED_AREA",
+    "RESTORATION_SITE",
+    "SITE",
+    "WATER_BODY",
+    "WETLAND",
+)
 _LEGACY_PRODUCT_ASSET_TYPES = {
     product_id: _INFRASTRUCTURE_SERVICE_ASSET_TYPES
     for product_id in (
@@ -91,6 +103,19 @@ _LEGACY_PRODUCT_ASSET_TYPES = {
         "prod_infra_monitoring_plan",
     )
 }
+_LEGACY_PRODUCT_ASSET_TYPES.update(
+    {
+        product_id: _ENVIRONMENTAL_SERVICE_ASSET_TYPES
+        for product_id in (
+            "prod_env_environmental_survey",
+            "prod_env_reforestation_monitoring",
+            "prod_env_targeted_drone_verification",
+            "prod_env_sensor_installation",
+            "prod_env_monitoring_plan",
+            "prod_env_specialist_review",
+        )
+    }
+)
 
 
 def _identifier(value: object, default: str) -> str:

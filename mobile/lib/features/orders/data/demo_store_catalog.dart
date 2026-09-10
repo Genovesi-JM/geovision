@@ -217,6 +217,219 @@ abstract final class DemoStoreCatalog {
       },
     ),
     GvProduct(
+      id: 'prod_env_environmental_survey',
+      name: 'Levantamento de Evidências Ambientais',
+      category: 'service',
+      priceCents: 57800,
+      priceAkzCents: 48000000,
+      priceEurCents: 53300,
+      currency: 'USD',
+      featured: true,
+      sectors: ['environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Levantamento multifuente de condições observadas e possíveis mudanças, sem atribuir causas ou emitir conclusões regulamentares.',
+      deliverables: [
+        'Mapa ambiental ligado às fontes',
+        'Registo de condições observadas',
+        'Relatório ligado às evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Environmental Evidence Survey',
+          'description':
+              'Multi-source survey of observed conditions and possible change without assigning causes or making regulatory conclusions.'
+        },
+        'es': {
+          'name': 'Levantamiento de Evidencias Ambientales',
+          'description':
+              'Levantamiento multifuente de condiciones observadas y posibles cambios, sin atribuir causas ni emitir conclusiones regulatorias.'
+        },
+        'fr': {
+          'name': 'Relevé de preuves environnementales',
+          'description':
+              'Relevé multisource des conditions observées et des changements possibles, sans attribuer de cause ni tirer de conclusion réglementaire.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_env_reforestation_monitoring',
+      name: 'Monitorização da Reflorestação',
+      category: 'subscription',
+      priceCents: 62700,
+      priceAkzCents: 52000000,
+      priceEurCents: 57800,
+      currency: 'USD',
+      featured: true,
+      sectors: ['environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Observações repetidas por satélite e drone para tendências de vegetação e restauração sustentadas por fontes, sem diagnóstico automático da causa.',
+      deliverables: [
+        'Comparação multitemporal da vegetação',
+        'Histórico de observações da restauração',
+        'Relatório recorrente com evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Reforestation Monitoring',
+          'description':
+              'Repeat satellite and drone observations for source-backed vegetation and restoration trends without automatic cause diagnosis.'
+        },
+        'es': {
+          'name': 'Monitorización de la Reforestación',
+          'description':
+              'Observaciones repetidas por satélite y dron para tendencias de vegetación y restauración respaldadas por fuentes, sin diagnóstico automático de la causa.'
+        },
+        'fr': {
+          'name': 'Suivi du reboisement',
+          'description':
+              'Observations répétées par satellite et drone des tendances de végétation et de restauration, avec sources et sans diagnostic automatique de la cause.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_env_targeted_drone_verification',
+      name: 'Verificação Ambiental Direcionada por Drone',
+      category: 'service',
+      priceCents: 43400,
+      priceAkzCents: 36000000,
+      priceEurCents: 40000,
+      currency: 'USD',
+      sectors: ['environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Evidências aéreas de maior resolução numa área sinalizada por satélite, para revisão especializada e sem confirmação automática da causa.',
+      deliverables: [
+        'Imagens georreferenciadas direcionadas',
+        'Registo da área sinalizada',
+        'Pacote de evidências de verificação'
+      ],
+      translations: {
+        'en': {
+          'name': 'Targeted Drone Verification',
+          'description':
+              'Higher-resolution aerial evidence for a satellite-flagged area, for specialist review without automatically confirming a cause.'
+        },
+        'es': {
+          'name': 'Verificación Ambiental Dirigida con Dron',
+          'description':
+              'Evidencia aérea de mayor resolución para un área señalada por satélite, destinada a revisión especializada sin confirmar automáticamente una causa.'
+        },
+        'fr': {
+          'name': 'Vérification environnementale ciblée par drone',
+          'description':
+              'Preuves aériennes de meilleure résolution pour une zone signalée par satellite, destinées à un examen spécialisé sans confirmer automatiquement une cause.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_env_sensor_installation',
+      name: 'Instalação de Sensores Ambientais',
+      category: 'service',
+      priceCents: 35000,
+      priceAkzCents: 29000000,
+      priceEurCents: 32200,
+      currency: 'USD',
+      sectors: ['environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Instalação e colocação em serviço específicas do local, sujeitas à validação do equipamento, localização, calibração e conectividade.',
+      deliverables: [
+        'Registo de instalação e localização',
+        'Controlos de colocação em serviço',
+        'Notas de proveniência e manutenção'
+      ],
+      translations: {
+        'en': {
+          'name': 'Environmental Sensor Installation',
+          'description':
+              'Site-specific installation and commissioning subject to validation of equipment, placement, calibration, and connectivity.'
+        },
+        'es': {
+          'name': 'Instalación de Sensores Ambientales',
+          'description':
+              'Instalación y puesta en servicio específicas del sitio, sujetas a la validación del equipo, la ubicación, la calibración y la conectividad.'
+        },
+        'fr': {
+          'name': 'Installation de capteurs environnementaux',
+          'description':
+              'Installation et mise en service propres au site, sous réserve de validation du matériel, du positionnement, de l’étalonnage et de la connectivité.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_env_monitoring_plan',
+      name: 'Plano de Monitorização Ambiental',
+      category: 'subscription',
+      priceCents: 54200,
+      priceAkzCents: 45000000,
+      priceEurCents: 50000,
+      currency: 'USD',
+      featured: true,
+      sectors: ['environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Plano recorrente de observações por satélite, campo, sensores ou drone, com controlos de qualidade e relatórios rastreáveis.',
+      deliverables: [
+        'Cadência e plano de fontes',
+        'Histórico de observações com qualidade controlada',
+        'Relatório recorrente com evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Environmental Monitoring Plan',
+          'description':
+              'Recurring satellite, field, sensor, or drone observation plan with quality checks and traceable reports.'
+        },
+        'es': {
+          'name': 'Plan de Monitorización Ambiental',
+          'description':
+              'Plan recurrente de observaciones por satélite, campo, sensores o dron, con controles de calidad e informes trazables.'
+        },
+        'fr': {
+          'name': 'Plan de suivi environnemental',
+          'description':
+              'Plan récurrent d’observations par satellite, sur le terrain, par capteurs ou par drone, avec contrôles qualité et rapports traçables.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_env_specialist_review',
+      name: 'Revisão por Especialista Ambiental',
+      category: 'service',
+      priceCents: 24100,
+      priceAkzCents: 20000000,
+      priceEurCents: 22200,
+      currency: 'USD',
+      sectors: ['environment'],
+      image: 'assets/images/store/environmental-monitoring.jpg',
+      description:
+          'Revisão qualificada de evidências e possíveis mudanças, preservando as observações, incertezas, proveniência e limitações originais.',
+      deliverables: [
+        'Registo da revisão de evidências',
+        'Notas de interpretação especializada',
+        'Decisão de seguimento documentada'
+      ],
+      translations: {
+        'en': {
+          'name': 'Environmental Specialist Review',
+          'description':
+              'Qualified review of evidence and possible change while preserving original observations, uncertainty, provenance, and limitations.'
+        },
+        'es': {
+          'name': 'Revisión por Especialista Ambiental',
+          'description':
+              'Revisión cualificada de evidencias y posibles cambios que conserva las observaciones, la incertidumbre, la procedencia y las limitaciones originales.'
+        },
+        'fr': {
+          'name': 'Examen par un spécialiste environnemental',
+          'description':
+              'Examen qualifié des preuves et changements possibles, préservant les observations, l’incertitude, la provenance et les limites d’origine.'
+        },
+      },
+    ),
+    GvProduct(
       id: 'prod_aerial_basic_mapping',
       name: 'Mapeamento Aéreo Essencial',
       category: 'service',

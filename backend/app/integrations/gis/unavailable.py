@@ -10,6 +10,7 @@ from app.core.integration import (
     IntegrationStatus,
     TimeoutPolicy,
 )
+from app.modules.assets.ports import GISLayerQuery, GISLayerResult
 
 
 class UnavailableGISProvider:
@@ -34,8 +35,8 @@ class UnavailableGISProvider:
 
     def query_layers(
         self,
-        request: Mapping[str, Any],
-    ) -> IntegrationResult[Mapping[str, Any]]:
+        request: GISLayerQuery | Mapping[str, Any],
+    ) -> IntegrationResult[GISLayerResult | Mapping[str, Any]]:
         del request
         return IntegrationResult.failed(
             provider=self.provider_name,

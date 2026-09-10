@@ -218,9 +218,10 @@ scaffolds until their adapters are implemented and approved. Satellite accepts
 `fake`, or `aemet`; Azure Maps provider names resolve to an explicit unavailable
 scaffold. Construction accepts `none`, local/test `fake`, `autodesk_aps`,
 `procore`, `bentley_itwin`, or `trimble`. GIS accepts `none`, local/test `fake`,
-or `arcgis`. Every named construction/GIS vendor is an explicit unavailable
-scaffold in Phase 28; supplying credentials does not turn it into a live
-connector. Asset-management and maritime remain reserved seams.
+the public official-data `miteco` adapter, or the unavailable `arcgis` scaffold.
+Every named construction vendor and ArcGIS remain explicit unavailable
+scaffolds; supplying credentials does not turn them into live connectors.
+Asset-management and maritime remain reserved seams.
 
 Optional enterprise OAuth application credentials are typed and redacted:
 
@@ -297,6 +298,42 @@ redacted `COPERNICUS_ACCESS_TOKEN`. Downloads are disabled by default and
 restricted to the configured HTTPS host allowlist and maximum size. Run the
 live activation gate before enabling either provider in production. See
 [`docs/SATELLITE_WEATHER_INTELLIGENCE.md`](../docs/SATELLITE_WEATHER_INTELLIGENCE.md).
+
+## MITECO official GIS context
+
+```dotenv
+GIS_PROVIDER=none
+MITECO_OGC_FEATURES_BASE_URL=https://gis.miteco.gob.es/geoserver/ogc/features/v1
+MITECO_GIS_MAX_FEATURES=100
+MITECO_GIS_MAX_RESPONSE_BYTES=2097152
+```
+
+Set `GIS_PROVIDER=miteco` to enable bounded queries against the reviewed public
+MITECO OGC API Features service. The base URL is deliberately pinned to the
+official HTTPS origin and path; startup rejects alternate hosts, paths,
+userinfo, query strings, fragments, and plaintext HTTP. Collection identifiers
+are not free-form configuration. They are reviewed, provider-owned references
+in `app/integrations/gis/miteco_catalog.py` and remain associated with an
+authoritative GeoVision UUID.
+
+Requests require an `OGC:CRS84` bounding box that intersects Spain and are
+bounded by both feature count and decoded response bytes. Redirects, unexpected
+content types or CRS values, excessive JSON complexity, malformed GeoJSON, and
+provider count mismatches fail closed. Safe GET retries use the shared
+integration policy only for timeouts, transport failures, rate limiting and
+server failures. MITECO publishes no availability guarantee, so readiness does
+not claim the remote service is healthy and CI uses mocked contracts rather than
+live calls.
+
+MITECO results are official source context, not a diagnosis, causal finding, or
+authoritative GeoVision measurement. Preserve each result's source URL,
+collection, fetch/provider timestamps, CRS, reuse conditions, and exact
+attribution: `Origen de los datos: Ministerio para la Transición ecológica y el
+Reto Demográfico`. The reuse conditions also prohibit implying MITECO
+endorsement. The adapter does not call the MITECO catalogue on the request path.
+Satellite scenes and weather observations continue to use the existing
+Copernicus and AEMET providers; do not construct duplicate clients in an
+environmental module.
 
 ## Photogrammetry processing
 

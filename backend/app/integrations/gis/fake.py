@@ -11,6 +11,7 @@ from app.core.integration import (
     IntegrationStatus,
 )
 from app.core.references import ExternalReference
+from app.modules.assets.ports import GISLayerQuery, GISLayerResult
 
 
 class FakeGISProvider:
@@ -21,11 +22,16 @@ class FakeGISProvider:
 
     def query_layers(
         self,
-        request: Mapping[str, Any],
-    ) -> IntegrationResult[Mapping[str, Any]]:
+        request: GISLayerQuery | Mapping[str, Any],
+    ) -> IntegrationResult[GISLayerResult | Mapping[str, Any]]:
         operation = "query_layers"
         try:
-            internal_id = uuid.UUID(str(request["internal_id"]))
+            raw_internal_id = (
+                request.internal_id
+                if isinstance(request, GISLayerQuery)
+                else request["internal_id"]
+            )
+            internal_id = uuid.UUID(str(raw_internal_id))
         except (KeyError, TypeError, ValueError):
             return IntegrationResult.failed(
                 provider=self.provider_name,

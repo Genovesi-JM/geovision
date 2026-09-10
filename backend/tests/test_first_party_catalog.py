@@ -129,6 +129,64 @@ def test_infrastructure_catalogue_exposes_the_six_supported_actions(client):
     assert expected.keys() <= {item["id"] for item in road_response.json()}
 
 
+def test_environmental_catalogue_exposes_the_six_supported_actions(client):
+    response = client.get("/catalog/items", params={"sector": "environmental"})
+    assert response.status_code == 200, response.text
+    items = {item["id"]: item for item in response.json()}
+
+    expected = {
+        "prod_env_environmental_survey": "SERVICE",
+        "prod_env_reforestation_monitoring": "MONITORING_PLAN",
+        "prod_env_targeted_drone_verification": "SERVICE",
+        "prod_env_sensor_installation": "INSTALLATION",
+        "prod_env_monitoring_plan": "MONITORING_PLAN",
+        "prod_env_specialist_review": "SERVICE",
+    }
+    asset_types = {
+        "COASTAL_AREA",
+        "ENVIRONMENTAL_SITE",
+        "FOREST",
+        "HABITAT",
+        "LAND_PARCEL",
+        "PROTECTED_AREA",
+        "RESTORATION_SITE",
+        "SITE",
+        "WATER_BODY",
+        "WETLAND",
+    }
+    assert expected.keys() <= items.keys()
+    for item_id, item_type in expected.items():
+        item = items[item_id]
+        assert item["item_type"] == item_type
+        assert item["sectors"] == ["ENVIRONMENTAL"]
+        assert set(item["asset_types"]) == asset_types
+        assert item["deliverables"]
+        assert "supplier_id" not in item
+        assert "metadata" not in item
+        assert set(item["translations"]) == {"pt", "en", "es", "fr"}
+        assert all(
+            translation["name"] and translation["description"]
+            for translation in item["translations"].values()
+        )
+
+    assert "without assigning" in items["prod_env_environmental_survey"][
+        "description"
+    ]
+    assert "do not diagnose" in items["prod_env_reforestation_monitoring"][
+        "description"
+    ]
+    assert "does not confirm a cause automatically" in items[
+        "prod_env_targeted_drone_verification"
+    ]["description"]
+
+    forest_response = client.get(
+        "/catalog/items",
+        params={"sector": "environmental", "asset_type": "forest"},
+    )
+    assert forest_response.status_code == 200, forest_response.text
+    assert expected.keys() <= {item["id"] for item in forest_response.json()}
+
+
 def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
     headers = _login_headers(client, "teste@admin.com")
     suffix = uuid.uuid4().hex[:8]

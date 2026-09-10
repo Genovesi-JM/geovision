@@ -1,15 +1,60 @@
 """External-system ports owned by the assets domain."""
 
+from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import Any, Mapping, Protocol, runtime_checkable
+from uuid import UUID
 
 from app.core.integration import IntegrationResult
+
+
+@dataclass(frozen=True, slots=True)
+class GISLayerQuery:
+    """Bounded spatial query tied to an authoritative GeoVision resource."""
+
+    internal_id: UUID
+    collection_key: str
+    bbox: tuple[float, float, float, float]
+    limit: int = 25
+    crs: str = "OGC:CRS84"
+
+
+@dataclass(frozen=True, slots=True)
+class GISFeatureDescriptor:
+    """Provider feature retained as context, never as a GeoVision identity."""
+
+    provider_reference: str
+    geometry: Mapping[str, Any] | None
+    properties: Mapping[str, Any]
+    bbox: tuple[float, ...]
+    provenance: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class GISLayerResult:
+    """Normalized GIS context with explicit authority limitations."""
+
+    collection_key: str
+    provider_collection_id: str
+    title: str
+    features: tuple[GISFeatureDescriptor, ...]
+    bbox: tuple[float, float, float, float]
+    crs: str
+    provenance: Mapping[str, Any]
+    measurements_authoritative: bool = False
+    diagnostic_authority: bool = False
+    context_only: bool = True
 
 
 @runtime_checkable
 class GISProvider(Protocol):
     provider_name: str
 
-    def query_layers(self, request: Mapping[str, Any]) -> IntegrationResult[Mapping[str, Any]]: ...
+    def query_layers(
+        self,
+        request: GISLayerQuery | Mapping[str, Any],
+    ) -> IntegrationResult[GISLayerResult | Mapping[str, Any]]: ...
 
 
 @runtime_checkable
@@ -22,4 +67,10 @@ class AssetManagementProvider(Protocol):
     ) -> IntegrationResult[Mapping[str, Any]]: ...
 
 
-__all__ = ["AssetManagementProvider", "GISProvider"]
+__all__ = [
+    "AssetManagementProvider",
+    "GISFeatureDescriptor",
+    "GISLayerQuery",
+    "GISLayerResult",
+    "GISProvider",
+]

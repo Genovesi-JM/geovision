@@ -54,6 +54,7 @@ _URL_FIELDS = frozenset(
         "nodeodm_base_url",
         "copernicus_stac_base_url",
         "aemet_base_url",
+        "miteco_ogc_features_base_url",
     }
 )
 
@@ -252,6 +253,15 @@ class Settings(BaseSettings):
     aemet_api_key: Optional[str] = Field(default=None, repr=False)
     aemet_max_station_distance_km: float = Field(default=150.0, gt=0, le=1000)
     gis_provider: str = "none"
+    miteco_ogc_features_base_url: str = (
+        "https://gis.miteco.gob.es/geoserver/ogc/features/v1"
+    )
+    miteco_gis_max_features: int = Field(default=100, ge=1, le=100)
+    miteco_gis_max_response_bytes: int = Field(
+        default=2 * 1024 * 1024,
+        ge=1024,
+        le=16 * 1024 * 1024,
+    )
     construction_provider: str = "none"
     asset_management_provider: str = "none"
     maritime_provider: str = "none"
@@ -810,9 +820,16 @@ class Settings(BaseSettings):
                 "CONSTRUCTION_PROVIDER must be none, fake, autodesk_aps, procore, "
                 "bentley_itwin, or trimble"
             )
-        gis_providers = {"none", "null", "fake", "deterministic", "arcgis"}
+        gis_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "arcgis",
+            "miteco",
+        }
         if self.gis_provider not in gis_providers:
-            raise ValueError("GIS_PROVIDER must be none, fake, or arcgis")
+            raise ValueError("GIS_PROVIDER must be none, fake, arcgis, or miteco")
         if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection):
             raise ValueError("SATELLITE_DEFAULT_COLLECTION is invalid")
         asset_keys = self.satellite_download_asset_key_list
@@ -850,6 +867,25 @@ class Settings(BaseSettings):
                 )
         self.copernicus_stac_base_url = self.copernicus_stac_base_url.rstrip("/")
         self.aemet_base_url = self.aemet_base_url.rstrip("/")
+        parsed_miteco = urlsplit(self.miteco_ogc_features_base_url)
+        if (
+            parsed_miteco.scheme.lower() != "https"
+            or parsed_miteco.hostname != "gis.miteco.gob.es"
+            or parsed_miteco.port not in {None, 443}
+            or parsed_miteco.username
+            or parsed_miteco.password
+            or parsed_miteco.query
+            or parsed_miteco.fragment
+            or parsed_miteco.path.rstrip("/")
+            != "/geoserver/ogc/features/v1"
+        ):
+            raise ValueError(
+                "MITECO_OGC_FEATURES_BASE_URL must use the reviewed official "
+                "HTTPS origin and path"
+            )
+        self.miteco_ogc_features_base_url = (
+            "https://gis.miteco.gob.es/geoserver/ogc/features/v1"
+        )
         if not self.event_topic.strip() or not self.service_bus_topic.strip():
             raise ValueError("event and Service Bus topic names must not be empty")
         if not self.service_bus_subscription.strip():
@@ -1349,6 +1385,7 @@ class Settings(BaseSettings):
                     self.weather_provider in {"aemet", "aemet_opendata"}
                     and self.aemet_api_key
                 ),
+                "miteco": self.gis_provider == "miteco",
                 "autodesk_aps": self.autodesk_aps_configuration_complete,
                 "procore": self.procore_configuration_complete,
                 "bentley_itwin": self.bentley_itwin_configuration_complete,

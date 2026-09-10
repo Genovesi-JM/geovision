@@ -12,7 +12,7 @@ test.describe('GeoVision first-party catalogue', () => {
   });
 
   test('renders only the active catalogue and localizes dynamic product copy', async ({ page }) => {
-    await expect(page.locator('.loja-card')).toHaveCount(24);
+    await expect(page.locator('.loja-card')).toHaveCount(30);
     // Energy & Power Monitor is a supported Home product (shown as "GV Power").
     await expect(page.getByText('Pulverização de Precisão')).toHaveCount(0);
 
@@ -21,6 +21,8 @@ test.describe('GeoVision first-party catalogue', () => {
     await expect(page.getByRole('heading', { name: 'Essential Aerial Mapping' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Infrastructure Progress Survey' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Infrastructure Monitoring Plan' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Environmental Evidence Survey' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Targeted Drone Verification' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Add');
     await expect(page.locator('.deliverables-preview').first())
       .toContainText('Mapped visual evidence');
@@ -30,6 +32,7 @@ test.describe('GeoVision first-party catalogue', () => {
     await page.getByRole('button', { name: 'ES', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Cartografía Aérea Esencial' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Cartografía 3D de Infraestructura' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Plan de Monitorización Ambiental' })).toBeVisible();
     await expect(page.locator('.btn-add').first()).toHaveText('Añadir');
   });
 

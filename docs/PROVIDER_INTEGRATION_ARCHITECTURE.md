@@ -124,7 +124,7 @@ backfill can be considered after those ownership boundaries are established.
 | Notifications | `NotificationProvider`, `ExternalDeliveryProvider` | Contextual inbox and provider-pinned delivery rows are durable; SMTP, Azure Notification Hubs, ID-only local and unavailable adapters are selected lazily by an independent worker; live SMTP/APNs/FCM requires Gate 16 |
 | Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
-| GIS and asset management | `GISProvider`, `AssetManagementProvider` | ArcGIS has a fail-closed scaffold and local contract fake behind `GISProvider`; asset management remains a placeholder |
+| GIS and asset management | `GISProvider`, `AssetManagementProvider` | A bounded public MITECO OGC API Features adapter and local contract fake implement `GISProvider`; ArcGIS remains a fail-closed scaffold and asset management remains a placeholder |
 | Construction systems | `ConstructionProvider` | Autodesk APS, Procore, Bentley iTwin, and Trimble have fail-closed scaffolds plus a local contract fake |
 | Maritime systems | `MaritimeProvider` | Placeholder port only |
 
@@ -173,6 +173,46 @@ flow, restricts the second request to the configured AEMET host and selects the
 nearest station within a configured radius. Azure Maps Weather is deliberately
 unavailable until its commercial adapter is implemented. See
 `docs/SATELLITE_WEATHER_INTELLIGENCE.md`.
+
+### Official MITECO environmental GIS context
+
+The MITECO adapter implements `GISProvider` against the Ministry's reviewed
+[OGC API Features endpoint](https://www.miteco.gob.es/es/cartografia-y-sig/ide/directorio_datos_servicios/servicio-ogc-api.html).
+It is a public-data adapter and needs no credentials. Its configured base URL is
+nevertheless fixed to
+`https://gis.miteco.gob.es/geoserver/ogc/features/v1`; validation rejects any
+other origin or path, and the HTTP client rejects redirects.
+
+The application exposes only collection keys listed in the reviewed MITECO
+manifest. Callers cannot supply provider URLs or arbitrary GeoServer collection
+IDs. A query must carry an authoritative GeoVision UUID, a CRS84 bounding box
+intersecting Spain and a bounded feature limit. The adapter also bounds decoded
+response bytes, property depth/node/string counts and geometry nesting; checks
+content type, explicit CRS, feature count, coordinates and bboxes; and rejects
+malformed GeoJSON as a normalized failure. It retries only repeat-safe GETs for
+timeouts, transport errors, `429` and `5xx`, using the common capped backoff and
+`Retry-After` policy. No live provider call is part of CI or readiness.
+
+Successful results keep MITECO collection and feature identifiers as external
+references. Collection and feature provenance includes the canonical source,
+metadata record, protocol, query and response CRS, bbox, fetch and provider
+timestamps, per-resource reuse conditions and reuse notice. It retains MITECO's
+suggested attribution `Origen de los datos: Ministerio para la Transición
+ecológica y el Reto Demográfico` and explicitly records that reuse cannot imply
+endorsement. MITECO's
+[reuse notice](https://www.datosabiertos.miteco.gob.es/es/aviso-legal.html)
+permits commercial and noncommercial reuse subject to attribution,
+update-metadata preservation, no distortion and no implied endorsement, while
+disclaiming service continuity and data completeness/currentness.
+
+Every normalized layer is explicitly `context_only`,
+`measurements_authoritative=false` and `diagnostic_authority=false`. Official
+context can support review but cannot by itself diagnose cause, replace a
+GeoVision measurement or trigger an automatic conclusion. Copernicus satellite
+and AEMET weather acquisition remain in their existing adapters and factories;
+the MITECO implementation does not duplicate or proxy either client. Outside
+Spain, MITECO returns a coverage mismatch while global providers can continue
+independently.
 
 ### ERP
 
