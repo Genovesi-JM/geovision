@@ -7,9 +7,15 @@ from typing import Any
 
 
 class UnavailableNarrativeProvider:
-    def __init__(self, provider_name: str, model_name: str | None = None) -> None:
+    def __init__(
+        self,
+        provider_name: str,
+        model_name: str | None = None,
+        model_version: str = "unavailable-unversioned",
+    ) -> None:
         self.provider_name = provider_name
         self.model_name = model_name
+        self.model_version = model_version
 
     def generate(self, context: Mapping[str, Any]) -> Mapping[str, Any]:
         del context

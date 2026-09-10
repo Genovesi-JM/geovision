@@ -6,6 +6,7 @@ import json
 
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.observability import enrich_context
 from app.integrations.identity.internal import InternalIdentityProvider
 from app.models import User, Account
 from app.modules.identity.domain import AuthorizationContext, ExternalPrincipal, TokenUse
@@ -65,6 +66,11 @@ def _resolve_current_user(
         )
         request.state.authorization_context = context
         resolved.user._authorization_context = context
+        enrich_context(
+            user_id=context.user_id,
+            organization_id=context.active_organization_id,
+            workspace_id=context.active_workspace_id,
+        )
     except IdentityResolutionError as exc:
         if exc.code == "workspace_access_denied":
             raise HTTPException(status_code=403, detail="Workspace access denied") from exc
@@ -134,6 +140,11 @@ def get_authorization_context(
         raise
     request.state.authorization_context = context
     user._authorization_context = context
+    enrich_context(
+        user_id=context.user_id,
+        organization_id=context.active_organization_id,
+        workspace_id=context.active_workspace_id,
+    )
     return context
 
 
@@ -189,6 +200,11 @@ def get_current_account(
                 requested_workspace_id=account.id,
             )
             user._authorization_context = request.state.authorization_context
+            enrich_context(
+                user_id=user.id,
+                organization_id=request.state.authorization_context.active_organization_id,
+                workspace_id=request.state.authorization_context.active_workspace_id,
+            )
     except Exception:
         pass
     return account

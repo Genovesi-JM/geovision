@@ -15,7 +15,6 @@ from app.core.time import utc_now
 from app.models import (
     Account,
     AccountMember,
-    AuditLog,
     CatalogItem,
     Company,
     Deliverable,
@@ -25,6 +24,7 @@ from app.models import (
     Payment,
     User,
 )
+from app.modules.audit.services import record_audit_event
 from app.modules.orders.domain import (
     FulfilmentStatus,
     OrderLifecycleError,
@@ -67,20 +67,15 @@ def _audit(
     order: Order,
     details: dict[str, Any] | None = None,
 ) -> None:
-    db.add(
-        AuditLog(
-            user_id=actor.id if actor else None,
-            user_email=actor.email if actor else None,
-            action=action,
-            resource_type="order",
-            resource_id=order.id,
-            details=_dumps(
-                {
-                    "organization_id": order.organization_id or order.company_id,
-                    **(details or {}),
-                }
-            ),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type="order",
+        resource_id=order.id,
+        organization_id=order.organization_id or order.company_id,
+        workspace_id=order.workspace_id,
+        details=details,
     )
 
 

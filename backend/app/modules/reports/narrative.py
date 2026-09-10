@@ -9,6 +9,7 @@ from typing import Any
 class DeterministicNarrativeProvider:
     provider_name = "deterministic"
     model_name = None
+    model_version = "geovision-deterministic-v1.0.0"
 
     def generate(self, context: Mapping[str, Any]) -> Mapping[str, Any]:
         kpis = context.get("kpis") or []

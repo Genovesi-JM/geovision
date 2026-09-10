@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 import hashlib
 import json
+import logging
 from pathlib import Path
 import socket
 from typing import Any, Callable, Mapping
@@ -15,7 +17,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, settings
 from app.core.event_names import EventNames
-from app.core.integration import IntegrationResult
+from app.core.integration import IntegrationResult, sanitize_integration_message
+from app.core.observability import get_logger, log_event
 from app.core.time import utc_now
 from app.models import (
     Acquisition,
@@ -55,12 +58,15 @@ from app.modules.monitoring.intelligence_schemas import (
     SatelliteIntelligenceRequest,
     WeatherIntelligenceRequest,
 )
+from app.modules.economics.schemas import ProviderUsageCreate
+from app.modules.economics.services import record_provider_usage
 from app.modules.monitoring.ports import WeatherProvider, WeatherRequest, WeatherSnapshot
 from app.services.event_outbox import enqueue_domain_event
 from app.services.storage import StorageService
 
 
 _NAMESPACE = uuid.UUID("e9bb26de-92ce-44f9-83dc-37ab6f52188b")
+logger = get_logger(__name__)
 SatelliteProviderResolver = Callable[[str], SatelliteProvider]
 WeatherProviderResolver = Callable[[str], WeatherProvider]
 
@@ -259,7 +265,7 @@ def _mark_failure(
 ) -> None:
     now = utc_now()
     row.error_code = code[:100]
-    row.error_message = message[:2000]
+    row.error_message = sanitize_integration_message(message)[:2000]
     row.claimed_by = None
     row.claimed_at = None
     row.updated_at = now
@@ -278,6 +284,21 @@ def _mark_failure(
             key=f"intelligence:{row.id}:failed:{row.attempt_count}",
             payload={"error_code": row.error_code, "attempts": row.attempt_count},
         )
+    log_event(
+        logger,
+        logging.WARNING if row.status == IntelligenceStatus.RETRY_WAIT.value else logging.ERROR,
+        "intelligence.acquisition.failed",
+        organization_id=row.organization_id,
+        workspace_id=row.workspace_id,
+        asset_id=row.asset_id,
+        mission_id=row.acquisition_id,
+        intelligence_acquisition_id=row.id,
+        provider=row.provider_code,
+        kind=row.kind,
+        error_code=row.error_code,
+        retryable=row.status == IntelligenceStatus.RETRY_WAIT.value,
+        attempt_count=row.attempt_count,
+    )
     db.commit()
 
 
@@ -286,9 +307,15 @@ def _ensure_acquisition(
     *,
     row: IntelligenceAcquisition,
     captured_at: datetime | None,
+    provider_version: str,
 ) -> Acquisition:
     acquisition = db.get(Acquisition, row.acquisition_id) if row.acquisition_id else None
     if acquisition is not None:
+        provenance = json_object(acquisition.provenance_json)
+        if not provenance.get("adapter_version"):
+            provenance["adapter_version"] = provider_version
+            acquisition.provenance_json = json_dump(provenance)
+            acquisition.updated_at = utc_now()
         return acquisition
     now = utc_now()
     acquisition = Acquisition(
@@ -315,6 +342,7 @@ def _ensure_acquisition(
             {
                 "intelligence_acquisition_id": row.id,
                 "provider": row.provider_code,
+                "adapter_version": provider_version,
                 "request_fingerprint": row.request_fingerprint,
             }
         ),
@@ -331,6 +359,9 @@ def _ensure_acquisition(
     )
     db.add(acquisition)
     row.acquisition_id = acquisition.id
+    # Some worker sessions intentionally disable autoflush. Persist the
+    # canonical mission before provider-usage validation resolves its FK scope.
+    db.flush()
     enqueue_domain_event(
         db,
         name=EventNames.ACQUISITION_CREATED,
@@ -386,6 +417,7 @@ def _new_satellite_dataset(
     asset: Asset,
     acquisition: Acquisition,
     scene: SatelliteSceneDescriptor,
+    provider_version: str,
     storage: StorageService,
     expect_files: bool,
 ) -> Dataset:
@@ -424,6 +456,7 @@ def _new_satellite_dataset(
             {
                 **dict(scene.provenance),
                 "provider": row.provider_code,
+                "adapter_version": provider_version,
                 "intelligence_acquisition_id": row.id,
                 "source_link": scene.source_link,
             }
@@ -583,7 +616,15 @@ def _register_satellite_results(
     if asset is None:
         raise IntelligenceError("asset_not_found", "Intelligence asset no longer exists")
     captured_at = max((scene.acquired_at for scene in scenes), default=None)
-    acquisition = _ensure_acquisition(db, row=row, captured_at=captured_at)
+    provider_version = str(
+        getattr(provider, "adapter_version", "unavailable-unversioned")
+    )
+    acquisition = _ensure_acquisition(
+        db,
+        row=row,
+        captured_at=captured_at,
+        provider_version=provider_version,
+    )
     dataset_ids: list[str] = []
     warnings: list[dict[str, str]] = []
     for scene in scenes:
@@ -619,6 +660,7 @@ def _register_satellite_results(
             asset=asset,
             acquisition=acquisition,
             scene=scene,
+            provider_version=provider_version,
             storage=storage,
             expect_files=bool(requested_keys),
         )
@@ -684,6 +726,7 @@ def _weather_dataset(
     asset: Asset,
     acquisition: Acquisition,
     snapshots: tuple[WeatherSnapshot, ...],
+    provider_version: str,
     config: Settings,
 ) -> Dataset:
     dataset_id = str(uuid.uuid5(_NAMESPACE, f"{row.id}:weather-dataset"))
@@ -713,6 +756,7 @@ def _weather_dataset(
         provenance_json=json_dump(
             {
                 "provider": row.provider_code,
+                "adapter_version": provider_version,
                 "intelligence_acquisition_id": row.id,
                 "request_fingerprint": row.request_fingerprint,
             }
@@ -759,13 +803,22 @@ def _register_weather_results(
     *,
     row: IntelligenceAcquisition,
     snapshots: tuple[WeatherSnapshot, ...],
+    provider: WeatherProvider,
     config: Settings,
 ) -> tuple[list[str], int]:
     asset = db.get(Asset, row.asset_id)
     if asset is None:
         raise IntelligenceError("asset_not_found", "Intelligence asset no longer exists")
     captured_at = max((snapshot.observed_at for snapshot in snapshots), default=None)
-    acquisition = _ensure_acquisition(db, row=row, captured_at=captured_at)
+    provider_version = str(
+        getattr(provider, "adapter_version", "unavailable-unversioned")
+    )
+    acquisition = _ensure_acquisition(
+        db,
+        row=row,
+        captured_at=captured_at,
+        provider_version=provider_version,
+    )
     existing_rows: list[WeatherObservation] = []
     new_values: list[tuple[WeatherSnapshot, Any]] = []
     for snapshot in snapshots:
@@ -793,6 +846,7 @@ def _register_weather_results(
             asset=asset,
             acquisition=acquisition,
             snapshots=snapshots,
+            provider_version=provider_version,
             config=config,
         )
         dataset_ids.append(dataset.id)
@@ -953,7 +1007,11 @@ def execute_intelligence_acquisition(
                 )
                 return row
             dataset_ids, new_count = _register_weather_results(
-                db, row=row, snapshots=result.value, config=config
+                db,
+                row=row,
+                snapshots=result.value,
+                provider=provider,
+                config=config,
             )
             summary = {
                 "snapshot_count": len(result.value),
@@ -982,12 +1040,60 @@ def execute_intelligence_acquisition(
         row.claimed_at = None
         row.updated_at = now
         row.lifecycle_version += 1
+        record_provider_usage(
+            db,
+            payload=ProviderUsageCreate(
+                organization_id=row.organization_id,
+                workspace_id=row.workspace_id,
+                intelligence_acquisition_id=row.id,
+                provider=row.provider_code,
+                service=(
+                    "satellite_search"
+                    if row.kind == IntelligenceKind.SATELLITE.value
+                    else "weather_observations"
+                ),
+                usage_type="provider_request",
+                quantity=Decimal("1"),
+                unit="request",
+                occurred_at=now,
+                idempotency_key=f"intelligence:{row.id}:usage:completed",
+                metadata={
+                    "kind": row.kind,
+                    "provider_attempts": summary.get("provider_attempts"),
+                    "dataset_count": len(dataset_ids),
+                    "result_count": (
+                        summary.get("scene_count")
+                        if row.kind == IntelligenceKind.SATELLITE.value
+                        else summary.get("snapshot_count")
+                    ),
+                    "adapter_version": str(
+                        getattr(provider, "adapter_version", "unavailable-unversioned")
+                    ),
+                },
+            ),
+        )
         _event(
             db,
             name=event_name,
             row=row,
             key=f"intelligence:{row.id}:completed",
             payload={"dataset_ids": dataset_ids, **summary},
+        )
+        log_event(
+            logger,
+            logging.INFO,
+            "intelligence.acquisition.completed",
+            organization_id=row.organization_id,
+            workspace_id=row.workspace_id,
+            asset_id=row.asset_id,
+            mission_id=row.acquisition_id,
+            intelligence_acquisition_id=row.id,
+            provider=row.provider_code,
+            adapter_version=str(
+                getattr(provider, "adapter_version", "unavailable-unversioned")
+            ),
+            kind=row.kind,
+            dataset_count=len(dataset_ids),
         )
         db.commit()
         return row

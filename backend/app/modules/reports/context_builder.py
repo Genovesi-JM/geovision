@@ -29,7 +29,7 @@ from app.modules.reports.domain import ReportError
 from app.modules.reports.ports import ReportContextRegistry, report_context_registry
 
 
-CONTEXT_SCHEMA_VERSION = "geovision.report-context.v1"
+CONTEXT_SCHEMA_VERSION = "geovision.report-context.v2"
 _SENSITIVE_KEY = re.compile(
     r"(^|_)(password|passwd|secret|token|api_key|authorization|credential|private_key|storage_key|storage_uri|object_prefix|file_path)($|_)",
     re.IGNORECASE,
@@ -77,7 +77,11 @@ def _safe_value(value: Any, *, depth: int = 0) -> Any:
         result: dict[str, Any] = {}
         for raw_key, nested in value.items():
             key = str(raw_key)[:160]
-            normalized = re.sub(r"[^A-Za-z0-9]+", "_", key).strip("_")
+            normalized = re.sub(
+                r"(?<=[a-z0-9])(?=[A-Z])",
+                "_",
+                re.sub(r"[^A-Za-z0-9]+", "_", key).strip("_"),
+            )
             if _SENSITIVE_KEY.search(normalized):
                 continue
             result[key] = _safe_value(nested, depth=depth + 1)
@@ -113,6 +117,15 @@ def _kpi_is_eligible(db: Session, asset: Asset, row: KpiValue) -> bool:
 
 def _observation_is_eligible(db: Session, asset: Asset, row: Observation) -> bool:
     if row.validation_status != "VALIDATED" or row.confidence < 0.5:
+        return False
+    if str(row.algorithm_key or "").strip().lower() in {"", "legacy"}:
+        return False
+    if str(row.algorithm_version or "").strip().lower() in {
+        "",
+        "legacy",
+        "legacy-1",
+        "legacy-unversioned",
+    }:
         return False
     if row.dataset_id and not _dataset_is_eligible(db.get(Dataset, row.dataset_id), asset):
         return False
@@ -417,6 +430,8 @@ class ReportContextBuilder:
                         "type": acquisition.acquisition_type,
                         "title": acquisition.title,
                         "state": acquisition.state,
+                        "provider": acquisition.provider_code,
+                        "provenance": _json_object(acquisition.provenance_json),
                         "captured_at": acquisition.captured_at,
                         "completed_at": acquisition.completed_at,
                     }

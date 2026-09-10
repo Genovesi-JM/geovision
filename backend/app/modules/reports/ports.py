@@ -12,6 +12,7 @@ from app.models import Asset
 class NarrativeProvider(Protocol):
     provider_name: str
     model_name: str | None
+    model_version: str
 
     def generate(self, context: Mapping[str, Any]) -> Mapping[str, Any]: ...
 

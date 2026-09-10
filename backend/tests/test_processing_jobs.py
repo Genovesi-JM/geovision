@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from io import BytesIO
 import base64
+from dataclasses import replace
 import json
 from pathlib import Path
 import uuid
@@ -28,6 +29,7 @@ from app.models import (
     EventOutbox,
     ProcessingJob,
     ProcessingJobOutput,
+    ProviderUsage,
     User,
 )
 from app.modules.processing.ports import ProviderArtifact
@@ -197,6 +199,15 @@ def test_deterministic_processing_registers_normal_datasets_and_events(
     assert job.status == "COMPLETED"
     assert job.progress_percent == 100
     assert job.processor_version == "1"
+    usage = (
+        db_session.query(ProviderUsage)
+        .filter(ProviderUsage.processing_job_id == job.id)
+        .one()
+    )
+    assert usage.provider == "fake"
+    assert usage.service == "processing"
+    assert usage.usage_type == "processing_job"
+    assert usage.total_cost == 0
     payload = processing_job_out(job)
     assert {item["output_type"] for item in payload["generated_outputs"]} == {
         "ORTHOMOSAIC",
@@ -261,6 +272,49 @@ class _MissingOutputProvider(DeterministicProcessingProvider):
                 ),
             ),
         )
+
+
+class _UnversionedProcessingProvider(DeterministicProcessingProvider):
+    def submit(self, request, *, idempotency_key):
+        result = super().submit(request, idempotency_key=idempotency_key)
+        return IntegrationResult.simulated(
+            provider=self.provider_name,
+            operation="submit",
+            value=replace(result.value, processor_version=None),
+        )
+
+
+def test_unversioned_processor_is_stopped_for_review(db_session, tmp_path):
+    actor, source, storage = _source_dataset(db_session, tmp_path)
+    config = _config()
+    job = create_processing_job(
+        db_session,
+        actor=actor,
+        config=config,
+        data=ProcessingJobCreate(
+            source_dataset_ids=[source.id],
+            requested_outputs=["ORTHOMOSAIC"],
+            provider="fake",
+            idempotency_key=f"processing-version-{uuid.uuid4().hex}",
+        ),
+    )
+    db_session.commit()
+
+    outcome = run_processing_cycle(
+        db_session,
+        worker_id="processing-version-worker",
+        provider_resolver=lambda _: _UnversionedProcessingProvider(),
+        storage=storage,
+        config=config,
+    )
+
+    db_session.refresh(job)
+    assert outcome["needs_review"] == 1
+    assert job.status == "NEEDS_REVIEW"
+    assert job.error_code == "processor_version_missing"
+    assert db_session.query(ProviderUsage).filter(
+        ProviderUsage.processing_job_id == job.id
+    ).count() == 0
 
 
 def test_missing_output_requires_review_and_operator_retry_is_recoverable(

@@ -63,6 +63,7 @@ from app.models import (
 )
 from app.modules.identity.domain import AuthorizationContext, TokenUse
 from app.modules.identity.services import IdentityService
+from app.modules.audit.services import record_audit_event
 from app.modules.organizations.services import (
     OrganizationAccessError,
     authorize_organization,
@@ -113,11 +114,16 @@ def _company_id(user: User, db: Session) -> str:
 
 
 def _audit(db: Session, user: User, action: str, resource_type: str, resource_id: str, details: dict | None = None) -> None:
-    db.add(AuditLog(
-        user_id=user.id, user_email=user.email, action=action,
-        resource_type=resource_type, resource_id=resource_id,
-        details=json.dumps(details or {}, default=str),
-    ))
+    record_audit_event(
+        db,
+        actor=user,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        organization_id=(details or {}).get("organization_id"),
+        workspace_id=(details or {}).get("workspace_id"),
+        details=details,
+    )
 
 
 def _topics(device: IotDevice) -> dict:
@@ -675,7 +681,17 @@ def update_device_status(device_id: str, payload: DeviceStatusUpdate, user: User
         db.query(DeviceCredential).filter(DeviceCredential.device_id == device.id, DeviceCredential.status == "active").update({"status": "revoked", "revoked_at": utc_now()}, synchronize_session=False)
     elif payload.status == "active" and device.connectivity_status == "offline":
         device.connectivity_status = "unknown"
-    _audit(db, user, f"iot.device_{payload.status}", "iot_device", device.id, {"reason": payload.reason}); db.commit()
+    _audit(
+        db,
+        user,
+        f"iot.device_{payload.status}",
+        "iot_device",
+        device.id,
+        {
+            "organization_id": device.company_id,
+            "reason_present": bool(payload.reason.strip()),
+        },
+    ); db.commit()
     return {"id": device.id, "status": device.status}
 
 
@@ -973,7 +989,23 @@ def create_command(device_id: str, payload: CommandCreate, user: User = Depends(
         latest = {r["channel"]: r["value"] for r in latest_readings(db, device)}
         if latest.get("safety_ok") is not True: raise HTTPException(status_code=409, detail="Local safety interlock is not confirmed")
     command = IotCommand(company_id=company_id, device_id=device.id, requested_by=user.id, correlation_id=str(uuid.uuid4()), name=payload.name, arguments_json=json.dumps(payload.arguments), reason=payload.reason, fail_safe_state=payload.fail_safe_state, expires_at=utc_now() + timedelta(seconds=300))
-    db.add(command); _audit(db, user, "iot.command_queued", "iot_command", command.id, {"name": command.name, "reason": command.reason}); db.commit(); db.refresh(command)
+    db.add(command)
+    _audit(
+        db,
+        user,
+        "iot.command_queued",
+        "iot_command",
+        command.id,
+        {
+            "organization_id": company_id,
+            "device_id": device.id,
+            "name": command.name,
+            "command_correlation_id": command.correlation_id,
+            "argument_keys": sorted(payload.arguments),
+            "reason_present": bool(command.reason),
+        },
+    )
+    db.commit(); db.refresh(command)
     from app.iot.mqtt import mqtt_bridge
     from app.iot.service import active_credential
     from app.iot.security import reveal_secret
@@ -1013,6 +1045,22 @@ def device_command_result(payload: CommandResult, authorization: str | None = He
     device = _device_auth_headers(db, authorization, x_device_id); command = db.get(IotCommand, payload.command_id)
     if not command or command.device_id != device.id: raise HTTPException(status_code=404, detail="Command not found")
     command.status = payload.status; command.acknowledged_at = utc_now(); command.result_json = json.dumps({"actual_state": payload.actual_state, "message": payload.message})
+    record_audit_event(
+        db,
+        action="iot.command_result_recorded",
+        resource_type="iot_command",
+        resource_id=command.id,
+        organization_id=device.company_id,
+        correlation_id=command.correlation_id,
+        outcome="SUCCESS" if payload.status in {"acknowledged", "completed", "success"} else "FAILURE",
+        details={
+            "device_id": device.id,
+            "command_name": command.name,
+            "status": payload.status,
+            "actual_state_keys": sorted(payload.actual_state),
+            "message_present": bool(payload.message),
+        },
+    )
     db.commit(); event_hub.publish(device.id, {"type": "command.result", "command_id": command.id, "status": command.status, "actual_state": payload.actual_state})
     return {"accepted": True}
 

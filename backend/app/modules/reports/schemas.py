@@ -109,7 +109,9 @@ class ReportOut(BaseModel):
     context_sha256: str
     narrative_provider: str
     narrative_model: str | None
+    narrative_model_version: str
     narrative_schema_version: str
+    provenance: dict[str, Any]
     qa_result: dict[str, Any]
     output_dataset_id: str | None
     output_file_id: str | None

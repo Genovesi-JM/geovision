@@ -26,6 +26,7 @@ from app.core.config import settings
 from app.core.encryption import encrypt
 from app.core.time import utc_now
 from app.deps import require_admin, get_db
+from app.modules.audit.services import audit_details, record_audit_event
 from app.modules.organizations.domain import normalize_customer_role
 
 logger = logging.getLogger(__name__)
@@ -148,12 +149,16 @@ class ConnectorOut(BaseModel):
 
 class AuditLogEntry(BaseModel):
     id: str
-    company_id: str
+    company_id: Optional[str] = None
+    workspace_id: Optional[str] = None
     user_id: Optional[str] = None
     action: str
     resource_type: str
     resource_id: Optional[str] = None
     details: Optional[dict] = None
+    request_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+    outcome: str = "UNKNOWN"
     ip_address: Optional[str] = None
     created_at: datetime
 
@@ -171,20 +176,36 @@ class SystemStats(BaseModel):
 
 # ============ DB HELPERS ============
 
-def _log_audit(db: Session, company_id: str, action: str, resource_type: str,
-               resource_id: str = None, user_id: str = None, details: dict = None):
-    from app.models import AuditLog
-    detail_str = json.dumps(details) if details else json.dumps({"company_id": company_id})
-    entry = AuditLog(id=str(uuid.uuid4()), user_id=user_id,
-                     action=action, resource_type=resource_type, resource_id=resource_id,
-                     details=detail_str)
-    db.add(entry)
+def _log_audit(
+    db: Session,
+    company_id: Optional[str],
+    action: str,
+    resource_type: str,
+    resource_id: str = None,
+    user_id: str = None,
+    details: dict = None,
+    actor=None,
+):
+    # Route functions are also used as application services by a small legacy
+    # test/tooling surface, where FastAPI has not resolved dependency defaults.
+    if not getattr(actor, "id", None):
+        actor = None
+    return record_audit_event(
+        db,
+        actor=actor,
+        user_id=user_id,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        organization_id=company_id,
+        details=details,
+    )
 
 
 # ============ COMPANY MANAGEMENT ============
 
 @router.post("/companies", response_model=CompanyOut)
-async def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
+async def create_company(data: CompanyCreate, db: Session = Depends(get_db), actor=Depends(require_admin)):
     """Create a new company/client account."""
     from app.models import Company
     company_id = str(uuid.uuid4())
@@ -197,7 +218,7 @@ async def create_company(data: CompanyCreate, db: Session = Depends(get_db)):
         max_users=data.max_users, max_sites=data.max_sites, max_storage_gb=data.max_storage_gb,
     )
     db.add(company)
-    _log_audit(db, company_id, "company_created", "company", company_id,
+    _log_audit(db, company_id, "company_created", "company", company_id, actor=actor,
                details={"name": data.name, "plan": data.subscription_plan.value})
     db.commit(); db.refresh(company)
     logger.info(f"Created company {company_id}: {data.name}")
@@ -234,7 +255,7 @@ async def get_company(company_id: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/companies/{company_id}", response_model=CompanyOut)
-async def update_company(company_id: str, data: CompanyUpdate, db: Session = Depends(get_db)):
+async def update_company(company_id: str, data: CompanyUpdate, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Company
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
@@ -248,17 +269,26 @@ async def update_company(company_id: str, data: CompanyUpdate, db: Session = Dep
         else:
             setattr(c, field, value)
     c.updated_at = _utcnow()
+    _log_audit(
+        db,
+        company_id,
+        "company_updated",
+        "company",
+        company_id,
+        actor=actor,
+        details={"changed_fields": sorted(updates)},
+    )
     db.commit(); db.refresh(c)
     return _company_out(c, db)
 
 
 @router.delete("/companies/{company_id}")
-async def delete_company(company_id: str, db: Session = Depends(get_db)):
+async def delete_company(company_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Company
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
     c.status = CompanyStatus.SUSPENDED.value; c.updated_at = _utcnow()
-    _log_audit(db, company_id, "company_suspended", "company", company_id)
+    _log_audit(db, company_id, "company_suspended", "company", company_id, actor=actor)
     db.commit()
     return {"message": "Company suspended", "company_id": company_id}
 
@@ -293,6 +323,7 @@ async def add_user_to_company(
     ),
     name: Optional[str] = Query(None),
     role: str = Query("viewer"),
+    actor=Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     from app.models import Company, CompanyUser, User
@@ -358,7 +389,7 @@ async def add_user_to_company(
         "company_user_added",
         "company_user",
         u.id,
-        user_id=bound_user.id,
+        actor=actor,
         details={"role": canonical_role},
     )
     try:
@@ -387,7 +418,7 @@ async def add_user_to_company(
 # ============ CONNECTOR MANAGEMENT ============
 
 @router.post("/companies/{company_id}/connectors", response_model=ConnectorOut)
-async def create_connector(company_id: str, data: ConnectorConfig, db: Session = Depends(get_db)):
+async def create_connector(company_id: str, data: ConnectorConfig, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Company, Connector
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
@@ -399,7 +430,29 @@ async def create_connector(company_id: str, data: ConnectorConfig, db: Session =
                      webhook_secret=encrypt(data.webhook_secret),
                      config_json=json.dumps(data.metadata or {}),
                      enabled=data.enabled)
-    db.add(conn); db.commit(); db.refresh(conn)
+    db.add(conn)
+    _log_audit(
+        db,
+        company_id,
+        "connector_created",
+        "connector",
+        conn.id,
+        actor=actor,
+        details={
+            "connector_type": conn.connector_type,
+            "enabled": conn.enabled,
+            "credential_fields_present": sorted(
+                key
+                for key, present in {
+                    "api_key": bool(data.api_key),
+                    "api_secret": bool(data.api_secret),
+                    "webhook_secret": bool(data.webhook_secret),
+                }.items()
+                if present
+            ),
+        },
+    )
+    db.commit(); db.refresh(conn)
     logger.info(f"Created connector {conn.id} for company {company_id}")
     return ConnectorOut(id=conn.id, company_id=company_id, connector_type=conn.connector_type,
                         name=conn.name, enabled=conn.enabled, last_sync=None,
@@ -418,7 +471,7 @@ async def list_connectors(company_id: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/companies/{company_id}/connectors/{connector_id}")
-async def update_connector(company_id: str, connector_id: str, data: ConnectorConfig, db: Session = Depends(get_db)):
+async def update_connector(company_id: str, connector_id: str, data: ConnectorConfig, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Connector
     conn = db.get(Connector, connector_id)
     if not conn: raise HTTPException(404, "Connector not found")
@@ -431,6 +484,19 @@ async def update_connector(company_id: str, connector_id: str, data: ConnectorCo
         conn.base_url = data.base_url
     if "metadata" in data.model_fields_set:
         conn.config_json = json.dumps(data.metadata or {})
+    _log_audit(
+        db,
+        company_id,
+        "connector_updated",
+        "connector",
+        conn.id,
+        actor=actor,
+        details={
+            "connector_type": conn.connector_type,
+            "enabled": conn.enabled,
+            "changed_fields": sorted(data.model_fields_set),
+        },
+    )
     db.commit(); db.refresh(conn)
     return ConnectorOut(id=conn.id, company_id=conn.company_id, connector_type=conn.connector_type,
                         name=conn.name, enabled=conn.enabled, last_sync=None,
@@ -438,23 +504,42 @@ async def update_connector(company_id: str, connector_id: str, data: ConnectorCo
 
 
 @router.delete("/companies/{company_id}/connectors/{connector_id}")
-async def delete_connector(company_id: str, connector_id: str, db: Session = Depends(get_db)):
+async def delete_connector(company_id: str, connector_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Connector
     conn = db.get(Connector, connector_id)
     if not conn: raise HTTPException(404, "Connector not found")
     if conn.company_id != company_id: raise HTTPException(403, "Connector belongs to different company")
+    _log_audit(
+        db,
+        company_id,
+        "connector_deleted",
+        "connector",
+        conn.id,
+        actor=actor,
+        details={"connector_type": conn.connector_type},
+    )
     db.delete(conn); db.commit()
     return {"message": "Connector deleted", "connector_id": connector_id}
 
 
 @router.post("/companies/{company_id}/connectors/{connector_id}/sync")
-async def trigger_connector_sync(company_id: str, connector_id: str, db: Session = Depends(get_db)):
+async def trigger_connector_sync(company_id: str, connector_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Connector
     conn = db.get(Connector, connector_id)
     if not conn: raise HTTPException(404, "Connector not found")
     if conn.company_id != company_id: raise HTTPException(403, "Connector belongs to different company")
     if not conn.enabled: raise HTTPException(400, "Connector is disabled")
-    conn.sync_status = "running"; db.commit()
+    conn.sync_status = "running"
+    _log_audit(
+        db,
+        company_id,
+        "connector_sync_requested",
+        "connector",
+        conn.id,
+        actor=actor,
+        details={"connector_type": conn.connector_type},
+    )
+    db.commit()
     return {"message": "Sync triggered", "connector_id": connector_id, "connector_type": conn.connector_type}
 
 
@@ -482,9 +567,11 @@ async def get_audit_logs(
     if end_date: q = q.filter(AuditLog.created_at <= end_date)
     q = q.order_by(AuditLog.created_at.desc())
     logs = q.offset((page-1)*per_page).limit(per_page).all()
-    return [AuditLogEntry(id=l.id, company_id=l.company_id, user_id=l.user_id,
+    return [AuditLogEntry(id=l.id, company_id=l.organization_id, workspace_id=l.workspace_id, user_id=l.user_id,
             action=l.action, resource_type=l.resource_type, resource_id=l.resource_id,
-            details=l.details, ip_address=l.ip_address, created_at=l.created_at) for l in logs]
+            details=audit_details(l), request_id=l.request_id,
+            correlation_id=l.correlation_id, outcome=l.outcome,
+            ip_address=l.ip_address, created_at=l.created_at) for l in logs]
 
 
 # ============ SYSTEM MONITORING ============
@@ -677,7 +764,7 @@ def _company_out(c, db: Session) -> CompanyOut:
 # ============ SITES MANAGEMENT ============
 
 @router.post("/companies/{company_id}/sites", response_model=SiteOut)
-async def create_site(company_id: str, data: SiteCreate, db: Session = Depends(get_db)):
+async def create_site(company_id: str, data: SiteCreate, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Company, Site
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
@@ -693,7 +780,7 @@ async def create_site(company_id: str, data: SiteCreate, db: Session = Depends(g
     from app.modules.assets.services import synchronize_legacy_site
     synchronize_legacy_site(db, site)
     c.current_sites = current + 1
-    _log_audit(db, company_id, "site_created", "site", site.id,
+    _log_audit(db, company_id, "site_created", "site", site.id, actor=actor,
                details={"name": data.name, "sector": data.sector})
     db.commit(); db.refresh(site)
     return SiteOut(id=site.id, company_id=company_id, name=site.name,
@@ -738,7 +825,7 @@ async def list_all_sites(
 
 
 @router.delete("/sites/{site_id}")
-async def delete_site(site_id: str, db: Session = Depends(get_db)):
+async def delete_site(site_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Site, Company
     site = db.get(Site, site_id)
     if not site: raise HTTPException(404, "Site not found")
@@ -746,6 +833,15 @@ async def delete_site(site_id: str, db: Session = Depends(get_db)):
     if c and c.current_sites: c.current_sites = max(0, c.current_sites - 1)
     from app.modules.assets.services import archive_legacy_asset
     archive_legacy_asset(db, source="site", source_id=site.id)
+    _log_audit(
+        db,
+        site.company_id,
+        "site_deleted",
+        "site",
+        site.id,
+        actor=actor,
+        details={"legacy_asset_archived": True},
+    )
     db.delete(site); db.commit()
     return {"message": "Site deleted", "site_id": site_id}
 
@@ -753,7 +849,7 @@ async def delete_site(site_id: str, db: Session = Depends(get_db)):
 # ============ DATASETS MANAGEMENT ============
 
 @router.post("/sites/{site_id}/datasets", response_model=DatasetOut)
-async def create_dataset(site_id: str, data: DatasetCreate, db: Session = Depends(get_db)):
+async def create_dataset(site_id: str, data: DatasetCreate, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Site, Dataset as DSModel
     from app.modules.assets.services import synchronize_legacy_site
     from app.modules.datasets.domain import (
@@ -806,6 +902,7 @@ async def create_dataset(site_id: str, data: DatasetCreate, db: Session = Depend
         "dataset.created",
         "dataset",
         ds.id,
+        actor=actor,
         details={"dataset_type": dataset_type, "asset_id": asset.id},
     )
     db.commit(); db.refresh(ds)
@@ -844,7 +941,7 @@ async def list_all_datasets(
 
 
 @router.delete("/datasets/{dataset_id}")
-async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
+async def delete_dataset(dataset_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Dataset as DSModel
     ds = db.get(DSModel, dataset_id)
     if not ds: raise HTTPException(404, "Dataset not found")
@@ -859,6 +956,7 @@ async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
             "dataset.archived",
             "dataset",
             ds.id,
+            actor=actor,
             details={"retained_object_count": ds.file_count or 0},
         )
         db.commit()
@@ -1021,7 +1119,7 @@ async def download_document(document_id: str, db: Session = Depends(get_db)):
 # ============ INTEGRATIONS MANAGEMENT ============
 
 @router.post("/companies/{company_id}/integrations", response_model=IntegrationOut)
-async def create_integration(company_id: str, data: IntegrationCreate, db: Session = Depends(get_db)):
+async def create_integration(company_id: str, data: IntegrationCreate, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Company, Integration as IntModel
     c = db.get(Company, company_id)
     if not c: raise HTTPException(404, "Company not found")
@@ -1033,7 +1131,28 @@ async def create_integration(company_id: str, data: IntegrationCreate, db: Sessi
                      webhook_url=data.webhook_url,
                      auto_sync_enabled=data.auto_sync_enabled,
                      sync_interval_hours=data.sync_interval_hours)
-    db.add(integ); db.commit(); db.refresh(integ)
+    db.add(integ)
+    _log_audit(
+        db,
+        company_id,
+        "integration_created",
+        "integration",
+        integ.id,
+        actor=actor,
+        details={
+            "connector_type": integ.connector_type,
+            "auto_sync_enabled": integ.auto_sync_enabled,
+            "credential_fields_present": sorted(
+                key
+                for key, present in {
+                    "api_key": bool(data.api_key),
+                    "api_secret": bool(data.api_secret),
+                }.items()
+                if present
+            ),
+        },
+    )
+    db.commit(); db.refresh(integ)
     return IntegrationOut(id=integ.id, company_id=company_id,
                           connector_type=integ.connector_type, name=integ.name,
                           base_url=integ.base_url, is_active=integ.is_active,
@@ -1064,21 +1183,40 @@ async def list_all_integrations(
 
 
 @router.post("/integrations/{integration_id}/sync")
-async def trigger_integration_sync(integration_id: str, db: Session = Depends(get_db)):
+async def trigger_integration_sync(integration_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Integration as IntModel
     integ = db.get(IntModel, integration_id)
     if not integ: raise HTTPException(404, "Integration not found")
     if not integ.is_active: raise HTTPException(400, "Integration is disabled")
-    integ.sync_status = "running"; integ.last_sync_at = _utcnow(); db.commit()
+    integ.sync_status = "running"; integ.last_sync_at = _utcnow()
+    _log_audit(
+        db,
+        integ.company_id,
+        "integration_sync_requested",
+        "integration",
+        integ.id,
+        actor=actor,
+        details={"connector_type": integ.connector_type},
+    )
+    db.commit()
     return {"message": "Sync triggered", "integration_id": integration_id,
             "connector_type": integ.connector_type}
 
 
 @router.delete("/integrations/{integration_id}")
-async def delete_integration(integration_id: str, db: Session = Depends(get_db)):
+async def delete_integration(integration_id: str, db: Session = Depends(get_db), actor=Depends(require_admin)):
     from app.models import Integration as IntModel
     integ = db.get(IntModel, integration_id)
     if not integ: raise HTTPException(404, "Integration not found")
+    _log_audit(
+        db,
+        integ.company_id,
+        "integration_deleted",
+        "integration",
+        integ.id,
+        actor=actor,
+        details={"connector_type": integ.connector_type},
+    )
     db.delete(integ); db.commit()
     return {"message": "Integration deleted", "integration_id": integration_id}
 
@@ -1332,7 +1470,8 @@ async def list_all_users(db: Session = Depends(get_db)):
 @router.patch("/users/{user_id}")
 async def update_user(user_id: str, db: Session = Depends(get_db),
                       role: Optional[str] = Query(None),
-                      is_active: Optional[bool] = Query(None)):
+                      is_active: Optional[bool] = Query(None),
+                      actor=Depends(require_admin)):
     """Update user role or active status."""
     from app.models import User
     u = db.get(User, user_id)
@@ -1343,7 +1482,7 @@ async def update_user(user_id: str, db: Session = Depends(get_db),
     if is_active is not None:
         u.is_active = is_active
     u.updated_at = _utcnow()
-    _log_audit(db, None, "user_updated", "user", user_id,
+    _log_audit(db, None, "user_updated", "user", user_id, actor=actor,
                details={"role": role, "is_active": is_active})
     db.commit()
     return {"message": "User updated", "user_id": user_id}
@@ -1385,7 +1524,7 @@ async def list_all_orders(db: Session = Depends(get_db)):
 
 
 @router.patch("/orders/{order_id}/status")
-async def update_order_status(order_id: str, status: str = Query(...), db: Session = Depends(get_db)):
+async def update_order_status(order_id: str, status: str = Query(...), db: Session = Depends(get_db), actor=Depends(require_admin)):
     """Update order status (e.g. pending -> processing -> completed)."""
     from app.models import Order
     o = db.get(Order, order_id)
@@ -1400,7 +1539,7 @@ async def update_order_status(order_id: str, status: str = Query(...), db: Sessi
         o.completed_at = _utcnow()
     if status == "cancelled":
         o.cancelled_at = _utcnow()
-    _log_audit(db, None, "order_status_changed", "order", order_id,
+    _log_audit(db, getattr(o, "organization_id", None), "order_status_changed", "order", order_id, actor=actor,
                details={"new_status": status})
     db.commit()
     return {"message": "Order status updated", "order_id": order_id, "status": status}

@@ -15,6 +15,7 @@ from app.models import (
     NotificationDelivery,
     NotificationEndpoint,
     NotificationPreference,
+    ProviderUsage,
     User,
 )
 from app.workers.notification_delivery_repository import (
@@ -344,3 +345,35 @@ def test_repository_recovers_stale_claim_and_dead_letters_when_exhausted(db_sess
     row = db_session.get(NotificationDelivery, delivery_id)
     assert row.status == "DEAD_LETTER"
     assert row.claimed_by is None
+
+
+def test_successful_notification_delivery_is_metered_once(db_session):
+    delivery_id, _, organization_id = _seed_user_delivery(db_session)
+    now = datetime(2026, 9, 10, 12, 0, 0)
+    repository = _repository()
+    repository.claim_batch(
+        worker_id="worker-metering", now=now, batch_size=10, lease_seconds=300
+    )
+    checked = repository.revalidate(
+        worker_id="worker-metering", delivery_id=delivery_id, now=now
+    )
+    assert checked.status is RevalidationStatus.READY
+
+    assert repository.mark_delivered(
+        worker_id="worker-metering",
+        lease=checked.lease,
+        provider_message_id="provider-message-25",
+        now=now,
+    )
+
+    db_session.expire_all()
+    usage = (
+        db_session.query(ProviderUsage)
+        .filter(ProviderUsage.notification_delivery_id == delivery_id)
+        .one()
+    )
+    assert usage.organization_id == organization_id
+    assert usage.provider == "azure_notification_hubs"
+    assert usage.service == "push_delivery"
+    assert usage.quantity == 1
+    assert usage.provider_reference == "provider-message-25"

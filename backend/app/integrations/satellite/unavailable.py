@@ -13,6 +13,8 @@ from app.modules.datasets.ports import (
 
 
 class UnavailableSatelliteProvider:
+    adapter_version = "unavailable-unversioned"
+
     def __init__(self, provider_name: str, reason: str) -> None:
         self.provider_name = provider_name
         self.reason = reason

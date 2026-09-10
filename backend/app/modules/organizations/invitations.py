@@ -19,7 +19,6 @@ from app.models import (
     Account,
     AccountMember,
     Asset,
-    AuditLog,
     Company,
     CompanyUser,
     Document,
@@ -30,6 +29,7 @@ from app.models import (
     Site,
     User,
 )
+from app.modules.audit.services import record_audit_event
 from app.modules.organizations.domain import MembershipStatus, WorkspaceStatus
 from app.modules.organizations.invitation_schemas import (
     InvitationDestination,
@@ -226,24 +226,19 @@ def _audit(
     action: str,
     details: Optional[dict[str, Any]] = None,
 ) -> None:
-    db.add(
-        AuditLog(
-            user_id=actor.id,
-            user_email=actor.email,
-            action=action,
-            resource_type="invitation",
-            resource_id=invitation.id,
-            details=json.dumps(
-                {
-                    "organization_id": invitation.organization_id,
-                    "workspace_id": invitation.workspace_id,
-                    "target_type": invitation.target_type,
-                    "target_id": invitation.target_id,
-                    **(details or {}),
-                },
-                sort_keys=True,
-            ),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type="invitation",
+        resource_id=invitation.id,
+        organization_id=invitation.organization_id,
+        workspace_id=invitation.workspace_id,
+        details={
+            "target_type": invitation.target_type,
+            "target_id": invitation.target_id,
+            **(details or {}),
+        },
     )
 
 

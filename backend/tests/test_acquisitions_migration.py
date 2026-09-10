@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -206,6 +207,18 @@ def test_acquisition_migration_maps_legacy_records_and_round_trips(tmp_path):
                 "geovision_manual",
             ),
         ]
+        provenance_rows = connection.execute(
+            "SELECT legacy_source, provenance_json FROM acquisitions"
+        ).fetchall()
+        provenance_by_source = {
+            source: json.loads(provenance) for source, provenance in provenance_rows
+        }
+        assert provenance_by_source["drone_mission"]["adapter_version"] == (
+            "geovision-legacy-drone-sync-v1.0.0"
+        )
+        assert provenance_by_source["asset_inspection"]["adapter_version"] == (
+            "geovision-legacy-inspection-sync-v1.0.0"
+        )
         detail = connection.execute(
             """
             SELECT aircraft_id, capture_area_geojson, mission_requirements_json

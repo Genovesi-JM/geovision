@@ -11,6 +11,7 @@ from app.modules.monitoring.ports import WeatherMetric, WeatherRequest, WeatherS
 
 class DeterministicWeatherProvider:
     provider_name = "fake"
+    adapter_version = "geovision-deterministic-weather-v1.0.0"
 
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
@@ -51,7 +52,10 @@ class DeterministicWeatherProvider:
                 WeatherMetric("precipitation", 0.0, "mm"),
                 WeatherMetric("wind_speed", 2.2, "m/s"),
             ),
-            provenance={"provider": "deterministic"},
+            provenance={
+                "provider": "deterministic",
+                "adapter_version": self.adapter_version,
+            },
         )
         return IntegrationResult.simulated(
             provider=self.provider_name,

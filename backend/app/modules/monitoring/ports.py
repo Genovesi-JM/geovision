@@ -39,6 +39,7 @@ class WeatherSnapshot:
 @runtime_checkable
 class WeatherProvider(Protocol):
     provider_name: str
+    adapter_version: str
 
     def observations(
         self,

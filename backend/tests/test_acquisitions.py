@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 
 from app.core.tokens import create_user_access_token
@@ -105,6 +106,10 @@ def test_drone_and_satellite_share_one_chronological_asset_history(client, db_se
     assert drone.status_code == 201, drone.text
     assert drone.json()["acquisition_type"] == "DRONE"
     assert drone.json()["drone_details"]["payload_reference"] == "RGB-24MP"
+    stored_drone = db_session.get(Acquisition, drone.json()["id"])
+    assert json.loads(stored_drone.provenance_json)["adapter_version"] == (
+        "geovision-acquisition-v1.0.0"
+    )
 
     satellite = client.post(
         "/missions/internal",

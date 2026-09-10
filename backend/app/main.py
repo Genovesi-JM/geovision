@@ -2,7 +2,7 @@
 
 from contextlib import asynccontextmanager
 
-import json
+import logging
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
@@ -13,7 +13,13 @@ from .bootstrap import register_application_routes
 from .core import database
 from .core.config import settings
 from .core.integration import sanitize_integration_message
-from .middleware import SecurityHeadersMiddleware, RateLimitMiddleware, HTTPSRedirectMiddleware
+from .core.observability import configure_observability, get_logger, log_event
+from .middleware import (
+    HTTPSRedirectMiddleware,
+    RateLimitMiddleware,
+    RequestContextMiddleware,
+    SecurityHeadersMiddleware,
+)
 from .seed_data import (
     seed_admin_users,
 )
@@ -21,6 +27,9 @@ from .services.cart import seed_shop_products, seed_kit_products
 from .modules.catalog.services import sync_catalog_from_legacy
 from .sectors.services import sync_enabled_sector_definitions
 from .workers import application_workers
+
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -33,13 +42,17 @@ async def application_lifespan(application: FastAPI):
 
 def create_application() -> FastAPI:
     """Build and configure the FastAPI instance."""
+    observability = configure_observability(settings)
     application = FastAPI(title=settings.app_name, lifespan=application_lifespan)
 
     # Safe startup diagnostics (no secrets)
-    try:
-        print(f"[GeoVision] Config: {json.dumps(settings.safe_summary(), sort_keys=True)}")
-    except Exception:
-        pass
+    log_event(
+        logger,
+        logging.INFO,
+        "application.configuration.loaded",
+        configuration=settings.safe_summary(),
+        observability=observability,
+    )
 
     # CORS
     # Note: browsers will reject `Access-Control-Allow-Origin: *` when
@@ -73,17 +86,20 @@ def create_application() -> FastAPI:
     application.add_middleware(SecurityHeadersMiddleware)
     application.add_middleware(RateLimitMiddleware)
     application.add_middleware(HTTPSRedirectMiddleware)
+    application.add_middleware(RequestContextMiddleware)
 
     database.init_db_engine()
 
     # Ensure DB schema is up-to-date (add missing columns)
     try:
         database.ensure_legacy_schema()
-        print("[GeoVision] Schema drift check completed.")
+        log_event(logger, logging.INFO, "database.schema_drift_check.completed")
     except Exception as exc:
-        print(
-            "[GeoVision] Schema drift check failed (non-fatal): "
-            f"{sanitize_integration_message(exc)}"
+        log_event(
+            logger,
+            logging.WARNING,
+            "database.schema_drift_check.failed",
+            error=sanitize_integration_message(exc),
         )
 
     try:
@@ -95,11 +111,21 @@ def create_application() -> FastAPI:
             sync_catalog_from_legacy(db)
             inserted_users = seed_admin_users()
             if inserted_users:
-                print(f"[GeoVision] Utilizadores admin criados: {inserted_users}")
+                log_event(
+                    logger,
+                    logging.INFO,
+                    "application.admin_seed.completed",
+                    inserted_users=inserted_users,
+                )
         finally:
             db.close()
     except Exception as exc:
-        print(f"[GeoVision] Falha ao semear dados: {sanitize_integration_message(exc)}")
+        log_event(
+            logger,
+            logging.WARNING,
+            "application.seed.failed",
+            error=sanitize_integration_message(exc),
+        )
 
     # Composition is explicit, ordered, and compatibility-preserving. Router
     # implementations remain in place until their owning phases migrate them.

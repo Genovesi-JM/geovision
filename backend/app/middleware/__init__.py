@@ -10,8 +10,9 @@ from __future__ import annotations
 
 import hashlib
 import ipaddress
-import json
+import logging
 import time
+import uuid
 from datetime import datetime
 from typing import Callable, Dict, Optional, Tuple
 
@@ -20,6 +21,110 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 from ..core.config import settings
+from ..core.observability import (
+    bind_context,
+    enrich_context,
+    get_logger,
+    log_event,
+    reset_context,
+    safe_identifier,
+)
+
+
+logger = get_logger(__name__)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 0) Request correlation and structured completion logs
+# ═══════════════════════════════════════════════════════════════
+
+
+def _request_scope_fields(request: Request) -> dict[str, str]:
+    """Collect stable domain identifiers without logging query/body data."""
+
+    fields: dict[str, str] = {}
+    context = getattr(request.state, "authorization_context", None)
+    for key, value in (
+        ("organization_id", getattr(context, "active_organization_id", None)),
+        ("workspace_id", getattr(context, "active_workspace_id", None)),
+    ):
+        identifier = safe_identifier(value)
+        if identifier:
+            fields[key] = identifier
+    aliases = {
+        "company_id": "organization_id",
+        "organization_id": "organization_id",
+        "workspace_id": "workspace_id",
+        "account_id": "workspace_id",
+        "asset_id": "asset_id",
+        "mission_id": "mission_id",
+        "acquisition_id": "mission_id",
+        "job_id": "job_id",
+        "processing_job_id": "processing_job_id",
+        "report_id": "report_id",
+        "order_id": "order_id",
+        "device_id": "device_id",
+    }
+    for raw_key, value in request.path_params.items():
+        key = aliases.get(raw_key)
+        identifier = safe_identifier(value)
+        if key and identifier:
+            fields[key] = identifier
+    return fields
+
+
+class RequestContextMiddleware(BaseHTTPMiddleware):
+    """Attach bounded request/correlation IDs and emit a safe completion event."""
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        request_id = safe_identifier(request.headers.get("x-request-id")) or str(
+            uuid.uuid4()
+        )
+        correlation_id = safe_identifier(
+            request.headers.get("x-correlation-id")
+        ) or request_id
+        request.state.request_id = request_id
+        request.state.correlation_id = correlation_id
+        token = bind_context(
+            request_id=request_id,
+            correlation_id=correlation_id,
+            http_method=request.method,
+        )
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            fields = _request_scope_fields(request)
+            enrich_context(**fields)
+            route = getattr(request.scope.get("route"), "path", request.url.path)
+            log_event(
+                logger,
+                logging.ERROR,
+                "http.request.failed",
+                route=route,
+                duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                exception_type=exc.__class__.__name__,
+                **fields,
+            )
+            raise
+        else:
+            fields = _request_scope_fields(request)
+            enrich_context(**fields)
+            route = getattr(request.scope.get("route"), "path", request.url.path)
+            response.headers["X-Request-ID"] = request_id
+            response.headers["X-Correlation-ID"] = correlation_id
+            log_event(
+                logger,
+                logging.INFO if response.status_code < 500 else logging.ERROR,
+                "http.request.completed",
+                route=route,
+                status_code=response.status_code,
+                duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                **fields,
+            )
+            return response
+        finally:
+            reset_context(token)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -263,7 +368,7 @@ def log_audit(
     commit: bool = True,
 ):
     """Write an audit entry, optionally joining the caller's transaction."""
-    from ..models import AuditLog
+    from ..modules.audit.services import record_audit_event
 
     ip = None
     ua = None
@@ -271,18 +376,19 @@ def log_audit(
         ip = _get_client_ip(request)
         ua = (request.headers.get("user-agent") or "")[:500]
 
-    entry = AuditLog(
+    entry = record_audit_event(
+        db,
+        action=action,
+        resource_type=resource_type or "system",
+        resource_id=resource_id,
         user_id=user_id,
         user_email=user_email,
-        action=action,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        details=json.dumps(details, default=str) if details else None,
+        details=details,
+        request=request,
         ip_address=ip,
         user_agent=ua,
     )
     try:
-        db.add(entry)
         if commit:
             db.commit()
     except Exception:

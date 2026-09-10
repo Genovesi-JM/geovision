@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import hashlib
 import hmac
 import json
+import logging
 from typing import Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -14,6 +16,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.integration import IntegrationFailure, sanitize_integration_message
+from app.core.observability import get_logger, log_event
 from app.models import (
     AccountMember,
     CompanyUser,
@@ -28,6 +31,8 @@ from app.modules.notifications.delivery_ports import (
     ExternalDeliveryMessage,
 )
 from app.modules.notifications.domain import severity_allows
+from app.modules.economics.schemas import ProviderUsageCreate
+from app.modules.economics.services import record_provider_usage
 from app.workers.notification_delivery_runner import (
     DeliveryClaim,
     DeliveryLease,
@@ -38,6 +43,9 @@ from app.workers.notification_delivery_runner import (
 
 class PayloadDecoder(Protocol):
     def __call__(self, ciphertext: str | None) -> str | None: ...
+
+
+logger = get_logger(__name__)
 
 
 def _clear_claim(row: NotificationDelivery) -> None:
@@ -476,6 +484,41 @@ class SqlAlchemyNotificationDeliveryRepository:
             row.dead_lettered_at = None
             row.updated_at = now
             _clear_claim(row)
+            notification = db.get(Notification, row.notification_id)
+            if notification is not None:
+                try:
+                    with db.begin_nested():
+                        record_provider_usage(
+                            db,
+                            payload=ProviderUsageCreate(
+                                organization_id=notification.organization_id,
+                                workspace_id=notification.workspace_id,
+                                notification_delivery_id=row.id,
+                                provider=row.provider,
+                                service=f"{row.channel.lower()}_delivery",
+                                usage_type="notification_delivery",
+                                quantity=Decimal("1"),
+                                unit="message",
+                                occurred_at=now,
+                                provider_reference=row.provider_message_id,
+                                idempotency_key=f"notification:{row.id}:usage:delivered",
+                                metadata={
+                                    "channel": row.channel,
+                                    "attempts": row.attempts,
+                                },
+                            ),
+                        )
+                except Exception as exc:
+                    log_event(
+                        logger,
+                        logging.WARNING,
+                        "notification.usage_metering.failed",
+                        organization_id=notification.organization_id,
+                        workspace_id=notification.workspace_id,
+                        notification_delivery_id=row.id,
+                        provider=row.provider,
+                        error_type=exc.__class__.__name__,
+                    )
             return True
 
     def mark_failed(

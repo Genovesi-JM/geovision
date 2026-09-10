@@ -21,6 +21,7 @@ from app.models import (
     KpiValue,
     Observation,
     Report,
+    Acquisition,
     User,
 )
 from app.modules.identity.domain import AuthorizationContext
@@ -105,13 +106,20 @@ def _fixture(db_session):
         asset_id=asset.id,
         name="Validated analysis",
         dataset_type="NDVI",
+        provider_code="fixture-provider",
         storage_provider="local",
         processing_level="DERIVED",
         quality_status="PASSED",
         status="ready",
         sector="AGRICULTURE",
         capture_date=now,
-        provenance_json=json.dumps({"algorithm": "fixture", "storage_key": "hidden"}),
+        provenance_json=json.dumps(
+            {
+                "processor": "fixture-processor",
+                "processor_version": "1.0.0",
+                "storage_key": "hidden",
+            }
+        ),
         metadata_json="{}",
         created_at=now,
         updated_at=now,
@@ -331,6 +339,7 @@ def test_narrative_rejects_unknown_fields_numbers_and_evidence():
 class _UnavailableNarrative:
     provider_name = "azure_openai"
     model_name = "unavailable-deployment"
+    model_version = "2026-09-10"
 
     def generate(self, context):
         del context
@@ -358,6 +367,18 @@ def test_generation_falls_back_stores_exact_pdf_and_is_idempotent(
     assert report.status == "DRAFT"
     assert report.qa_level == "HUMAN_REVIEW"
     assert report.narrative_provider == "deterministic"
+    assert report.narrative_model_version == "geovision-deterministic-v1.0.0"
+    provenance = json.loads(report.provenance_json)
+    assert provenance["complete"] is True
+    assert provenance["context_sha256"] == report.context_sha256
+    assert provenance["template_version"] == report.template_version
+    assert {
+        (source["kind"], source["id"], source["version"])
+        for source in provenance["sources"]
+    } >= {
+        ("dataset", eligible.dataset_id, "1.0.0"),
+        ("kpi", eligible.id, "1.0.0"),
+    }
     qa = json.loads(report.qa_result_json)
     assert qa["fallback_used"] is True
     assert qa["fallback_reason"] == "provider_unavailable"
@@ -372,6 +393,8 @@ def test_generation_falls_back_stores_exact_pdf_and_is_idempotent(
     assert content.startswith(b"%PDF-")
     assert eligible.value.encode() in content
     assert filename.endswith(".pdf")
+    assert b"Evidence provenance" in content
+    assert b"geovision-deterministic-v1.0.0" in content
     file = db_session.get(DatasetFile, report.output_file_id)
     assert file.sha256_hash == hashlib.sha256(content).hexdigest()
 
@@ -445,3 +468,165 @@ def test_review_publication_permissions_audit_and_events(db_session, tmp_path):
         "report.approved",
         "report.published",
     }.issubset(events)
+
+
+def test_mission_report_propagates_source_provider_and_versions_to_publication(
+    db_session, tmp_path
+):
+    organization, workspace, actor, asset, kpi, observation, _ = _fixture(db_session)
+    mission = Acquisition(
+        id=_id(),
+        acquisition_number=f"ACQ-{uuid.uuid4().hex[:12]}",
+        organization_id=organization.id,
+        workspace_id=workspace.id,
+        asset_id=asset.id,
+        acquisition_type="DRONE",
+        title="Versioned inspection mission",
+        state="COMPLETED",
+        provider_code="flight-provider",
+        provenance_json=json.dumps(
+            {"adapter_version": "flight-adapter-2.1.0"}
+        ),
+        created_by_user_id=actor.id,
+        updated_by_user_id=actor.id,
+        created_at=datetime(2026, 9, 10, 7),
+        updated_at=datetime(2026, 9, 10, 8),
+    )
+    dataset = db_session.get(Dataset, kpi.dataset_id)
+    dataset.mission_id = mission.id
+    kpi.mission_id = mission.id
+    observation.mission_id = mission.id
+    db_session.add(mission)
+    db_session.commit()
+
+    report, _ = generate_report(
+        db_session,
+        actor=actor,
+        asset=asset,
+        data=ReportGenerateRequest(
+            report_type="AGRICULTURE_INTELLIGENCE",
+            acquisition_id=mission.id,
+        ),
+        storage=_storage(tmp_path),
+    )
+    provenance = json.loads(report.provenance_json)
+    mission_source = next(
+        source for source in provenance["sources"] if source["kind"] == "mission"
+    )
+    assert mission_source == {
+        "id": mission.id,
+        "kind": "mission",
+        "provider": "flight-provider",
+        "version": "flight-adapter-2.1.0",
+        "version_basis": "provider_or_adapter",
+    }
+    assert provenance["acquisition_id"] == mission.id
+    assert provenance["complete"] is True
+
+    staff = _staff_context(actor)
+    submit_report(db_session, report=report, actor=actor)
+    approve_report(db_session, report=report, actor=actor, context=staff)
+    publish_report(db_session, report=report, actor=actor)
+    db_session.commit()
+    assert report.status == "PUBLISHED"
+
+
+@pytest.mark.parametrize(
+    ("provider_code", "legacy_source", "adapter_version"),
+    [
+        (
+            "geovision_manual",
+            "asset_inspection",
+            "geovision-legacy-inspection-sync-v1.0.0",
+        ),
+        (
+            "dji_mobile_sdk",
+            "drone_mission",
+            "geovision-legacy-drone-sync-v1.0.0",
+        ),
+    ],
+)
+def test_legacy_first_party_missions_remain_publishable_with_versioned_provenance(
+    db_session,
+    tmp_path,
+    provider_code,
+    legacy_source,
+    adapter_version,
+):
+    organization, workspace, actor, asset, kpi, observation, _ = _fixture(db_session)
+    mission = Acquisition(
+        id=_id(),
+        acquisition_number=f"ACQ-{uuid.uuid4().hex[:12]}",
+        organization_id=organization.id,
+        workspace_id=workspace.id,
+        asset_id=asset.id,
+        acquisition_type=(
+            "MANUAL_INSPECTION" if legacy_source == "asset_inspection" else "DRONE"
+        ),
+        title="Versioned legacy source",
+        state="COMPLETED",
+        provider_code=provider_code,
+        provenance_json=json.dumps(
+            {"source": legacy_source, "adapter_version": adapter_version}
+        ),
+        legacy_source=legacy_source,
+        legacy_source_id=_id(),
+        created_by_user_id=actor.id,
+        updated_by_user_id=actor.id,
+        created_at=datetime(2026, 9, 10, 7),
+        updated_at=datetime(2026, 9, 10, 8),
+    )
+    dataset = db_session.get(Dataset, kpi.dataset_id)
+    dataset.mission_id = mission.id
+    kpi.mission_id = mission.id
+    observation.mission_id = mission.id
+    db_session.add(mission)
+    db_session.commit()
+
+    report, _ = generate_report(
+        db_session,
+        actor=actor,
+        asset=asset,
+        data=ReportGenerateRequest(
+            report_type="AGRICULTURE_INTELLIGENCE",
+            acquisition_id=mission.id,
+        ),
+        storage=_storage(tmp_path),
+    )
+    mission_source = next(
+        source
+        for source in json.loads(report.provenance_json)["sources"]
+        if source["kind"] == "mission"
+    )
+    assert mission_source["version"] == adapter_version
+    assert mission_source["provider"] == provider_code
+
+    staff = _staff_context(actor)
+    submit_report(db_session, report=report, actor=actor)
+    approve_report(db_session, report=report, actor=actor, context=staff)
+    publish_report(db_session, report=report, actor=actor)
+    assert report.status == "PUBLISHED"
+
+
+def test_publication_rejects_tampered_or_incomplete_provenance(db_session, tmp_path):
+    _, _, actor, asset, _, _, _ = _fixture(db_session)
+    report, _ = generate_report(
+        db_session,
+        actor=actor,
+        asset=asset,
+        data=ReportGenerateRequest(report_type="AGRICULTURE_INTELLIGENCE"),
+        storage=_storage(tmp_path),
+    )
+    submit_report(db_session, report=report, actor=actor)
+    approve_report(
+        db_session,
+        report=report,
+        actor=actor,
+        context=_staff_context(actor),
+    )
+    report.provenance_json = "{}"
+
+    with pytest.raises(ReportError, match="provenance is incomplete") as exc_info:
+        publish_report(db_session, report=report, actor=actor)
+
+    assert exc_info.value.code == "provenance_incomplete"

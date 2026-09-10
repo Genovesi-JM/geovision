@@ -15,7 +15,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.event_names import EventNames
 from app.core.time import utc_now
-from app.models import Acquisition, Asset, AuditLog, Dataset, DatasetFile, Site, User
+from app.models import Acquisition, Asset, Dataset, DatasetFile, Site, User
+from app.modules.audit.services import record_audit_event
 from app.modules.assets.services import (
     AssetAccessError,
     get_asset,
@@ -66,22 +67,15 @@ def _audit(
     dataset: Dataset,
     details: dict[str, Any] | None = None,
 ) -> None:
-    db.add(
-        AuditLog(
-            user_id=actor.id,
-            user_email=actor.email,
-            action=action,
-            resource_type="dataset",
-            resource_id=dataset.id,
-            details=_json(
-                {
-                    "organization_id": dataset.company_id,
-                    "workspace_id": dataset.workspace_id,
-                    "asset_id": dataset.asset_id,
-                    **(details or {}),
-                }
-            ),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type="dataset",
+        resource_id=dataset.id,
+        organization_id=dataset.company_id,
+        workspace_id=dataset.workspace_id,
+        details={"asset_id": dataset.asset_id, **(details or {})},
     )
 
 

@@ -14,7 +14,6 @@ from app.core.time import utc_now
 from app.models import (
     Account,
     AccountMember,
-    AuditLog,
     Company,
     CompanyUser,
     InternalRoleAssignment,
@@ -30,6 +29,7 @@ from app.modules.organizations.domain import (
     normalize_customer_role,
     permission_granted,
 )
+from app.modules.audit.services import record_audit_event
 from app.services.event_outbox import enqueue_domain_event
 
 
@@ -74,16 +74,14 @@ def _audit(
     resource_id: str,
     details: Optional[dict] = None,
 ) -> None:
-    payload = {"organization_id": organization_id, **(details or {})}
-    db.add(
-        AuditLog(
-            user_id=actor.id,
-            user_email=actor.email,
-            action=action,
-            resource_type=resource_type,
-            resource_id=resource_id,
-            details=json.dumps(payload, sort_keys=True),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        organization_id=organization_id,
+        details=details,
     )
 
 

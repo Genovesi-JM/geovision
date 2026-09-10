@@ -101,6 +101,7 @@ class ObjectStorageProvider(Protocol):
 @runtime_checkable
 class SatelliteProvider(Protocol):
     provider_name: str
+    adapter_version: str
 
     def search(
         self,

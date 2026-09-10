@@ -73,6 +73,7 @@ def _distance_km(lat_a: float, lon_a: float, lat_b: float, lon_b: float) -> floa
 
 
 class AemetOpenDataProvider:
+    adapter_version = "geovision-aemet-opendata-v1.0.0"
     provider_name = "aemet"
 
     def __init__(
@@ -272,6 +273,7 @@ class AemetOpenDataProvider:
                 metrics=metrics,
                 provenance={
                     "provider": "AEMET OpenData",
+                    "adapter_version": self.adapter_version,
                     "product": "observacion_convencional_todas",
                     "station_altitude_m": _number(raw.get("alt")),
                     "source_updated_at": raw.get("fint"),

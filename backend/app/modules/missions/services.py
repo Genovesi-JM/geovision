@@ -15,7 +15,6 @@ from app.models import (
     Acquisition,
     Asset,
     AssetInspection,
-    AuditLog,
     DroneAcquisitionDetail,
     DroneAircraft,
     DroneMission,
@@ -25,6 +24,7 @@ from app.models import (
     Site,
     User,
 )
+from app.modules.audit.services import record_audit_event
 from app.modules.assets.domain import AssetValidationError, normalize_geometry
 from app.modules.assets.services import synchronize_legacy_iot_asset, synchronize_legacy_site
 from app.modules.missions.domain import (
@@ -75,6 +75,30 @@ def _provider_code(value: str | None) -> str | None:
     return normalized[:80] or None
 
 
+_ACQUISITION_WORKFLOW_VERSION = "geovision-acquisition-v1.0.0"
+
+
+def _initial_provenance(
+    data: AcquisitionCreate | InternalAcquisitionCreate,
+    *,
+    internal: bool,
+    provider_code: str | None,
+) -> dict[str, Any]:
+    """Persist an immutable workflow version for first-party acquisitions.
+
+    External adapters must supply their own provider/adapter version.  Customer
+    acquisitions and explicitly named GeoVision providers use the versioned
+    first-party workflow so later reports never have to invent provenance.
+    """
+
+    provenance = dict(getattr(data, "provenance", {}) if internal else {})
+    first_party = not provider_code or provider_code.startswith("geovision")
+    if first_party:
+        provenance.setdefault("source", "geovision_acquisition")
+        provenance.setdefault("adapter_version", _ACQUISITION_WORKFLOW_VERSION)
+    return provenance
+
+
 def _audit(
     db: Session,
     *,
@@ -83,21 +107,15 @@ def _audit(
     acquisition: Acquisition,
     details: dict[str, Any],
 ) -> None:
-    db.add(
-        AuditLog(
-            user_id=actor.id if actor else None,
-            user_email=actor.email if actor else None,
-            action=action,
-            resource_type="acquisition",
-            resource_id=acquisition.id,
-            details=_json(
-                {
-                    "organization_id": acquisition.organization_id,
-                    "asset_id": acquisition.asset_id,
-                    **details,
-                }
-            ),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type="acquisition",
+        resource_id=acquisition.id,
+        organization_id=acquisition.organization_id,
+        workspace_id=acquisition.workspace_id,
+        details={"asset_id": acquisition.asset_id, **details},
     )
 
 
@@ -249,6 +267,9 @@ def create_acquisition(
     _validate_links(db, asset=asset, order_id=order_id, fulfilment_job_id=job_id)
     now = utc_now()
     acquisition_id = str(uuid.uuid4())
+    provider_code = (
+        _provider_code(getattr(data, "provider_code", None)) if internal else None
+    )
     acquisition = Acquisition(
         id=acquisition_id,
         acquisition_number=f"GVAQ-{now.year}-{acquisition_id.split('-')[0].upper()}",
@@ -261,11 +282,15 @@ def create_acquisition(
         title=data.title.strip(),
         description=data.description,
         state=AcquisitionState.DRAFT.value,
-        provider_code=(
-            _provider_code(getattr(data, "provider_code", None)) if internal else None
-        ),
+        provider_code=provider_code,
         provider_reference=(getattr(data, "provider_reference", None) if internal else None),
-        provenance_json=_json(getattr(data, "provenance", {}) if internal else {}),
+        provenance_json=_json(
+            _initial_provenance(
+                data,
+                internal=internal,
+                provider_code=provider_code,
+            )
+        ),
         metadata_json=_json(data.metadata),
         output_refs_json=_json(getattr(data, "output_refs", []) if internal else []),
         scheduled_start=data.scheduled_start,
@@ -674,7 +699,11 @@ def synchronize_legacy_drone_mission(
     acquisition.provider_code = _provider_code(aircraft.provider if aircraft else None)
     acquisition.provider_reference = mission.provider_reference
     acquisition.provenance_json = _json(
-        {"source": "legacy_drone_mission", "source_id": mission.id}
+        {
+            "source": "legacy_drone_mission",
+            "source_id": mission.id,
+            "adapter_version": "geovision-legacy-drone-sync-v1.0.0",
+        }
     )
     acquisition.metadata_json = _json(
         {"legacy_mission_type": mission.mission_type, "route": _array(mission.route_json)}
@@ -759,7 +788,11 @@ def synchronize_legacy_inspection(
             state=AcquisitionState.COMPLETED.value,
             provider_code="geovision_manual",
             provenance_json=_json(
-                {"source": "legacy_asset_inspection", "source_id": inspection.id}
+                {
+                    "source": "legacy_asset_inspection",
+                    "source_id": inspection.id,
+                    "adapter_version": "geovision-legacy-inspection-sync-v1.0.0",
+                }
             ),
             metadata_json=_json(
                 {

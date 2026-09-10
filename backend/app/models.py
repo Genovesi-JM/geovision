@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import (
@@ -20,7 +21,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, synonym
 
 from .core.database import Base
 from .core.time import utc_now
@@ -701,7 +702,9 @@ class KpiValue(Base):
         String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=True, index=True
     )
     site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
-    dataset_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    dataset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     mission_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
     )
@@ -919,9 +922,214 @@ class AuditLog(Base):
     resource_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)  # user, order, company, etc.
     resource_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)           # JSON with additional context
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    company_id = synonym("organization_id")
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    request_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    correlation_id: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, index=True
+    )
+    outcome: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="UNKNOWN", server_default="UNKNOWN", index=True
+    )
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)  # IPv4/IPv6
     user_agent: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "outcome IN ('UNKNOWN', 'SUCCESS', 'FAILURE', 'DENIED')",
+            name="ck_audit_log_outcome",
+        ),
+    )
+
+
+class ProviderUsage(Base):
+    """Provider-neutral metering with optional attributable monetary cost."""
+
+    __tablename__ = "provider_usage"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    order_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    order_item_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("order_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    catalog_item_id: Mapped[Optional[str]] = mapped_column(
+        String(50), ForeignKey("catalog_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    acquisition_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    dataset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    processing_job_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("processing_jobs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("fulfilment_jobs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    intelligence_acquisition_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("intelligence_acquisitions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    notification_delivery_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("notification_deliveries.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    report_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("reports.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    provider: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    service: Mapped[str] = mapped_column(String(100), nullable=False)
+    usage_type: Mapped[str] = mapped_column(String(60), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(20, 6), nullable=False)
+    unit: Mapped[str] = mapped_column(String(40), nullable=False)
+    currency: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    unit_cost: Mapped[Optional[Decimal]] = mapped_column(Numeric(20, 6), nullable=True)
+    total_cost: Mapped[Optional[Decimal]] = mapped_column(Numeric(20, 4), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    provider_reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    request_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("quantity > 0", name="ck_provider_usage_quantity_positive"),
+        CheckConstraint(
+            "unit_cost IS NULL OR unit_cost >= 0",
+            name="ck_provider_usage_unit_cost_nonnegative",
+        ),
+        CheckConstraint(
+            "total_cost IS NULL OR total_cost >= 0",
+            name="ck_provider_usage_total_cost_nonnegative",
+        ),
+        CheckConstraint(
+            "(total_cost IS NULL AND currency IS NULL AND unit_cost IS NULL) OR "
+            "(total_cost IS NOT NULL AND currency IS NOT NULL)",
+            name="ck_provider_usage_cost_currency",
+        ),
+        Index(
+            "ix_provider_usage_provider_reference",
+            "provider",
+            "provider_reference",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "idempotency_key",
+            name="uq_provider_usage_org_idempotency",
+        ),
+        Index(
+            "ix_provider_usage_scope_currency",
+            "organization_id",
+            "order_id",
+            "currency",
+        ),
+    )
+
+
+class InternalCost(Base):
+    """Immutable direct cost attributed to a GeoVision customer order."""
+
+    __tablename__ = "internal_costs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    order_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("orders.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    order_item_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("order_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    catalog_item_id: Mapped[Optional[str]] = mapped_column(
+        String(50), ForeignKey("catalog_items.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("fulfilment_jobs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    contractor_assignment_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("contractor_assignments.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    cost_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    description: Mapped[str] = mapped_column(String(500), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(20, 4), nullable=False)
+    currency: Mapped[str] = mapped_column(String(5), nullable=False)
+    incurred_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    reference: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    request_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    metadata_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="ck_internal_cost_amount_positive"),
+        CheckConstraint(
+            "cost_type IN ('CONTRACTOR', 'TRAVEL', 'PROCESSING', 'EQUIPMENT', "
+            "'SHIPPING', 'SPECIALIST_REVIEW', 'PROVIDER', 'OTHER')",
+            name="ck_internal_cost_type",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "idempotency_key",
+            name="uq_internal_cost_org_idempotency",
+        ),
+        Index(
+            "ix_internal_costs_scope_currency",
+            "organization_id",
+            "order_id",
+            "currency",
+        ),
+    )
 
 
 # â”€â”€ Company / Client â”€â”€
@@ -2220,8 +2428,17 @@ class Report(Base):
     context_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     narrative_provider: Mapped[str] = mapped_column(String(80), nullable=False)
     narrative_model: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    narrative_model_version: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+        default="legacy-unversioned",
+        server_default="legacy-unversioned",
+    )
     narrative_schema_version: Mapped[str] = mapped_column(String(40), nullable=False)
     narrative_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    provenance_json: Mapped[str] = mapped_column(
         Text, nullable=False, default="{}", server_default="{}"
     )
     qa_result_json: Mapped[str] = mapped_column(

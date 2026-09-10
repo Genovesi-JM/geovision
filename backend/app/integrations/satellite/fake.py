@@ -16,6 +16,7 @@ from app.modules.datasets.ports import (
 
 class DeterministicSatelliteProvider:
     provider_name = "fake"
+    adapter_version = "geovision-deterministic-satellite-v1.0.0"
 
     def __init__(self, *, fail: bool = False) -> None:
         self.fail = fail
@@ -65,7 +66,11 @@ class DeterministicSatelliteProvider:
                 ),
             ),
             source_link="https://stac.dataspace.copernicus.eu/v1/fixture",
-            provenance={"provider": "deterministic", "catalog_standard": "STAC 1.1.0"},
+            provenance={
+                "provider": "deterministic",
+                "adapter_version": self.adapter_version,
+                "catalog_standard": "STAC 1.1.0",
+            },
         )
         return IntegrationResult.simulated(
             provider=self.provider_name,

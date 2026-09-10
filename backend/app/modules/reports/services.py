@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from decimal import Decimal
 import hashlib
 import json
 from pathlib import Path
@@ -18,12 +19,12 @@ from app.core.time import utc_now
 from app.models import (
     Acquisition,
     Asset,
-    AuditLog,
     Dataset,
     DatasetFile,
     Report,
     User,
 )
+from app.modules.audit.services import record_audit_event
 from app.modules.identity.domain import AuthorizationContext
 from app.modules.organizations.domain import permission_granted
 from app.modules.reports.context_builder import ReportContextBuilder
@@ -38,6 +39,8 @@ from app.modules.reports.ports import NarrativeProvider
 from app.modules.reports.qa import classify_qa, validate_narrative
 from app.modules.reports.renderers import render_report_pdf
 from app.modules.reports.schemas import ReportGenerateRequest
+from app.modules.economics.schemas import ProviderUsageCreate
+from app.modules.economics.services import record_provider_usage
 from app.services.event_outbox import enqueue_domain_event
 from app.services.storage import StorageService, get_storage_service
 
@@ -60,6 +63,228 @@ def _object(value: str | None) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+_UNVERSIONED = {"", "legacy", "legacy-1", "legacy-unversioned", "unknown"}
+
+
+def _version(value: Any) -> str | None:
+    normalized = str(value or "").strip()
+    if normalized.lower() in _UNVERSIONED or len(normalized) > 120:
+        return None
+    return normalized
+
+
+def _source_version(provenance: Mapping[str, Any]) -> str | None:
+    for key in (
+        "processor_version",
+        "provider_version",
+        "adapter_version",
+        "algorithm_version",
+        "version",
+        "schema_version",
+    ):
+        value = _version(provenance.get(key))
+        if value:
+            return value
+    return None
+
+
+def _build_provenance(
+    *,
+    asset: Asset,
+    acquisition: Acquisition | None,
+    context: Mapping[str, Any],
+    context_sha256: str,
+    template_version: str,
+    narrative_provider: NarrativeProvider,
+    narrative_schema_version: str,
+) -> dict[str, Any]:
+    model_version = _version(getattr(narrative_provider, "model_version", None))
+    if model_version is None:
+        raise ReportError(
+            "narrative_model_version_missing",
+            "Narrative output must identify an immutable model version",
+        )
+    if _version(template_version) is None:
+        raise ReportError(
+            "template_version_missing",
+            "Report generation requires an immutable template version",
+        )
+
+    sources: list[dict[str, Any]] = []
+    acquisition_context = context.get("acquisition")
+    if acquisition is not None and isinstance(acquisition_context, Mapping):
+        acquisition_provenance = acquisition_context.get("provenance")
+        acquisition_provenance = (
+            acquisition_provenance
+            if isinstance(acquisition_provenance, Mapping)
+            else {}
+        )
+        is_first_party = (
+            (
+                not acquisition.provider_code
+                or acquisition.provider_code.startswith("geovision")
+                or acquisition.legacy_source in {"drone_mission", "asset_inspection"}
+            )
+            and acquisition.acquisition_type
+            in {"DRONE", "IOT", "MANUAL_INSPECTION"}
+        )
+        provider_version = _source_version(acquisition_provenance)
+        sources.append(
+            {
+                "kind": "mission",
+                "id": acquisition.id,
+                "provider": (
+                    acquisition.provider_code
+                    or ("geovision-acquisition" if is_first_party else None)
+                ),
+                "version": (
+                    provider_version
+                    or (
+                        "geovision-acquisition-v1.0.0"
+                        if is_first_party
+                        else None
+                    )
+                ),
+                "version_basis": (
+                    "provider_or_adapter"
+                    if provider_version
+                    else ("workflow_schema" if is_first_party else None)
+                ),
+            }
+        )
+    for item in context.get("datasets", []):
+        if not isinstance(item, Mapping):
+            continue
+        item_provenance = item.get("provenance")
+        item_provenance = item_provenance if isinstance(item_provenance, Mapping) else {}
+        sources.append(
+            {
+                "kind": "dataset",
+                "id": item.get("id"),
+                "mission_id": item.get("acquisition_id"),
+                "provider": item.get("provider"),
+                "processor": item_provenance.get("processor"),
+                "version": _source_version(item_provenance),
+            }
+        )
+    for item in context.get("kpis", []):
+        if not isinstance(item, Mapping):
+            continue
+        sources.append(
+            {
+                "kind": "kpi",
+                "id": item.get("id"),
+                "definition_id": item.get("definition_id"),
+                "dataset_id": item.get("dataset_id"),
+                "mission_id": item.get("acquisition_id"),
+                "provider": item.get("source"),
+                "algorithm": item.get("source"),
+                "version": _version(item.get("algorithm_version")),
+            }
+        )
+    for item in context.get("observations", []):
+        if not isinstance(item, Mapping):
+            continue
+        sources.append(
+            {
+                "kind": "observation",
+                "id": item.get("id"),
+                "dataset_id": item.get("dataset_id"),
+                "mission_id": item.get("acquisition_id"),
+                "provider": item.get("source"),
+                "algorithm": item.get("algorithm"),
+                "version": _version(item.get("algorithm_version")),
+            }
+        )
+    for item in context.get("actions", []):
+        if not isinstance(item, Mapping):
+            continue
+        sources.append(
+            {
+                "kind": "action",
+                "id": item.get("id"),
+                "observation_id": item.get("source_observation_id"),
+                "provider": "geovision-rules",
+                "algorithm": item.get("source_rule"),
+                "version": _version(item.get("source_rule_version")),
+            }
+        )
+    provenance: dict[str, Any] = {
+        "schema_version": "geovision.report-provenance.v1",
+        "organization_id": asset.organization_id,
+        "workspace_id": asset.workspace_id,
+        "asset_id": asset.id,
+        "acquisition_id": acquisition.id if acquisition else None,
+        "context_schema_version": context.get("schema_version"),
+        "context_sha256": context_sha256,
+        "template_version": template_version,
+        "narrative_provider": narrative_provider.provider_name,
+        "narrative_model": narrative_provider.model_name,
+        "narrative_model_version": model_version,
+        "narrative_schema_version": narrative_schema_version,
+        "sources": sources,
+    }
+    issues = _provenance_issues(provenance)
+    provenance["complete"] = not issues
+    provenance["issues"] = issues
+    return provenance
+
+
+def _provenance_issues(provenance: Mapping[str, Any]) -> list[str]:
+    issues: list[str] = []
+    required = (
+        "schema_version",
+        "organization_id",
+        "asset_id",
+        "context_schema_version",
+        "context_sha256",
+        "template_version",
+        "narrative_provider",
+        "narrative_model_version",
+        "narrative_schema_version",
+    )
+    for field in required:
+        if not str(provenance.get(field) or "").strip():
+            issues.append(f"missing:{field}")
+    if _version(provenance.get("template_version")) is None:
+        issues.append("unversioned:template")
+    if _version(provenance.get("narrative_model_version")) is None:
+        issues.append("unversioned:narrative_model")
+    sources = provenance.get("sources")
+    if not isinstance(sources, list) or not sources:
+        issues.append("missing:sources")
+    else:
+        for index, source in enumerate(sources):
+            if not isinstance(source, Mapping):
+                issues.append(f"invalid:source:{index}")
+                continue
+            kind = str(source.get("kind") or index)
+            if not str(source.get("id") or "").strip():
+                issues.append(f"missing:{kind}:id")
+            if not str(source.get("provider") or "").strip():
+                issues.append(f"missing:{kind}:provider")
+            if _version(source.get("version")) is None:
+                issues.append(f"missing:{kind}:version")
+    return sorted(set(issues))
+
+
+def _require_publishable_provenance(report: Report) -> dict[str, Any]:
+    provenance = _object(report.provenance_json)
+    issues = _provenance_issues(provenance)
+    if (
+        provenance.get("context_sha256") != report.context_sha256
+        or provenance.get("template_version") != report.template_version
+        or provenance.get("narrative_model_version") != report.narrative_model_version
+    ):
+        issues.append("mismatch:report")
+    if issues:
+        raise ReportError(
+            "provenance_incomplete",
+            "Report provenance is incomplete and must be regenerated before publication",
+        )
+    return provenance
+
+
 def _audit(
     db: Session,
     *,
@@ -68,24 +293,21 @@ def _audit(
     report: Report,
     details: Mapping[str, Any] | None = None,
 ) -> None:
-    db.add(
-        AuditLog(
-            user_id=actor.id if actor else None,
-            user_email=actor.email if actor else None,
-            action=action,
-            resource_type="report",
-            resource_id=report.id,
-            details=_json(
-                {
-                    "organization_id": report.organization_id,
-                    "workspace_id": report.workspace_id,
-                    "asset_id": report.asset_id,
-                    "revision": report.revision,
-                    "status": report.status,
-                    **dict(details or {}),
-                }
-            ),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type="report",
+        resource_id=report.id,
+        organization_id=report.organization_id,
+        workspace_id=report.workspace_id,
+        details={
+            "asset_id": report.asset_id,
+            "mission_id": report.acquisition_id,
+            "revision": report.revision,
+            "status": report.status,
+            **dict(details or {}),
+        },
     )
 
 
@@ -182,6 +404,11 @@ def _run_narrative(
     provider: NarrativeProvider,
 ) -> tuple[dict[str, Any], NarrativeProvider, bool, str | None]:
     try:
+        if _version(getattr(provider, "model_version", None)) is None:
+            raise ReportError(
+                "narrative_model_version_missing",
+                "Narrative provider did not identify an immutable model version",
+            )
         output = provider.generate(context)
         envelope = validate_narrative(output, evidence_ids=evidence_ids)
         return envelope.model_dump(mode="json"), provider, False, None
@@ -235,6 +462,10 @@ def _write_artifact(
                 "report_revision": report.revision,
                 "context_sha256": report.context_sha256,
                 "template_version": report.template_version,
+                "narrative_model_version": report.narrative_model_version,
+                "report_provenance_sha256": hashlib.sha256(
+                    report.provenance_json.encode()
+                ).hexdigest(),
             }
         ),
         status="ready",
@@ -370,6 +601,23 @@ def generate_report(
             "context_sha256": built.sha256,
         }
     )
+    provenance = _build_provenance(
+        asset=asset,
+        acquisition=acquisition,
+        context=built.context,
+        context_sha256=built.sha256,
+        template_version=data.template_version,
+        narrative_provider=actual_provider,
+        narrative_schema_version=str(narrative["schema_version"]),
+    )
+    if not provenance["complete"]:
+        qa_level = ReportQALevel.HUMAN_REVIEW
+        qa_result["level"] = qa_level.value
+        qa_result["reasons"] = list(
+            dict.fromkeys([*qa_result.get("reasons", []), "incomplete_provenance"])
+        )
+    qa_result["provenance_complete"] = provenance["complete"]
+    qa_result["provenance_issues"] = provenance["issues"]
     now = utc_now()
     previous = _latest_report(db, asset.id, data.report_type)
     auto_approved = qa_level is ReportQALevel.AUTO_APPROVED
@@ -390,8 +638,10 @@ def generate_report(
         context_sha256=built.sha256,
         narrative_provider=actual_provider.provider_name,
         narrative_model=actual_provider.model_name,
+        narrative_model_version=provenance["narrative_model_version"],
         narrative_schema_version=str(narrative["schema_version"]),
         narrative_json=_json(narrative),
+        provenance_json=_json(provenance),
         qa_result_json=_json(qa_result),
         supersedes_report_id=previous.id if previous else None,
         generation_key=generation_key,
@@ -405,12 +655,38 @@ def generate_report(
     )
     db.add(report)
     db.flush()
+    record_provider_usage(
+        db,
+        payload=ProviderUsageCreate(
+            organization_id=report.organization_id,
+            workspace_id=report.workspace_id,
+            report_id=report.id,
+            provider=report.narrative_provider,
+            service="narrative_generation",
+            usage_type="report_narrative",
+            quantity=Decimal("1"),
+            unit="report",
+            occurred_at=now,
+            provider_reference=report.context_sha256,
+            idempotency_key=(
+                f"report:{report.id}:narrative:{report.narrative_model_version}"
+            ),
+            metadata={
+                "model": report.narrative_model,
+                "model_version": report.narrative_model_version,
+                "fallback_used": fallback_used,
+                "context_schema_version": report.context_schema_version,
+            },
+        ),
+        actor=actor,
+    )
     pdf = render_report_pdf(
         title=report.title,
         report_type=report.report_type,
         revision=report.revision,
         context=built.context,
         narrative=narrative,
+        provenance=provenance,
     )
     dataset, file = _write_artifact(
         db,
@@ -431,6 +707,8 @@ def generate_report(
         details={
             "context_sha256": report.context_sha256,
             "narrative_provider": report.narrative_provider,
+            "narrative_model_version": report.narrative_model_version,
+            "provenance_complete": provenance["complete"],
             "fallback_used": fallback_used,
             "output_dataset_id": dataset.id,
             "output_file_id": file.id,
@@ -629,6 +907,7 @@ def publish_report(
     note: str | None = None,
 ) -> Report:
     _check_version(report, expected_version)
+    _require_publishable_provenance(report)
     require_report_transition(report.status, ReportStatus.PUBLISHED.value)
     now = utc_now()
     prior = (
@@ -700,7 +979,9 @@ def report_payload(report: Report, *, detail: bool = False) -> dict[str, Any]:
         "context_sha256": report.context_sha256,
         "narrative_provider": report.narrative_provider,
         "narrative_model": report.narrative_model,
+        "narrative_model_version": report.narrative_model_version,
         "narrative_schema_version": report.narrative_schema_version,
+        "provenance": _object(report.provenance_json),
         "qa_result": _object(report.qa_result_json),
         "output_dataset_id": report.output_dataset_id,
         "output_file_id": report.output_file_id,

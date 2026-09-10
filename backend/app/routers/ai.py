@@ -2,17 +2,28 @@
 
 import logging
 import asyncio
+from decimal import Decimal
+import hashlib
 import unicodedata
-from typing import List, Optional, Literal
+from typing import Any, List, Optional, Literal
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from ..core.config import settings
+from ..core.database import get_db
+from ..core.observability import get_logger, log_event
+from ..core.time import utc_now
+from ..deps import get_optional_user
+from ..models import User
+from ..modules.economics.schemas import ProviderUsageCreate
+from ..modules.economics.services import record_provider_usage
+from ..modules.identity.domain import AuthorizationContext
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ---------------------------
@@ -179,19 +190,22 @@ async def call_openai(
     sector: Optional[str],
     page_text: Optional[str],
     page_title: Optional[str],
-) -> str:
+) -> tuple[str, dict[str, Any] | None]:
     api_key = settings.openai_api_key
     model = settings.openai_model or "gpt-4.1-mini"
 
     # Modo DEMO (sem API key)
     if not api_key:
-        return _demo_reply(
-            messages,
-            "O backend esta ligado, mas falta configurar uma OPENAI_API_KEY.",
-            page=page,
-            sector=sector,
-            page_text=page_text,
-            page_title=page_title,
+        return (
+            _demo_reply(
+                messages,
+                "O backend esta ligado, mas falta configurar uma OPENAI_API_KEY.",
+                page=page,
+                sector=sector,
+                page_text=page_text,
+                page_title=page_title,
+            ),
+            None,
         )
 
     # Construir mensagens a enviar ao modelo
@@ -243,13 +257,16 @@ async def call_openai(
             if attempt < max_attempts:
                 await asyncio.sleep(2**attempt)
                 continue
-            return _demo_reply(
-                messages,
-                "Tive um problema de ligacao ao modelo de IA. Vou manter-me em modo demo.",
-                page=page,
-                sector=sector,
-                page_text=page_text,
-                page_title=page_title,
+            return (
+                _demo_reply(
+                    messages,
+                    "Tive um problema de ligacao ao modelo de IA. Vou manter-me em modo demo.",
+                    page=page,
+                    sector=sector,
+                    page_text=page_text,
+                    page_title=page_title,
+                ),
+                None,
             )
 
         if res.status_code != 200:
@@ -261,18 +278,31 @@ async def call_openai(
             if attempt < max_attempts:
                 await asyncio.sleep(2**attempt)
                 continue
-            return _demo_reply(
-                messages,
-                "Tentei falar com o modelo de IA, mas obtive uma resposta inesperada. Vou responder em modo demo.",
-                page=page,
-                sector=sector,
-                page_text=page_text,
-                page_title=page_title,
+            return (
+                _demo_reply(
+                    messages,
+                    "Tentei falar com o modelo de IA, mas obtive uma resposta inesperada. Vou responder em modo demo.",
+                    page=page,
+                    sector=sector,
+                    page_text=page_text,
+                    page_title=page_title,
+                ),
+                None,
             )
 
         try:
             data = res.json()
-            return data["choices"][0]["message"]["content"]
+            reply = data["choices"][0]["message"]["content"]
+            if not isinstance(reply, str) or not reply.strip():
+                raise ValueError("model reply is empty")
+            usage = data.get("usage")
+            return reply, {
+                "response_id": str(data.get("id") or "")[:200] or None,
+                "model": str(data.get("model") or model)[:120],
+                "system_fingerprint": str(data.get("system_fingerprint") or "")[:120]
+                or None,
+                "usage": usage if isinstance(usage, dict) else {},
+            }
         except (ValueError, KeyError, IndexError, TypeError) as exc:
             logger.error(
                 "Erro a interpretar a resposta da OpenAI (%s)",
@@ -281,13 +311,16 @@ async def call_openai(
             if attempt < max_attempts:
                 await asyncio.sleep(2**attempt)
                 continue
-            return _demo_reply(
-                messages,
-                "Recebi dados invalidos do modelo de IA. Enquanto resolvemos, continuo em modo demo.",
-                page=page,
-                sector=sector,
-                page_text=page_text,
-                page_title=page_title,
+            return (
+                _demo_reply(
+                    messages,
+                    "Recebi dados invalidos do modelo de IA. Enquanto resolvemos, continuo em modo demo.",
+                    page=page,
+                    sector=sector,
+                    page_text=page_text,
+                    page_title=page_title,
+                ),
+                None,
             )
 
 
@@ -297,29 +330,82 @@ async def call_openai(
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse:
-    if not request.messages:
+async def chat(
+    payload: ChatRequest,
+    request: Request,
+    user: Optional[User] = Depends(get_optional_user),
+    db: Session = Depends(get_db),
+) -> ChatResponse:
+    if not payload.messages:
         raise HTTPException(400, "Nenhuma mensagem foi enviada.")
 
-    # Log simples para perceber se o frontend esta a enviar contexto da pagina
-    try:
-        logger.info(
-            "ai.chat payload: page=%s title=%s sector=%s text_len=%s",
-            request.page,
-            (request.page_title or "")[:80],
-            request.sector,
-            len(request.page_text or ""),
+    context = getattr(user, "_authorization_context", None) if user else None
+    if settings.openai_api_key and (
+        not isinstance(context, AuthorizationContext)
+        or not context.active_organization_id
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Select an authorized organization before using external AI",
         )
-    except Exception:
-        pass
-
-    reply = await call_openai(
-        messages=request.messages,
-        page=request.page,
-        sector=request.sector,
-        page_text=request.page_text,
-        page_title=request.page_title,
+    log_event(
+        logger,
+        logging.INFO,
+        "ai.chat.requested",
+        message_count=len(payload.messages),
+        context_character_count=len(payload.page_text or ""),
+        page_context_present=bool(payload.page or payload.page_title),
+        sector_context_present=bool(payload.sector),
     )
+
+    reply, provider_result = await call_openai(
+        messages=payload.messages,
+        page=payload.page,
+        sector=payload.sector,
+        page_text=payload.page_text,
+        page_title=payload.page_title,
+    )
+
+    if provider_result is not None and isinstance(context, AuthorizationContext):
+        usage = provider_result["usage"]
+        prompt_tokens = int(usage.get("prompt_tokens") or 0)
+        completion_tokens = int(usage.get("completion_tokens") or 0)
+        total_tokens = int(usage.get("total_tokens") or 0)
+        if total_tokens <= 0:
+            total_tokens = prompt_tokens + completion_tokens
+        quantity = Decimal(total_tokens if total_tokens > 0 else 1)
+        unit = "token" if total_tokens > 0 else "request"
+        response_reference = provider_result.get("response_id")
+        stable_reference = response_reference or hashlib.sha256(
+            f"{provider_result['model']}:{reply}".encode()
+        ).hexdigest()
+        usage_fingerprint = hashlib.sha256(
+            f"{context.active_organization_id}:{stable_reference}".encode()
+        ).hexdigest()
+        record_provider_usage(
+            db,
+            payload=ProviderUsageCreate(
+                organization_id=context.active_organization_id,
+                workspace_id=context.active_workspace_id,
+                provider="openai",
+                service="chat_completions",
+                usage_type="ai_tokens" if total_tokens > 0 else "provider_request",
+                quantity=quantity,
+                unit=unit,
+                occurred_at=utc_now(),
+                provider_reference=response_reference,
+                idempotency_key=f"ai:{usage_fingerprint}",
+                metadata={
+                    "model": provider_result["model"],
+                    "system_fingerprint": provider_result["system_fingerprint"],
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": total_tokens,
+                },
+            ),
+            actor=user,
+        )
+        db.commit()
 
     return ChatResponse(reply=reply)
 

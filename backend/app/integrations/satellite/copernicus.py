@@ -75,6 +75,7 @@ def _safe_https_url(value: Any) -> str | None:
 
 
 class CopernicusStacProvider:
+    adapter_version = "geovision-copernicus-stac-v1.0.0"
     provider_name = "copernicus"
 
     def __init__(
@@ -266,6 +267,7 @@ class CopernicusStacProvider:
             source_link=source_link,
             provenance={
                 "provider": "Copernicus Data Space Ecosystem",
+                "adapter_version": cls.adapter_version,
                 "catalog_standard": "STAC 1.1.0",
                 "collection": collection,
                 "platform": properties.get("platform"),

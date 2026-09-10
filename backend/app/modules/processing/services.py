@@ -5,8 +5,10 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime, timedelta
+from decimal import Decimal
 import hashlib
 import json
+import logging
 from pathlib import Path
 import uuid
 from typing import Any
@@ -19,7 +21,6 @@ from app.core.event_names import EventNames
 from app.core.integration import IntegrationResult, sanitize_integration_message
 from app.core.time import utc_now
 from app.models import (
-    AuditLog,
     Dataset,
     DatasetFile,
     FulfilmentJob,
@@ -37,6 +38,8 @@ from app.modules.datasets.domain import (
     reject_sensitive_metadata,
     validate_upload,
 )
+from app.modules.audit.services import record_audit_event
+from app.core.observability import get_logger, log_event
 from app.modules.processing.domain import (
     PROCESSABLE_SOURCE_TYPES,
     TERMINAL_PROCESSING_STATES,
@@ -51,6 +54,8 @@ from app.modules.processing.ports import (
     ProcessingRequest,
 )
 from app.modules.processing.schemas import ProcessingJobCreate
+from app.modules.economics.schemas import ProviderUsageCreate
+from app.modules.economics.services import record_provider_usage
 from app.services.event_outbox import enqueue_domain_event
 from app.services.storage import StorageService
 
@@ -58,6 +63,7 @@ from app.services.storage import StorageService
 ProviderResolver = Callable[[str], ProcessingProvider]
 _INPUT_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".tif", ".tiff"})
 _NAMESPACE = uuid.UUID("58213d7f-f077-4db5-a95f-97a8c6d9c13d")
+logger = get_logger(__name__)
 
 
 def _json(value: Any) -> str:
@@ -117,21 +123,21 @@ def _audit(
 ) -> None:
     if actor is None:
         return
-    db.add(
-        AuditLog(
-            user_id=actor.id,
-            user_email=actor.email,
-            action=action,
-            resource_type="processing_job",
-            resource_id=job.id,
-            details=_json(
-                {
-                    "organization_id": job.organization_id,
-                    "provider": job.provider_code,
-                    **(details or {}),
-                }
-            ),
-        )
+    record_audit_event(
+        db,
+        actor=actor,
+        action=action,
+        resource_type="processing_job",
+        resource_id=job.id,
+        organization_id=job.organization_id,
+        workspace_id=job.workspace_id,
+        correlation_id=job.id,
+        details={
+            "asset_id": job.asset_id,
+            "mission_id": job.acquisition_id,
+            "provider": job.provider_code,
+            **(details or {}),
+        },
     )
 
 
@@ -557,6 +563,19 @@ def _mark_failed(
         f"processing:{job.id}:failed:{job.lifecycle_version}",
         {"error_code": code, "retry_count": job.retry_count},
     )
+    log_event(
+        logger,
+        logging.ERROR,
+        "processing.job.failed",
+        organization_id=job.organization_id,
+        workspace_id=job.workspace_id,
+        asset_id=job.asset_id,
+        mission_id=job.acquisition_id,
+        processing_job_id=job.id,
+        provider=job.provider_code,
+        error_code=code,
+        retry_count=job.retry_count,
+    )
 
 
 def _mark_needs_review(
@@ -583,6 +602,18 @@ def _mark_needs_review(
         EventNames.PROCESSING_NEEDS_REVIEW,
         f"processing:{job.id}:needs-review:{job.lifecycle_version}",
         {"quality_report": report},
+    )
+    log_event(
+        logger,
+        logging.WARNING,
+        "processing.job.needs_review",
+        organization_id=job.organization_id,
+        workspace_id=job.workspace_id,
+        asset_id=job.asset_id,
+        mission_id=job.acquisition_id,
+        processing_job_id=job.id,
+        provider=job.provider_code,
+        error_code=code,
     )
 
 
@@ -735,8 +766,25 @@ def _submit_job(
         return "failed"
     submission = result.value
     job.provider_job_reference = submission.external_reference
-    job.processor_name = submission.processor_name
-    job.processor_version = submission.processor_version
+    job.processor_name = str(submission.processor_name or "").strip() or None
+    job.processor_version = str(submission.processor_version or "").strip() or None
+    if not job.processor_name or not job.processor_version or job.processor_version.lower() in {
+        "legacy",
+        "legacy-1",
+        "legacy-unversioned",
+        "unknown",
+    }:
+        _mark_needs_review(
+            db,
+            job,
+            code="processor_version_missing",
+            message="Processor did not identify an immutable name and version",
+            report={
+                "source_validation": "failed",
+                "issues": ["processor_version_missing"],
+            },
+        )
+        return "needs_review"
     if submission.estimated_cost_amount is not None:
         job.estimated_cost_amount = submission.estimated_cost_amount
     job.status = ProcessingJobState.SUBMITTED.value
@@ -1081,6 +1129,45 @@ def _retrieve_and_register(
     job.lifecycle_version += 1
     job.updated_at = utc_now()
     _release(job)
+    reported_cost = (
+        job.actual_cost_amount
+        if job.actual_cost_amount is not None
+        else job.estimated_cost_amount
+    )
+    record_provider_usage(
+        db,
+        payload=ProviderUsageCreate(
+            organization_id=job.organization_id,
+            workspace_id=job.workspace_id,
+            processing_job_id=job.id,
+            provider=job.provider_code,
+            service="processing",
+            usage_type="processing_job",
+            quantity=Decimal("1"),
+            unit="job",
+            currency=job.cost_currency if reported_cost is not None else None,
+            total_cost=(
+                Decimal(str(reported_cost)) if reported_cost is not None else None
+            ),
+            occurred_at=job.finished_at,
+            provider_reference=job.provider_job_reference,
+            idempotency_key=(
+                f"processing:{job.id}:usage:completed:{job.submission_generation}"
+            ),
+            metadata={
+                "processor": job.processor_name,
+                "processor_version": job.processor_version,
+                "output_count": len(generated_ids),
+                "cost_basis": (
+                    "actual"
+                    if job.actual_cost_amount is not None
+                    else (
+                        "estimated" if job.estimated_cost_amount is not None else "unpriced"
+                    )
+                ),
+            },
+        ),
+    )
     _event(
         db,
         job,
@@ -1092,6 +1179,20 @@ def _retrieve_and_register(
             "processor": job.processor_name,
             "processor_version": job.processor_version,
         },
+    )
+    log_event(
+        logger,
+        logging.INFO,
+        "processing.job.completed",
+        organization_id=job.organization_id,
+        workspace_id=job.workspace_id,
+        asset_id=job.asset_id,
+        mission_id=job.acquisition_id,
+        processing_job_id=job.id,
+        provider=job.provider_code,
+        processor=job.processor_name,
+        processor_version=job.processor_version,
+        generated_dataset_ids=generated_ids,
     )
     return "completed"
 

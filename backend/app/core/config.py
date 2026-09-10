@@ -92,6 +92,12 @@ class Settings(BaseSettings):
 
     app_name: str = "GeoVision Backend"
     app_version: str = "1.0.0"
+    log_level: str = "INFO"
+    observability_exporter: str = "console"
+    applicationinsights_connection_string: Optional[str] = Field(
+        default=None,
+        repr=False,
+    )
     env: Optional[RuntimeEnvironment] = Field(default=None, validation_alias="ENV")
     legacy_environment: Optional[RuntimeEnvironment] = Field(
         default=None,
@@ -424,6 +430,7 @@ class Settings(BaseSettings):
             "database_url",
             "accounts_database_url",
             "openai_api_key",
+            "applicationinsights_connection_string",
             "service_bus_connection_string",
             "azure_event_grid_webhook_secret",
             "azure_iot_hub_webhook_secret",
@@ -484,6 +491,24 @@ class Settings(BaseSettings):
         if value and value.startswith("postgres://"):
             return value.replace("postgres://", "postgresql://", 1)
         return value
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def normalize_log_level(cls, value: Any) -> str:
+        normalized = str(value or "INFO").strip().upper()
+        if normalized not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError("LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR, or CRITICAL")
+        return normalized
+
+    @field_validator("observability_exporter", mode="before")
+    @classmethod
+    def normalize_observability_exporter(cls, value: Any) -> str:
+        normalized = str(value or "console").strip().lower().replace("-", "_")
+        if normalized not in {"console", "azure_monitor", "none"}:
+            raise ValueError(
+                "OBSERVABILITY_EXPORTER must be console, azure_monitor, or none"
+            )
+        return normalized
 
     @field_validator(
         "identity_provider",
@@ -1153,6 +1178,13 @@ class Settings(BaseSettings):
             "app_name": self.app_name,
             "app_version": self.app_version,
             "environment": self.environment_name,
+            "observability": {
+                "exporter": self.observability_exporter,
+                "log_level": self.log_level,
+                "application_insights_configured": bool(
+                    self.applicationinsights_connection_string
+                ),
+            },
             "backend_base": _safe_origin(self.backend_base),
             "frontend_base": _safe_origin(self.frontend_base),
             "cors_origins": [_safe_origin(origin) for origin in self.cors_origin_list],

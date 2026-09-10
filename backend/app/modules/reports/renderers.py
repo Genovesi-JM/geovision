@@ -23,6 +23,7 @@ def render_report_pdf(
     revision: int,
     context: Mapping[str, Any],
     narrative: Mapping[str, Any],
+    provenance: Mapping[str, Any],
 ) -> bytes:
     """Render numbers only from context; narrative prose is already number-free."""
 
@@ -193,6 +194,45 @@ def render_report_pdf(
         story.append(Paragraph("Limitations", styles["SectionTitle"]))
         for item in limitations:
             story.append(Paragraph(f"&#8226; {_text(item)}", styles["BodyText"]))
+
+    story.append(PageBreak())
+    story.append(Paragraph("Evidence provenance", styles["SectionTitle"]))
+    story.append(
+        Table(
+            [
+                ["Context schema", _text(provenance.get("context_schema_version"))],
+                ["Context fingerprint", _text(provenance.get("context_sha256"))],
+                ["Template version", _text(provenance.get("template_version"))],
+                ["Narrative provider", _text(provenance.get("narrative_provider"))],
+                ["Narrative model", _text(provenance.get("narrative_model") or "deterministic")],
+                ["Narrative model version", _text(provenance.get("narrative_model_version"))],
+                ["Mission", _text(provenance.get("acquisition_id") or "not scoped")],
+            ],
+            colWidths=[48 * mm, 109 * mm],
+        )
+    )
+    source_rows = provenance.get("sources", [])
+    if isinstance(source_rows, Sequence) and source_rows:
+        rows = [["Kind", "Source ID", "Provider", "Version"]]
+        for source in source_rows:
+            if not isinstance(source, Mapping):
+                continue
+            rows.append(
+                [
+                    _text(source.get("kind")),
+                    _text(source.get("id")),
+                    _text(source.get("provider") or source.get("algorithm")),
+                    _text(source.get("version")),
+                ]
+            )
+        table = Table(
+            rows,
+            repeatRows=1,
+            colWidths=[24 * mm, 55 * mm, 44 * mm, 35 * mm],
+        )
+        table.setStyle(table_style)
+        story.append(Spacer(1, 4 * mm))
+        story.append(table)
 
     document.build(story, canvasmaker=canvas.Canvas)
     payload = output.getvalue()
