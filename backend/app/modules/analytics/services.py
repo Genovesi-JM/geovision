@@ -10,6 +10,7 @@ import json
 import uuid
 from typing import Any
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.event_names import EventNames
@@ -186,6 +187,25 @@ def record_kpi_value(
         definition.status_policy,
         confidence=calculation.confidence,
     )
+    existing = (
+        db.query(KpiValue)
+        .filter(
+            KpiValue.organization_id == asset.organization_id,
+            KpiValue.workspace_id == selected_workspace,
+            KpiValue.asset_id == asset.id,
+            KpiValue.kpi_definition_id == definition_row.id,
+            KpiValue.mission_id == mission_id,
+            KpiValue.dataset_id == dataset_id,
+            KpiValue.measured_at == calculation.measured_at,
+            KpiValue.source == calculation.source.strip()[:160],
+            KpiValue.algorithm_version == definition.version,
+            KpiValue.is_baseline.is_(is_baseline),
+        )
+        .order_by(KpiValue.created_at)
+        .first()
+    )
+    if existing is not None:
+        return existing
     row = KpiValue(
         id=str(uuid.uuid4()),
         kpi_definition_id=definition_row.id,
@@ -258,6 +278,24 @@ def record_observation(
         dataset_id=proposal.dataset_id,
     )
     geometry = normalize_geometry(proposal.geometry)
+    candidates = (
+        db.query(Observation)
+        .filter(
+            Observation.organization_id == asset.organization_id,
+            Observation.workspace_id == selected_workspace,
+            Observation.asset_id == asset.id,
+            Observation.mission_id == proposal.mission_id,
+            Observation.dataset_id == proposal.dataset_id,
+            Observation.observation_type == proposal.observation_type,
+            Observation.algorithm_key == proposal.algorithm_key,
+            Observation.algorithm_version == proposal.algorithm_version,
+            Observation.detected_at == proposal.detected_at,
+        )
+        .all()
+    )
+    for existing in candidates:
+        if _object(existing.provenance_json).get("observation_key") == proposal.key:
+            return existing
     row = Observation(
         id=str(uuid.uuid4()),
         organization_id=asset.organization_id,
@@ -281,6 +319,7 @@ def record_observation(
         provenance_json=_json(
             {
                 **dict(proposal.provenance),
+                "observation_key": proposal.key,
                 "mission_id": proposal.mission_id,
                 "dataset_id": proposal.dataset_id,
             },
@@ -403,11 +442,17 @@ def asset_kpi_payloads(db: Session, asset: Asset) -> list[dict[str, Any]]:
         grouped[row.kpi_definition_id].append(row)
     definitions = (
         db.query(KpiDefinition)
-        .filter(KpiDefinition.id.in_(grouped) if grouped else KpiDefinition.id == "")
+        .filter(
+            KpiDefinition.is_active.is_(True),
+            or_(
+                KpiDefinition.sector == asset.sector,
+                KpiDefinition.id.in_(tuple(grouped)) if grouped else False,
+            ),
+        )
         .all()
     )
     return [
-        kpi_payload(definition, grouped[definition.id])
+        kpi_payload(definition, grouped.get(definition.id, ()))
         for definition in sorted(
             definitions,
             key=lambda item: (
@@ -416,7 +461,6 @@ def asset_kpi_payloads(db: Session, asset: Asset) -> list[dict[str, Any]]:
                 item.key,
             ),
         )
-        if definition.is_active
     ]
 
 
@@ -530,14 +574,20 @@ def evaluate_asset(
                 calculation=calculation,
                 workspace_id=workspace_id,
                 mission_id=(
-                    str(context.metadata["mission_id"])
-                    if context.metadata.get("mission_id")
-                    else None
+                    calculation.mission_id
+                    or (
+                        str(context.metadata["mission_id"])
+                        if context.metadata.get("mission_id")
+                        else None
+                    )
                 ),
                 dataset_id=(
-                    str(context.metadata["dataset_id"])
-                    if context.metadata.get("dataset_id")
-                    else None
+                    calculation.dataset_id
+                    or (
+                        str(context.metadata["dataset_id"])
+                        if context.metadata.get("dataset_id")
+                        else None
+                    )
                 ),
             )
         )

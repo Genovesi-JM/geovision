@@ -117,6 +117,7 @@ def test_status_policies_are_backend_owned_and_confidence_aware():
     assert calculate_kpi_status(35, lower) is KpiStatus.CRITICAL
     assert calculate_kpi_status(None, lower) is KpiStatus.UNKNOWN
     assert format_kpi_value(0.734, "%", {"multiplier": 100, "decimal_places": 1}) == "73.4 %"
+    assert format_kpi_value(0.04, None, {"positive_prefix": "+"}) == "+0.04"
 
 
 def test_calculator_and_rule_registries_select_latest_versions_without_core_edits():

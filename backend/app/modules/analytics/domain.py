@@ -129,6 +129,8 @@ class KpiCalculation:
     confidence: float
     provenance: Mapping[str, Any]
     status: KpiStatus | None = None
+    mission_id: str | None = None
+    dataset_id: str | None = None
 
     def __post_init__(self) -> None:
         if isinstance(self.value, float) and not math.isfinite(self.value):
@@ -140,6 +142,10 @@ class KpiCalculation:
         object.__setattr__(self, "measured_at", _utc_naive(self.measured_at))
         if self.status is not None:
             object.__setattr__(self, "status", KpiStatus(self.status))
+        if self.mission_id is not None and not str(self.mission_id).strip():
+            raise ValueError("mission_id must not be blank")
+        if self.dataset_id is not None and not str(self.dataset_id).strip():
+            raise ValueError("dataset_id must not be blank")
         object.__setattr__(self, "provenance", dict(self.provenance))
 
     @property
@@ -454,6 +460,8 @@ def format_kpi_value(
             display_format.get("true_label" if value else "false_label", str(value).lower())
         )
     elif isinstance(value, (int, float)):
+        if float(value) > 0 and "positive_prefix" in display_format:
+            prefix = str(display_format["positive_prefix"])
         multiplier = float(display_format.get("multiplier", 1))
         decimals = max(0, min(8, int(display_format.get("decimal_places", 2))))
         rendered = f"{float(value) * multiplier:.{decimals}f}"

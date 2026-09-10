@@ -42,6 +42,7 @@ instead of treating legacy structures as disposable.
 | R32 | High | Phase 15 adds Copernicus and AEMET adapters, durable cached acquisitions and normalized provenance, but live credentials, provider quotas/licences, coverage and source interpretation are not validated | Provider outages or limits can create data gaps and costs, sparse stations/cloudy scenes can mislead users, or source data can be presented as a validated sector conclusion | Keep live providers behind Gate 12; review licence/attribution and budgets, validate representative assets and source quality, monitor failures/cache/storage, preserve provenance and require sector-specific interpretation before customer claims |
 | R33 | High | Phase 16 adds provider-mapped devices, canonical assignment history, IoT Hub/Event Grid ingestion, offline replay and safe sample edge rules, but no physical FieldBox/ESP32 or live Azure subscription has been commissioned | Bad clocks, exhausted flash/SD media, duplicate provider registrations, lost queue rows, weak webhook routing, or an incorrectly wired actuator can create monitoring gaps or unsafe physical behavior | Keep cloud ingress and remote control off until Gate 13; validate exact device mappings, secrets/network restrictions, clocks, queue limits/wear, replay ordering, physical interlocks and acknowledgements on representative hardware; alert on rejects, offline devices and edge depth |
 | R34 | High | Phase 17 provides a versioned KPI/observation/action engine, but sector thresholds, algorithms, confidence calibration and baseline selection are not yet scientifically or operationally approved | A technically valid calculation can be presented as safe, validated or actionable outside its evidence, geography, season, asset type or algorithm version | Keep missing/weak evidence `UNKNOWN`, preserve validation and provenance, activate only reviewed sector registrations, require Gate 14 before live decision claims, monitor version changes and never let narrative AI supply measurements or silent diagnoses |
+| R35 | High | Phase 18 activates Agriculture bundle `1.0.0` with a strict structured-analysis schema and generic initial screening thresholds, while real crop/season/sensor validation and raster-statistics production remain gated | A valid but locally inappropriate index threshold, stale sensor, or unreviewed zone model could be mistaken for an agronomic diagnosis or treatment instruction | Require Gate 14a and exact applicability profiles before live decision claims; accept only finite/ranged structured evidence, expose missing sources, retain `NEEDS_REVIEW`, never infer indices from band availability, and never generate chemical/disease/yield prescriptions |
 
 ## Controls that already reduce risk
 
@@ -456,3 +457,22 @@ without a compatibility plan.
 - **Introduced and controlled:** R34 records the remaining expert validation,
   calibration, representative-dataset and algorithm-governance work. No sector
   calculator is considered live merely because the common engine can run it.
+
+## Phase 18 outcome
+
+- **Reduced:** R18, because Agriculture now registers primary, secondary and
+  technical KPIs in the common engine and the generic Asset summary exposes
+  explicit `NO_DATA`, `UNKNOWN`, confidence, historical change and provenance.
+- **Contained:** Cross-source ambiguity, because only the documented
+  `geovision.agriculture.analysis.v1` payload supplies raster-derived numbers;
+  satellite band availability alone never creates NDVI, and IoT/weather facts
+  retain their own timestamps and source IDs.
+- **Contained:** Duplicate and unsafe recommendations, because replayed source
+  evidence reuses KPI/observation identities, action generation is idempotent,
+  spatial zones remain `NEEDS_REVIEW`, and wording requests inspection or a
+  GeoVision assessment without prescribing treatment.
+- **Contained:** Vertical schema coupling, because Agriculture asset/dataset
+  types, calculators, rules, fixture, source fusion, map layers and report
+  context live entirely in its sector package and persist only common entities.
+- **Introduced and controlled:** R35 and Gate 14a record the remaining live
+  agronomic validation, calibration, applicability and raster-analysis work.

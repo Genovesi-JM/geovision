@@ -19,6 +19,7 @@ from .seed_data import (
 )
 from .services.cart import seed_shop_products, seed_kit_products
 from .modules.catalog.services import sync_catalog_from_legacy
+from .sectors.services import sync_enabled_sector_definitions
 from .workers import application_workers
 
 
@@ -88,6 +89,7 @@ def create_application() -> FastAPI:
     try:
         db = database.SessionLocal()
         try:
+            sync_enabled_sector_definitions(db)
             seed_shop_products(db)
             seed_kit_products(db)
             sync_catalog_from_legacy(db)

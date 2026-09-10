@@ -181,20 +181,22 @@ Compatibility routers call these services instead of importing other routers.
 
 ## Sector boundaries
 
-Sector packages declare their common-module needs but do not activate new
-analytics or change current customer identifiers in Phase 1.
+Sector packages declare their common-module needs without adding vertical-only
+columns to common entities. The composition root mounts routes only for enabled
+packages and each package registers calculators/rules through the common
+versioned intelligence interfaces.
 
 | Package | Activation phase | Compatibility notes |
 |---|---:|---|
-| `sectors/agriculture` | 18 | Existing `agro`, agriculture and livestock identifiers remain unchanged |
+| `sectors/agriculture` | 18 | Enabled with source-fused KPIs, cautious rules, map layers and structured report context; legacy identifiers remain accepted |
 | `sectors/infrastructure` | 28 | Existing infrastructure and construction behavior remains unchanged |
 | `sectors/environmental` | 29 | Existing `environment` and `ambiental` identifiers remain unchanged |
 | `sectors/mining` | 30 | Existing mining/industry normalization remains unchanged |
 | `sectors/ports` | 31 | Boundary exists, but no public Ports behavior is activated yet |
 
-Every sector is disabled by default in this registry. Activation, KPIs,
-catalogue items, reports, map layers and integrations belong to the named
-sector phase and must reuse the common modules.
+Agriculture is enabled in Phase 18; the remaining four packages stay disabled
+until their activation phases. Sector routes are composed explicitly alongside
+domain/integration routes, and common modules never import sector packages.
 
 ## HTTP compatibility ownership
 

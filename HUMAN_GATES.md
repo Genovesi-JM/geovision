@@ -178,3 +178,20 @@ how to confirm · what the automation does afterwards.
 - **After:** Enable only the approved sector calculator/rule versions, monitor
   drift and alert/action outcomes, and return affected KPIs to `UNKNOWN` if
   provenance, source quality or calibration falls outside the approved scope.
+
+### 14a. Agriculture bundle 1.0.0 approval
+
+- **Reason:** Phase 18 activates a cautious Agriculture screening bundle, but
+  its initial NDVI, water-stress, soil-moisture, vegetation-coverage and area
+  thresholds are not a substitute for crop-, growth-stage-, soil-, sensor- and
+  season-specific validation.
+- **Action:** An accountable agronomist must approve each enabled threshold,
+  source schema, calibration/freshness rule, zone-area method, wording and
+  recommended GeoVision follow-up for the exact intended crops and regions.
+- **Confirm:** Representative drone, satellite, weather and calibrated sensor
+  campaigns reproduce expected values and boundary statuses; missing,
+  conflicting and out-of-range evidence stays `UNKNOWN`/`NO_DATA`; blind review
+  finds no disease, pest, nutrient, chemical, irrigation-volume or yield claim.
+- **After:** Record the approved applicability profile and algorithm version,
+  monitor false-positive/negative and action outcomes, and disable or roll back
+  the affected calculator when evidence falls outside that profile.

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.core.routing import RouterMount
+
 
 @dataclass(frozen=True, slots=True)
 class SectorModule:
@@ -15,6 +17,9 @@ class SectorModule:
     module_dependencies: tuple[str, ...]
     legacy_identifiers: tuple[str, ...] = ()
     enabled_by_default: bool = False
+    asset_types: tuple[str, ...] = ()
+    dataset_types: tuple[str, ...] = ()
+    routes: tuple[RouterMount, ...] = ()
 
 
 __all__ = ["SectorModule"]

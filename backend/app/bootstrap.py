@@ -9,6 +9,7 @@ from fastapi import APIRouter, FastAPI
 from app.core.routing import RouterMount
 from app.integrations.http import INTEGRATION_HTTP_ROUTES
 from app.modules.registry import DOMAIN_HTTP_ROUTES
+from app.sectors.registry import SECTOR_HTTP_ROUTES
 
 
 def application_route_mounts() -> tuple[RouterMount, ...]:
@@ -16,7 +17,7 @@ def application_route_mounts() -> tuple[RouterMount, ...]:
 
     mounts = tuple(
         sorted(
-            (*DOMAIN_HTTP_ROUTES, *INTEGRATION_HTTP_ROUTES),
+            (*DOMAIN_HTTP_ROUTES, *SECTOR_HTTP_ROUTES, *INTEGRATION_HTTP_ROUTES),
             key=lambda item: item.order,
         )
     )

@@ -25,8 +25,8 @@ from app.sectors.registry import (
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 GENERATED_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}
-PHASE_17_ROUTE_COUNT = 325
-PHASE_17_ROUTE_SHA256 = "6e679d5e11e0b3c1ad451d36f214253935866270f27b5464aef672e3c3b45e68"
+PHASE_18_ROUTE_COUNT = 329
+PHASE_18_ROUTE_SHA256 = "c285f2392efa1a953af4bd8aa31ed6bcbeef9b9ea2cfa68e4d4924876201cce7"
 
 
 def _route_contract(application) -> list[str]:
@@ -57,13 +57,13 @@ def _import_targets(path: Path) -> set[str]:
     return targets
 
 
-def test_phase_17_http_and_websocket_contract_is_pinned(client):
+def test_phase_18_http_and_websocket_contract_is_pinned(client):
     routes = _route_contract(client.app)
     payload = "\n".join(routes).encode()
 
-    assert len(routes) == PHASE_17_ROUTE_COUNT, "\n".join(routes)
+    assert len(routes) == PHASE_18_ROUTE_COUNT, "\n".join(routes)
     assert len(routes) == len(set(routes)), "duplicate method/path registration detected"
-    assert hashlib.sha256(payload).hexdigest() == PHASE_17_ROUTE_SHA256, "\n".join(routes)
+    assert hashlib.sha256(payload).hexdigest() == PHASE_18_ROUTE_SHA256, "\n".join(routes)
 
 
 def test_application_mount_order_preserves_legacy_router_order():
@@ -79,6 +79,7 @@ def test_application_mount_order_preserves_legacy_router_order():
         "analytics.kpi",
         "analytics.asset_intelligence",
         "actions.canonical",
+        "sector.agriculture",
         "catalog.canonical",
         "catalog.products",
         "orders.legacy",
@@ -111,7 +112,9 @@ def test_required_domain_and_sector_boundaries_are_registered():
 
     assert tuple(module.name for module in DOMAIN_MODULES) == REQUIRED_DOMAIN_NAMES
     assert tuple(sector.name for sector in SECTOR_MODULES) == REQUIRED_SECTOR_NAMES
-    assert all(sector.enabled_by_default is False for sector in SECTOR_MODULES)
+    assert [sector.name for sector in SECTOR_MODULES if sector.enabled_by_default] == [
+        "agriculture"
+    ]
     assert routes_for_module("missions")
     assert routes_for_module("reports")
 
