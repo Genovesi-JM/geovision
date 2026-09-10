@@ -189,16 +189,17 @@ MARITIME_PROVIDER=none
 ```
 
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
-`IDENTITY_PROVIDER`, and `QUEUE_PROVIDER` drive provider factories. Queue
+`IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, and `PROCESSING_PROVIDER` drive provider factories. Queue
 delivery accepts `database`, test-only `in_memory`, `azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
 Entra configuration at startup and control the external-token exchange boundary.
 Business API routes still accept only GeoVision internal sessions. Payment
-methods use their own per-method factory rather than one selector. Processing,
-weather, satellite, GIS, construction, asset-management, and maritime remain
-reserved seams/configuration metadata. Do not select a third-party name until a
-matching adapter has been implemented and tested.
+methods use their own per-method factory rather than one selector. Processing
+accepts `none`, local/test `fake`, or `nodeodm`; PIX4D, Autodesk Reality Capture,
+and Bentley Reality Modeling names deliberately resolve to explicit unavailable
+scaffolds until their adapters are implemented and approved. Weather, satellite,
+GIS, construction, asset-management, and maritime remain reserved seams.
 
 In addition to the signing and encryption guards, identity selector and Entra
 configuration structure are validated when settings load. Most other provider
@@ -206,6 +207,43 @@ names and credential completeness are validated when a factory or provider
 operation is invoked, not when FastAPI starts. Health/readiness therefore does
 not prove that discovery/JWKS, ERP, storage, notifications, payments, or another
 external account can complete a live request.
+
+## Photogrammetry processing
+
+Processing jobs are durable PostgreSQL records. API requests only enqueue work;
+the independent worker validates source images, submits to the pinned provider,
+polls status, quality-checks results, stores each output through the configured
+object-storage adapter, and registers normal Dataset records.
+
+```dotenv
+PROCESSING_PROVIDER=none
+PROCESSING_AUTO_CREATE_ENABLED=false
+PROCESSING_DEFAULT_OUTPUTS=ORTHOMOSAIC,DSM,POINT_CLOUD
+PROCESSING_WORKER_IN_PROCESS=false
+PROCESSING_WORKER_POLL_SECONDS=5
+PROCESSING_WORKER_BATCH_SIZE=5
+PROCESSING_WORKER_CLAIM_TIMEOUT_SECONDS=1800
+PROCESSING_DEFAULT_MAX_RETRIES=3
+PROCESSING_RETRY_INITIAL_SECONDS=10
+PROCESSING_RETRY_MAX_SECONDS=900
+PROCESSING_MINIMUM_IMAGES=2
+PROCESSING_MAX_INPUT_BYTES=1073741824
+PROCESSING_MAX_OUTPUT_ARCHIVE_BYTES=1073741824
+PROCESSING_MAX_OUTPUT_UNPACKED_BYTES=2147483648
+PROCESSING_MAX_OUTPUT_FILES=500
+PROCESSING_PROVIDER_READ_TIMEOUT_SECONDS=300
+PROCESSING_PROVIDER_WRITE_TIMEOUT_SECONDS=3600
+NODEODM_BASE_URL=
+NODEODM_TOKEN=
+```
+
+For a dependency-free local demonstration use `PROCESSING_PROVIDER=fake` and
+run `python -m app.workers.processing_worker`. To create jobs automatically
+after raw imagery is finalized, also set `PROCESSING_AUTO_CREATE_ENABLED=true`
+and run `python -m app.workers.event_worker`. The fake provider is rejected for
+automatic processing in staging/production. NodeODM requires an absolute URL;
+deployed profiles require HTTPS. `NODEODM_TOKEN` is redacted from all settings
+representations. See [`docs/PROCESSING_JOBS.md`](../docs/PROCESSING_JOBS.md).
 
 ## Object storage
 

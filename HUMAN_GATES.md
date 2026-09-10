@@ -92,3 +92,22 @@ how to confirm · what the automation does afterwards.
 - **After:** Set `ERP_PROVIDER=erpnext`, add restricted credentials, map custom
   fields, deploy the independent event worker, and alert on retry/dead-letter
   counts. Do not enable uncertain-write retries until provider uniqueness is proven.
+
+## 11. Live photogrammetry processor activation
+- **Reason:** The deterministic provider, durable processing worker and NodeODM
+  adapter are implemented, but real image processing is compute-intensive and
+  output quality depends on cameras, overlap, control points, terrain and the
+  approved processor/version. A working API is not measurement validation.
+- **Action:** Provision an isolated NodeODM staging node, pin/review its image and
+  licence obligations, deliver any token through the secret manager, size CPU,
+  memory and storage, and approve representative datasets for every advertised
+  output. PIX4D, Autodesk and Bentley remain unavailable scaffolds unless a
+  separate commercial and technical integration is approved.
+- **Where:** Staging network, NodeODM host, object storage and GeoVision secret
+  manager; never customer clients or Git.
+- **Confirm:** A representative flight completes upload → processing → output
+  registration with checked orthomosaic/elevation accuracy, retry/cancel tests,
+  resource monitoring and a rollback rehearsal.
+- **After:** Set `PROCESSING_PROVIDER=nodeodm`, enable automatic job creation,
+  deploy the event and processing workers, and alert on `FAILED`,
+  `NEEDS_REVIEW`, stale-claim and queue-depth counts.

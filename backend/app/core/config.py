@@ -50,6 +50,7 @@ _URL_FIELDS = frozenset(
         "paypal_return_url",
         "s3_endpoint_url",
         "azure_storage_account_url",
+        "nodeodm_base_url",
     }
 )
 
@@ -173,6 +174,36 @@ class Settings(BaseSettings):
     azure_event_grid_webhook_secret: Optional[str] = Field(default=None, repr=False)
     azure_event_grid_subscription_name: Optional[str] = None
     processing_provider: str = "none"
+    processing_auto_create_enabled: bool = False
+    processing_default_outputs: str = "ORTHOMOSAIC,DSM,POINT_CLOUD"
+    processing_worker_in_process: bool = False
+    processing_worker_poll_seconds: float = Field(default=5.0, gt=0, le=300)
+    processing_worker_batch_size: int = Field(default=5, ge=1, le=50)
+    processing_worker_claim_timeout_seconds: int = Field(
+        default=1800, ge=60, le=86400
+    )
+    processing_default_max_retries: int = Field(default=3, ge=0, le=20)
+    processing_retry_initial_seconds: float = Field(default=10.0, ge=0, le=3600)
+    processing_retry_max_seconds: float = Field(default=900.0, ge=0, le=86400)
+    processing_minimum_images: int = Field(default=2, ge=2, le=100_000)
+    processing_max_input_bytes: int = Field(
+        default=1024 * 1024 * 1024, ge=1, le=20 * 1024 * 1024 * 1024
+    )
+    processing_max_output_archive_bytes: int = Field(
+        default=1024 * 1024 * 1024, ge=1, le=20 * 1024 * 1024 * 1024
+    )
+    processing_max_output_unpacked_bytes: int = Field(
+        default=2 * 1024 * 1024 * 1024, ge=1, le=40 * 1024 * 1024 * 1024
+    )
+    processing_max_output_files: int = Field(default=500, ge=1, le=20_000)
+    processing_provider_read_timeout_seconds: float = Field(
+        default=300.0, gt=0, le=86400
+    )
+    processing_provider_write_timeout_seconds: float = Field(
+        default=3600.0, gt=0, le=86400
+    )
+    nodeodm_base_url: Optional[str] = None
+    nodeodm_token: Optional[str] = Field(default=None, repr=False)
     weather_provider: str = "none"
     satellite_provider: str = "none"
     gis_provider: str = "none"
@@ -332,6 +363,7 @@ class Settings(BaseSettings):
             "openai_api_key",
             "service_bus_connection_string",
             "azure_event_grid_webhook_secret",
+            "nodeodm_token",
             "s3_access_key_id",
             "s3_secret_access_key",
             "azure_storage_connection_string",
@@ -494,6 +526,69 @@ class Settings(BaseSettings):
                 "EVENT_RETRY_MAX_SECONDS must be greater than or equal to "
                 "EVENT_RETRY_INITIAL_SECONDS"
             )
+        if self.processing_retry_max_seconds < self.processing_retry_initial_seconds:
+            raise ValueError(
+                "PROCESSING_RETRY_MAX_SECONDS must be greater than or equal to "
+                "PROCESSING_RETRY_INITIAL_SECONDS"
+            )
+        processing_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "nodeodm",
+            "opendronemap",
+            "pix4d",
+            "autodesk_reality_capture",
+            "bentley_reality_modeling",
+        }
+        if self.processing_provider not in processing_providers:
+            raise ValueError(
+                "PROCESSING_PROVIDER must select the deterministic, NodeODM, or a "
+                "documented future adapter"
+            )
+        outputs = tuple(
+            dict.fromkeys(
+                item.strip().upper().replace("-", "_")
+                for item in self.processing_default_outputs.split(",")
+                if item.strip()
+            )
+        )
+        supported_outputs = {
+            "ORTHOMOSAIC",
+            "DSM",
+            "DTM",
+            "POINT_CLOUD",
+            "MESH_3D",
+            "NDVI",
+            "NDRE",
+            "GNDVI",
+        }
+        if not outputs or not set(outputs).issubset(supported_outputs):
+            raise ValueError(
+                "PROCESSING_DEFAULT_OUTPUTS contains an unsupported output type"
+            )
+        self.processing_default_outputs = ",".join(outputs)
+        if self.nodeodm_base_url:
+            parsed = urlsplit(self.nodeodm_base_url)
+            allowed_schemes = {"https"} if self.is_deployed else {"http", "https"}
+            if (
+                parsed.scheme.lower() not in allowed_schemes
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(
+                    "NODEODM_BASE_URL must be an absolute provider URL without "
+                    "userinfo, query, or fragment"
+                )
+            self.nodeodm_base_url = self.nodeodm_base_url.rstrip("/")
+        if self.processing_provider in {"nodeodm", "opendronemap"} and not (
+            self.nodeodm_base_url
+        ):
+            raise ValueError("NodeODM processing requires NODEODM_BASE_URL")
         if not self.event_topic.strip() or not self.service_bus_topic.strip():
             raise ValueError("event and Service Bus topic names must not be empty")
         if not self.service_bus_subscription.strip():
@@ -606,6 +701,18 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "AZURE_EVENT_GRID_WEBHOOK_SECRET must contain at least 32 characters "
                     "when Event Grid ingestion is enabled in a deployed environment"
+                )
+            if self.processing_auto_create_enabled and self.processing_provider in {
+                "none",
+                "null",
+                "fake",
+                "deterministic",
+                "pix4d",
+                "autodesk_reality_capture",
+                "bentley_reality_modeling",
+            }:
+                raise ValueError(
+                    "deployed automatic processing requires the configured NodeODM adapter"
                 )
             for field_name, configured_url in (
                 ("FRONTEND_BASE", self.frontend_base),
@@ -736,6 +843,12 @@ class Settings(BaseSettings):
         return self.s3_bucket or "geovision-datasets"
 
     @property
+    def processing_default_output_list(self) -> tuple[str, ...]:
+        return tuple(
+            item for item in self.processing_default_outputs.split(",") if item
+        )
+
+    @property
     def smtp_configuration_complete(self) -> bool:
         username_configured = bool(self.smtp_user and self.smtp_user.strip())
         password_configured = bool(self.smtp_password)
@@ -832,6 +945,10 @@ class Settings(BaseSettings):
                 "azure_event_grid": bool(
                     self.azure_event_grid_enabled
                     and self.azure_event_grid_webhook_secret
+                ),
+                "nodeodm": bool(
+                    self.processing_provider in {"nodeodm", "opendronemap"}
+                    and self.nodeodm_base_url
                 ),
                 "erpnext": bool(
                     self.erpnext_base_url

@@ -41,10 +41,12 @@ plus pilot supervision.
 | ERPNext | Sales, purchasing, inventory, warehouse, invoices and reconciliation | **Adapter + durable outbox working in mock mode** · staging credentials required | `ERP_PROVIDER=erpnext`, `ERPNEXT_BASE_URL`, restricted API credentials | Inbound webhook after staging schema approval | Mock adapter + backend contract | Yes (hosting, credentials, fiscal validation) |
 | Azure Service Bus | Durable cross-module event topic and consumers | **Adapter + local database worker working** · live namespace not activated | `QUEUE_PROVIDER=azure_service_bus`, namespace or connection secret, topic/subscription | Topic subscription | Fake adapter + outbox failure-mode tests | Yes (Azure resource/RBAC) |
 | Azure Event Grid | BlobCreated to dataset-ingestion bridge | **Authenticated adapter working** · live subscription not activated | Event Grid enable flag, custom delivery secret, storage account/container | BlobCreated + validation handshake | Contract + duplicate-ingestion tests | Yes (subscription/RBAC) |
+| NodeODM / OpenDroneMap | Automated orthomosaic, elevation, point-cloud, mesh and supported index processing | **Adapter + durable worker + deterministic fake working** · live processor not activated | `PROCESSING_PROVIDER=nodeodm`, `NODEODM_BASE_URL`, optional server-side token | Polling through official task API | Fake end-to-end pipeline + mocked official HTTP contract | Yes (capacity/network/licence/quality review) |
+| PIX4D / Autodesk Reality Capture / Bentley Reality Modeling | Future photogrammetry engines | Interface scaffold only; fails explicitly when selected | Future provider-specific configuration | Provider-dependent | Not available until adapter implementation | Yes (account/purchase/integration approval) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |
 | IoT multi-provider bridge | API, MQTT, webhooks, BLE provisioning, LoRaWAN and Modbus gateways | Contract + mock outcomes working · backend adapter prepared | `GV_IOT_PROVIDER=mock|backend` | Backend bridge | Unit outcome matrix | Yes (vendor credentials/hardware) |
-| DJI / Pix4D / DroneDeploy | Drone + photogrammetry | Interface planned (backend-side) | — | Vendor | — | Yes |
+| DJI / DroneDeploy | Drone acquisition and media import | Interface planned (backend-side) | — | Vendor | — | Yes |
 | Google / Microsoft / Apple sign-in | OAuth | Backend routes exist; mobile prepared | — | Redirect | Sandbox | Yes (client IDs) |
 
 ### Adding a real provider

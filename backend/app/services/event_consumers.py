@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from app.core.config import Settings, settings
 from app.core.event_names import EventNames
 from app.core.events import DomainEvent
 from app.models import IntegrationOutbox
@@ -62,13 +63,35 @@ def _consume_erp_sync(db: Session, event: DomainEvent) -> None:
     )
 
 
-def default_event_consumers() -> EventConsumerRegistry:
+def _consume_dataset_ready(
+    db: Session,
+    event: DomainEvent,
+    *,
+    config: Settings,
+) -> None:
+    from app.modules.processing.services import ensure_automatic_processing_job
+
+    dataset_id = str(event.payload.get("dataset_id") or event.aggregate_id or "")
+    if not dataset_id:
+        raise EventOutboxError(
+            "dataset_event_invalid", "Dataset-ready event is missing its dataset ID"
+        )
+    ensure_automatic_processing_job(db, dataset_id=dataset_id, config=config)
+
+
+def default_event_consumers(config: Settings = settings) -> EventConsumerRegistry:
     registry = EventConsumerRegistry()
     registry.register(
         EventNames.ERP_SYNC_REQUESTED,
         "erp_sync_outbox_v1",
         _consume_erp_sync,
     )
+    if config.processing_auto_create_enabled:
+        registry.register(
+            EventNames.DATASET_READY,
+            "automatic_processing_job_v1",
+            lambda db, event: _consume_dataset_ready(db, event, config=config),
+        )
     return registry
 
 

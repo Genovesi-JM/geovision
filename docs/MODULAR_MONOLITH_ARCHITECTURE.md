@@ -155,7 +155,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Operations | Private suppliers, generic contractors/capabilities, guarded assignments, least-privilege contractor self-access, and canonical fulfilment jobs are implemented; admin/mobile/inspection facades remain transitional |
 | Missions | Provider-neutral drone, satellite, IoT, manual-inspection, and third-party acquisitions share one asset history; drone details and legacy mobile/inspection routes are compatibility extensions |
 | Datasets | Asset/mission-linked metadata, lifecycle, tenant-safe streaming/signed uploads, immutable file identity, and local/S3/Azure storage adapters are implemented |
-| Processing | Boundary only; Phase 14 owns processing jobs and photogrammetry providers |
+| Processing | Durable source/output-linked jobs, quality/retry states, an independent worker, deterministic fake and NodeODM adapter are implemented; paid vendor adapters remain explicit scaffolds |
 | Analytics | KPI catalogue, risk calculations and AI explanation endpoints exist; numeric truth remains structured |
 | Monitoring | IoT devices, telemetry, alerts, live events and watchdog behavior are substantial but transitional |
 | Actions | Recommendations, commands and assignments exist across compatibility facades; Phase 17 owns the aggregate |

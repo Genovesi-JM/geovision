@@ -38,6 +38,7 @@ instead of treating legacy structures as disposable.
 | R28 | Medium | Phase 10 job graphs now publish into the canonical transactional outbox, and workers can distribute them through PostgreSQL or Service Bus | A bad future consumer or unmonitored dead letter can still delay a valid dependency chain | Keep graph guards, make every consumer idempotent, monitor dead letters, and reconcile orders, jobs, acquisitions and datasets before horizontal scaling |
 | R29 | High | Phase 11 maps legacy drone missions and manual inspections into a common acquisition history while preserving both source tables and APIs | A partial cutover or repeated backfill can duplicate history, lose flight detail, leak provider/assignee metadata, or let sector code depend on drone-only structures | Keep deterministic legacy identities and uniqueness constraints, dual-write through compatibility services, expose allowlisted customer projections, test rollback/re-upgrade parity, and retire legacy tables only after deployed clients and row-count checks confirm cutover |
 | R30 | High | Phase 12 pins every object reference to local, S3-compatible, or Azure Blob storage; changing the configured default deliberately does not move old bytes, and signed uploads currently use a portable single-PUT ceiling | A settings-only cutover can make historical objects unavailable, and files above the ceiling need a real multipart/block client rather than a larger advertised limit | Run a staged copy with size/checksum verification, dual-provider read window, transactional reference switch, and rollback; add provider-specific multipart/block sessions only when client/workload evidence requires them |
+| R31 | High | Phase 14 adds durable processing jobs, a deterministic fake and NodeODM integration, but live photogrammetry compute capacity and measurement quality are not validated; the initial NodeODM output path reads a bounded archive into worker memory | A live node can exhaust memory/CPU/storage, a technically valid output can still be operationally inaccurate, or raising safety limits can destabilize workers | Keep automatic processing off until staging capacity and representative accuracy tests pass; pin/review the processor image, monitor queues/resources, retain NEEDS_REVIEW, and implement streamed/chunked transfer before larger workloads |
 
 ## Controls that already reduce risk
 
@@ -372,3 +373,23 @@ without a compatibility plan.
 - **Deferred explicitly:** MQTT connection ownership and cross-replica
   WebSocket fan-out remain under R09; provider-side ERP uniqueness remains under
   R10; live Azure provisioning and role assignment remain under R15.
+
+## Phase 14 outcome
+
+- **Reduced:** R19, because photogrammetry is no longer only a placeholder.
+  Provider-neutral jobs persist sources, outputs, progress, costs, retries,
+  errors and processor provenance; a deterministic provider exercises the full
+  path without claiming real measurements.
+- **Contained:** Provider lock-in, because business services depend only on
+  `ProcessingProvider`. NodeODM owns its HTTP/task/archive details, while PIX4D,
+  Autodesk and Bentley names fail explicitly through future adapter scaffolds.
+- **Contained:** Missing and unsafe output risk, because a provider completion
+  is insufficient by itself. Requested artifacts must be recognized, non-empty,
+  allowlisted and within configured archive/file limits before normal Dataset
+  records are marked ready; otherwise the job becomes `NEEDS_REVIEW`.
+- **Contained:** Restart and duplicate risk, because jobs use durable claims,
+  bounded retries, stable submission/output identities and object reservations
+  before writes. Generated datasets emit the canonical downstream events.
+- **Introduced and controlled:** R31 records the remaining live capacity,
+  accuracy, image/licence approval and large-transfer work. Automatic processing
+  remains opt-in and paid vendor adapters remain unavailable.

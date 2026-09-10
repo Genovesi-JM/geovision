@@ -1796,6 +1796,205 @@ class DatasetFile(Base):
     )
 
 
+class ProcessingJob(Base):
+    """Provider-neutral, restart-safe photogrammetry processing request."""
+
+    __tablename__ = "processing_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    acquisition_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("acquisitions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    fulfilment_job_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("fulfilment_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    provider_code: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    provider_job_reference: Mapped[Optional[str]] = mapped_column(
+        String(240), nullable=True
+    )
+    requested_outputs_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="[]", server_default="[]"
+    )
+    options_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="REQUESTED", server_default="REQUESTED", index=True
+    )
+    progress_percent: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0.0, server_default="0"
+    )
+    stage: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    processor_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    processor_version: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    estimated_cost_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    actual_cost_amount: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    cost_currency: Mapped[str] = mapped_column(
+        String(5), nullable=False, default="USD", server_default="USD"
+    )
+    error_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    quality_report_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    retry_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    max_retries: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=3, server_default="3"
+    )
+    poll_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    submission_generation: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    next_poll_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(
+        String(200), nullable=False, unique=True, index=True
+    )
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    cancelled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    source_links = relationship(
+        "ProcessingJobSource", cascade="all, delete-orphan", back_populates="job"
+    )
+    output_links = relationship(
+        "ProcessingJobOutput", cascade="all, delete-orphan", back_populates="job"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "provider_code",
+            "provider_job_reference",
+            name="uq_processing_job_provider_reference",
+        ),
+        CheckConstraint(
+            "status IN ('REQUESTED', 'VALIDATING', 'SUBMITTED', 'RUNNING', "
+            "'RETRY_WAIT', 'NEEDS_REVIEW', 'COMPLETED', 'FAILED', 'CANCELLED')",
+            name="ck_processing_job_status",
+        ),
+        CheckConstraint(
+            "progress_percent >= 0 AND progress_percent <= 100",
+            name="ck_processing_job_progress",
+        ),
+        CheckConstraint(
+            "estimated_cost_amount IS NULL OR estimated_cost_amount >= 0",
+            name="ck_processing_job_estimated_cost",
+        ),
+        CheckConstraint(
+            "actual_cost_amount IS NULL OR actual_cost_amount >= 0",
+            name="ck_processing_job_actual_cost",
+        ),
+        CheckConstraint(
+            "retry_count >= 0 AND max_retries >= 0 AND poll_count >= 0 "
+            "AND submission_generation >= 0",
+            name="ck_processing_job_attempt_counts",
+        ),
+        CheckConstraint("lifecycle_version > 0", name="ck_processing_job_version"),
+        Index("ix_processing_jobs_due", status, next_poll_at, created_at),
+    )
+
+
+class ProcessingJobSource(Base):
+    """Ordered input datasets captured at processing-request time."""
+
+    __tablename__ = "processing_job_sources"
+
+    processing_job_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("processing_jobs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    dataset_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("datasets.id", ondelete="RESTRICT"),
+        primary_key=True,
+        index=True,
+    )
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    job = relationship("ProcessingJob", back_populates="source_links")
+    dataset = relationship("Dataset")
+
+    __table_args__ = (
+        CheckConstraint("sequence >= 0", name="ck_processing_job_source_sequence"),
+    )
+
+
+class ProcessingJobOutput(Base):
+    """Canonical Dataset produced for one requested processing output."""
+
+    __tablename__ = "processing_job_outputs"
+
+    processing_job_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("processing_jobs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    output_type: Mapped[str] = mapped_column(String(80), primary_key=True)
+    dataset_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("datasets.id", ondelete="RESTRICT"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    quality_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="PASSED", server_default="PASSED"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+
+    job = relationship("ProcessingJob", back_populates="output_links")
+    dataset = relationship("Dataset")
+
+    __table_args__ = (
+        CheckConstraint(
+            "quality_status IN ('PASSED', 'WARNING', 'FAILED')",
+            name="ck_processing_job_output_quality",
+        ),
+    )
+
+
 # â”€â”€ Cart â”€â”€
 
 class Cart(Base):

@@ -44,8 +44,10 @@ class EventNames:
     DATASET_ARCHIVED = "dataset.archived"
 
     PROCESSING_REQUESTED = "processing.requested"
+    PROCESSING_NEEDS_REVIEW = "processing.needs_review"
     PROCESSING_COMPLETED = "processing.completed"
     PROCESSING_FAILED = "processing.failed"
+    PROCESSING_CANCELLED = "processing.cancelled"
     OBSERVATION_CREATED = "observation.created"
     KPI_UPDATED = "kpi.updated"
     ACTION_REQUESTED = "action.requested"

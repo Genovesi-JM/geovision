@@ -29,7 +29,7 @@ def _consume_remote_payload(payload: dict[str, Any]) -> None:
     db = database.SessionLocal()
     try:
         event = deserialize_event(payload)
-        deliver_to_local_consumers(db, event, default_event_consumers())
+        deliver_to_local_consumers(db, event, default_event_consumers(settings))
         db.commit()
     except Exception:
         db.rollback()
@@ -50,7 +50,7 @@ def run_event_cycle(
         stats = dispatch_pending_events(
             db,
             worker_id=worker_id,
-            registry=default_event_consumers(),
+            registry=default_event_consumers(config),
             config=config,
         )
     finally:

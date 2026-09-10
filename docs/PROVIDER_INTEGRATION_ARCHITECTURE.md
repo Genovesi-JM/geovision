@@ -109,8 +109,8 @@ backfill can be considered after those ownership boundaries are established.
 | Capability and owning module | Port | Current implementation status |
 |---|---|---|
 | Dataset object storage | `ObjectStorageProvider` | Private local, S3-compatible, and Azure Blob adapters implement provider-neutral streaming, signed URLs, stat/checksum, deletion, and object URI operations |
-| Domain events and queue publication | `EventPublisher`, `QueuePublisher` | Contracts and explicit null event publisher only; no durable cloud queue adapter |
-| Processing | `ProcessingProvider` | Port only; processing jobs and photogrammetry adapters belong to Phase 14 |
+| Domain events and queue publication | `EventPublisher`, `QueuePublisher` | Transactional database outbox, idempotent consumers, independent worker, local delivery and Azure Service Bus/Event Grid adapters are implemented |
+| Processing | `ProcessingProvider` | Durable job orchestration, deterministic fake and NodeODM adapter implement submit/status/cancel/output normalization; PIX4D, Autodesk and Bentley remain explicit unavailable scaffolds |
 | Weather | `WeatherProvider` | Port only; provider integration belongs to Phase 15 |
 | Satellite | `SatelliteProvider` | Port only; provider integration belongs to Phase 15 |
 | Payments | `PaymentProvider` | Existing bank, Stripe, Multicaixa, and PayPal adapters have a normalized facade and lazy factory; the orchestrator accepts injected adapters; Phase 8 still owns lifecycle consolidation |

@@ -1,0 +1,49 @@
+services:
+  backend:
+    environment:
+      LOCAL_STORAGE_ROOT: /runtime/object-storage
+      PROCESSING_PROVIDER: nodeodm
+      PROCESSING_AUTO_CREATE_ENABLED: "true"
+      NODEODM_BASE_URL: http://nodeodm:3000
+
+  nodeodm:
+    profiles: ["processing"]
+    image: ${NODEODM_IMAGE:-opendronemap/nodeodm:latest}
+    ports: ["127.0.0.1:3000:3000"]
+    volumes: [geovision-nodeodm:/var/www/data]
+    restart: unless-stopped
+
+  event-worker:
+    profiles: ["processing"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    command: ["python", "-m", "app.workers.event_worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      QUEUE_PROVIDER: database
+      PROCESSING_PROVIDER: nodeodm
+      PROCESSING_AUTO_CREATE_ENABLED: "true"
+      NODEODM_BASE_URL: http://nodeodm:3000
+    depends_on:
+      db: {condition: service_healthy}
+
+  processing-worker:
+    profiles: ["processing"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    command: ["python", "-m", "app.workers.processing_worker"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      OBJECT_STORAGE_PROVIDER: local
+      LOCAL_STORAGE_ROOT: /runtime/object-storage
+      PROCESSING_PROVIDER: nodeodm
+      NODEODM_BASE_URL: http://nodeodm:3000
+    volumes: [geovision-runtime:/runtime]
+    depends_on:
+      db: {condition: service_healthy}
+      nodeodm: {condition: service_started}
+
+volumes:
+  geovision-nodeodm:
