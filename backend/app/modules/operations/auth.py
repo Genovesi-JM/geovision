@@ -23,7 +23,24 @@ def require_operations_staff(
     return user
 
 
+def require_internal_actor(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    """Admit any persisted GeoVision staff role to its filtered experience."""
+
+    if not active_internal_roles(db, user):
+        raise HTTPException(status_code=403, detail="GeoVision internal role required")
+    return user
+
+
 OperationsStaff = Annotated[User, Depends(require_operations_staff)]
+InternalActor = Annotated[User, Depends(require_internal_actor)]
 
 
-__all__ = ["OperationsStaff", "require_operations_staff"]
+__all__ = [
+    "InternalActor",
+    "OperationsStaff",
+    "require_internal_actor",
+    "require_operations_staff",
+]

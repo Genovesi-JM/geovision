@@ -23,6 +23,9 @@ from app.models import (
 from app.modules.operations.domain import (
     AssignmentStatus,
     OperationsResourceError,
+    contractor_safe_documents,
+    contractor_safe_mapping,
+    contractor_safe_value,
     normalize_code,
     require_assignment_transition,
 )
@@ -32,6 +35,7 @@ from app.modules.operations.schemas import (
     CapabilityCreate,
     CapabilityUpdate,
     ContractorCreate,
+    ContractorSelfUpdate,
     ContractorUpdate,
 )
 
@@ -258,7 +262,41 @@ def contractor_self_profile(contractor: OperationsContractor) -> dict[str, Any]:
         "document_refs",
         "capabilities",
     }
-    return {key: value for key, value in internal.items() if key in allowed}
+    profile = {key: value for key, value in internal.items() if key in allowed}
+    profile["service_area"] = contractor_safe_value(profile["service_area"])
+    profile["certifications"] = contractor_safe_documents(profile["certifications"])
+    profile["equipment"] = contractor_safe_value(profile["equipment"])
+    profile["document_refs"] = contractor_safe_documents(profile["document_refs"])
+    return profile
+
+
+def update_contractor_self(
+    db: Session,
+    *,
+    actor: User,
+    contractor: OperationsContractor,
+    data: ContractorSelfUpdate,
+) -> OperationsContractor:
+    changes = data.model_dump(exclude_unset=True, mode="json")
+    json_fields = {
+        "service_area": "service_area_json",
+        "equipment": "equipment_json",
+    }
+    for field, column in json_fields.items():
+        if field in changes:
+            setattr(contractor, column, _json(changes.pop(field) or []))
+    for field, value in changes.items():
+        setattr(contractor, field, value.strip() if isinstance(value, str) else value)
+    contractor.updated_at = utc_now()
+    _audit(
+        db,
+        actor=actor,
+        action="operations.contractor.self_updated",
+        resource_type="operations_contractor",
+        resource_id=contractor.id,
+        details={"fields": sorted(data.model_fields_set)},
+    )
+    return contractor
 
 
 def create_contractor(
@@ -418,7 +456,7 @@ def contractor_for_user(db: Session, user: User) -> OperationsContractor:
         .filter(OperationsContractor.user_id == user.id)
         .one_or_none()
     )
-    if contractor is None or contractor.status in {"INACTIVE", "BLOCKED"}:
+    if contractor is None or contractor.status != "ACTIVE":
         raise OperationsResourceError(
             "contractor_access_denied", "No active contractor access profile is available"
         )
@@ -426,18 +464,73 @@ def contractor_for_user(db: Session, user: User) -> OperationsContractor:
 
 
 def assignment_restricted(assignment: ContractorAssignment) -> dict[str, Any]:
+    location = contractor_safe_mapping(
+        _value(assignment.location_json, {}),
+        (
+            "name",
+            "label",
+            "site_name",
+            "address",
+            "latitude",
+            "longitude",
+            "meeting_point",
+            "access_instructions",
+            "access_notes",
+            "timezone",
+        ),
+    )
+    requirements = contractor_safe_mapping(
+        _value(assignment.requirements_json, {}),
+        (
+            "capabilities",
+            "skills",
+            "certifications",
+            "equipment",
+            "safety_briefing",
+            "safety_requirements",
+            "instructions",
+            "notes",
+            "checklist",
+            "deliverables",
+            "required_outputs",
+            "weather_constraints",
+            "access_constraints",
+            "technical_requirements",
+            "flight_parameters",
+            "capture_parameters",
+        ),
+    )
+    upload_area = contractor_safe_mapping(
+        _value(assignment.upload_area_json, {}),
+        (
+            "method",
+            "scope",
+            "dataset_id",
+            "dataset_ids",
+            "targets",
+            "object_area",
+            "accepted_content_types",
+            "max_size_bytes",
+        ),
+    )
+    required_documents = contractor_safe_documents(
+        _value(assignment.required_documents_json, [])
+    )
+    document_profile = contractor_safe_documents(
+        _value(assignment.contractor.document_refs_json, [])
+    )
     return {
         "id": assignment.id,
         "assignment_number": assignment.assignment_number,
         "title": assignment.title,
         "status": assignment.status,
-        "location": _value(assignment.location_json, {}),
+        "location": location,
         "window_start": _iso(assignment.window_start),
         "window_end": _iso(assignment.window_end),
-        "requirements": _value(assignment.requirements_json, {}),
-        "upload_area": _value(assignment.upload_area_json, {}),
-        "required_documents": _value(assignment.required_documents_json, []),
-        "document_profile": _value(assignment.contractor.document_refs_json, []),
+        "requirements": requirements,
+        "upload_area": upload_area,
+        "required_documents": required_documents,
+        "document_profile": document_profile,
         "lifecycle_version": assignment.lifecycle_version,
         "created_at": assignment.created_at.isoformat(),
         "updated_at": assignment.updated_at.isoformat(),
@@ -447,6 +540,11 @@ def assignment_restricted(assignment: ContractorAssignment) -> dict[str, Any]:
 def assignment_internal(assignment: ContractorAssignment) -> dict[str, Any]:
     return {
         **assignment_restricted(assignment),
+        "location": _value(assignment.location_json, {}),
+        "requirements": _value(assignment.requirements_json, {}),
+        "upload_area": _value(assignment.upload_area_json, {}),
+        "required_documents": _value(assignment.required_documents_json, []),
+        "document_profile": _value(assignment.contractor.document_refs_json, []),
         "contractor_id": assignment.contractor_id,
         "order_id": assignment.order_id,
         "fulfilment_job_id": assignment.fulfilment_job_id,
@@ -541,6 +639,9 @@ def update_assignment(
     changes = data.model_dump(exclude_unset=True)
     changes.pop("expected_version", None)
     target_status = changes.pop("status", None)
+    previous_status = assignment.status
+    activate_linked_job = False
+    revoke_linked_job = False
     if target_status:
         target_status = (
             target_status.value
@@ -552,8 +653,17 @@ def update_assignment(
         now = utc_now()
         if target_status == AssignmentStatus.ACCEPTED.value:
             assignment.accepted_at = assignment.accepted_at or now
+            activate_linked_job = bool(
+                assignment.fulfilment_job_id
+                and previous_status != AssignmentStatus.ACCEPTED.value
+            )
         elif target_status == AssignmentStatus.COMPLETED.value:
             assignment.completed_at = assignment.completed_at or now
+        elif target_status in {
+            AssignmentStatus.CANCELLED.value,
+            AssignmentStatus.DECLINED.value,
+        }:
+            revoke_linked_job = bool(assignment.fulfilment_job_id)
     json_fields = {
         "location": "location_json",
         "requirements": "requirements_json",
@@ -577,6 +687,71 @@ def update_assignment(
         raise OperationsResourceError(
             "assignment_currency_required", "Cost currency is required for an agreed cost"
         )
+    if (activate_linked_job or revoke_linked_job) and assignment.fulfilment_job_id:
+        from app.modules.operations.job_schemas import (
+            JobAssignmentUpdate,
+            JobScheduleUpdate,
+        )
+        from app.modules.operations.job_services import assign_job, schedule_job
+
+        job = db.get(FulfilmentJob, assignment.fulfilment_job_id)
+        if job is None:
+            raise OperationsResourceError(
+                "job_not_found", "Fulfilment job was not found"
+            )
+        if (
+            job.assigned_user_id is not None
+            or (
+                job.assigned_contractor_id is not None
+                and job.assigned_contractor_id != assignment.contractor_id
+            )
+        ):
+            raise OperationsResourceError(
+                "assignment_job_mismatch",
+                "Fulfilment job belongs to another assignee",
+            )
+        if activate_linked_job:
+            assign_job(
+                db,
+                actor=actor,
+                job=job,
+                data=JobAssignmentUpdate(contractor_id=assignment.contractor_id),
+            )
+            if (
+                assignment.window_start
+                and assignment.window_end
+                and job.state in {"READY", "ASSIGNED", "SCHEDULED"}
+            ):
+                schedule_job(
+                    db,
+                    actor=actor,
+                    job=job,
+                    data=JobScheduleUpdate(
+                        scheduled_start=assignment.window_start,
+                        scheduled_end=assignment.window_end,
+                        expected_version=job.lifecycle_version,
+                    ),
+                )
+        elif job.assigned_contractor_id == assignment.contractor_id:
+            if job.state == "SCHEDULED":
+                schedule_job(
+                    db,
+                    actor=actor,
+                    job=job,
+                    data=JobScheduleUpdate(
+                        clear_schedule=True,
+                        expected_version=job.lifecycle_version,
+                    ),
+                )
+            assign_job(
+                db,
+                actor=actor,
+                job=job,
+                data=JobAssignmentUpdate(
+                    clear_assignment=True,
+                    expected_version=job.lifecycle_version,
+                ),
+            )
     assignment.lifecycle_version = int(assignment.lifecycle_version or 0) + 1
     assignment.updated_at = utc_now()
     _audit(
@@ -623,4 +798,5 @@ __all__ = [
     "update_assignment",
     "update_capability",
     "update_contractor",
+    "update_contractor_self",
 ]

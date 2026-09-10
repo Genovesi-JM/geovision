@@ -22,6 +22,7 @@ from app.modules.operations.schemas import (
     ContractorCreate,
     ContractorInternalOut,
     ContractorSelfProfileOut,
+    ContractorSelfUpdate,
     ContractorUpdate,
 )
 from app.modules.operations.services import (
@@ -40,6 +41,7 @@ from app.modules.operations.services import (
     update_assignment,
     update_capability,
     update_contractor,
+    update_contractor_self,
 )
 router = APIRouter(prefix="/operations", tags=["operations-resources"])
 
@@ -72,6 +74,28 @@ def my_contractor_profile(
     try:
         return contractor_self_profile(contractor_for_user(db, user))
     except OperationsResourceError as exc:
+        _raise_resource_error(exc)
+
+
+@router.patch("/contractor/me/profile", response_model=ContractorSelfProfileOut)
+def update_my_contractor_profile(
+    data: ContractorSelfUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        contractor = contractor_for_user(db, user)
+        update_contractor_self(
+            db,
+            actor=user,
+            contractor=contractor,
+            data=data,
+        )
+        db.commit()
+        db.refresh(contractor)
+        return contractor_self_profile(contractor)
+    except OperationsResourceError as exc:
+        db.rollback()
         _raise_resource_error(exc)
 
 

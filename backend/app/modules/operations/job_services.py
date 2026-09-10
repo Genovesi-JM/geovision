@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+import hmac
 import json
 import uuid
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.time import utc_now
 from app.models import (
+    Acquisition,
     Asset,
     AuditLog,
+    ContractorAssignment,
+    Dataset,
+    DatasetFile,
     FulfilmentJob,
     FulfilmentJobDependency,
     OperationsContractor,
@@ -19,9 +26,28 @@ from app.models import (
     OrderItem,
     User,
 )
-from app.modules.operations.domain import JobState, OperationsResourceError, require_job_transition
+from app.modules.assets.domain import (
+    AssetValidationError,
+    geometry_display_center,
+    normalize_geometry,
+)
+from app.modules.datasets.domain import DatasetError, validate_upload
+from app.modules.datasets.services import (
+    confirm_reserved_upload,
+    reserve_upload,
+)
+from app.modules.operations.domain import (
+    JobState,
+    OperationsResourceError,
+    contractor_safe_documents,
+    contractor_safe_mapping,
+    require_job_transition,
+)
 from app.modules.operations.events import DomainEventPublisher, publish_operational_event
 from app.modules.operations.job_schemas import (
+    ContractorJobStateUpdate,
+    ContractorUploadComplete,
+    ContractorUploadInitiate,
     JobAssignmentUpdate,
     JobCreate,
     JobScheduleUpdate,
@@ -29,6 +55,7 @@ from app.modules.operations.job_schemas import (
 )
 from app.modules.organizations.domain import internal_permissions
 from app.modules.organizations.services import active_internal_roles
+from app.services.storage import StorageService
 
 
 def _json(value: Any) -> str:
@@ -41,6 +68,14 @@ def _dict(value: str | None) -> dict[str, Any]:
     except (TypeError, ValueError):
         return {}
     return parsed if isinstance(parsed, dict) else {}
+
+
+def _list(value: str | None) -> list[Any]:
+    try:
+        parsed = json.loads(value or "[]")
+    except (TypeError, ValueError):
+        return []
+    return parsed if isinstance(parsed, list) else []
 
 
 def _iso(value: Any) -> str | None:
@@ -310,6 +345,679 @@ def job_restricted(job: FulfilmentJob) -> dict[str, Any]:
         "created_at": job.created_at.isoformat(),
         "updated_at": job.updated_at.isoformat(),
     }
+
+
+_CONTRACTOR_LOCATION_FIELDS = (
+    "name",
+    "label",
+    "site_name",
+    "address",
+    "latitude",
+    "longitude",
+    "meeting_point",
+    "access_instructions",
+    "access_notes",
+    "timezone",
+)
+_CONTRACTOR_REQUIREMENT_FIELDS = (
+    "capabilities",
+    "skills",
+    "certifications",
+    "equipment",
+    "safety_briefing",
+    "safety_requirements",
+    "instructions",
+    "notes",
+    "checklist",
+    "deliverables",
+    "required_outputs",
+    "weather_constraints",
+    "access_constraints",
+    "technical_requirements",
+    "flight_parameters",
+    "capture_parameters",
+)
+
+
+def contractor_job_restricted(job: FulfilmentJob) -> dict[str, Any]:
+    payload = job_restricted(job)
+    payload["requirements"] = contractor_safe_mapping(
+        _dict(job.requirements_json), _CONTRACTOR_REQUIREMENT_FIELDS
+    )
+    return payload
+
+
+def contractor_assigned_job(
+    db: Session,
+    *,
+    contractor_id: str,
+    job_id: str,
+) -> FulfilmentJob:
+    job = db.get(FulfilmentJob, job_id)
+    if job is None or job.assigned_contractor_id != contractor_id:
+        # Do not disclose whether an unrelated customer or job exists.
+        raise OperationsResourceError("job_not_found", "Job was not found")
+    return job
+
+
+def _contractor_assignment(
+    db: Session,
+    *,
+    contractor_id: str,
+    job_id: str,
+    accepted_only: bool = False,
+) -> ContractorAssignment | None:
+    query = db.query(ContractorAssignment).filter(
+        ContractorAssignment.contractor_id == contractor_id,
+        ContractorAssignment.fulfilment_job_id == job_id,
+    )
+    if accepted_only:
+        query = query.filter(ContractorAssignment.status.in_(("ACCEPTED", "ACTIVE")))
+        return (
+            query.order_by(
+                ContractorAssignment.updated_at.desc(),
+                ContractorAssignment.id.desc(),
+            )
+            .first()
+        )
+    current = (
+        query.filter(ContractorAssignment.status.in_(("ACCEPTED", "ACTIVE")))
+        .order_by(
+            ContractorAssignment.updated_at.desc(),
+            ContractorAssignment.id.desc(),
+        )
+        .first()
+    )
+    if current is not None:
+        return current
+    return (
+        query.order_by(
+            ContractorAssignment.updated_at.desc(),
+            ContractorAssignment.id.desc(),
+        )
+        .first()
+    )
+
+
+def _contractor_location(
+    db: Session,
+    job: FulfilmentJob,
+    assignment: ContractorAssignment | None,
+) -> dict[str, Any]:
+    if assignment is not None:
+        configured = contractor_safe_mapping(
+            _dict(assignment.location_json), _CONTRACTOR_LOCATION_FIELDS
+        )
+        if configured:
+            return configured
+    asset = db.get(Asset, job.asset_id) if job.asset_id else None
+    if asset is None:
+        return {}
+    location: dict[str, Any] = {
+        "asset_name": asset.name,
+        "label": asset.location_label,
+    }
+    try:
+        center = geometry_display_center(normalize_geometry(asset.geometry_geojson))
+    except (AssetValidationError, TypeError, ValueError):
+        center = None
+    if center:
+        location.update({"latitude": center[0], "longitude": center[1]})
+    return {key: value for key, value in location.items() if value is not None}
+
+
+def _configured_dataset_ids(assignment: ContractorAssignment | None) -> set[str]:
+    if assignment is None:
+        return set()
+    value = _dict(assignment.upload_area_json)
+    result: set[str] = set()
+    direct = value.get("dataset_id")
+    if isinstance(direct, str) and direct:
+        result.add(direct)
+    for item in value.get("dataset_ids", []):
+        if isinstance(item, str) and item:
+            result.add(item)
+    for item in value.get("targets", []):
+        if isinstance(item, dict):
+            target = item.get("dataset_id")
+            if isinstance(target, str) and target:
+                result.add(target)
+    return result
+
+
+def contractor_upload_targets(
+    db: Session,
+    *,
+    contractor_id: str,
+    job: FulfilmentJob,
+) -> list[Dataset]:
+    order = db.get(Order, job.order_id)
+    asset = db.get(Asset, job.asset_id) if job.asset_id else None
+    if order is None or asset is None:
+        return []
+    organization_id = order.organization_id or order.company_id
+    workspace_id = asset.workspace_id or order.workspace_id
+    if not organization_id or not workspace_id:
+        return []
+
+    accepted = _contractor_assignment(
+        db,
+        contractor_id=contractor_id,
+        job_id=job.id,
+        accepted_only=True,
+    )
+    if accepted is None:
+        return []
+    configured_ids = _configured_dataset_ids(accepted)
+    mission_ids = tuple(
+        row.id
+        for row in db.query(Acquisition.id)
+        .filter(
+            Acquisition.fulfilment_job_id == job.id,
+            Acquisition.organization_id == organization_id,
+            Acquisition.workspace_id == workspace_id,
+            Acquisition.asset_id == asset.id,
+        )
+        .all()
+    )
+    if not configured_ids and not mission_ids:
+        return []
+    query = db.query(Dataset).filter(
+        Dataset.company_id == organization_id,
+        Dataset.workspace_id == workspace_id,
+        Dataset.asset_id == asset.id,
+        Dataset.status != "archived",
+    )
+    links = []
+    if configured_ids:
+        links.append(Dataset.id.in_(configured_ids))
+    if mission_ids:
+        links.append(Dataset.mission_id.in_(mission_ids))
+    query = query.filter(links[0] if len(links) == 1 else (links[0] | links[1]))
+    return query.order_by(Dataset.created_at.asc(), Dataset.id.asc()).all()
+
+
+_CONTRACTOR_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    "ASSIGNED": ("IN_PROGRESS",),
+    "SCHEDULED": ("IN_PROGRESS",),
+    "IN_PROGRESS": ("WAITING_INPUT", "QA_REVIEW"),
+    "WAITING_INPUT": ("IN_PROGRESS",),
+}
+
+
+def contractor_allowed_transitions(job: FulfilmentJob) -> list[str]:
+    return list(_CONTRACTOR_TRANSITIONS.get(job.state, ()))
+
+
+def contractor_job_detail(
+    db: Session,
+    *,
+    contractor_id: str,
+    job: FulfilmentJob,
+) -> dict[str, Any]:
+    assignment = _contractor_assignment(
+        db,
+        contractor_id=contractor_id,
+        job_id=job.id,
+    )
+    assignment_payload = None
+    if assignment is not None:
+        assignment_payload = {
+            "id": assignment.id,
+            "assignment_number": assignment.assignment_number,
+            "title": assignment.title,
+            "status": assignment.status,
+            "location": contractor_safe_mapping(
+                _dict(assignment.location_json), _CONTRACTOR_LOCATION_FIELDS
+            ),
+            "window_start": _iso(assignment.window_start),
+            "window_end": _iso(assignment.window_end),
+            "requirements": contractor_safe_mapping(
+                _dict(assignment.requirements_json),
+                _CONTRACTOR_REQUIREMENT_FIELDS,
+            ),
+            "required_documents": contractor_safe_documents(
+                _list(assignment.required_documents_json)
+            ),
+            "lifecycle_version": assignment.lifecycle_version,
+        }
+    targets = contractor_upload_targets(
+        db,
+        contractor_id=contractor_id,
+        job=job,
+    )
+    assignment_is_current = bool(
+        assignment is not None and assignment.status in {"ACCEPTED", "ACTIVE"}
+    )
+    return {
+        **contractor_job_restricted(job),
+        "location": _contractor_location(db, job, assignment),
+        "assignment": assignment_payload,
+        "upload_targets": [
+            {
+                "dataset_id": row.id,
+                "name": row.name,
+                "status": row.status,
+                "file_count": row.file_count,
+            }
+            for row in targets
+        ],
+        "allowed_transitions": (
+            contractor_allowed_transitions(job) if assignment_is_current else []
+        ),
+    }
+
+
+def transition_contractor_job(
+    db: Session,
+    *,
+    actor: User,
+    contractor_id: str,
+    job: FulfilmentJob,
+    data: ContractorJobStateUpdate,
+) -> FulfilmentJob:
+    if job.assigned_contractor_id != contractor_id:
+        raise OperationsResourceError("job_not_found", "Job was not found")
+    _accepted_job_assignment(
+        db,
+        contractor_id=contractor_id,
+        job_id=job.id,
+    )
+    if data.state not in contractor_allowed_transitions(job):
+        raise OperationsResourceError(
+            "contractor_transition_denied",
+            "This job transition is not available to the assigned contractor",
+        )
+    if data.state == "WAITING_INPUT" and not (data.reason or "").strip():
+        raise OperationsResourceError(
+            "reason_required", "WAITING_INPUT requires a reason"
+        )
+    return transition_job(
+        db,
+        actor=actor,
+        job=job,
+        data=JobStateUpdate(
+            state=JobState(data.state),
+            reason=data.reason,
+            expected_version=data.expected_version,
+        ),
+    )
+
+
+_UPLOAD_JOB_STATES = {
+    "ASSIGNED",
+    "SCHEDULED",
+    "IN_PROGRESS",
+    "WAITING_INPUT",
+    "QA_REVIEW",
+}
+
+
+def _authorized_upload_dataset(
+    db: Session,
+    *,
+    contractor_id: str,
+    job: FulfilmentJob,
+    dataset_id: str,
+) -> Dataset:
+    if job.state not in _UPLOAD_JOB_STATES:
+        raise OperationsResourceError(
+            "job_upload_locked", "This job is not accepting uploads"
+        )
+    target = next(
+        (
+            row
+            for row in contractor_upload_targets(
+                db,
+                contractor_id=contractor_id,
+                job=job,
+            )
+            if row.id == dataset_id
+        ),
+        None,
+    )
+    if target is None:
+        raise OperationsResourceError(
+            "upload_target_not_found", "Upload target was not found"
+        )
+    return target
+
+
+def _accepted_job_assignment(
+    db: Session,
+    *,
+    contractor_id: str,
+    job_id: str,
+) -> ContractorAssignment:
+    assignment = _contractor_assignment(
+        db,
+        contractor_id=contractor_id,
+        job_id=job_id,
+        accepted_only=True,
+    )
+    if assignment is None:
+        raise OperationsResourceError(
+            "accepted_assignment_required",
+            "Accept the current job assignment before changing work or uploading",
+        )
+    return assignment
+
+
+def _upload_reservations(assignment: ContractorAssignment) -> list[dict[str, Any]]:
+    value = _dict(assignment.upload_area_json).get("reservations", [])
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _record_upload_reservation(
+    db: Session,
+    *,
+    actor: User,
+    assignment: ContractorAssignment,
+    job: FulfilmentJob,
+    dataset: Dataset,
+    file: DatasetFile,
+) -> None:
+    upload_area = _dict(assignment.upload_area_json)
+    reservations = _upload_reservations(assignment)
+    reservations.append(
+        {
+            "upload_reference": file.id,
+            "job_id": job.id,
+            "dataset_id": dataset.id,
+            "status": "RESERVED",
+            "created_by_user_id": actor.id,
+        }
+    )
+    upload_area["reservations"] = reservations
+    assignment.upload_area_json = _json(upload_area)
+    assignment.lifecycle_version = int(assignment.lifecycle_version or 0) + 1
+    assignment.updated_at = utc_now()
+    _audit(
+        db,
+        actor=actor,
+        action="operations.job.upload_reserved",
+        job=job,
+        details={
+            "assignment_id": assignment.id,
+            "dataset_id": dataset.id,
+            "upload_reference": file.id,
+        },
+    )
+    db.commit()
+
+
+def _owned_upload_reservation(
+    assignment: ContractorAssignment,
+    *,
+    actor: User,
+    job_id: str,
+    dataset_id: str,
+    upload_reference: str,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    reservations = _upload_reservations(assignment)
+    row = next(
+        (
+            item
+            for item in reservations
+            if item.get("upload_reference") == upload_reference
+            and item.get("job_id") == job_id
+            and item.get("dataset_id") == dataset_id
+            and item.get("created_by_user_id") == actor.id
+        ),
+        None,
+    )
+    if row is None:
+        raise OperationsResourceError(
+            "upload_reference_not_found", "Upload reference was not found"
+        )
+    return row, reservations
+
+
+def contractor_local_upload_file(
+    db: Session,
+    *,
+    storage_key: str,
+) -> DatasetFile:
+    """Resolve a signed local PUT to an active contractor reservation."""
+
+    file = (
+        db.query(DatasetFile)
+        .filter(
+            DatasetFile.storage_key == storage_key,
+            DatasetFile.storage_provider == "local",
+            DatasetFile.status == "pending_upload",
+        )
+        .one_or_none()
+    )
+    if file is None:
+        raise OperationsResourceError(
+            "upload_reference_not_found", "Upload reference was not found"
+        )
+    if file.upload_expires_at and file.upload_expires_at < utc_now():
+        raise DatasetError("upload_expired", "Upload reservation has expired")
+    candidates = (
+        db.query(ContractorAssignment)
+        .filter(
+            ContractorAssignment.status.in_(("ACCEPTED", "ACTIVE")),
+            ContractorAssignment.upload_area_json.like(f"%{file.id}%"),
+        )
+        .all()
+    )
+    for assignment in candidates:
+        reservation = next(
+            (
+                item
+                for item in _upload_reservations(assignment)
+                if item.get("upload_reference") == file.id
+                and item.get("dataset_id") == file.dataset_id
+                and item.get("status") == "RESERVED"
+            ),
+            None,
+        )
+        if reservation is None:
+            continue
+        job_id = reservation.get("job_id")
+        job = db.get(FulfilmentJob, job_id) if isinstance(job_id, str) else None
+        contractor = db.get(OperationsContractor, assignment.contractor_id)
+        if (
+            job is not None
+            and contractor is not None
+            and contractor.status == "ACTIVE"
+            and assignment.fulfilment_job_id == job.id
+            and job.assigned_contractor_id == assignment.contractor_id
+        ):
+            return file
+    raise OperationsResourceError(
+        "upload_reference_not_found", "Upload reference was not found"
+    )
+
+
+def reserve_contractor_upload(
+    db: Session,
+    *,
+    actor: User,
+    contractor_id: str,
+    job: FulfilmentJob,
+    data: ContractorUploadInitiate,
+    storage: StorageService,
+) -> dict[str, Any]:
+    assignment = _accepted_job_assignment(
+        db,
+        contractor_id=contractor_id,
+        job_id=job.id,
+    )
+    dataset = _authorized_upload_dataset(
+        db,
+        contractor_id=contractor_id,
+        job=job,
+        dataset_id=data.dataset_id,
+    )
+    file, upload_url, expires_in = reserve_upload(
+        db,
+        actor=actor,
+        dataset=dataset,
+        filename=data.filename,
+        content_type=data.content_type,
+        size_bytes=data.size_bytes,
+        storage=storage,
+        object_area=data.object_area,
+    )
+    _record_upload_reservation(
+        db,
+        actor=actor,
+        assignment=assignment,
+        job=job,
+        dataset=dataset,
+        file=file,
+    )
+    headers: dict[str, str] = {}
+    if data.content_type:
+        headers["Content-Type"] = data.content_type
+    if storage.provider_name == "azure_blob":
+        headers["x-ms-blob-type"] = "BlockBlob"
+    elif storage.provider_name == "local":
+        parsed = urlsplit(upload_url)
+        upload_url = urlunsplit(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                "/operations/contractor/uploads/local",
+                parsed.query,
+                "",
+            )
+        )
+    return {
+        "upload_url": upload_url,
+        "upload_reference": file.id,
+        "expires_in": expires_in,
+        "required_headers": headers,
+    }
+
+
+def _contractor_upload_receipt(file: DatasetFile) -> dict[str, Any]:
+    return {
+        "upload_reference": file.id,
+        "dataset_id": file.dataset_id,
+        "filename": file.filename,
+        "size_bytes": file.file_size,
+        "status": file.status,
+        "sha256_hash": file.sha256_hash,
+        "confirmed_at": file.confirmed_at,
+    }
+
+
+def confirm_contractor_upload(
+    db: Session,
+    *,
+    actor: User,
+    contractor_id: str,
+    job: FulfilmentJob,
+    data: ContractorUploadComplete,
+    storage: StorageService,
+) -> dict[str, Any]:
+    assignment = _accepted_job_assignment(
+        db,
+        contractor_id=contractor_id,
+        job_id=job.id,
+    )
+    dataset = _authorized_upload_dataset(
+        db,
+        contractor_id=contractor_id,
+        job=job,
+        dataset_id=data.dataset_id,
+    )
+    reservation, reservations = _owned_upload_reservation(
+        assignment,
+        actor=actor,
+        job_id=job.id,
+        dataset_id=dataset.id,
+        upload_reference=data.upload_reference,
+    )
+    file = db.get(DatasetFile, data.upload_reference)
+    if file is None or file.dataset_id != dataset.id or not file.storage_key:
+        raise OperationsResourceError(
+            "upload_reference_not_found", "Upload reference was not found"
+        )
+    claimed_hash = data.sha256_hash.lower() if data.sha256_hash else None
+    if reservation.get("status") == "CONFIRMED":
+        recorded_size = reservation.get("size_bytes", file.file_size)
+        recorded_hash = reservation.get("sha256_hash", file.sha256_hash)
+        normalized_recorded_hash = (
+            str(recorded_hash).lower() if recorded_hash is not None else None
+        )
+        if data.size_bytes != recorded_size or claimed_hash != normalized_recorded_hash:
+            raise DatasetError(
+                "upload_mismatch",
+                "Confirmation payload does not match the completed upload",
+            )
+        return _contractor_upload_receipt(file)
+    info = storage.stat_file(file.storage_key)
+    provider_content_type = (
+        str(info.get("content_type") or "").split(";", 1)[0].strip().lower()
+        if info
+        else ""
+    )
+    reserved_content_type = (
+        str(file.mime_type or "").split(";", 1)[0].strip().lower()
+    )
+    try:
+        if provider_content_type:
+            validate_upload(
+                filename=file.filename,
+                content_type=provider_content_type,
+                size_bytes=int(info.get("size_bytes") or 0),
+                max_size_bytes=settings.dataset_signed_upload_max_bytes,
+            )
+        if (
+            provider_content_type
+            and reserved_content_type
+            and not hmac.compare_digest(provider_content_type, reserved_content_type)
+        ):
+            raise DatasetError(
+                "upload_mismatch",
+                "Stored content type does not match the upload reservation",
+            )
+    except DatasetError:
+        storage.delete_file(file.storage_key)
+        file.status = "rejected"
+        file.lifecycle_version += 1
+        db.commit()
+        raise
+    try:
+        confirmed = confirm_reserved_upload(
+            db,
+            actor=actor,
+            dataset=dataset,
+            storage_key=file.storage_key,
+            filename=file.filename,
+            claimed_size_bytes=data.size_bytes,
+            sha256_hash=data.sha256_hash,
+            storage=storage,
+        )
+    except DatasetError:
+        raise
+    if reservation.get("status") != "CONFIRMED":
+        reservation["status"] = "CONFIRMED"
+        reservation["size_bytes"] = data.size_bytes
+        reservation["sha256_hash"] = claimed_hash
+        upload_area = _dict(assignment.upload_area_json)
+        upload_area["reservations"] = reservations
+        assignment.upload_area_json = _json(upload_area)
+        assignment.lifecycle_version = int(assignment.lifecycle_version or 0) + 1
+        assignment.updated_at = utc_now()
+        _audit(
+            db,
+            actor=actor,
+            action="operations.job.upload_confirmed",
+            job=job,
+            details={
+                "assignment_id": assignment.id,
+                "dataset_id": dataset.id,
+                "upload_reference": confirmed.id,
+            },
+        )
+        db.commit()
+    return _contractor_upload_receipt(confirmed)
 
 
 def job_internal(db: Session, job: FulfilmentJob) -> dict[str, Any]:
@@ -840,7 +1548,12 @@ def customer_order_progress(db: Session, order: Order) -> dict[str, Any]:
 __all__ = [
     "add_dependency",
     "assign_job",
+    "confirm_contractor_upload",
+    "contractor_assigned_job",
+    "contractor_job_detail",
+    "contractor_job_restricted",
     "contractor_jobs",
+    "contractor_local_upload_file",
     "create_job",
     "customer_order_progress",
     "dependencies_complete",
@@ -848,6 +1561,8 @@ __all__ = [
     "job_restricted",
     "list_jobs",
     "plan_order_jobs",
+    "reserve_contractor_upload",
     "schedule_job",
+    "transition_contractor_job",
     "transition_job",
 ]

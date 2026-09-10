@@ -192,6 +192,27 @@ class ContractorSelfProfileOut(BaseModel):
     capabilities: list[dict[str, Any]]
 
 
+class ContractorSelfUpdate(BaseModel):
+    """Fields a contractor may maintain without changing staff-owned vetting."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    display_name: str | None = Field(default=None, min_length=2, max_length=200)
+    availability: ContractorAvailability | None = None
+    contact_email: str | None = Field(default=None, max_length=320)
+    contact_phone: str | None = Field(default=None, max_length=50)
+    region: str | None = Field(default=None, max_length=120)
+    service_area: list[str | dict[str, Any]] | None = Field(
+        default=None, max_length=100
+    )
+    equipment: list[dict[str, Any]] | None = Field(default=None, max_length=200)
+
+    @field_validator("service_area", "equipment")
+    @classmethod
+    def no_credentials(cls, value: Any) -> Any:
+        return reject_sensitive_keys(value) if value is not None else value
+
+
 class AssignmentCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -301,5 +322,6 @@ __all__ = [
     "ContractorCreate",
     "ContractorInternalOut",
     "ContractorSelfProfileOut",
+    "ContractorSelfUpdate",
     "ContractorUpdate",
 ]

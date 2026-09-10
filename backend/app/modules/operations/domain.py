@@ -220,6 +220,82 @@ def reject_sensitive_keys(value: Any, path: str = "metadata") -> Any:
     return value
 
 
+_CONTRACTOR_PRIVATE_KEY_PARTS = (
+    "assigned_by",
+    "billing",
+    "contractor_id",
+    "cost",
+    "customer",
+    "internal",
+    "margin",
+    "order_id",
+    "organization",
+    "payment",
+    "price",
+    "provider",
+    "rate",
+    "reviewer",
+    "secret",
+    "staff",
+    "supplier",
+    "token",
+    "user_id",
+    "workspace",
+)
+
+
+def contractor_safe_value(value: Any) -> Any:
+    """Recursively remove staff/customer metadata from an approved field."""
+
+    if isinstance(value, dict):
+        return {
+            key: contractor_safe_value(nested)
+            for key, nested in value.items()
+            if not any(
+                part in str(key).strip().lower()
+                for part in _CONTRACTOR_PRIVATE_KEY_PARTS
+            )
+        }
+    if isinstance(value, list):
+        return [contractor_safe_value(item) for item in value]
+    return value
+
+
+def contractor_safe_mapping(value: Any, allowed: tuple[str, ...]) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        key: contractor_safe_value(value[key])
+        for key in allowed
+        if key in value
+    }
+
+
+def contractor_safe_documents(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    allowed = (
+        "document_id",
+        "type",
+        "name",
+        "label",
+        "filename",
+        "status",
+        "required",
+        "issuer",
+        "issued_at",
+        "uploaded_at",
+        "valid_from",
+        "valid_until",
+        "expires_at",
+    )
+    return [
+        contractor_safe_mapping(item, allowed)
+        for item in value
+        if isinstance(item, dict)
+    ]
+
+
 __all__ = [
     "AssignmentStatus",
     "ContractorAvailability",
@@ -228,6 +304,9 @@ __all__ = [
     "JobState",
     "OperationsResourceError",
     "STANDARD_JOB_TYPES",
+    "contractor_safe_documents",
+    "contractor_safe_mapping",
+    "contractor_safe_value",
     "normalize_code",
     "reject_sensitive_keys",
     "require_assignment_transition",

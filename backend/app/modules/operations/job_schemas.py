@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.modules.datasets.domain import ObjectArea
 from app.modules.operations.domain import JobPriority, JobState, normalize_code, reject_sensitive_keys
 
 
@@ -123,6 +124,85 @@ class JobRestrictedOut(BaseModel):
     updated_at: str
 
 
+ContractorJobState = Literal["IN_PROGRESS", "WAITING_INPUT", "QA_REVIEW"]
+
+
+class ContractorJobStateUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    state: ContractorJobState
+    reason: str | None = Field(default=None, max_length=2_000)
+    expected_version: int | None = Field(default=None, ge=1)
+
+
+class ContractorJobAssignmentOut(BaseModel):
+    id: str
+    assignment_number: str
+    title: str
+    status: str
+    location: dict[str, Any] = Field(default_factory=dict)
+    window_start: str | None = None
+    window_end: str | None = None
+    requirements: dict[str, Any] = Field(default_factory=dict)
+    required_documents: list[dict[str, Any]] = Field(default_factory=list)
+    lifecycle_version: int = Field(ge=1)
+
+
+class ContractorUploadTargetOut(BaseModel):
+    dataset_id: str
+    name: str
+    status: str
+    file_count: int = Field(ge=0)
+
+
+class ContractorJobDetailOut(JobRestrictedOut):
+    location: dict[str, Any] = Field(default_factory=dict)
+    assignment: ContractorJobAssignmentOut | None = None
+    upload_targets: list[ContractorUploadTargetOut] = Field(default_factory=list)
+    allowed_transitions: list[ContractorJobState] = Field(default_factory=list)
+
+
+class ContractorUploadInitiate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dataset_id: str = Field(min_length=1, max_length=36)
+    filename: str = Field(min_length=1, max_length=240)
+    content_type: str | None = Field(default=None, max_length=150)
+    size_bytes: int = Field(gt=0)
+    object_area: ObjectArea | None = None
+
+
+class ContractorUploadInitiatedOut(BaseModel):
+    upload_url: str
+    upload_reference: str
+    expires_in: int = Field(gt=0)
+    required_headers: dict[str, str] = Field(default_factory=dict)
+
+
+class ContractorUploadComplete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dataset_id: str = Field(min_length=1, max_length=36)
+    upload_reference: str = Field(min_length=1, max_length=36)
+    size_bytes: int = Field(ge=0)
+    sha256_hash: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[a-fA-F0-9]{64}$",
+    )
+
+
+class ContractorUploadReceiptOut(BaseModel):
+    upload_reference: str
+    dataset_id: str
+    filename: str
+    size_bytes: int = Field(ge=0)
+    status: str
+    sha256_hash: str | None = None
+    confirmed_at: datetime | None = None
+
+
 class JobInternalOut(JobRestrictedOut):
     order_id: str
     order_item_id: str | None
@@ -163,6 +243,12 @@ class CustomerOrderProgressOut(BaseModel):
 
 
 __all__ = [
+    "ContractorJobDetailOut",
+    "ContractorJobStateUpdate",
+    "ContractorUploadComplete",
+    "ContractorUploadInitiate",
+    "ContractorUploadInitiatedOut",
+    "ContractorUploadReceiptOut",
     "CustomerOrderProgressOut",
     "JobAssignmentUpdate",
     "JobCreate",
