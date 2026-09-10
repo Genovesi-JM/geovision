@@ -46,7 +46,7 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **Multicaixa Express** | Merchant credentials. | Set `MULTICAIXA_MERCHANT_ID`, `MULTICAIXA_API_KEY`, `MULTICAIXA_WEBHOOK_SECRET`. |
 | **PayPal** | REST app creds. | Set `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE=live`. |
 | **Company IBAN** | Your real IBANs. | Set `COMPANY_IBAN`, `COMPANY_IBAN_INTL` (defaults are placeholders). |
-| **Push notifications** | FCM/APNS project. | Set `GV_PUSH_PROVIDER=fcm` (+ config); currently `mock`. |
+| **Push notifications** | Azure Notification Hubs plus APNs/FCM credentials, signed-app capabilities, platform configuration files and native host channel handlers. | Flutter's channel boundary and backend-managed Azure installation/delivery are implemented. Complete [Gate 16](../HUMAN_GATES.md#16-live-email-and-mobile-push-activation), wire/test the signed host side, then select `apns`, `fcm`, or `azure_notification_hubs` with `GV_PUSH_PROVIDER`. Missing host support fails closed without mock push. |
 | **Maps** | Mapbox/ArcGIS key. | Set `GV_MAP_PROVIDER=mapbox` (+ token); currently `demo`. |
 | **Android release signing** | A release keystore. | `signingConfigs.release` is wired — just `cp android/key.properties.example android/key.properties`, fill in the keystore path/passwords, and `make android-release`. Without it, release builds fall back to the debug cert. |
 | **iOS signing / TestFlight** | Apple Developer account. | Configure signing; upload to TestFlight. |
@@ -59,6 +59,12 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
   backend boundary; it deliberately does not claim the client cutover is live.
 - Phase 4 canonical organization and RBAC consolidation remains outstanding;
   Phase 3 deliberately provisions only identity and profile state on first login.
+- The signed iOS/Android host must implement the existing
+  `com.geovision.notifications/push` method channel and
+  `com.geovision.notifications/push_taps` event channel, obtain/rotate the
+  platform token and forward taps as the notification ID only. Flutter already
+  registers the protected endpoint with GeoVision; the backend manages the
+  Azure Notification Hubs installation before delivery.
 
 ## Recently landed (code, done)
 - **Android release signing** — `app/build.gradle.kts` now loads

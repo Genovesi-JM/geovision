@@ -23,6 +23,7 @@ import '../integrations/payments/bank_transfer_provider.dart';
 import '../integrations/payments/mock_payment_provider.dart';
 import '../integrations/payments/payment_provider.dart';
 import '../integrations/push/mock_push_provider.dart';
+import '../integrations/push/native_push_provider.dart';
 import '../integrations/push/push_provider.dart';
 
 /// Root configuration — overridden in main() with the resolved AppConfig.
@@ -91,8 +92,25 @@ final paymentProviderProvider = Provider<PaymentProvider>((ref) {
   }
 });
 
-final pushProviderProvider =
-    Provider<PushProvider>((ref) => MockPushProvider());
+final pushProviderProvider = Provider<PushProvider>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.demoMode && config.pushProvider == 'mock') {
+    final provider = MockPushProvider();
+    ref.onDispose(provider.dispose);
+    return provider;
+  }
+  if (const {'apns', 'fcm', 'azure_notification_hubs'}
+      .contains(config.pushProvider)) {
+    return NativePushProvider(config.pushProvider);
+  }
+  // Native APNs/FCM/Azure Notification Hubs adapters require the credentialed
+  // integration. Never silently substitute mock delivery in a real account.
+  return UnavailablePushProvider(config.pushProvider);
+});
+
+final pushNotificationTapProvider = StreamProvider<PushMessage>(
+  (ref) => ref.watch(pushProviderProvider).onNotificationTap,
+);
 
 final iotProviderProvider = Provider<IotProvider>((ref) {
   const provider =

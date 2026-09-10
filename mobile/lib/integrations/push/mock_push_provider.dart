@@ -10,19 +10,19 @@ class MockPushProvider implements PushProvider {
   @override
   String get id => 'mock';
   @override
+  String get backendProviderId => 'fake';
+  @override
   bool get requiresCredentials => false;
 
   @override
   Future<String?> register() async => 'mock-device-token';
 
   @override
-  Stream<PushMessage> get onMessage => _controller.stream;
+  Stream<PushMessage> get onNotificationTap => _controller.stream;
 
-  void emitSampleAlert() => _controller.add(const PushMessage(
-        title: 'Critical alert',
-        body: 'Irrigation failure — Block A',
-        deepLink: '/alerts/al-1',
-      ));
+  void emitSampleNotification(
+          [String notificationId = 'notification-report-ready']) =>
+      _controller.add(PushMessage(notificationId: notificationId));
 
   void dispose() => _controller.close();
 }

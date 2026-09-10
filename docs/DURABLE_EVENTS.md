@@ -28,11 +28,13 @@ Run workers independently from API replicas:
 ```bash
 python -m app.workers.event_worker
 python -m app.workers.iot_worker
+python -m app.workers.notification_worker
 ```
 
 `--once` processes one cycle for release checks or local operations. The API can
 host the event worker or IoT watchdog only through explicit local-development
-flags; both flags default to false.
+flags; both flags default to false. External notification delivery remains an
+independent process.
 
 ## Event contract
 
@@ -46,6 +48,16 @@ fulfilment; acquisition, upload, dataset, and processing; observations, KPIs,
 actions, and reports; device telemetry/offline state; and ERP synchronization.
 Names are lowercase dotted facts such as `dataset.file_uploaded`. Requested work
 uses an explicit `*.requested` suffix.
+
+The contextual notification consumer currently subscribes to
+`invitation.created`, `report.published`, `action.requested`,
+`device.alert_triggered`, `device.offline_detected`,
+`fulfilment_job.schedule_changed`, `fulfilment_job.state_changed`,
+`order.created`, `order.state_changed`, and `shipment.state_changed`. It derives
+customer content and targets from current GeoVision records rather than trusting
+event-provided URLs/text. `notification.created`, `notification.delivered`, and
+`notification.delivery_failed` are reserved names; the current delivery worker
+persists its state directly and does not emit them yet.
 
 The Phase 17 engine writes each KPI measurement and `kpi.updated`, each
 observation and `observation.created`, and each generated Action and
@@ -108,6 +120,22 @@ Administrators can inspect counts, dead letters, and attempt history under
 attempt audit. Requeue only after correcting the payload consumer, provider
 configuration, or downstream data problem.
 
+## Contextual notification projection
+
+`notification_materializer_v1` stores one unique source-event/recipient link.
+Repeated device/action facts inside the configured 15-minute grouping window
+link to one notification and increase its occurrence count without enqueueing a
+push/email for every reading. Inbox state is separate from the external
+delivery queue, so SMTP or push failure cannot remove customer history or roll
+back an owning aggregate.
+
+The independent notification worker uses database claims, current membership,
+preference/quiet-hour and endpoint revalidation, provider-pinned deliveries,
+bounded backoff, stale-lease recovery and explicit dead-letter state. Push data
+contains only the notification ID. The authenticated API resolves typed targets
+against current authorization when opened. See
+[the notification delivery contract](NOTIFICATION_DELIVERY.md).
+
 ## Remaining background boundaries
 
 - MQTT remains an ingress adapter hosted with the API when explicitly enabled;
@@ -117,8 +145,8 @@ configuration, or downstream data problem.
 - Object deletion retains the Phase 12 database tombstone saga because an
   external delete cannot share a SQL transaction. Its reconciler can move to a
   dedicated event consumer when provider migration requires it.
-- Email/push fan-out and future processing engines must register idempotent
-  consumers rather than execute long work inside HTTP requests.
+- Future fan-out and processing engines must register idempotent consumers
+  rather than execute long work inside HTTP requests.
 
 No Azure package is imported by a domain module, and local development requires
 no Azure account or emulator.

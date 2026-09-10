@@ -120,5 +120,7 @@ parameters, push payload logs, or audit details. Token-bearing responses are
   fabricated during backfill.
 
 Before a production rollout, rehearse the migration on a restored database,
-configure the public frontend origin, test email delivery through the durable
-notification phase, and verify iOS/Android domain association on signed builds.
+configure the public frontend origin, complete
+[Gate 16](../HUMAN_GATES.md#16-live-email-and-mobile-push-activation) for the
+durable encrypted invitation email, and verify iOS/Android domain association
+on signed builds.

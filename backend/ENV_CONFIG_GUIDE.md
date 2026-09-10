@@ -394,14 +394,16 @@ cutover remain Phase 21 work.
 
 ## Notifications
 
-The notification port and message contract are provider-neutral. `auto` selects
-SMTP when it is configured, writes the recipient and subject only to the local
-file fallback in local/dev/test, and returns an unconfigured result in
-staging/prod when SMTP is unavailable. Message bodies and reset tokens are not
-written, but recipient addresses and subjects can still contain personal or
-operational information. The default `backend/email_log.txt` file is Git-ignored
-and created with owner-only permissions, but it is not rotated or removed by the
-application. Restrict access and remove it when no longer needed.
+The contextual inbox and external delivery message are provider-neutral.
+Business/event transactions persist the inbox and delivery rows; the independent
+notification worker performs SMTP or push I/O afterwards. A provider outage
+therefore leaves the business result and in-app history intact.
+
+`NOTIFICATION_PROVIDER` selects email delivery. `auto` pins new email rows to
+SMTP when its configuration is complete, to the local ID-only sink in
+local/dev/test, or to a fail-closed unavailable provider in staging/prod. Set
+`smtp` explicitly for a deployed runtime. Supplying an SMTP username without a
+password, or a password without a username, is incomplete configuration.
 
 ```dotenv
 NOTIFICATION_PROVIDER=auto
@@ -412,6 +414,18 @@ SMTP_PASSWORD=
 SMTP_FROM=
 SMTP_USE_TLS=true
 SMTP_TIMEOUT_SECONDS=15
+
+NOTIFICATION_WORKER_POLL_SECONDS=5
+NOTIFICATION_WORKER_BATCH_SIZE=50
+NOTIFICATION_WORKER_CLAIM_TIMEOUT_SECONDS=300
+NOTIFICATION_WORKER_RETRY_BASE_SECONDS=30
+NOTIFICATION_WORKER_RETRY_MAX_SECONDS=3600
+NOTIFICATION_DELIVERY_TIMEOUT_SECONDS=10
+
+AZURE_NOTIFICATION_HUBS_NAMESPACE=
+AZURE_NOTIFICATION_HUBS_HUB_NAME=
+AZURE_NOTIFICATION_HUBS_SAS_KEY_NAME=
+AZURE_NOTIFICATION_HUBS_SAS_KEY=
 ```
 
 The legacy aliases `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`,
@@ -419,8 +433,57 @@ and `MAIL_FROM` remain accepted. Selecting `file`, `log`, or `local_file` is
 also refused in staging/prod. Deployed SMTP also refuses `SMTP_USE_TLS=false`.
 When enabled, this adapter uses STARTTLS with the platform's default certificate
 verification; it does not implement implicit TLS/SMTPS. The TLS handshake is
-verified when a message is sent, not during application startup. Push providers
-and durable delivery belong to Phase 20.
+verified when a message is sent, not during application startup.
+
+Push selection is pinned on each authenticated endpoint rather than controlled
+by `NOTIFICATION_PROVIDER`. The implemented live endpoint provider is
+`azure_notification_hubs`; its namespace, hub, SAS key name and SAS key must all
+be present. `NOTIFICATION_DELIVERY_TIMEOUT_SECONDS` bounds its HTTP request.
+Configure APNs and FCM v1 credentials/templates in Azure Notification Hubs, not
+in GeoVision clients. Flutter's `NativePushProvider` accepts `apns`, `fcm`, or
+`azure_notification_hubs`, requests a platform token through
+`com.geovision.notifications/push`, and receives tap payloads through
+`com.geovision.notifications/push_taps`. The signed iOS/Android host handlers,
+entitlements/configuration files and physical-device verification remain Gate
+16 work; a missing host channel returns no token and never substitutes mock
+push.
+
+The client stores a stable opaque installation ID and sends the platform/token
+to the authenticated GeoVision endpoint API. The token is encrypted and
+digest-checked at rest. Immediately before delivery, the worker decrypts and
+validates it; the server adapter idempotently creates or updates the Azure
+installation with the appropriate APNs or FCM v1 template, then sends to that
+opaque installation ID. Push application data contains only `notification_id`;
+the authenticated notification-target API rechecks membership, permissions,
+tenant ownership and current target state before returning an app/portal path.
+
+Endpoint registration and token-bearing invitation delivery require a valid,
+stable Fernet `ENCRYPTION_KEY`, including in local development. Provider handles
+are encrypted and digested. The endpoint installation ID remains operational
+personal data and requires restricted access and deliberate retention. When no
+valid key is present, endpoint registration fails and invitation email delivery
+is suppressed rather than using the encryption helper's `plain:` fallback.
+
+Run both independent processes in deployed environments:
+
+```bash
+python -m app.workers.event_worker
+python -m app.workers.notification_worker
+```
+
+The event worker materializes registered source events. The notification worker
+rechecks current recipient membership, preferences, quiet hours and endpoint
+state, then uses bounded retry/stale-claim/dead-letter transitions. SMS is a
+reserved channel with no active provider. The durable local sink writes only
+delivery/notification IDs and channel to
+`backend/notification_delivery_log.txt`; the older compatibility provider can
+still write recipient and subject to the Git-ignored `backend/email_log.txt`.
+Neither local sink is production delivery, rotated, or proof of a live account.
+
+See [the notification delivery contract](../docs/NOTIFICATION_DELIVERY.md) for the
+event matrix, API/security contract, monitoring and recovery procedure. Real
+SMTP, APNs and FCM activation must pass
+[Gate 16](../HUMAN_GATES.md#16-live-email-and-mobile-push-activation).
 
 ## Payments
 

@@ -43,11 +43,53 @@ services:
       MQTT_PORT: "1883"
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
+      SMTP_FROM: notifications@localhost
+      SMTP_USE_TLS: "false"
     ports: ["8010:8010"]
     volumes: [geovision-runtime:/runtime]
     depends_on:
       db: {condition: service_healthy}
       mqtt: {condition: service_started}
+
+  event-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    command: ["python", "-m", "app.workers.event_worker"]
+    env_file:
+      - path: .env.iot
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      QUEUE_PROVIDER: database
+    depends_on:
+      db: {condition: service_healthy}
+
+  notification-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.iot
+    command: ["python", "-m", "app.workers.notification_worker"]
+    env_file:
+      - path: .env.iot
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      NOTIFICATION_PROVIDER: ${NOTIFICATION_PROVIDER:-auto}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-notifications@localhost}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-false}
+      AZURE_NOTIFICATION_HUBS_NAMESPACE: ${AZURE_NOTIFICATION_HUBS_NAMESPACE:-}
+      AZURE_NOTIFICATION_HUBS_HUB_NAME: ${AZURE_NOTIFICATION_HUBS_HUB_NAME:-}
+      AZURE_NOTIFICATION_HUBS_SAS_KEY_NAME: ${AZURE_NOTIFICATION_HUBS_SAS_KEY_NAME:-}
+      AZURE_NOTIFICATION_HUBS_SAS_KEY: ${AZURE_NOTIFICATION_HUBS_SAS_KEY:-}
+    depends_on:
+      db: {condition: service_healthy}
+      mailpit: {condition: service_started}
 
   frontend:
     build:

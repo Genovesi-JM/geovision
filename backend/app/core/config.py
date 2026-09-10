@@ -324,6 +324,22 @@ class Settings(BaseSettings):
     )
     smtp_use_tls: bool = True
     smtp_timeout_seconds: float = Field(default=15.0, gt=0)
+    notification_worker_poll_seconds: float = Field(default=5.0, gt=0, le=300)
+    notification_worker_batch_size: int = Field(default=50, ge=1, le=500)
+    notification_worker_claim_timeout_seconds: int = Field(
+        default=300, ge=30, le=3600
+    )
+    notification_worker_retry_base_seconds: float = Field(
+        default=30.0, ge=0, le=3600
+    )
+    notification_worker_retry_max_seconds: float = Field(
+        default=3600.0, ge=0, le=86400
+    )
+    notification_delivery_timeout_seconds: float = Field(default=10.0, gt=0, le=120)
+    azure_notification_hubs_namespace: Optional[str] = None
+    azure_notification_hubs_hub_name: Optional[str] = None
+    azure_notification_hubs_sas_key_name: Optional[str] = None
+    azure_notification_hubs_sas_key: Optional[str] = Field(default=None, repr=False)
 
     # Payments. Phase 8 owns lifecycle consolidation; these fields remove raw
     # environment access from the existing adapters today.
@@ -411,6 +427,7 @@ class Settings(BaseSettings):
             "erpnext_api_secret",
             "erpnext_webhook_secret",
             "smtp_password",
+            "azure_notification_hubs_sas_key",
             "multicaixa_api_key",
             "multicaixa_webhook_secret",
             "stripe_secret_key",
@@ -1118,6 +1135,12 @@ class Settings(BaseSettings):
                 "smtp": bool(
                     self.smtp_configuration_complete
                     and (not self.is_deployed or self.smtp_use_tls)
+                ),
+                "azure_notification_hubs": bool(
+                    self.azure_notification_hubs_namespace
+                    and self.azure_notification_hubs_hub_name
+                    and self.azure_notification_hubs_sas_key_name
+                    and self.azure_notification_hubs_sas_key
                 ),
                 "s3": bool(self.s3_bucket),
                 "azure_blob": bool(

@@ -79,8 +79,29 @@ def _consume_dataset_ready(
     ensure_automatic_processing_job(db, dataset_id=dataset_id, config=config)
 
 
+def _consume_notification_event(
+    db: Session,
+    event: DomainEvent,
+    *,
+    config: Settings,
+) -> None:
+    from app.modules.notifications.materializer import materialize_notification_event
+
+    materialize_notification_event(db, event, config=config)
+
+
 def default_event_consumers(config: Settings = settings) -> EventConsumerRegistry:
     registry = EventConsumerRegistry()
+    from app.modules.notifications.materializer import NOTIFICATION_EVENT_NAMES
+
+    for event_name in NOTIFICATION_EVENT_NAMES:
+        registry.register(
+            event_name,
+            "notification_materializer_v1",
+            lambda db, event, config=config: _consume_notification_event(
+                db, event, config=config
+            ),
+        )
     registry.register(
         EventNames.ERP_SYNC_REQUESTED,
         "erp_sync_outbox_v1",

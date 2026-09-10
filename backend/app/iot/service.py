@@ -510,6 +510,29 @@ def ingest_telemetry(
             "alert_ids": [event["id"] for event in alert_events],
         },
     )
+    for alert_event in alert_events:
+        if alert_event.get("type") != "alert.triggered":
+            continue
+        alert_id = str(alert_event.get("id") or "")
+        if not alert_id:
+            continue
+        enqueue_domain_event(
+            db,
+            name=EventNames.DEVICE_ALERT_TRIGGERED,
+            aggregate_type="iot_alert",
+            aggregate_id=alert_id,
+            idempotency_key=f"iot-alert:{alert_id}:triggered",
+            correlation_id=envelope.message_id,
+            causation_id=str(receipt.id),
+            occurred_at=recorded_at,
+            payload={
+                "alert_id": alert_id,
+                "device_id": device.id,
+                "organization_id": device.company_id,
+                "asset_id": device.core_asset_id,
+                "severity": alert_event.get("severity"),
+            },
+        )
     try:
         db.commit()
     except IntegrityError:

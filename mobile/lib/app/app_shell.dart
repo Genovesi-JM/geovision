@@ -24,7 +24,12 @@ class AppShell extends ConsumerWidget {
     if (location.startsWith('/account') ||
         location.startsWith('/work') ||
         location.startsWith('/reports') ||
-        location.startsWith('/guides')) {
+        location.startsWith('/guides') ||
+        location.startsWith('/notifications') ||
+        location.startsWith('/notification-preferences') ||
+        location.startsWith('/assets') ||
+        location.startsWith('/actions') ||
+        location.startsWith('/services')) {
       return 4;
     }
     for (var i = 0; i < _tabs.length; i++) {

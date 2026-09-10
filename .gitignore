@@ -39,6 +39,7 @@ yarn-error.log*
 
 # Local notification metadata (may contain recipient/subject PII)
 backend/email_log.txt
+backend/notification_delivery_log.txt
 
 # Playwright
 playwright-report/

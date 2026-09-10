@@ -93,6 +93,27 @@ services:
   - key: ENCRYPTION_KEY
     scope: RUN_TIME
     type: SECRET
+  - key: NOTIFICATION_PROVIDER
+    scope: RUN_TIME
+    value: smtp
+  - key: SMTP_HOST
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_PORT
+    scope: RUN_TIME
+    value: "587"
+  - key: SMTP_USER
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_PASSWORD
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_FROM
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_USE_TLS
+    scope: RUN_TIME
+    value: "true"
   - key: GOOGLE_CLIENT_ID
     scope: RUN_TIME
     type: SECRET
@@ -148,4 +169,89 @@ services:
     timeout_seconds: 5
   name: geovision
   run_command: python start.py
+  source_dir: /backend
+workers:
+- build_command: pip install --upgrade pip && pip install -r requirements.deploy.txt
+  environment_slug: python
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${db-postgresql-ams3-28118.DATABASE_URL}
+  - key: ENV
+    scope: RUN_AND_BUILD_TIME
+    value: prod
+  - key: SECRET_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENCRYPTION_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: QUEUE_PROVIDER
+    scope: RUN_TIME
+    value: database
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: Genovesi-JM/geovision
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-1gb
+  name: event-worker
+  run_command: python -m app.workers.event_worker
+  source_dir: /backend
+- build_command: pip install --upgrade pip && pip install -r requirements.deploy.txt
+  environment_slug: python
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_TIME
+    value: ${db-postgresql-ams3-28118.DATABASE_URL}
+  - key: ENV
+    scope: RUN_AND_BUILD_TIME
+    value: prod
+  - key: SECRET_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: ENCRYPTION_KEY
+    scope: RUN_TIME
+    type: SECRET
+  - key: NOTIFICATION_PROVIDER
+    scope: RUN_TIME
+    value: smtp
+  - key: SMTP_HOST
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_PORT
+    scope: RUN_TIME
+    value: "587"
+  - key: SMTP_USER
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_PASSWORD
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_FROM
+    scope: RUN_TIME
+    type: SECRET
+  - key: SMTP_USE_TLS
+    scope: RUN_TIME
+    value: "true"
+  - key: AZURE_NOTIFICATION_HUBS_NAMESPACE
+    scope: RUN_TIME
+    type: SECRET
+  - key: AZURE_NOTIFICATION_HUBS_HUB_NAME
+    scope: RUN_TIME
+    type: SECRET
+  - key: AZURE_NOTIFICATION_HUBS_SAS_KEY_NAME
+    scope: RUN_TIME
+    type: SECRET
+  - key: AZURE_NOTIFICATION_HUBS_SAS_KEY
+    scope: RUN_TIME
+    type: SECRET
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: Genovesi-JM/geovision
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-1gb
+  name: notification-worker
+  run_command: python -m app.workers.notification_worker
   source_dir: /backend

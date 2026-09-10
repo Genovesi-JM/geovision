@@ -19,6 +19,9 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/invitations/presentation/invitation_accept_screen.dart';
 import '../../features/guides/presentation/guides_screen.dart';
 import '../../features/maps/presentation/site_map_screen.dart';
+import '../../features/notifications/presentation/notification_context_screen.dart';
+import '../../features/notifications/presentation/notification_preferences_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/orders/presentation/orders_screen.dart';
 import '../../features/orders/presentation/cart_screen.dart';
 import '../../features/orders/presentation/order_detail_screen.dart';
@@ -129,6 +132,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/account', builder: (c, s) => const AccountScreen()),
           GoRoute(
+              path: '/notifications',
+              builder: (c, s) => const NotificationsScreen()),
+          GoRoute(
+              path: '/notification-preferences',
+              builder: (c, s) => const NotificationPreferencesScreen()),
+          GoRoute(
               path: '/account-live',
               builder: (c, s) => const AccountLiveScreen()),
           GoRoute(
@@ -143,7 +152,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
               path: '/payment-methods',
               builder: (c, s) => const PaymentMethodsScreen()),
-          GoRoute(path: '/reports', builder: (c, s) => const ReportsScreen()),
+          GoRoute(
+            path: '/reports',
+            builder: (c, s) => const ReportsScreen(),
+            routes: [
+              GoRoute(
+                path: ':id',
+                builder: (c, s) => NotificationContextScreen(
+                  targetType: 'REPORT',
+                  targetId: s.pathParameters['id']!,
+                ),
+              ),
+            ],
+          ),
           GoRoute(
             path: '/guides',
             builder: (c, s) => const GuidesScreen(),
@@ -177,6 +198,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/devices', builder: (c, s) => const DevicesScreen()),
           GoRoute(path: '/drones', builder: (c, s) => const DronesScreen()),
+          GoRoute(
+            path: '/assets/:id',
+            builder: (c, s) => NotificationContextScreen(
+              targetType: 'ASSET',
+              targetId: s.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/actions/:id',
+            builder: (c, s) => NotificationContextScreen(
+              targetType: 'ACTION',
+              targetId: s.pathParameters['id']!,
+            ),
+          ),
+          GoRoute(
+            path: '/services/:id',
+            builder: (c, s) => NotificationContextScreen(
+              targetType: 'SERVICE',
+              targetId: s.pathParameters['id']!,
+            ),
+          ),
         ],
       ),
     ],

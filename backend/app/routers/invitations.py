@@ -41,6 +41,10 @@ from app.modules.organizations.services import (
     OrganizationAccessError,
     authorize_organization,
 )
+from app.modules.notifications.materializer import (
+    claim_invitation_notification,
+    stage_invitation_notification,
+)
 
 
 router = APIRouter(tags=["invitations", "onboarding"])
@@ -136,6 +140,12 @@ def issue_invitation(
             expires_in_hours=payload.expires_in_hours,
             metadata=payload.metadata,
         )
+        stage_invitation_notification(
+            db,
+            invitation=invitation,
+            accept_url=accept_url,
+            mobile_deep_link=mobile_deep_link,
+        )
         db.commit()
     except InvitationError as exc:
         db.rollback()
@@ -225,6 +235,7 @@ def use_invitation(
             actor=user,
             token=payload.token,
         )
+        claim_invitation_notification(db, invitation=invitation, user=user)
         db.commit()
     except InvitationError as exc:
         if exc.code == "invitation_expired":

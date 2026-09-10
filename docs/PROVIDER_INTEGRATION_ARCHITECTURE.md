@@ -115,7 +115,7 @@ backfill can be considered after those ownership boundaries are established.
 | Satellite | `SatelliteProvider` | Durable acquisition/scene workflow, deterministic fake and Copernicus Data Space STAC adapter are implemented, including optional bounded asset download |
 | Payments | `PaymentProvider` | Existing bank, Stripe, Multicaixa, and PayPal adapters have a normalized facade and lazy factory; the orchestrator accepts injected adapters; Phase 8 still owns lifecycle consolidation |
 | ERP | `ERPProvider` | Existing mock and ERPNext adapters implement the boundary; mock is limited to local/dev/test; no Odoo adapter yet |
-| Notifications | `NotificationProvider` | SMTP adapter and metadata-only local fallback are behind a lazy factory; deployed environments require SMTP with verified STARTTLS; durable delivery remains Phase 20 work |
+| Notifications | `NotificationProvider`, `ExternalDeliveryProvider` | Contextual inbox and provider-pinned delivery rows are durable; SMTP, Azure Notification Hubs, ID-only local and unavailable adapters are selected lazily by an independent worker; live SMTP/APNs/FCM requires Gate 16 |
 | Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
 | GIS and asset management | `GISProvider`, `AssetManagementProvider` | Placeholder ports only |
@@ -213,13 +213,25 @@ details.
 Notifications and identity own their provider protocols. Identity now separates
 the immutable GeoVision user UUID from issuer/subject external identities and
 normalizes authorization context; canonical organization ownership remains
-Phase 4 work. Notification delivery selects SMTP or the local
-metadata-only fallback behind an adapter and fails closed when a deployed
-environment lacks SMTP or verified STARTTLS. It does not implement implicit
-SMTPS. The local fallback records recipient and subject in
-`backend/email_log.txt`; those values can contain personal data and the file has
-owner-only permissions and is Git-ignored, but has no application-managed
-retention or rotation lifecycle. OAuth
+Phase 4 work. Durable notification delivery pins a channel/provider to each
+queue row, then the independent worker selects SMTP, Azure Notification Hubs,
+an ID-only local sink, or an unavailable adapter. Deployed SMTP fails closed
+without complete configuration and verified STARTTLS; it does not implement
+implicit SMTPS. Azure push uses a template payload containing only the
+GeoVision notification ID, and target navigation is reauthorized by the API.
+The client-supplied APNs/FCM token is encrypted and digest-checked. The delivery
+worker decrypts it only at the adapter boundary; the Azure adapter idempotently
+creates or updates the installation and its platform template before the
+opaque-installation targeted send. Flutter supplies a fail-closed method/event
+channel boundary, while signed iOS/Android host handlers and live platform
+configuration remain Gate 16 work.
+
+The new local delivery sink records only delivery/notification IDs and channel
+in `backend/notification_delivery_log.txt`. The older compatibility fallback
+records recipient and subject in `backend/email_log.txt`; those values can
+contain personal data and that file has owner-only permissions and is
+Git-ignored. Neither file has application-managed retention or rotation, and
+neither is allowed as a deployed provider. OAuth
 callbacks must still be described as compatibility behavior, not as proof of a
 complete identity-provider implementation.
 
@@ -246,6 +258,6 @@ The initial Phase 2 boundary did not implement these later capabilities.
 Durable messaging, processing jobs, payment lifecycle consolidation and
 satellite/weather ingestion are now implemented by their owning phases. Cloud
 infrastructure activation, the Odoo cutover, a generic external-ID table, full
-legacy identity/session retirement, durable notification delivery,
+legacy identity/session retirement, live notification-provider activation,
 credential-key rotation and notification-log lifecycle management remain
-deferred to their documented phases and human gates.
+deferred to their documented human gates.

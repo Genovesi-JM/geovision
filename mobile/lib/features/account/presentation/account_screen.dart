@@ -128,7 +128,7 @@ class AccountScreen extends ConsumerWidget {
             _Tile(
                 icon: Icons.notifications_outlined,
                 label: text.notificationSettings,
-                onTap: () {}),
+                onTap: () => context.go('/notification-preferences')),
             _Tile(
                 icon: Icons.description_outlined,
                 label: text.reports,
@@ -137,6 +137,10 @@ class AccountScreen extends ConsumerWidget {
                 icon: Icons.shopping_bag_outlined,
                 label: text.storeOrdersPayments,
                 onTap: () => context.go('/orders')),
+            _Tile(
+                icon: Icons.notifications_active_outlined,
+                label: 'Notifications',
+                onTap: () => context.go('/notifications')),
             _Tile(
                 icon: Icons.payments_outlined,
                 label: text.paymentMethods,

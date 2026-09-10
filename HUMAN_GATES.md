@@ -216,3 +216,47 @@ how to confirm · what the automation does afterwards.
 - **After:** Implement and enable the dedicated adapter, retain deterministic
   fallback, monitor invalid-output/fallback/review rates and disable external
   generation immediately when the approved privacy or quality scope is lost.
+
+## 16. Live email and mobile push activation
+
+- **Reason:** The durable inbox, retry worker, SMTP/Azure Notification Hubs
+  adapters and Flutter `NativePushProvider` channel boundary are implemented,
+  but real delivery still depends on signed iOS/Android host channel handlers,
+  account-bound SMTP/Azure/APNs/FCM configuration and physical-device testing.
+  Provider acceptance is not proof of display on a device, and neither SMTP nor
+  Notification Hubs proves exactly-once delivery after an uncertain
+  acknowledgement.
+- **Action:** Provision a restricted SMTP account and Azure Notification Hubs
+  namespace/hub; configure APNs credentials and the FCM v1 credential in Azure;
+  create a backend-only least-privilege hub policy with the registration/listen
+  and send rights required by installation PUT plus template delivery; approve sender/domain
+  authentication, templates, privacy/retention, quotas, cost alerts and customer
+  wording. Store all credentials in the server secret manager. Implement the
+  signed native host side of `com.geovision.notifications/push` and
+  `com.geovision.notifications/push_taps`, including permission, APNs/FCM token
+  acquisition/rotation and notification-tap forwarding. Add the approved Apple
+  entitlements and Firebase/Apple platform configuration files without
+  embedding any Azure or SMTP server credential. Flutter sends the token to
+  GeoVision; the backend decrypts and validates it, then idempotently creates or
+  updates the Azure installation immediately before its targeted template send.
+  Missing host support must continue to fail closed without mock delivery.
+- **Where:** SMTP provider, Azure Notification Hubs, Apple Developer, Firebase,
+  signed staging apps, GeoVision staging database/workers and monitoring; never
+  Git, a client environment file, a push payload, an event or an audit detail.
+- **Confirm:** On one physical iOS and one physical Android device, register,
+  rotate and revoke an installation and receive a template push whose app data
+  contains only `notification_id`. Tap report, Asset, action and order examples
+  and confirm the authenticated API opens the exact current target. Revoke the
+  user's membership after sending and confirm the same tap fails closed. Send
+  an invitation and ordinary notification through authenticated STARTTLS SMTP;
+  confirm the one-time token never appears in database plaintext or logs.
+  Exercise duplicate events, a device-alert burst, quiet hours, minimum
+  severity, endpoint revocation, provider timeout/throttling, retry recovery and
+  dead-letter requeue. Throughout an outage, confirm the business result and
+  in-app history remain intact.
+- **After:** Set `NOTIFICATION_PROVIDER=smtp`, provide the approved SMTP and
+  `AZURE_NOTIFICATION_HUBS_*` secrets, deploy exactly the required event and
+  notification worker processes, and alert on oldest due work, retries, stale
+  claims, dead letters, provider latency/errors and endpoint suppressions. Keep
+  SMS disabled until its own adapter and gate exist, and reconcile uncertain
+  provider outcomes rather than blindly re-sending them.

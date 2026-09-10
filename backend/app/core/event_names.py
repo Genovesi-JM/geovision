@@ -15,9 +15,11 @@ class EventNames:
     ORGANIZATION_MEMBER_INVITED = "organization.member_invited"
     ORGANIZATION_MEMBER_UPDATED = "organization.member_updated"
     ORGANIZATION_MEMBER_REMOVED = "organization.member_removed"
+    INVITATION_CREATED = "invitation.created"
 
     ORDER_CREATED = "order.created"
     ORDER_STATE_CHANGED = "order.state_changed"
+    SHIPMENT_STATE_CHANGED = "shipment.state_changed"
     PAYMENT_AUTHORIZED = "payment.authorized"
     PAYMENT_SETTLED = "payment.settled"
     PAYMENT_FAILED = "payment.failed"
@@ -62,8 +64,13 @@ class EventNames:
     REPORT_PUBLISHED = "report.published"
     REPORT_SUPERSEDED = "report.superseded"
 
+    NOTIFICATION_CREATED = "notification.created"
+    NOTIFICATION_DELIVERED = "notification.delivered"
+    NOTIFICATION_DELIVERY_FAILED = "notification.delivery_failed"
+
     DEVICE_TELEMETRY_RECEIVED = "device.telemetry_received"
     DEVICE_STATE_CHANGED = "device.state_changed"
+    DEVICE_ALERT_TRIGGERED = "device.alert_triggered"
     DEVICE_OFFLINE_DETECTED = "device.offline_detected"
     DEVICE_COMMAND_RESULT_RECORDED = "device.command_result_recorded"
 

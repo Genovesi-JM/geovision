@@ -31,7 +31,7 @@ class AppConfig {
   /// Feature-flag style selectors for pluggable provider adapters.
   final String mapProvider; // demo | mapbox | arcgis
   final String paymentProvider; // mock | stripe | multicaixa | bank_transfer
-  final String pushProvider; // mock | apns | fcm
+  final String pushProvider; // mock | apns | fcm | azure_notification_hubs
 
   final bool enableBiometricUnlock;
 

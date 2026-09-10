@@ -15,7 +15,7 @@ instead of treating legacy structures as disposable.
 | R05 | Medium | Phase 5 adds a generic Asset hierarchy, validated GeoJSON, bbox fallback, and an optional generated PostGIS geometry/GiST projection; legacy Site and IoT tables remain compatibility facades and a database without the extension stays in portable-only mode | Operators could mistake fallback storage for production PostGIS readiness, or later remove a legacy table before all `site_id` consumers migrate | Gate deployment on `postgis_full_version()`, geometry/index verification and a restored-data count audit; retire legacy tables only after explicit consumer cutover |
 | R06 | High | Static web, Flutter and external/device clients depend on the current route and payload shapes | Moving routers during modularization can break working clients | Record current OpenAPI, preserve route prefixes, add contract tests and use compatibility facades before moving implementations |
 | R07 | Medium | Customer roles and internal GeoVision assignments are now separate, but `users.role = admin` remains a documented temporary bridge for old deployments/tests | A legacy staff record can retain platform access until the bridge is removed | Audit `ADMIN_EMAILS`, verify all admins have `GV_SUPER_ADMIN`, move staff grants to `internal_role_assignments`, then remove the legacy bridge after client/cutover validation |
-| R08 | Medium | Phase 6 provides expiring, single-use, tenant-scoped invitations into an existing workspace/asset/result, exact authenticated-email binding, and browser/native deep-link contracts; production HTTPS app-link association and durable invitation email delivery are not deployed yet | A deployment could fall back to browser/custom-scheme handling or fail to deliver an invitation even though acceptance itself is safe | Complete signed-domain association and notification delivery in the release/notification phases; monitor issue-to-accept conversion without recording tokens |
+| R08 | Medium | Phase 6 provides expiring, single-use, tenant-scoped invitations into an existing workspace/asset/result and Phase 20 stages their durable encrypted email delivery; production HTTPS app-link association and live provider delivery are not verified yet | A deployment could fall back to browser/custom-scheme handling or fail to deliver an invitation even though acceptance itself is safe | Complete signed-domain association and Gate 16 live delivery tests; monitor issue-to-delivery-to-accept conversion using IDs without recording tokens |
 | R09 | Medium | IoT offline detection and retention have an independent worker and emit durable events; MQTT ingress and WebSocket fan-out remain API-local when enabled | Multiple MQTT-enabled API replicas can duplicate ingress connections, while in-memory live updates do not fan out across replicas | Deploy one MQTT ingress owner until a managed ingress is selected, run the independent IoT worker, and add distributed live fan-out before scaling MQTT/WebSocket replicas |
 | R10 | High | ERP work now flows through the canonical event worker with claims, receipts, bounded retry, attempt history and operator dead-letter recovery; provider-side ERP deduplication is not yet proven | An uncertain provider write still requires reconciliation and must not be blindly repeated | Add the provider idempotency field in staging, prove uniqueness/reconciliation, and alert on canonical retry/dead-letter counts before activation |
 | R11 | High | Typed configuration fails closed for signing/encryption in staging/production, but the JWT guard is syntactic rather than an entropy assessment and most provider validation occurs when a factory/adapter is used; local/development may still generate an ephemeral JWT key or explicit `plain:` connector compatibility values | Misclassified environments can invalidate sessions, weak-looking secrets can pass a length/placeholder check, or a dormant provider misconfiguration can remain undiscovered until use | Use high-entropy managed secrets, exercise every enabled provider in deployment checks, keep redacted diagnostics, require encryption anywhere real connector credentials are used, and track historical-row remediation under R24 |
@@ -26,7 +26,7 @@ instead of treating legacy structures as disposable.
 | R16 | Medium | The current public scope hides or combines some sectors, while the playbook requires five explicit verticals including Ports/Industrial | UI, catalogue and data fixtures may contradict the new architecture or over-promise immature capabilities | Treat sector activation as later feature-flagged phases; do not change public claims during foundation work |
 | R17 | Medium | Flutter top-level navigation is Portal, Assets, Store, Alerts and More rather than Home, Assets, Actions, Services and More | Early backend work could accidentally couple to a UI structure scheduled for replacement | Keep navigation changes in Phase 22 and expose backend capabilities independent of tab names |
 | R18 | Medium | Agriculture has dedicated KPI definitions; other mobile sectors reuse a minimal infrastructure list | Sector dashboards can present generic or misleading metrics | Add validated KPI definitions only with provenance and source requirements in sector activation phases |
-| R19 | Medium | RAG, Mapbox/Google delivery, Stripe mobile, push and several drone/processing providers are placeholders or credential-gated | Documentation or UI can imply production readiness that code does not provide | Keep explicit capability states, fake adapters and feature flags; never report credentials-gated behavior as live |
+| R19 | Medium | RAG, Mapbox/Google delivery, Stripe mobile, live push and several drone/processing providers remain unavailable or credential-gated | Documentation or UI can imply production readiness that code does not provide | Keep explicit capability states, fake adapters and feature flags; never report credentials-gated behavior as live |
 | R20 | Medium | The local Docker installation lacks the Compose plugin and its daemon is not running | The backend image and documented IoT stack cannot be reproduced on this host today | Start/repair Docker, install Compose, then validate the image and full stack without deleting existing volumes |
 | R21 | Medium | The default local `.venv` is stale and the shell does not expose Flutter even though Flutter is installed | Advertised commands fail before tests begin | Use `make baseline`, recreate the backend virtual environment, and keep tool discovery in the verification script |
 | R22 | Medium | Android and iOS builds pass with future plugin migration warnings | A future Flutter upgrade can turn warnings into build failures | Track `package_info_plus` Kotlin and `flutter_secure_storage` Swift Package Manager compatibility before the next SDK upgrade |
@@ -44,6 +44,7 @@ instead of treating legacy structures as disposable.
 | R34 | High | Phase 17 provides a versioned KPI/observation/action engine, but sector thresholds, algorithms, confidence calibration and baseline selection are not yet scientifically or operationally approved | A technically valid calculation can be presented as safe, validated or actionable outside its evidence, geography, season, asset type or algorithm version | Keep missing/weak evidence `UNKNOWN`, preserve validation and provenance, activate only reviewed sector registrations, require Gate 14 before live decision claims, monitor version changes and never let narrative AI supply measurements or silent diagnoses |
 | R35 | High | Phase 18 activates Agriculture bundle `1.0.0` with a strict structured-analysis schema and generic initial screening thresholds, while real crop/season/sensor validation and raster-statistics production remain gated | A valid but locally inappropriate index threshold, stale sensor, or unreviewed zone model could be mistaken for an agronomic diagnosis or treatment instruction | Require Gate 14a and exact applicability profiles before live decision claims; accept only finite/ranged structured evidence, expose missing sources, retain `NEEDS_REVIEW`, never infer indices from band availability, and never generate chemical/disease/yield prescriptions |
 | R36 | High | External narrative generation and report publication can amplify an invented, rounded, weakly sourced or cross-tenant claim | A customer could act on a false number or receive evidence that was never approved for them | Keep deterministic generation as default; freeze and hash an authorized context; reject unknown output fields, evidence IDs and all provider-authored numeric literals; inject exact numbers only in the renderer; require QA/review/publication permissions, tenant filtering, audit/outbox events and Gate 15 before any live model |
+| R37 | High | Phase 20 adds durable SMTP/Azure Notification Hubs delivery, encrypted platform tokens, backend-managed Azure installations and a Flutter native-channel boundary, but signed iOS/Android host handlers, live SMTP/APNs/FCM accounts, physical-device behavior, quotas and provider-side deduplication are not verified; installation identifiers remain operational personal data | A missing/misconfigured host or provider can delay/drop customer messages, dead endpoints can accumulate, or a crash after provider acceptance can cause a duplicate; weak endpoint lifecycle/retention can expose routing metadata | Keep the durable inbox authoritative; require Gate 16 before live activation; implement/test the signed host channels, encrypt and digest platform tokens, restrict and retain endpoint/delivery data deliberately, monitor due age/retries/stale claims/dead letters/suppressions, reauthorize every target on tap, and reconcile uncertain outcomes rather than blind requeue |
 
 ## Controls that already reduce risk
 
@@ -71,8 +72,9 @@ instead of treating legacy structures as disposable.
   compatibility decision; new terminal/exhausted failures use
   `failed_terminal`. Unknown outcomes from side-effecting ERPNext writes are not
   retried automatically without proven provider-side idempotency.
-- Deployed SMTP delivery requires STARTTLS with certificate verification; the
-  local metadata log remains a development-only compatibility adapter.
+- Deployed SMTP delivery requires STARTTLS with certificate verification. The
+  independent delivery worker uses bounded claims, retry and dead-letter state;
+  the local delivery sinks remain development-only compatibility adapters.
 - Environment files and local virtual environments are ignored by Git.
 - The catalogue exposes only GeoVision-controlled products and services; no
   public seller, seller payout, bidding, or contractor storefront exists.
@@ -225,8 +227,9 @@ without a compatibility plan.
   custom-scheme routing preserves the destination through authentication.
   Clear tokens are returned once and excluded from persistence and audit logs.
 - **Residual:** Production HTTPS universal/app links need domain association,
-  signed entitlement validation, and release testing. Durable email delivery is
-  owned by Phase 20; clients currently use the secure API/deep-link contract.
+  signed entitlement validation and release testing. Phase 20 now owns durable
+  encrypted email staging, but live SMTP and native delivery still require Gate
+  16; clients continue to use the secure API/deep-link contract.
 - **Unchanged:** Existing legacy membership creation remains compatible.
   Historical pending memberships receive no fabricated token and require an
   explicit secure reissue.
@@ -497,3 +500,29 @@ without a compatibility plan.
 - **Introduced and controlled:** Gate 15 records the remaining live provider,
   privacy, evaluation and reviewer-ownership decisions. No Azure/OpenAI model
   is treated as available merely because generic AI credentials exist.
+
+## Phase 20 outcome
+
+- **Reduced:** R08, because invitation creation now stages a durable
+  pre-account notification and email delivery. Token-bearing URLs are stored
+  only in a digest-checked encrypted worker payload; without valid encryption,
+  external delivery is suppressed rather than persisted as plaintext.
+- **Reduced:** R19, because contextual inbox, SMTP/Azure Notification Hubs
+  adapters, Flutter native push channels and backend-managed Azure installation
+  updates are implemented behind notification-owned contracts. Signed host
+  handlers plus live push/email remain explicitly Gate 16-dependent.
+- **Contained:** Provider outage and duplicate-event risk, because inbox and
+  delivery rows are separate, event/recipient and delivery identities are
+  unique, provider I/O occurs outside business transactions, and bounded claims,
+  retries, stale-lease recovery and dead-letter requeue survive restarts.
+- **Contained:** Notification spam and stale-policy risk, because matching
+  device/action facts aggregate for 15 minutes, every folded event remains
+  correlated, and membership, endpoint, severity, channel and quiet-hour policy
+  are rechecked immediately before delivery.
+- **Contained:** Unsafe navigation, because persisted and push data use typed
+  internal targets rather than arbitrary URLs; the authenticated API checks the
+  current recipient, membership, permission, tenant ownership and target state
+  before returning a server-generated app/portal path.
+- **Introduced and controlled:** R37 records the remaining live SMTP/APNs/FCM,
+  physical-device, quota, endpoint-retention and uncertain-acknowledgement work.
+  The in-app history is authoritative; external delivery is not exactly once.

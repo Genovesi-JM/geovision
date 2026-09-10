@@ -4,9 +4,17 @@ from app.modules.contracts import DomainModule, RouterMount
 
 definition = DomainModule(
     name="notifications",
-    purpose="Notification intents, channels, delivery, and customer contact methods.",
-    maturity="partial",
+    purpose="Contextual in-app inbox, preferences, endpoints, and durable delivery.",
+    maturity="implemented",
+    dependencies=("core", "identity", "organizations", "assets", "orders", "actions", "reports"),
     routes=(
+        RouterMount(
+            "notifications.canonical",
+            "notifications",
+            "app.routers.notifications",
+            67,
+            secondary_owners=("identity", "organizations", "assets", "orders", "actions", "reports"),
+        ),
         RouterMount("notifications.contacts", "notifications", "app.routers.contacts", 160),
     ),
 )

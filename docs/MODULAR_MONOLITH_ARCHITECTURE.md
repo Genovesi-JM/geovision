@@ -121,7 +121,10 @@ normalizes BlobCreated ingress. Processing now selects deterministic fake or
 NodeODM adapters; monitoring selects deterministic fake, Copernicus satellite,
 or AEMET weather adapters at the composition boundary. Reports select a strict
 offline deterministic narrative provider and retain an explicit unavailable
-boundary for unapproved external models. Odoo, Azure Maps
+boundary for unapproved external models. Notification deliveries are pinned to
+provider-neutral channel rows and resolved lazily to SMTP, Azure Notification
+Hubs, a local ID-only sink, or an unavailable adapter by an independent worker.
+Odoo, Azure Maps
 Weather, GIS, construction, asset-management, and maritime adapters are not
 activated yet.
 
@@ -165,7 +168,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Monitoring | Provider-mapped IoT devices, canonical assignments, versioned telemetry receipts, safe offline replay, alerts, live events and watchdog behavior coexist with durable cached satellite/weather acquisitions, normalized provenance and independent workers |
 | Actions | Generic source-linked recommendations, priorities, assignments, GeoVision catalogue references, optimistic lifecycle transitions, outcomes and durable events are implemented; IoT recommendation/command routes remain compatibility facades |
 | Reports | Versioned immutable contexts, strict optional narrative, deterministic fallback, QA levels, PDF Dataset artifacts, review/approval/publication/supersession, customer visibility and durable audit/events are implemented; legacy Document routes are published-only compatibility facades |
-| Notifications | Contact routes, email and IoT notification adapters exist; Phase 20 owns durable delivery |
+| Notifications | Recipient-bound contextual inbox, preferences, encrypted platform tokens, event aggregation, safe target resolution, Flutter native push channels, backend-managed Azure installations, and independent durable SMTP/push delivery are implemented; signed host/provider activation requires Gate 16 |
 | Billing | Every payment operation uses the module-owned provider port; tenant-derived payment truth, irreversible transitions, refunds, and digest-only idempotent webhook receipts are implemented |
 | Audit | Audit records and domain timelines exist across middleware and routers; Phase 25 owns the unified boundary |
 
@@ -180,6 +183,19 @@ recommendation deduplication, assignment and outcomes. The older
 `app/modules/analytics/kpi_catalog.py` remains a read-only compatibility
 catalogue until the Phase 22 clients move to Asset intelligence responses.
 Compatibility routers call these services instead of importing other routers.
+
+`app/modules/notifications` owns the inbox, preferences, delivery message port,
+event materialization and typed target rules. Concrete SMTP/Azure adapters live
+under `app/integrations/notifications`, while
+`app/workers/notification_worker.py` owns claims, policy revalidation, provider
+I/O, retry and dead-letter transitions. Push providers receive only a
+notification ID; the authenticated HTTP route resolves the Asset, report,
+action, order, shipment, service or accepted invitation against current
+membership and permissions. Flutter owns the narrow method/event channel to the
+signed host. GeoVision stores the returned APNs/FCM token encrypted; the worker
+validates it and the Azure adapter idempotently maintains the provider
+installation before sending. See
+[the notification delivery contract](NOTIFICATION_DELIVERY.md).
 
 ## Sector boundaries
 
@@ -228,6 +244,14 @@ and device watchdog. They still run inside each API process for compatibility.
 This boundary does not imply that in-process execution is production-safe at
 multiple replicas; Phase 13 and Phase 16 must introduce durable/distributed
 coordination before scaling them horizontally.
+
+The event worker and notification worker are independent deployed processes.
+The event worker converts registered domain facts into provider-neutral inbox
+and delivery rows through an idempotent consumer receipt. The notification
+worker uses short database claims, rechecks membership/preferences/endpoints,
+performs external I/O without holding the claim transaction open, and persists
+bounded retry, suppression, delivery or dead-letter state afterwards. API
+replicas do not need SMTP or Azure access merely to commit a business result.
 
 ## Transitional persistence layer
 

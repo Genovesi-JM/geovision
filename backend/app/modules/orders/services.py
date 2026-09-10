@@ -427,7 +427,12 @@ def transition_order(
         order=order,
         name=EventNames.ORDER_STATE_CHANGED,
         key=f"order:{order.id}:state:{order.lifecycle_version}",
-        payload={"from": current.value, "to": target.value, "reason": reason},
+        payload={
+            "from": current.value,
+            "to": target.value,
+            "reason": reason,
+            "customer_visible": customer_visible,
+        },
     )
     return True
 

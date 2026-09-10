@@ -3602,6 +3602,379 @@ class AccountEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False, index=True)
 
 
+class Notification(Base):
+    """Durable, provider-neutral notification shown in the customer inbox.
+
+    ``recipient_key`` is an opaque correlation key (for example ``user:<id>``
+    or ``invitation:<id>``), never an email address.  Navigation is represented
+    only by the typed ``target_type``/``target_id`` pair; provider URLs do not
+    belong in the notification record.
+    """
+
+    __tablename__ = "notifications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    recipient_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    recipient_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    recipient_key: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    notification_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    severity: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="INFO", server_default="INFO", index=True
+    )
+    target_type: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="NONE", server_default="NONE", index=True
+    )
+    target_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    correlation_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    deduplication_key: Mapped[str] = mapped_column(String(240), nullable=False)
+    aggregation_key: Mapped[Optional[str]] = mapped_column(String(240), nullable=True, index=True)
+    occurrence_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    first_occurred_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now
+    )
+    last_occurred_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, index=True
+    )
+    aggregation_window_ends_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "recipient_kind IN ('USER', 'PRE_ACCOUNT')",
+            name="ck_notification_recipient_kind",
+        ),
+        CheckConstraint(
+            "(recipient_kind = 'USER' AND recipient_user_id IS NOT NULL) OR "
+            "(recipient_kind = 'PRE_ACCOUNT' AND recipient_user_id IS NULL)",
+            name="ck_notification_recipient_identity",
+        ),
+        CheckConstraint(
+            "severity IN ('INFO', 'WATCH', 'WARNING', 'CRITICAL')",
+            name="ck_notification_severity",
+        ),
+        CheckConstraint(
+            "target_type IN ('NONE', 'ASSET', 'REPORT', 'ACTION', 'ORDER', "
+            "'SHIPMENT', 'INVITATION', 'SERVICE')",
+            name="ck_notification_target_type",
+        ),
+        CheckConstraint(
+            "(target_type = 'NONE' AND target_id IS NULL) OR "
+            "(target_type <> 'NONE' AND target_id IS NOT NULL)",
+            name="ck_notification_typed_target",
+        ),
+        CheckConstraint("occurrence_count > 0", name="ck_notification_occurrence_count"),
+        UniqueConstraint(
+            "organization_id",
+            "recipient_key",
+            "deduplication_key",
+            name="uq_notification_recipient_deduplication",
+        ),
+        Index(
+            "ix_notifications_recipient_inbox",
+            "recipient_user_id",
+            "read_at",
+            "last_occurred_at",
+        ),
+        Index(
+            "ix_notifications_scope_recipient",
+            "organization_id",
+            "workspace_id",
+            "recipient_key",
+        ),
+        Index(
+            "ix_notifications_aggregation_window",
+            "organization_id",
+            "recipient_key",
+            "aggregation_key",
+            "aggregation_window_ends_at",
+        ),
+    )
+
+
+class NotificationEventLink(Base):
+    """Idempotent source-event linkage, including events folded into an aggregate."""
+
+    __tablename__ = "notification_event_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    notification_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("notifications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    event_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("operational_domain_events.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    recipient_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "event_id", "recipient_key", name="uq_notification_event_recipient"
+        ),
+        UniqueConstraint(
+            "notification_id", "event_id", name="uq_notification_event_link"
+        ),
+    )
+
+
+class NotificationEndpoint(Base):
+    """Encrypted push endpoint registered to one authenticated installation."""
+
+    __tablename__ = "notification_endpoints"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    installation_id: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    platform: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    handle_ciphertext: Mapped[str] = mapped_column(Text, nullable=False)
+    handle_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    encryption_key_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="ACTIVE", server_default="ACTIVE", index=True
+    )
+    last_registered_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now
+    )
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "platform IN ('IOS', 'ANDROID', 'WEB')",
+            name="ck_notification_endpoint_platform",
+        ),
+        CheckConstraint(
+            "status IN ('ACTIVE', 'DISABLED', 'REVOKED')",
+            name="ck_notification_endpoint_status",
+        ),
+        CheckConstraint(
+            "lifecycle_version > 0", name="ck_notification_endpoint_version"
+        ),
+        UniqueConstraint(
+            "provider", "handle_digest", name="uq_notification_endpoint_provider_handle"
+        ),
+        Index(
+            "ix_notification_endpoints_user_status", "user_id", "status"
+        ),
+    )
+
+
+class NotificationPreference(Base):
+    """Per-user, optionally per-organization notification channel policy."""
+
+    __tablename__ = "notification_preferences"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    organization_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("companies.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    scope_key: Mapped[str] = mapped_column(String(40), nullable=False)
+    category: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    in_app_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    push_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    email_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+    sms_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="0"
+    )
+    minimum_severity: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="INFO", server_default="INFO"
+    )
+    quiet_hours_start: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    quiet_hours_end: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    timezone: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="UTC", server_default="UTC"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "minimum_severity IN ('INFO', 'WATCH', 'WARNING', 'CRITICAL')",
+            name="ck_notification_preference_severity",
+        ),
+        CheckConstraint(
+            "(organization_id IS NULL AND scope_key = 'GLOBAL') OR "
+            "(organization_id IS NOT NULL AND scope_key = organization_id)",
+            name="ck_notification_preference_scope",
+        ),
+        CheckConstraint(
+            "(quiet_hours_start IS NULL AND quiet_hours_end IS NULL) OR "
+            "(quiet_hours_start IS NOT NULL AND quiet_hours_end IS NOT NULL)",
+            name="ck_notification_preference_quiet_hours",
+        ),
+        UniqueConstraint(
+            "user_id",
+            "scope_key",
+            "category",
+            name="uq_notification_preference_scope_category",
+        ),
+    )
+
+
+class NotificationDelivery(Base):
+    """Retryable external-delivery projection; inbox state remains independent."""
+
+    __tablename__ = "notification_deliveries"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    notification_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("notifications.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    endpoint_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("notification_endpoints.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    channel: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="PENDING", server_default="PENDING", index=True
+    )
+    idempotency_key: Mapped[str] = mapped_column(
+        String(240), nullable=False, unique=True, index=True
+    )
+    payload_ciphertext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    payload_key_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    payload_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    max_attempts: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=5, server_default="5"
+    )
+    next_attempt_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, nullable=True, index=True
+    )
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    claimed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    lease_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    last_error_code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    last_error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    dead_lettered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=utc_now, onupdate=utc_now
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "channel IN ('PUSH', 'EMAIL', 'SMS')",
+            name="ck_notification_delivery_channel",
+        ),
+        CheckConstraint(
+            "status IN ('PENDING', 'PROCESSING', 'RETRY', 'DELIVERED', "
+            "'SUPPRESSED', 'DEAD_LETTER')",
+            name="ck_notification_delivery_status",
+        ),
+        CheckConstraint("attempts >= 0", name="ck_notification_delivery_attempts"),
+        CheckConstraint(
+            "max_attempts > 0", name="ck_notification_delivery_max_attempts"
+        ),
+        CheckConstraint(
+            "(payload_ciphertext IS NULL AND payload_key_id IS NULL AND "
+            "payload_sha256 IS NULL) OR (payload_ciphertext IS NOT NULL AND "
+            "payload_key_id IS NOT NULL AND payload_sha256 IS NOT NULL)",
+            name="ck_notification_delivery_encrypted_payload",
+        ),
+        Index(
+            "ix_notification_deliveries_due",
+            "status",
+            "next_attempt_at",
+            "created_at",
+        ),
+        Index(
+            "ix_notification_deliveries_notification_channel",
+            "notification_id",
+            "channel",
+            "status",
+        ),
+        Index(
+            "ix_notification_deliveries_claim",
+            "status",
+            "lease_expires_at",
+        ),
+    )
+
+
 # â”€â”€ Deliverable â”€â”€
 
 class Deliverable(Base):
