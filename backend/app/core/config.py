@@ -156,6 +156,8 @@ class Settings(BaseSettings):
     # AI configuration. Structured GeoVision data remains numerical truth.
     openai_api_key: Optional[str] = Field(default=None, repr=False)
     openai_model: str = "gpt-4o-mini"
+    report_narrative_provider: str = "deterministic"
+    report_narrative_model: Optional[str] = None
 
     # Durable events. Database delivery is self-contained for local/dev/test;
     # deployed workers may publish the same envelope to Azure Service Bus.
@@ -467,6 +469,7 @@ class Settings(BaseSettings):
         "object_storage_provider",
         "erp_provider",
         "notification_provider",
+        "report_narrative_provider",
         "paypal_mode",
         mode="before",
     )
@@ -581,6 +584,15 @@ class Settings(BaseSettings):
         )
         if self.paypal_mode not in {"sandbox", "live"}:
             raise ValueError("PAYPAL_MODE must be 'sandbox' or 'live'")
+        if self.report_narrative_provider not in {
+            "deterministic",
+            "mock",
+            "azure_openai",
+            "openai",
+        }:
+            raise ValueError(
+                "REPORT_NARRATIVE_PROVIDER must be deterministic, mock, azure_openai, or openai"
+            )
         if self.queue_provider not in {"database", "in_memory", "azure_service_bus", "null"}:
             raise ValueError(
                 "QUEUE_PROVIDER must be database, in_memory, azure_service_bus, or null"
@@ -1094,6 +1106,7 @@ class Settings(BaseSettings):
                 "maritime": self.maritime_provider,
                 "erp": self.erp_provider,
                 "notifications": self.notification_provider,
+                "report_narrative": self.report_narrative_provider,
             },
             "configured": {
                 "google_oauth": bool(self.google_client_id and self.google_client_secret),

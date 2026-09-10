@@ -475,6 +475,20 @@ Without an API key, the existing context-aware demo response remains active.
 The model explains structured GeoVision context and is not a source of measured
 values.
 
+## Report narrative
+
+```dotenv
+REPORT_NARRATIVE_PROVIDER=deterministic
+REPORT_NARRATIVE_MODEL=
+```
+
+`deterministic` is the production-safe offline default. `mock` selects the same
+behavior for tests. `azure_openai` and `openai` currently select an explicit
+unavailable boundary, causing a recorded deterministic fallback; they do not
+reuse generic GAIA credentials or imply that customer report data may be sent
+externally. Gate 15 must approve a dedicated server-side adapter, model access,
+privacy controls and evaluation before either external selection is activated.
+
 ## IoT and MQTT
 
 MQTT is opt-in. The default web application and tests do not require a broker.

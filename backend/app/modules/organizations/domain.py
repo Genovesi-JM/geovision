@@ -46,11 +46,12 @@ ASSET_CONTRIBUTE = frozenset({"asset:read", "asset:create", "asset:update"})
 ASSET_MANAGE = frozenset(
     {"asset:read", "asset:create", "asset:update", "asset:archive"}
 )
+REPORT_READ = frozenset({"report:read"})
 
 
 CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
     CustomerRole.VIEWER: frozenset(
-        {"organization:read", "workspace:read", *ASSET_READ}
+        {"organization:read", "workspace:read", *ASSET_READ, *REPORT_READ}
     ),
     CustomerRole.MEMBER: frozenset(
         {
@@ -58,6 +59,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "workspace:read",
             "workspace:contribute",
             *ASSET_CONTRIBUTE,
+            *REPORT_READ,
         }
     ),
     CustomerRole.FINANCE: frozenset(
@@ -67,6 +69,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "billing:read",
             "billing:manage",
             *ASSET_READ,
+            *REPORT_READ,
         }
     ),
     CustomerRole.MANAGER: frozenset(
@@ -77,6 +80,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "workspace:operate",
             "workspace:manage",
             *ASSET_MANAGE,
+            *REPORT_READ,
         }
     ),
     CustomerRole.ADMIN: frozenset(
@@ -91,6 +95,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "billing:read",
             "billing:manage",
             *ASSET_MANAGE,
+            *REPORT_READ,
         }
     ),
     CustomerRole.OWNER: frozenset(
@@ -106,6 +111,7 @@ CUSTOMER_ROLE_PERMISSIONS: dict[CustomerRole, frozenset[str]] = {
             "billing:read",
             "billing:manage",
             *ASSET_MANAGE,
+            *REPORT_READ,
         }
     ),
 }
@@ -121,10 +127,24 @@ INTERNAL_ROLE_PERMISSIONS: dict[InternalRole, frozenset[str]] = {
             "billing:internal",
             "inventory:internal",
             "sales:internal",
+            "report:read",
+            "report:generate",
+            "report:review",
+            "report:publish",
         }
     ),
-    InternalRole.OPERATIONS: frozenset({"operations:access"}),
-    InternalRole.ANALYST: frozenset({"analytics:review"}),
+    InternalRole.OPERATIONS: frozenset(
+        {"operations:access", "report:read", "report:generate"}
+    ),
+    InternalRole.ANALYST: frozenset(
+        {
+            "analytics:review",
+            "report:read",
+            "report:generate",
+            "report:review",
+            "report:publish",
+        }
+    ),
     InternalRole.SUPPORT: frozenset({"support:access"}),
     InternalRole.FINANCE: frozenset({"billing:internal"}),
     InternalRole.INVENTORY: frozenset({"inventory:internal"}),

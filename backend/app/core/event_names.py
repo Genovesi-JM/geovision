@@ -56,7 +56,11 @@ class EventNames:
     KPI_UPDATED = "kpi.updated"
     ACTION_REQUESTED = "action.requested"
     ACTION_COMPLETED = "action.completed"
+    REPORT_GENERATED = "report.generated"
+    REPORT_REVIEW_REQUESTED = "report.review_requested"
+    REPORT_APPROVED = "report.approved"
     REPORT_PUBLISHED = "report.published"
+    REPORT_SUPERSEDED = "report.superseded"
 
     DEVICE_TELEMETRY_RECEIVED = "device.telemetry_received"
     DEVICE_STATE_CHANGED = "device.state_changed"

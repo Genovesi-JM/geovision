@@ -43,6 +43,7 @@ instead of treating legacy structures as disposable.
 | R33 | High | Phase 16 adds provider-mapped devices, canonical assignment history, IoT Hub/Event Grid ingestion, offline replay and safe sample edge rules, but no physical FieldBox/ESP32 or live Azure subscription has been commissioned | Bad clocks, exhausted flash/SD media, duplicate provider registrations, lost queue rows, weak webhook routing, or an incorrectly wired actuator can create monitoring gaps or unsafe physical behavior | Keep cloud ingress and remote control off until Gate 13; validate exact device mappings, secrets/network restrictions, clocks, queue limits/wear, replay ordering, physical interlocks and acknowledgements on representative hardware; alert on rejects, offline devices and edge depth |
 | R34 | High | Phase 17 provides a versioned KPI/observation/action engine, but sector thresholds, algorithms, confidence calibration and baseline selection are not yet scientifically or operationally approved | A technically valid calculation can be presented as safe, validated or actionable outside its evidence, geography, season, asset type or algorithm version | Keep missing/weak evidence `UNKNOWN`, preserve validation and provenance, activate only reviewed sector registrations, require Gate 14 before live decision claims, monitor version changes and never let narrative AI supply measurements or silent diagnoses |
 | R35 | High | Phase 18 activates Agriculture bundle `1.0.0` with a strict structured-analysis schema and generic initial screening thresholds, while real crop/season/sensor validation and raster-statistics production remain gated | A valid but locally inappropriate index threshold, stale sensor, or unreviewed zone model could be mistaken for an agronomic diagnosis or treatment instruction | Require Gate 14a and exact applicability profiles before live decision claims; accept only finite/ranged structured evidence, expose missing sources, retain `NEEDS_REVIEW`, never infer indices from band availability, and never generate chemical/disease/yield prescriptions |
+| R36 | High | External narrative generation and report publication can amplify an invented, rounded, weakly sourced or cross-tenant claim | A customer could act on a false number or receive evidence that was never approved for them | Keep deterministic generation as default; freeze and hash an authorized context; reject unknown output fields, evidence IDs and all provider-authored numeric literals; inject exact numbers only in the renderer; require QA/review/publication permissions, tenant filtering, audit/outbox events and Gate 15 before any live model |
 
 ## Controls that already reduce risk
 
@@ -476,3 +477,23 @@ without a compatibility plan.
   context live entirely in its sector package and persist only common entities.
 - **Introduced and controlled:** R35 and Gate 14a record the remaining live
   agronomic validation, calibration, applicability and raster-analysis work.
+
+## Phase 19 outcome
+
+- **Reduced:** R36, because reports are durable versioned entities with an
+  immutable, canonical evidence context and digest rather than transient AI or
+  PDF responses.
+- **Contained:** Numerical hallucination and rounding risk, because strict
+  narrative output rejects every provider-authored numeric literal and unknown
+  evidence reference; the PDF renderer inserts exact values from validated
+  KPI/observation records.
+- **Contained:** Provider failure and lock-in, because deterministic generation
+  is the default and any unavailable or invalid external response falls back
+  without exposing provider diagnostics or blocking the report artifact.
+- **Contained:** Premature/cross-tenant disclosure, because customers can read
+  and download only published reports in their active scope, while generation,
+  specialist review, approval, publication and supersession are permissioned,
+  audited and emitted through the durable outbox.
+- **Introduced and controlled:** Gate 15 records the remaining live provider,
+  privacy, evaluation and reviewer-ownership decisions. No Azure/OpenAI model
+  is treated as available merely because generic AI credentials exist.

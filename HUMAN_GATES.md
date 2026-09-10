@@ -195,3 +195,24 @@ how to confirm · what the automation does afterwards.
 - **After:** Record the approved applicability profile and algorithm version,
   monitor false-positive/negative and action outcomes, and disable or roll back
   the affected calculator when evidence falls outside that profile.
+
+## 15. External report narrative provider and publication approval
+
+- **Reason:** The deterministic report engine, exact-data renderer, validation,
+  fallback, review and publication lifecycle are implemented. A live language
+  model still requires account-bound credentials, deployment access, privacy
+  review and a representative evaluation; code presence is not authorization
+  to send customer evidence to an external provider.
+- **Action:** Approve the provider, region, model/deployment, data retention and
+  training settings, tenant and network controls, content policy, prompt/output
+  schema, evaluation set, cost ceiling and rollback trigger. Assign accountable
+  human and specialist reviewers for each report type and sector.
+- **Where:** GeoVision staging, the provider tenant and server-side secret
+  manager; never a browser/mobile client, report context, audit entry or Git.
+- **Confirm:** Representative reports preserve every source number exactly,
+  reject unknown fields/evidence and invented numerical claims, survive outage
+  through deterministic fallback, remain invisible before publication, and
+  pass cross-tenant, audit, download and supersession tests.
+- **After:** Implement and enable the dedicated adapter, retain deterministic
+  fallback, monitor invalid-output/fallback/review rates and disable external
+  generation immediately when the approved privacy or quality scope is lost.

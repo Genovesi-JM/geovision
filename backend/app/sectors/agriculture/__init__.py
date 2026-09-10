@@ -8,9 +8,11 @@ from .domain import (
     SUPPORTED_DATASET_TYPES,
     register_agriculture,
 )
+from .reporting import register_agriculture_report_context
 
 
 register_agriculture()
+register_agriculture_report_context()
 
 definition = SectorModule(
     name="agriculture",
@@ -40,4 +42,8 @@ definition = SectorModule(
     ),
 )
 
-__all__ = ["definition", "register_agriculture"]
+__all__ = [
+    "definition",
+    "register_agriculture",
+    "register_agriculture_report_context",
+]

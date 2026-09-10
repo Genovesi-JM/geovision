@@ -2187,6 +2187,96 @@ class DatasetFile(Base):
     )
 
 
+class Report(Base):
+    """Versioned customer report built from an immutable structured context."""
+
+    __tablename__ = "reports"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    acquisition_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    report_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(240), nullable=False)
+    template_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="GENERATING", server_default="GENERATING", index=True
+    )
+    qa_level: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="HUMAN_REVIEW", server_default="HUMAN_REVIEW", index=True
+    )
+    context_schema_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    context_json: Mapped[str] = mapped_column(Text, nullable=False, default="{}", server_default="{}")
+    context_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    narrative_provider: Mapped[str] = mapped_column(String(80), nullable=False)
+    narrative_model: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    narrative_schema_version: Mapped[str] = mapped_column(String(40), nullable=False)
+    narrative_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    qa_result_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    output_dataset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("datasets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    output_file_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("dataset_files.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    supersedes_report_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("reports.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    generation_key: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    approved_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    published_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('GENERATING', 'DRAFT', 'REVIEW_REQUIRED', 'APPROVED', "
+            "'PUBLISHED', 'SUPERSEDED')",
+            name="ck_report_status",
+        ),
+        CheckConstraint(
+            "qa_level IN ('AUTO_APPROVED', 'HUMAN_REVIEW', 'SPECIALIST_REVIEW')",
+            name="ck_report_qa_level",
+        ),
+        CheckConstraint("revision > 0", name="ck_report_revision"),
+        CheckConstraint("lifecycle_version > 0", name="ck_report_lifecycle_version"),
+        UniqueConstraint(
+            "asset_id", "report_type", "revision", name="uq_report_asset_type_revision"
+        ),
+        Index("ix_reports_scope_status", "organization_id", "workspace_id", "status"),
+        Index("ix_reports_asset_type_status", "asset_id", "report_type", "status"),
+    )
+
+
 class ProcessingJob(Base):
     """Provider-neutral, restart-safe photogrammetry processing request."""
 

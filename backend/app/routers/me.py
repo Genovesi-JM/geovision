@@ -161,13 +161,16 @@ def my_entitlement(user: User = Depends(get_current_user), db: Session = Depends
 def my_documents(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """List documents for the current user's company."""
     from app.models import Document as DocModel
-    from sqlalchemy import or_
+    from sqlalchemy import func, or_
     company_id = get_user_company_id(user, db)
     if not company_id:
         return []
     docs = db.query(DocModel).filter(
         DocModel.company_id == company_id,
         or_(DocModel.is_confidential == False, DocModel.is_confidential.is_(None)),
+        func.lower(DocModel.status).in_(
+            ("approved", "published", "ready", "complete", "completed")
+        ),
     ).order_by(DocModel.created_at.desc()).all()
     result = [{
         "id": d.id,
@@ -197,7 +200,12 @@ def download_my_document(document_id: str, user: User = Depends(get_current_user
     if not company_id:
         raise HTTPException(status_code=403, detail="No company linked")
     doc = db.get(DocModel, document_id)
-    if not doc or doc.company_id != company_id:
+    if (
+        not doc
+        or doc.company_id != company_id
+        or str(doc.status or "").lower()
+        not in {"approved", "published", "ready", "complete", "completed"}
+    ):
         raise HTTPException(status_code=404, detail="Document not found")
     if doc.is_confidential:
         raise HTTPException(status_code=403, detail="Confidential document")
@@ -240,7 +248,12 @@ def view_my_document(document_id: str, user: User = Depends(get_current_user), d
     if not company_id:
         raise HTTPException(status_code=403, detail="No company linked")
     doc = db.get(DocModel, document_id)
-    if not doc or doc.company_id != company_id:
+    if (
+        not doc
+        or doc.company_id != company_id
+        or str(doc.status or "").lower()
+        not in {"approved", "published", "ready", "complete", "completed"}
+    ):
         raise HTTPException(status_code=404, detail="Document not found")
     if doc.is_confidential:
         raise HTTPException(status_code=403, detail="Confidential document")

@@ -119,7 +119,9 @@ factory selects the local mock or existing ERPNext adapter. Queue composition
 selects the database worker or Azure Service Bus, while the Event Grid adapter
 normalizes BlobCreated ingress. Processing now selects deterministic fake or
 NodeODM adapters; monitoring selects deterministic fake, Copernicus satellite,
-or AEMET weather adapters at the composition boundary. Odoo, Azure Maps
+or AEMET weather adapters at the composition boundary. Reports select a strict
+offline deterministic narrative provider and retain an explicit unavailable
+boundary for unapproved external models. Odoo, Azure Maps
 Weather, GIS, construction, asset-management, and maritime adapters are not
 activated yet.
 
@@ -162,7 +164,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Analytics | Versioned sector calculator/rule registries, immutable KPI history, provenance-safe observations/alerts, comparisons and normalized Asset summaries are implemented; AI remains explanation-only |
 | Monitoring | Provider-mapped IoT devices, canonical assignments, versioned telemetry receipts, safe offline replay, alerts, live events and watchdog behavior coexist with durable cached satellite/weather acquisitions, normalized provenance and independent workers |
 | Actions | Generic source-linked recommendations, priorities, assignments, GeoVision catalogue references, optimistic lifecycle transitions, outcomes and durable events are implemented; IoT recommendation/command routes remain compatibility facades |
-| Reports | PDF/document/deliverable behavior exists across facades; Phase 19 owns report workflow and publication |
+| Reports | Versioned immutable contexts, strict optional narrative, deterministic fallback, QA levels, PDF Dataset artifacts, review/approval/publication/supersession, customer visibility and durable audit/events are implemented; legacy Document routes are published-only compatibility facades |
 | Notifications | Contact routes, email and IoT notification adapters exist; Phase 20 owns durable delivery |
 | Billing | Every payment operation uses the module-owned provider port; tenant-derived payment truth, irreversible transitions, refunds, and digest-only idempotent webhook receipts are implemented |
 | Audit | Audit records and domain timelines exist across middleware and routers; Phase 25 owns the unified boundary |

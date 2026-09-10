@@ -26,6 +26,7 @@ from app.models import (
     Invitation,
     MobileServiceRequest,
     Order,
+    Report,
     Site,
     User,
 )
@@ -169,8 +170,23 @@ def validate_target(
             and target.workspace_id in (None, workspace_id)
         )
     elif target_type is InvitationTargetType.REPORT:
-        target = db.get(Document, target_id)
-        valid = bool(target and target.company_id == organization_id)
+        report = db.get(Report, target_id)
+        if report is not None:
+            valid = bool(
+                report.organization_id == organization_id
+                and report.workspace_id in (None, workspace_id)
+                and report.status == "PUBLISHED"
+            )
+        else:
+            # Compatibility is read-only and limited to historical documents
+            # that have already passed their publication boundary.
+            target = db.get(Document, target_id)
+            valid = bool(
+                target
+                and target.company_id == organization_id
+                and str(target.status or "").lower()
+                in {"approved", "published", "ready", "complete", "completed"}
+            )
     elif target_type is InvitationTargetType.ORDER:
         target = db.get(Order, target_id)
         valid = bool(target and target.company_id == organization_id)
