@@ -237,7 +237,7 @@
 
     function webDestination(destination) {
       if (!destination) return "dashboard.html";
-      if (destination.kind === "order") return `minhas-compras.html?order=${encodeURIComponent(destination.target_id || "")}`;
+      if (destination.kind === "order") return `dashboard.html?order=${encodeURIComponent(destination.target_id || "")}`;
       if (destination.kind === "asset") return `dashboard.html?asset=${encodeURIComponent(destination.target_id || "")}`;
       if (destination.kind === "report") return `dashboard.html?report=${encodeURIComponent(destination.target_id || "")}`;
       if (destination.kind === "service_result") return `dashboard.html?request=${encodeURIComponent(destination.target_id || "")}`;

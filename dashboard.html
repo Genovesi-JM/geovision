@@ -8,6 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <link rel="stylesheet" href="assets/css/style.css" />
   <link rel="stylesheet" href="assets/css/chatbot.css">
+  <link rel="stylesheet" href="assets/css/customer-portal.css?v=1">
   <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css" />
   <script src="assets/vendor/leaflet/leaflet.js" defer></script>
   <style>
@@ -1373,9 +1374,10 @@
   </style>
 </head>
 
-<body>
+<body data-portal-state="loading">
+  <a class="portal-skip-link" href="#portal-main-content">Saltar para o conteúdo principal</a>
   <!-- ============ SIDEBAR ============ -->
-  <aside class="client-sidebar" id="sidebar">
+  <aside class="client-sidebar" id="sidebar" aria-label="Navegação do portal do cliente">
     <div class="sidebar-brand">
       <div class="sidebar-logo">G</div>
       <div class="sidebar-brand-text">
@@ -1385,90 +1387,91 @@
       <button class="sidebar-close-btn" id="sidebar-close" aria-label="Fechar menu">✕</button>
     </div>
 
-    <!-- Account Switcher -->
+    <!-- Workspace Switcher -->
     <div class="sidebar-account">
-      <div class="sidebar-account-label" data-i18n="dash.activeAccount">Conta Ativa</div>
-      <select id="account-switcher" class="sidebar-account-select" aria-label="Selecionar conta"></select>
+      <label class="sidebar-account-label" for="account-switcher">Workspace ativo</label>
+      <select id="account-switcher" class="sidebar-account-select" aria-label="Selecionar workspace" disabled>
+        <option>A carregar…</option>
+      </select>
+      <p class="portal-workspace-meta" id="portal-workspace-meta"></p>
     </div>
 
-    <!-- Experience level (simple vs advanced) -->
-    <div class="sidebar-account" style="padding-top:0;">
-      <div class="sidebar-account-label" data-i18n="dash.exp.label">Experiência</div>
-      <div class="exp-toggle" id="exp-toggle">
-        <button type="button" class="exp-btn active" data-exp="simple" data-i18n="dash.exp.simple">Simples</button>
-        <button type="button" class="exp-btn" data-exp="advanced" data-i18n="dash.exp.advanced">Avançado</button>
-      </div>
-    </div>
+    <nav class="sidebar-nav" aria-label="Áreas do cliente" aria-busy="true">
+      <p class="portal-nav-status" id="portal-nav-status" role="status" aria-live="polite">A validar acesso…</p>
 
-    <nav class="sidebar-nav">
-      <!-- Principal -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title" data-i18n="admin.section.main">Principal</div>
-        <a href="#" class="sidebar-link active" data-view="dashboard">
+      <div class="sidebar-section portal-nav-group" data-portal-group="overview" hidden>
+        <div class="sidebar-section-title">Overview</div>
+        <a href="?view=overview" class="sidebar-link active" data-view="dashboard" data-route="overview" data-portal-item="overview">
           <span class="sidebar-link-icon"><i class="fa-solid fa-chart-column"></i></span>
-          <span data-i18n="dash.nav.overview">Visão Geral</span>
-        </a>
-        <a href="#" class="sidebar-link" data-view="operations" data-adv="1">
-          <span class="sidebar-link-icon"><i class="fa-solid fa-rocket"></i></span>
-          <span data-i18n="dash.nav.operations">Operações</span>
-          <span class="sidebar-link-badge success" id="badge-operations">0</span>
-        </a>
-        <a href="#" class="sidebar-link" data-view="alerts">
-          <span class="sidebar-link-icon"><i class="fa-solid fa-bell"></i></span>
-          <span data-i18n="dash.nav.alerts">Alertas</span>
-          <span class="sidebar-link-badge" id="badge-alerts">0</span>
+          <span>Overview</span>
         </a>
       </div>
 
-      <!-- Recursos -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title" data-i18n="dash.hw.eyebrow">Recursos</div>
-        <a href="#" class="sidebar-link" data-view="hardware">
+      <div class="sidebar-section portal-nav-group" data-portal-group="operations" hidden>
+        <div class="sidebar-section-title">Operations</div>
+        <a href="?view=assets" class="sidebar-link" data-view="assets" data-route="assets" data-portal-item="assets" data-capability="assets" data-permission="asset:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-layer-group"></i></span>
+          <span>Assets</span>
+        </a>
+        <a href="?view=actions" class="sidebar-link" data-view="actions" data-route="actions" data-portal-item="actions" data-capability="actions" data-permission="asset:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-list-check"></i></span>
+          <span>Actions</span>
+        </a>
+        <a href="?view=monitoring" class="sidebar-link" data-view="hardware" data-route="monitoring" data-portal-item="monitoring" data-capability="monitoring" data-permission="asset:read" hidden>
           <span class="sidebar-link-icon"><i class="fa-solid fa-satellite-dish"></i></span>
-          <span data-i18n="dash.nav.hardware">Sensores</span>
+          <span>Monitoring</span>
         </a>
-        <a href="#" class="sidebar-link" data-view="reports">
-          <span class="sidebar-link-icon"><i class="fa-solid fa-file-lines"></i></span>
-          <span data-i18n="admin.docs.reports">Relatórios</span>
+        <a href="?view=services" class="sidebar-link" data-view="services" data-route="services" data-portal-item="services" data-capability="services" data-permission="workspace:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-rocket"></i></span>
+          <span>Services</span>
         </a>
-        <a href="#" class="sidebar-link" data-view="map" data-adv="1">
+      </div>
+
+      <div class="sidebar-section portal-nav-group" data-portal-group="intelligence" hidden>
+        <div class="sidebar-section-title">Intelligence</div>
+        <a href="?view=map" class="sidebar-link" data-view="map" data-route="map" data-portal-item="map" data-capability="map" data-permission="asset:read" hidden>
           <span class="sidebar-link-icon"><i class="fa-solid fa-map-location-dot"></i></span>
-          <span data-i18n="dash.map.title">Mapa / Layers</span>
+          <span>Map</span>
+        </a>
+        <a href="?view=analytics" class="sidebar-link" data-view="analytics" data-route="analytics" data-portal-item="analytics" data-capability="analytics" data-permission="asset:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-chart-line"></i></span>
+          <span>Analytics</span>
+        </a>
+        <a href="?view=reports" class="sidebar-link" data-view="reports" data-route="reports" data-portal-item="reports" data-capability="reports" data-permission="report:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-file-lines"></i></span>
+          <span>Reports</span>
         </a>
       </div>
 
-      <!-- Loja -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title" data-i18n="dash.orders.eyebrow">Compras</div>
-        <a href="#" class="sidebar-link" data-view="orders">
+      <div class="sidebar-section portal-nav-group" data-portal-group="commercial" hidden>
+        <div class="sidebar-section-title">Commercial</div>
+        <a href="?view=products" class="sidebar-link" data-view="products" data-route="products" data-portal-item="catalog" data-capability="catalog" data-permission="workspace:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-store"></i></span>
+          <span>Products &amp; Services</span>
+        </a>
+        <a href="?view=orders" class="sidebar-link" data-view="orders" data-route="orders" data-portal-item="orders" data-capability="orders" data-permission="workspace:read" hidden>
           <span class="sidebar-link-icon"><i class="fa-solid fa-box"></i></span>
-          <span data-i18n="dash.nav.orders">Minhas Compras</span>
+          <span>Orders</span>
         </a>
-        <a href="loja.html" class="sidebar-link">
-          <span class="sidebar-link-icon"><i class="fa-solid fa-cart-shopping"></i></span>
-          <span data-i18n="dash.nav.store">Ir para Loja</span>
+        <a href="?view=billing" class="sidebar-link" data-view="billing" data-route="billing" data-portal-item="billing" data-capability="billing" data-permission="billing:read" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-receipt"></i></span>
+          <span>Billing</span>
         </a>
       </div>
 
-      <!-- Suporte -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title" data-i18n="dash.section.support">Suporte</div>
-        <a href="#" class="sidebar-link" data-view="support">
-          <span class="sidebar-link-icon"><i class="fa-solid fa-comments"></i></span>
-          <span data-i18n="dash.nav.contact">Contactar GeoVision</span>
+      <div class="sidebar-section portal-nav-group" data-portal-group="management" hidden>
+        <div class="sidebar-section-title">Management</div>
+        <a href="?view=team" class="sidebar-link" data-view="team" data-route="team" data-portal-item="team" data-capability="team" data-permission="organization:manage_members" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-user-group"></i></span>
+          <span>Team</span>
         </a>
-        <a href="#" class="sidebar-link" data-view="settings">
+        <a href="?view=integrations" class="sidebar-link" data-view="integrations" data-route="integrations" data-portal-item="integrations" data-capability="integrations" data-permission="organization:manage" hidden>
+          <span class="sidebar-link-icon"><i class="fa-solid fa-puzzle-piece"></i></span>
+          <span>Integrations</span>
+        </a>
+        <a href="?view=settings" class="sidebar-link" data-view="settings" data-route="settings" data-portal-item="settings" data-capability="settings" data-permission-any="workspace:manage organization:manage" hidden>
           <span class="sidebar-link-icon"><i class="fa-solid fa-gear"></i></span>
-          <span data-i18n="dash.nav.settings">Definições</span>
-        </a>
-      </div>
-
-      <!-- Admin (hidden by default, shown via JS for admin users) -->
-      <div class="sidebar-section" id="sidebar-admin-section" style="display:none;">
-        <div class="sidebar-section-title">Administração</div>
-        <a href="admin.html" class="sidebar-link">
-          <span class="sidebar-link-icon"><i class="fa-solid fa-shield-halved"></i></span>
-          <span data-i18n="admin.brand">Painel Admin</span>
+          <span>Settings</span>
         </a>
       </div>
     </nav>
@@ -1485,11 +1488,11 @@
   </aside>
 
   <!-- ============ MAIN CONTENT ============ -->
-  <main class="client-main">
+  <main class="client-main" id="portal-main-content" tabindex="-1">
     <!-- Top Bar -->
     <header class="client-topbar">
       <div class="topbar-left">
-        <button class="btn-menu-toggle" id="btn-menu-toggle">☰</button>
+        <button class="btn-menu-toggle" id="btn-menu-toggle" aria-label="Abrir navegação" aria-controls="sidebar" aria-expanded="false">☰</button>
         <div class="topbar-breadcrumb">
           <span data-i18n="dash.breadcrumb">Painel /</span> <span id="breadcrumb-current" data-i18n="dash.nav.overview">Visão Geral</span>
         </div>
@@ -1500,8 +1503,8 @@
           <button class="lang-btn" data-lang="en">EN</button>
           <button class="lang-btn" data-lang="es">ES</button>
         </div>
-        <button class="btn btn-primary" id="open-account-modal" data-i18n="dash.newAccount">+ Nova Conta</button>
-        <button class="topbar-btn" id="btn-notifications" title="Notificações">
+        <button class="btn btn-primary" id="open-account-modal" data-capability="workspace_create" hidden>+ Novo workspace</button>
+        <button class="topbar-btn" id="btn-notifications" title="Notificações" aria-label="Abrir notificações" hidden>
           <i class="fa-solid fa-bell"></i>
           <span class="badge" id="notification-count">0</span>
         </button>
@@ -1520,7 +1523,7 @@
               </div>
             </div>
             <div class="dash-user-divider"></div>
-            <a href="loja.html" class="dash-user-item">
+            <a href="loja.html" class="dash-user-item" data-capability="catalog" hidden>
               <i class="fa-solid fa-store"></i> Loja & Serviços
             </a>
             <div class="dash-user-divider"></div>
@@ -1534,6 +1537,10 @@
 
     <!-- Content Area -->
     <div class="client-content">
+      <div class="portal-shell-status" id="portal-shell-status" role="status" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>A validar o workspace e as funcionalidades disponíveis…</p>
+      </div>
       
       <!-- ============ DASHBOARD VIEW ============ -->
       <div class="view-panel active" id="view-dashboard">
@@ -1681,6 +1688,89 @@
           </div>
         </div>
       </div>
+
+      <!-- Canonical contextual customer views. Content is rendered from
+           workspace-scoped portal projections after authorization succeeds. -->
+      <section class="view-panel portal-view" id="view-assets" aria-labelledby="assets-title">
+        <div class="page-header">
+          <div class="page-eyebrow">Operations</div>
+          <h1 class="page-title" id="assets-title">Assets</h1>
+          <p class="page-subtitle">Explore every asset in this workspace and its operational context.</p>
+        </div>
+        <div class="portal-view-status" id="assets-status" role="status" aria-live="polite"></div>
+        <div class="portal-asset-layout" id="assets-layout" hidden>
+          <section class="card portal-tree-card" aria-labelledby="asset-tree-title">
+            <div class="card-header"><h2 class="card-title" id="asset-tree-title">Asset hierarchy</h2></div>
+            <div class="card-body"><div class="portal-tree" id="asset-tree" role="tree" aria-label="Asset hierarchy"></div></div>
+          </section>
+          <section class="card" aria-labelledby="asset-summary-title">
+            <div class="card-header"><h2 class="card-title" id="asset-summary-title">Asset summary</h2></div>
+            <div class="card-body" id="asset-summary"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-actions" aria-labelledby="actions-title">
+        <div class="page-header">
+          <div class="page-eyebrow">Operations</div>
+          <h1 class="page-title" id="actions-title">Actions</h1>
+          <p class="page-subtitle">Prioritized work for the active workspace.</p>
+        </div>
+        <div class="portal-view-status" id="actions-status" role="status" aria-live="polite"></div>
+        <div class="portal-action-board" id="actions-board" hidden></div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-services" aria-labelledby="services-title">
+        <div class="page-header">
+          <div class="page-eyebrow">Operations</div>
+          <h1 class="page-title" id="services-title">Services</h1>
+          <p class="page-subtitle">Requests and results delivered by GeoVision.</p>
+        </div>
+        <div class="portal-view-status" id="services-status" role="status" aria-live="polite"></div>
+        <div class="portal-card-list" id="services-list" hidden></div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-analytics" aria-labelledby="analytics-title">
+        <div class="page-header">
+          <div class="page-eyebrow">Intelligence</div>
+          <h1 class="page-title" id="analytics-title">Analytics</h1>
+          <p class="page-subtitle">Decision signals first, with technical evidence available on demand.</p>
+        </div>
+        <div class="portal-view-status" id="analytics-status" role="status" aria-live="polite"></div>
+        <div id="analytics-content" hidden></div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-products" aria-labelledby="products-title">
+        <div class="page-header">
+          <div class="page-eyebrow">Commercial</div>
+          <h1 class="page-title" id="products-title">Products &amp; Services</h1>
+          <p class="page-subtitle">GeoVision is your sole provider in this customer catalogue.</p>
+        </div>
+        <div class="card">
+          <div class="card-body portal-commercial-cta">
+            <div><h2>Extend your operational coverage</h2><p>Browse products and request GeoVision services for this workspace.</p></div>
+            <a class="btn btn-primary" href="loja.html">Open GeoVision catalogue</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-billing" aria-labelledby="billing-title">
+        <div class="page-header"><div class="page-eyebrow">Commercial</div><h1 class="page-title" id="billing-title">Billing</h1><p class="page-subtitle">Workspace subscription and billing access.</p></div>
+        <div class="portal-view-status" id="billing-status" role="status" aria-live="polite"></div>
+        <div class="card" id="billing-content" hidden><div class="card-body"></div></div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-team" aria-labelledby="team-title">
+        <div class="page-header"><div class="page-eyebrow">Management</div><h1 class="page-title" id="team-title">Team</h1><p class="page-subtitle">People with access to this customer organization.</p></div>
+        <div class="portal-view-status" id="team-status" role="status" aria-live="polite"></div>
+        <div class="card" id="team-content" hidden><div class="card-body"></div></div>
+      </section>
+
+      <section class="view-panel portal-view" id="view-integrations" aria-labelledby="integrations-title">
+        <div class="page-header"><div class="page-eyebrow">Management</div><h1 class="page-title" id="integrations-title">Integrations</h1><p class="page-subtitle">Customer-safe connections enabled for this workspace.</p></div>
+        <div class="portal-view-status" id="integrations-status" role="status" aria-live="polite"></div>
+        <div class="card" id="integrations-content" hidden><div class="card-body"></div></div>
+      </section>
 
       <!-- ============ OPERATIONS VIEW ============ -->
       <div class="view-panel" id="view-operations">
@@ -2004,11 +2094,11 @@
   </main>
 
   <!-- ============ ORDER DETAIL MODAL ============ -->
-  <div class="modal-overlay" id="order-modal">
+  <div class="modal-overlay" id="order-modal" aria-hidden="true">
     <div class="modal" style="max-width:600px;">
       <div class="modal-header">
         <h2 class="modal-title" id="order-modal-title" data-i18n="dash.orderDetail">Detalhes do Pedido</h2>
-        <button class="modal-close" onclick="closeOrderModal()">×</button>
+        <button class="modal-close" type="button" aria-label="Fechar detalhes do pedido" onclick="closeOrderModal()">×</button>
       </div>
       <div class="modal-body" id="order-modal-content">
         <!-- Populated by JS -->
@@ -2017,19 +2107,19 @@
   </div>
 
   <!-- ============ NEW ACCOUNT MODAL ============ -->
-  <div class="modal-overlay" id="account-modal">
+  <div class="modal-overlay" id="account-modal" aria-hidden="true">
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title" data-i18n="dash.modal.createWorkspace">Criar Workspace</h2>
-        <button class="modal-close" onclick="closeModal('account-modal')">×</button>
+        <button class="modal-close" type="button" aria-label="Fechar criação de workspace" onclick="closeModal('account-modal')">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label" data-i18n="dash.modal.accountName">Nome da conta *</label>
+          <label class="form-label" for="account-name-input" data-i18n="dash.modal.accountName">Nome da conta *</label>
           <input type="text" class="form-input" id="account-name-input" placeholder="Ex: Minha Operação" />
         </div>
         <div class="form-group">
-          <label class="form-label">Tipo de cliente</label>
+          <label class="form-label" for="account-customer-input">Tipo de cliente</label>
           <select class="form-select" id="account-customer-input">
             <option value="farm">Exploração agrícola</option>
             <option value="construction">Obra / construção</option>
@@ -2040,7 +2130,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label" data-i18n="common.sector">Setor</label>
+          <label class="form-label" for="account-sector-input" data-i18n="common.sector">Setor</label>
           <select class="form-select" id="account-sector-input">
             <option value="agro" data-i18n="dash.modal.agro">Agropecuária</option>
             <option value="environment">Monitorização ambiental</option>
@@ -2074,7 +2164,7 @@
   <script src="assets/js/config.js?v=5"></script>
   <script src="assets/js/account-profiles.js?v=3"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script type="module" src="assets/js/dashboard-client.js?v=18"></script>
+  <script type="module" src="assets/js/dashboard-client.js?v=19"></script>
   <script src="assets/js/chatbot.js?v=4"></script>
   <script src="assets/js/contacts.js?v=3"></script>
   <style>
@@ -2099,6 +2189,10 @@
     let reportsLoaded = false;
 
     function switchView(viewId) {
+      if (window.GeoVisionPortal?.ownsNavigation) {
+        return window.GeoVisionPortal.navigate(viewId);
+      }
+      if (document.body.hasAttribute('data-portal-state')) return;
       // Update sidebar
       viewLinks.forEach(link => {
         link.classList.toggle('active', link.dataset.view === viewId);
@@ -2137,13 +2231,14 @@
     viewLinks.forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
+        if (document.body.hasAttribute('data-portal-state')) return;
         switchView(link.dataset.view);
       });
     });
 
     // Check URL params
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('view') === 'orders') {
+    if (!document.body.hasAttribute('data-portal-state') && urlParams.get('view') === 'orders') {
       switchView('orders');
     }
 
@@ -2153,12 +2248,14 @@
     const sidebarClose = document.getElementById('sidebar-close');
 
     menuToggle.addEventListener('click', () => {
-      sidebar.classList.toggle('open');
+      const open = sidebar.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', String(open));
     });
 
     if (sidebarClose) {
       sidebarClose.addEventListener('click', () => {
         sidebar.classList.remove('open');
+        menuToggle.setAttribute('aria-expanded', 'false');
       });
     }
 
@@ -2166,23 +2263,29 @@
       if (window.innerWidth <= 1024) {
         if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
           sidebar.classList.remove('open');
+          menuToggle.setAttribute('aria-expanded', 'false');
         }
       }
     });
 
     // ============ MODALS ============
     function showModal(modalId) {
-      document.getElementById(modalId).classList.add('open');
+      const modal = document.getElementById(modalId);
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
     }
 
     function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove('open');
+      const modal = document.getElementById(modalId);
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
     }
 
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) {
           overlay.classList.remove('open');
+          overlay.setAttribute('aria-hidden', 'true');
         }
       });
     });
@@ -2350,8 +2453,12 @@
           return;
         }
 
-        const res = await fetch(`${API_URL}/shop/me/orders`, {
-          headers: { "Authorization": "Bearer " + token }
+        const workspaceId = localStorage.getItem('gv_workspace_id') || localStorage.getItem('gv_account_id');
+        const res = await fetch(`${API_URL}/orders?limit=100`, {
+          headers: {
+            "Authorization": "Bearer " + token,
+            ...(workspaceId ? { "X-Workspace-ID": workspaceId } : {})
+          }
         });
 
         if (!res.ok) {
@@ -2386,7 +2493,7 @@
                   <div class="order-number">${order.order_number}</div>
                   <div class="order-date">${formatDate(order.created_at)}</div>
                 </div>
-                <span class="order-status status-${order.status}">${order.status_label || order.status}</span>
+                <span class="order-status status-${order.fulfilment_status || order.status}">${order.fulfilment_status || order.status || 'pending'}</span>
               </div>
               <div class="order-items-text">${order.item_count || '?'} ${order.item_count === 1 ? 'item' : 'itens'}</div>
               <div class="order-total">${formatAOA(order.total)}</div>
@@ -2426,8 +2533,12 @@
 
       try {
         const token = localStorage.getItem("gv_token");
-        const res = await fetch(`${API_URL}/shop/orders/${orderId}`, {
-          headers: token ? { "Authorization": "Bearer " + token } : {}
+        const workspaceId = localStorage.getItem('gv_workspace_id') || localStorage.getItem('gv_account_id');
+        const res = await fetch(`${API_URL}/orders/${encodeURIComponent(orderId)}`, {
+          headers: token ? {
+            "Authorization": "Bearer " + token,
+            ...(workspaceId ? { "X-Workspace-ID": workspaceId } : {})
+          } : {}
         });
         if (!res.ok) throw new Error(window.t("dash.ord.loadError"));
 
@@ -2499,7 +2610,9 @@
     };
 
     window.closeOrderModal = function() {
-      document.getElementById("order-modal").classList.remove('open');
+      const modal = document.getElementById("order-modal");
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
     };
 
     // ============ USER DROPDOWN TOGGLE ============
@@ -2523,7 +2636,7 @@
     // ============ LOGOUT ============
     document.getElementById('logout-btn').addEventListener('click', () => {
       ['gv_token','gv_refresh_token','gv_user','gv_email','gv_name',
-       'gv_role','gv_account_id','gv_account_name','gv_toast','gv_active_sector'].forEach(k => localStorage.removeItem(k));
+       'gv_role','gv_account_id','gv_workspace_id','gv_account_name','gv_toast','gv_active_sector'].forEach(k => localStorage.removeItem(k));
       window.location.href = 'index.html';
     });
 
@@ -2556,31 +2669,34 @@
       function applyUserInfo(email, name, role, accountName) {
         const displayName = name || (email !== '—' ? email.split('@')[0] : '—');
         const initials = getInitials(name, email);
-        const roleLabel = role === 'admin' ? 'Administrador' : 'Cliente';
+        const roleLabel = 'Cliente';
+        const portalOwnsWorkspaceContext = document.body.dataset.portalState === 'ready';
 
         // Sidebar footer
         document.getElementById('user-name').textContent = displayName;
         document.getElementById('user-avatar').textContent = initials;
-        document.getElementById('user-role').textContent = roleLabel;
+        if (!portalOwnsWorkspaceContext) {
+          document.getElementById('user-role').textContent = roleLabel;
+        }
 
         // Topbar user dropdown
         document.getElementById('dash-user-avatar-sm').textContent = initials;
         document.getElementById('dash-user-name-btn').textContent = displayName.split(' ')[0];
         document.getElementById('dash-user-avatar-lg').textContent = initials;
         document.getElementById('dash-user-info-name').textContent = displayName;
-        document.getElementById('dash-user-info-role').textContent = roleLabel;
-
-        // Show admin panel link for admin users
-        const adminSection = document.getElementById('sidebar-admin-section');
-        if (adminSection) adminSection.style.display = (role === 'admin') ? '' : 'none';
+        if (!portalOwnsWorkspaceContext) {
+          document.getElementById('dash-user-info-role').textContent = roleLabel;
+        }
 
         const nameInput = document.getElementById('settings-name');
         if (nameInput) nameInput.value = name || displayName;
         document.getElementById('settings-email').value = email;
         const roleInput = document.getElementById('settings-role');
-        if (roleInput) roleInput.value = role === 'admin' ? 'Administrador' : 'Cliente';
+        if (roleInput && !portalOwnsWorkspaceContext) roleInput.value = 'Cliente';
         const accountInput = document.getElementById('settings-account');
-        if (accountInput) accountInput.value = accountName || (email !== '—' ? email.split('@')[0] + ' workspace' : '—');
+        if (accountInput && !portalOwnsWorkspaceContext) {
+          accountInput.value = accountName || (email !== '—' ? email.split('@')[0] + ' workspace' : '—');
+        }
       }
 
       // Apply immediately from localStorage
@@ -2601,7 +2717,10 @@
           if (me.name) localStorage.setItem('gv_name', me.name);
           if (me.role) localStorage.setItem('gv_role', me.role);
           if (me.account_name) localStorage.setItem('gv_account_name', me.account_name);
-          if (me.account_id) localStorage.setItem('gv_account_id', me.account_id);
+          if (me.account_id && !document.body.hasAttribute('data-portal-state')) {
+            localStorage.setItem('gv_account_id', me.account_id);
+            if (!localStorage.getItem('gv_workspace_id')) localStorage.setItem('gv_workspace_id', me.account_id);
+          }
           if (me.company_id) localStorage.setItem('gv_company_id', me.company_id);
           // Re-apply with fresh data
           applyUserInfo(
@@ -2610,8 +2729,6 @@
             me.role || role,
             me.account_name || accountName
           );
-          // Pre-load reports count for KPI
-          loadReports();
         })
         .catch(() => { /* offline or error, keep localStorage data */ });
       }

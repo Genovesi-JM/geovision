@@ -1,6 +1,9 @@
+import { initCustomerPortal } from "./customer-portal.js";
+
 const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
 const SESSION_ACCOUNT_KEY = "gv_account_id";
+const SESSION_WORKSPACE_KEY = "gv_workspace_id";
 const SESSION_ACTIVE_SECTOR_KEY = "gv_active_sector";
 const CATALOG_SECTOR_KEY = "gv_catalog_sector";
 const API_BASE = window.API_BASE || "http://127.0.0.1:8010";
@@ -124,7 +127,12 @@ function authHeaders(accountId) {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
   };
-  if (accountId) headers["X-Account-ID"] = accountId;
+  if (accountId) {
+    // X-Workspace-ID is the canonical tenant context. X-Account-ID stays only
+    // as a compatibility header for legacy endpoints called by this module.
+    headers["X-Workspace-ID"] = accountId;
+    headers["X-Account-ID"] = accountId;
+  }
   return headers;
 }
 
@@ -1242,8 +1250,10 @@ function toggleModal(show) {
   if (!modal) return;
   if (show) {
     modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
   } else {
     modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
   }
 }
 
@@ -1413,4 +1423,10 @@ async function loadDashboard(accountIdHint, activeSectorHint) {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => loadDashboard());
+document.addEventListener("DOMContentLoaded", () => {
+  initCustomerPortal({
+    apiBase: API_BASE,
+    workspaceStorageKey: SESSION_WORKSPACE_KEY,
+    legacyWorkspaceStorageKey: SESSION_ACCOUNT_KEY,
+  });
+});

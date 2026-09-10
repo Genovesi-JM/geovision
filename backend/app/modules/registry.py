@@ -13,6 +13,7 @@ from .audit import definition as audit
 from .billing import definition as billing
 from .catalog import definition as catalog
 from .contracts import DomainModule
+from .customer_portal import definition as customer_portal
 from .datasets import definition as datasets
 from .identity import definition as identity
 from .missions import definition as missions
@@ -41,6 +42,7 @@ REQUIRED_DOMAIN_NAMES = (
     "notifications",
     "billing",
     "audit",
+    "customer_portal",
 )
 
 DOMAIN_MODULES: tuple[DomainModule, ...] = (
@@ -60,6 +62,7 @@ DOMAIN_MODULES: tuple[DomainModule, ...] = (
     notifications,
     billing,
     audit,
+    customer_portal,
 )
 
 DOMAIN_MODULES_BY_NAME = {module.name: module for module in DOMAIN_MODULES}
