@@ -5,8 +5,8 @@ import '../domain/product.dart';
 abstract final class DemoStoreCatalog {
   static const products = <GvProduct>[
     GvProduct(
-      id: 'prod_infra_progress',
-      name: 'Monitorização de Progresso de Obra',
+      id: 'prod_infra_progress_survey',
+      name: 'Levantamento de Progresso de Infraestrutura',
       category: 'service',
       priceCents: 66500,
       priceAkzCents: 55000000,
@@ -16,29 +16,33 @@ abstract final class DemoStoreCatalog {
       sectors: ['construction', 'infrastructure'],
       image: 'assets/images/store/construction-progress.jpg',
       description:
-          'Acompanhamento visual e volumétrico do progresso da construção, com evidências periódicas.',
-      deliverables: ['Ortomosaico', 'Modelo 3D', 'Relatório de progresso'],
+          'Levantamento RGB/RTK recorrente para comparar progresso apenas quando existem evidências de levantamento e planeamento válidas.',
+      deliverables: [
+        'Ortomosaico atual',
+        'Comparação com levantamento anterior',
+        'Relatório de progresso com evidências'
+      ],
       translations: {
         'en': {
-          'name': 'Construction Progress Monitoring',
+          'name': 'Infrastructure Progress Survey',
           'description':
-              'Visual and volumetric construction progress tracking with periodic evidence.'
+              'Repeat RGB/RTK survey for progress comparison only when valid survey and planning evidence exists.'
         },
         'es': {
-          'name': 'Seguimiento del Progreso de Obra',
+          'name': 'Levantamiento de Progreso de Infraestructura',
           'description':
-              'Seguimiento visual y volumétrico del progreso de la obra con evidencias periódicas.'
+              'Levantamiento RGB/RTK repetido para comparar el progreso solo con datos válidos de levantamiento y planificación.'
         },
         'fr': {
-          'name': 'Suivi de l’avancement des travaux',
+          'name': 'Relevé d’avancement d’infrastructure',
           'description':
-              'Suivi visuel et volumétrique du chantier avec des preuves périodiques.'
+              'Relevé RGB/RTK répété pour comparer l’avancement uniquement avec des données de relevé et de planification valides.'
         },
       },
     ),
     GvProduct(
-      id: 'prod_infra_inspection',
-      name: 'Inspeção Visual de Estruturas',
+      id: 'prod_infra_technical_inspection',
+      name: 'Inspeção Técnica de Infraestrutura',
       category: 'service',
       priceCents: 54500,
       priceAkzCents: 45000000,
@@ -47,23 +51,168 @@ abstract final class DemoStoreCatalog {
       sectors: ['construction', 'infrastructure'],
       image: 'assets/images/store/infrastructure-inspection.jpg',
       description:
-          'Inspeção visual de pontes, torres e edifícios, com evidências anotadas para revisão técnica.',
-      deliverables: ['Relatório de inspeção', 'Fotografias anotadas', 'Vídeo'],
+          'Observações visuais georreferenciadas para revisão qualificada; não constitui diagnóstico de engenharia.',
+      deliverables: [
+        'Fotografias georreferenciadas',
+        'Registo de áreas para revisão',
+        'Relatório ligado às evidências'
+      ],
       translations: {
         'en': {
-          'name': 'Visual Structure Inspection',
+          'name': 'Infrastructure Technical Inspection',
           'description':
-              'Visual inspection of bridges, towers and buildings with annotated evidence for technical review.'
+              'Georeferenced visual observations for qualified review; not an engineering diagnosis.'
         },
         'es': {
-          'name': 'Inspección Visual de Estructuras',
+          'name': 'Inspección Técnica de Infraestructura',
           'description':
-              'Inspección visual de puentes, torres y edificios con evidencias anotadas para revisión técnica.'
+              'Observaciones visuales georreferenciadas para revisión cualificada; no constituyen un diagnóstico de ingeniería.'
         },
         'fr': {
-          'name': 'Inspection visuelle des structures',
+          'name': 'Inspection technique d’infrastructure',
           'description':
-              'Inspection visuelle de ponts, tours et bâtiments avec preuves annotées pour examen technique.'
+              'Observations visuelles géoréférencées pour examen qualifié ; elles ne constituent pas un diagnostic d’ingénierie.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_infra_thermal_inspection',
+      name: 'Inspeção Térmica de Infraestrutura',
+      category: 'service',
+      priceCents: 57500,
+      priceAkzCents: 47500000,
+      priceEurCents: 52800,
+      currency: 'USD',
+      sectors: ['infrastructure'],
+      image: 'assets/images/store/infrastructure-inspection.jpg',
+      description:
+          'Regista anomalias de temperatura quando existem dados térmicos calibrados; não classifica anomalias como avarias.',
+      deliverables: [
+        'Imagens térmicas',
+        'Registo de anomalias de temperatura',
+        'Relatório ligado às evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Infrastructure Thermal Inspection',
+          'description':
+              'Records temperature anomalies from calibrated thermal data without labelling them as faults.'
+        },
+        'es': {
+          'name': 'Inspección Térmica de Infraestructura',
+          'description':
+              'Registra anomalías de temperatura a partir de datos térmicos calibrados sin clasificarlas como fallos.'
+        },
+        'fr': {
+          'name': 'Inspection thermique d’infrastructure',
+          'description':
+              'Consigne les anomalies de température issues de données thermiques étalonnées sans les qualifier de défaillances.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_infra_3d_mapping',
+      name: 'Mapeamento 3D de Infraestrutura',
+      category: 'service',
+      priceCents: 150500,
+      priceAkzCents: 125000000,
+      priceEurCents: 138900,
+      currency: 'USD',
+      sectors: ['infrastructure'],
+      image: 'assets/images/store/construction-progress.jpg',
+      description:
+          'Contexto 3D medido por fotogrametria ou LiDAR, conforme a fonte de aquisição validada.',
+      deliverables: [
+        'Nuvem de pontos georreferenciada',
+        'Malha 3D quando suportada',
+        'DSM ou DTM quando suportado'
+      ],
+      translations: {
+        'en': {
+          'name': 'Infrastructure 3D Mapping',
+          'description':
+              'Measured 3D context from photogrammetry or LiDAR, according to the validated acquisition source.'
+        },
+        'es': {
+          'name': 'Cartografía 3D de Infraestructura',
+          'description':
+              'Contexto 3D medido mediante fotogrametría o LiDAR, según la fuente de adquisición validada.'
+        },
+        'fr': {
+          'name': 'Cartographie 3D d’infrastructure',
+          'description':
+              'Contexte 3D mesuré par photogrammétrie ou LiDAR, selon la source d’acquisition validée.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_infra_specialist_review',
+      name: 'Revisão Especializada de Infraestrutura',
+      category: 'service',
+      priceCents: 24100,
+      priceAkzCents: 20000000,
+      priceEurCents: 22200,
+      currency: 'USD',
+      sectors: ['infrastructure'],
+      image: 'assets/images/store/infrastructure-inspection.jpg',
+      description:
+          'Revisão qualificada das evidências e áreas sinalizadas, preservando as observações e a proveniência originais.',
+      deliverables: [
+        'Registo da revisão',
+        'Notas do especialista',
+        'Decisão de seguimento documentada'
+      ],
+      translations: {
+        'en': {
+          'name': 'Infrastructure Specialist Review',
+          'description':
+              'Qualified review of evidence and flagged areas while preserving original observations and provenance.'
+        },
+        'es': {
+          'name': 'Revisión Especializada de Infraestructura',
+          'description':
+              'Revisión cualificada de evidencias y áreas señaladas, preservando las observaciones y la procedencia originales.'
+        },
+        'fr': {
+          'name': 'Examen spécialisé d’infrastructure',
+          'description':
+              'Examen qualifié des preuves et zones signalées, tout en préservant les observations et la provenance d’origine.'
+        },
+      },
+    ),
+    GvProduct(
+      id: 'prod_infra_monitoring_plan',
+      name: 'Plano de Monitorização de Infraestrutura',
+      category: 'subscription',
+      priceCents: 60300,
+      priceAkzCents: 50000000,
+      priceEurCents: 55500,
+      currency: 'USD',
+      featured: true,
+      sectors: ['infrastructure'],
+      image: 'assets/images/store/construction-progress.jpg',
+      description:
+          'Levantamentos recorrentes, controlos de qualidade, comparações e relatórios rastreáveis com cadência acordada.',
+      deliverables: [
+        'Calendário de monitorização',
+        'Histórico de comparações',
+        'Relatório recorrente com evidências'
+      ],
+      translations: {
+        'en': {
+          'name': 'Infrastructure Monitoring Plan',
+          'description':
+              'Recurring surveys, quality checks, comparisons and traceable reports on an agreed cadence.'
+        },
+        'es': {
+          'name': 'Plan de Monitorización de Infraestructura',
+          'description':
+              'Levantamientos recurrentes, controles de calidad, comparaciones e informes trazables con una frecuencia acordada.'
+        },
+        'fr': {
+          'name': 'Plan de suivi d’infrastructure',
+          'description':
+              'Relevés récurrents, contrôles qualité, comparaisons et rapports traçables selon une fréquence convenue.'
         },
       },
     ),

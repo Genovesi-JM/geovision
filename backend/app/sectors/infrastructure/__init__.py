@@ -1,6 +1,18 @@
-"""Infrastructure sector boundary, including construction compatibility."""
+"""Activated Infrastructure sector, including construction compatibility."""
 
+from app.core.routing import RouterMount
 from app.sectors.contracts import SectorModule
+
+from .domain import (
+    SUPPORTED_ASSET_TYPES,
+    SUPPORTED_DATASET_TYPES,
+    register_infrastructure,
+)
+from .reporting import register_infrastructure_report_context
+
+
+register_infrastructure()
+register_infrastructure_report_context()
 
 definition = SectorModule(
     name="infrastructure",
@@ -19,6 +31,22 @@ definition = SectorModule(
         "reports",
     ),
     legacy_identifiers=("infrastructure", "construction"),
+    enabled_by_default=True,
+    asset_types=tuple(sorted(SUPPORTED_ASSET_TYPES)),
+    dataset_types=tuple(sorted(SUPPORTED_DATASET_TYPES)),
+    routes=(
+        RouterMount(
+            "sector.infrastructure",
+            "analytics",
+            "app.sectors.infrastructure.router",
+            68,
+            secondary_owners=("actions", "assets", "datasets", "processing", "reports"),
+        ),
+    ),
 )
 
-__all__ = ["definition"]
+__all__ = [
+    "definition",
+    "register_infrastructure",
+    "register_infrastructure_report_context",
+]

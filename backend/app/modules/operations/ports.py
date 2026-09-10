@@ -12,6 +12,8 @@ class ConstructionProvider(Protocol):
     def synchronize_project(
         self,
         request: Mapping[str, Any],
+        *,
+        idempotency_key: str,
     ) -> IntegrationResult[Mapping[str, Any]]: ...
 
 

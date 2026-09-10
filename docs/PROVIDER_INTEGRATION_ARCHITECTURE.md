@@ -124,8 +124,8 @@ backfill can be considered after those ownership boundaries are established.
 | Notifications | `NotificationProvider`, `ExternalDeliveryProvider` | Contextual inbox and provider-pinned delivery rows are durable; SMTP, Azure Notification Hubs, ID-only local and unavailable adapters are selected lazily by an independent worker; live SMTP/APNs/FCM requires Gate 16 |
 | Identity | `IdentityProvider` | Internal-session and strict Entra External ID API access-token adapters implement the boundary; Google/Microsoft browser callbacks remain compatibility routes during the documented cutover |
 | AI narrative | `TextGenerationProvider` | Port declared; the existing OpenAI-compatible HTTP call and demo response remain a compatibility route rather than a completed adapter migration |
-| GIS and asset management | `GISProvider`, `AssetManagementProvider` | Placeholder ports only |
-| Construction systems | `ConstructionProvider` | Placeholder port only |
+| GIS and asset management | `GISProvider`, `AssetManagementProvider` | ArcGIS has a fail-closed scaffold and local contract fake behind `GISProvider`; asset management remains a placeholder |
+| Construction systems | `ConstructionProvider` | Autodesk APS, Procore, Bentley iTwin, and Trimble have fail-closed scaffolds plus a local contract fake |
 | Maritime systems | `MaritimeProvider` | Placeholder port only |
 
 The words “port” and “adapter” describe code boundaries, not commercial or
@@ -254,6 +254,43 @@ Git-ignored. Neither file has application-managed retention or rotation, and
 neither is allowed as a deployed provider. OAuth
 callbacks must still be described as compatibility behavior, not as proof of a
 complete identity-provider implementation.
+
+### Enterprise construction and GIS scaffolds
+
+Phase 28 makes the existing `ConstructionProvider` and `GISProvider` seams
+selectable without representing any vendor as connected. Construction supports
+the stable provider names `autodesk_aps`, `procore`, `bentley_itwin`, and
+`trimble`; GIS supports `arcgis`. Each named vendor resolves to an explicit,
+contract-correct unavailable adapter. With no credentials it returns
+`provider_not_configured`; with a complete client-ID/client-secret pair it still
+returns `adapter_unavailable`, because credentials alone do not prove tenant
+consent, product entitlement, project scope, API compatibility, or live access.
+No scaffold performs network I/O or imports a vendor SDK.
+
+Local and test profiles may select `fake`. The deterministic fakes validate an
+authoritative GeoVision UUID and return `simulated` results with opaque vendor
+values held only in `ExternalReference`. They do not produce progress,
+measurement, schedule, BIM, or GIS truth. Deployed profiles reject fake
+selection, and factory overrides also fail closed there.
+
+Construction synchronization requires an idempotency key at the port boundary.
+This makes the side-effecting nature explicit, but a future live adapter must
+still prove provider-side deduplication before retrying an uncertain write. GIS
+layer queries are read-only. Both scaffold families carry the shared
+`TimeoutPolicy`; no retry is attempted while adapters are unavailable.
+
+The optional credential fields are server-side and redacted from settings
+representations and safe diagnostics. Factories reduce them to a boolean and do
+not retain the values. External provider project, model, hub, and layer IDs are
+data references, not configuration or GeoVision identities. Phase 28 adds no
+generic provider/reference persistence; the provider-account registry and its
+ownership/backfill rules remain Phase 32 work.
+
+A live adapter requires a real customer account and sandbox, reviewed OAuth
+scopes and callback flow, verified tenant/project authorization, vendor-specific
+contract tests, rate-limit/error classification, and a release gate. Until all
+of those exist, `/health`, `/ready`, credential-completeness flags, and provider
+selection must not be described as connectivity checks.
 
 ## Adding an adapter
 

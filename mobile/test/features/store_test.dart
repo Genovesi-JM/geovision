@@ -11,7 +11,7 @@ void main() {
   test('demo catalogue contains only the current public product categories',
       () {
     final categories = DemoData.products().map((p) => p.category).toSet();
-    expect(categories, {'hardware', 'service'});
+    expect(categories, {'hardware', 'service', 'subscription'});
   });
 
   test('cart calculates quantities and removes empty lines', () {
@@ -82,8 +82,12 @@ void main() {
   test('demo products are production IDs and include all mobile translations',
       () {
     const activeIds = {
-      'prod_infra_progress',
-      'prod_infra_inspection',
+      'prod_infra_progress_survey',
+      'prod_infra_technical_inspection',
+      'prod_infra_thermal_inspection',
+      'prod_infra_3d_mapping',
+      'prod_infra_specialist_review',
+      'prod_infra_monitoring_plan',
       'prod_aerial_basic_mapping',
       'prod_agro_visual_inspection',
       'prod_supply_soil_probe',

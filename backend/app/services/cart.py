@@ -133,6 +133,177 @@ SHOP_PRODUCTS = [
 # SHOP_PRODUCTS as standby definitions, but are not advertised until a validated
 # project justifies rental, partnership or specialist delivery.
 SHOP_PRODUCTS += [
+    {
+        "id": "prod_infra_progress_survey",
+        "name": "Infrastructure Progress Survey",
+        "slug": "infrastructure-progress-survey",
+        "description": (
+            "Repeatable RGB/RTK survey for evidence-backed construction progress comparison. "
+            "Progress and schedule variance are reported only when suitable survey and trusted "
+            "schedule evidence is available."
+        ),
+        "short_description": "Repeat survey and source-backed progress comparison",
+        "product_type": "service",
+        "category": "infrastructure_progress",
+        "execution_type": "recorrente",
+        "price": 55000000,
+        "price_usd": 66500,
+        "price_eur": 61100,
+        "currency": "AOA",
+        "tax_rate": 0.14,
+        "duration_hours": 48,
+        "requires_site": True,
+        "sectors": ["infrastructure"],
+        "deliverables": [
+            "Current orthomosaic",
+            "Previous-survey comparison",
+            "Evidence-linked progress report",
+        ],
+        "image_url": "/assets/img/products/infra-progress.jpg",
+        "is_active": True,
+        "is_featured": True,
+    },
+    {
+        "id": "prod_infra_technical_inspection",
+        "name": "Infrastructure Technical Inspection",
+        "slug": "infrastructure-technical-inspection",
+        "description": (
+            "Documented visual inspection of an infrastructure asset with georeferenced review "
+            "areas. Findings are observations for qualified review, not an engineering diagnosis."
+        ),
+        "short_description": "Georeferenced visual observations for technical review",
+        "product_type": "service",
+        "category": "infrastructure_inspection",
+        "execution_type": "pontual",
+        "price": 45000000,
+        "price_usd": 54500,
+        "price_eur": 50000,
+        "currency": "AOA",
+        "tax_rate": 0.14,
+        "duration_hours": 24,
+        "requires_site": True,
+        "sectors": ["infrastructure"],
+        "deliverables": [
+            "Georeferenced photographs",
+            "Review-area register",
+            "Evidence-linked inspection report",
+        ],
+        "image_url": "/assets/img/products/infra-inspection.jpg",
+        "is_active": True,
+    },
+    {
+        "id": "prod_infra_thermal_inspection",
+        "name": "Infrastructure Thermal Inspection",
+        "slug": "infrastructure-thermal-inspection",
+        "description": (
+            "Thermal survey that records temperature anomalies when calibrated thermal data is "
+            "available. Anomalies require specialist interpretation and are not labelled as faults."
+        ),
+        "short_description": "Source-backed thermal anomaly survey",
+        "product_type": "service",
+        "category": "infrastructure_inspection",
+        "execution_type": "pontual",
+        "price": 47500000,
+        "price_usd": 57500,
+        "price_eur": 52800,
+        "currency": "AOA",
+        "tax_rate": 0.14,
+        "duration_hours": 24,
+        "requires_site": True,
+        "sectors": ["infrastructure"],
+        "deliverables": [
+            "Thermal imagery",
+            "Temperature-anomaly register",
+            "Evidence-linked inspection report",
+        ],
+        "image_url": "/assets/img/products/infra-inspection.jpg",
+        "is_active": True,
+    },
+    {
+        "id": "prod_infra_3d_mapping",
+        "name": "Infrastructure 3D Mapping",
+        "slug": "infrastructure-3d-mapping",
+        "description": (
+            "Photogrammetric or LiDAR mapping, selected according to the validated acquisition "
+            "source, for measured 3D context and historical comparison."
+        ),
+        "short_description": "Measured point-cloud and 3D context",
+        "product_type": "service",
+        "category": "infrastructure_mapping",
+        "execution_type": "pontual",
+        "price": 125000000,
+        "price_usd": 150500,
+        "price_eur": 138900,
+        "currency": "AOA",
+        "tax_rate": 0.14,
+        "duration_hours": 96,
+        "requires_site": True,
+        "sectors": ["infrastructure"],
+        "deliverables": [
+            "Georeferenced point cloud",
+            "3D mesh where processing supports it",
+            "DSM or DTM where processing supports it",
+        ],
+        "image_url": "/assets/img/products/infra-digital-twin.jpg",
+        "is_active": True,
+    },
+    {
+        "id": "prod_infra_specialist_review",
+        "name": "Infrastructure Specialist Review",
+        "slug": "infrastructure-specialist-review",
+        "description": (
+            "Qualified review of GeoVision evidence and flagged areas. The specialist records a "
+            "separate conclusion without changing the original observation or provenance."
+        ),
+        "short_description": "Qualified review of evidence and flagged areas",
+        "product_type": "service",
+        "category": "specialist_review",
+        "execution_type": "pontual",
+        "price": 20000000,
+        "price_usd": 24100,
+        "price_eur": 22200,
+        "currency": "AOA",
+        "tax_rate": 0.14,
+        "duration_hours": 16,
+        "requires_site": False,
+        "sectors": ["infrastructure"],
+        "deliverables": [
+            "Evidence review record",
+            "Specialist notes",
+            "Documented follow-up decision",
+        ],
+        "image_url": "/assets/img/products/infra-inspection.jpg",
+        "is_active": True,
+    },
+    {
+        "id": "prod_infra_monitoring_plan",
+        "name": "Infrastructure Monitoring Plan",
+        "slug": "infrastructure-monitoring-plan",
+        "description": (
+            "Recurring evidence collection and comparison plan with an agreed cadence, quality "
+            "checks, review workflow, and traceable reports."
+        ),
+        "short_description": "Recurring surveys, comparisons, and traceable reviews",
+        "product_type": "monitoring_plan",
+        "category": "infrastructure_monitoring",
+        "execution_type": "recorrente",
+        "price": 50000000,
+        "price_usd": 60300,
+        "price_eur": 55500,
+        "currency": "AOA",
+        "tax_rate": 0.14,
+        "duration_hours": 48,
+        "requires_site": True,
+        "sectors": ["infrastructure"],
+        "deliverables": [
+            "Monitoring schedule",
+            "Survey comparison history",
+            "Recurring evidence-linked report",
+        ],
+        "image_url": "/assets/img/products/infra-progress.jpg",
+        "is_active": True,
+        "is_featured": True,
+    },
     {"id": "prod_aerial_basic_mapping", "name": "Mapeamento Aéreo Essencial", "slug": "mapeamento-aereo-essencial", "description": "Mapeamento visual de uma quinta, propriedade ou local com ortomosaico e resumo de observações.", "short_description": "Mapa visual e documentação do local", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 35000000, "price_usd": 42500, "price_eur": 38900, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro", "infrastructure", "environment"], "deliverables": ["Ortomosaico visual", "Fotografias georreferenciadas", "Resumo de observações"], "image_url": "/assets/img/products/agro-cadastral.jpg", "is_active": True, "is_featured": True},
     {"id": "prod_agro_visual_inspection", "name": "Inspeção Visual Agrícola", "slug": "inspecao-visual-agricola", "description": "Inspeção aérea visual para documentar culturas, irrigação, acessos e anomalias visíveis sem prometer análise multiespectral.", "short_description": "Observação visual e registo da exploração", "product_type": "service", "category": "flight", "execution_type": "pontual", "price": 25000000, "price_usd": 30500, "price_eur": 27800, "currency": "AOA", "tax_rate": 0.14, "duration_hours": 24, "requires_site": True, "sectors": ["agro"], "deliverables": ["Fotografias aéreas", "Mapa de observações", "Relatório visual"], "image_url": "/assets/img/products/agro-ndvi.jpg", "is_active": True, "is_featured": True},
     {"id": "prod_supply_soil_probe", "name": "Kit de Sondas de Solo", "slug": "kit-sondas-solo", "description": "Sondas de humidade do solo para substituição, expansão ou primeiro protótipo GeoVision. Fornecimento sujeito a confirmação de compatibilidade.", "short_description": "Sondas para medir humidade do solo", "product_type": "hardware", "category": "sensor", "price": 2550000, "price_usd": 3000, "price_eur": 2800, "currency": "AOA", "tax_rate": 0.14, "requires_site": False, "sectors": ["agro"], "deliverables": ["2 sondas capacitivas", "Guia de ligação", "Verificação de compatibilidade"], "image_url": None, "is_active": True},
@@ -142,6 +313,12 @@ SHOP_PRODUCTS += [
 ]
 
 _PUBLIC_STATIC_PRODUCT_IDS = {
+    "prod_infra_progress_survey",
+    "prod_infra_technical_inspection",
+    "prod_infra_thermal_inspection",
+    "prod_infra_3d_mapping",
+    "prod_infra_specialist_review",
+    "prod_infra_monitoring_plan",
     "prod_infra_progress",
     "prod_infra_inspection",
     "prod_aerial_basic_mapping",

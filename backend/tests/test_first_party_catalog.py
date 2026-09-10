@@ -84,6 +84,51 @@ def test_public_catalogue_is_canonical_and_published_only(client, db_session):
     assert client.get(f"/catalog/items/{archived.id}").status_code == 404
 
 
+def test_infrastructure_catalogue_exposes_the_six_supported_actions(client):
+    response = client.get("/catalog/items", params={"sector": "infrastructure"})
+    assert response.status_code == 200, response.text
+    items = {item["id"]: item for item in response.json()}
+
+    expected = {
+        "prod_infra_progress_survey": "SERVICE",
+        "prod_infra_technical_inspection": "INSPECTION",
+        "prod_infra_thermal_inspection": "INSPECTION",
+        "prod_infra_3d_mapping": "SERVICE",
+        "prod_infra_specialist_review": "SERVICE",
+        "prod_infra_monitoring_plan": "MONITORING_PLAN",
+    }
+    assert expected.keys() <= items.keys()
+    for item_id, item_type in expected.items():
+        item = items[item_id]
+        assert item["item_type"] == item_type
+        assert item["sectors"] == ["INFRASTRUCTURE"]
+        assert {"BUILDING", "BRIDGE", "ROAD", "SITE"} <= set(
+            item["asset_types"]
+        )
+        assert item["deliverables"]
+        assert "supplier_id" not in item
+        assert "metadata" not in item
+        assert set(item["translations"]) == {"pt", "en", "es", "fr"}
+        assert all(
+            translation["name"] and translation["description"]
+            for translation in item["translations"].values()
+        )
+
+    assert "not an engineering diagnosis" in items[
+        "prod_infra_technical_inspection"
+    ]["description"]
+    assert "not labelled as faults" in items[
+        "prod_infra_thermal_inspection"
+    ]["description"]
+
+    road_response = client.get(
+        "/catalog/items",
+        params={"sector": "infrastructure", "asset_type": "road"},
+    )
+    assert road_response.status_code == 200, road_response.text
+    assert expected.keys() <= {item["id"] for item in road_response.json()}
+
+
 def test_authorized_staff_manage_one_catalogue_for_every_offer_type(client):
     headers = _login_headers(client, "teste@admin.com")
     suffix = uuid.uuid4().hex[:8]

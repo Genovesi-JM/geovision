@@ -70,6 +70,28 @@ _LEGACY_SECTORS = {
     "PORTS_INDUSTRIAL": "industry",
 }
 
+_INFRASTRUCTURE_SERVICE_ASSET_TYPES = (
+    "BUILDING",
+    "BRIDGE",
+    "FACILITY",
+    "PIPELINE",
+    "RAILWAY",
+    "ROAD",
+    "SITE",
+    "STRUCTURE",
+)
+_LEGACY_PRODUCT_ASSET_TYPES = {
+    product_id: _INFRASTRUCTURE_SERVICE_ASSET_TYPES
+    for product_id in (
+        "prod_infra_progress_survey",
+        "prod_infra_technical_inspection",
+        "prod_infra_thermal_inspection",
+        "prod_infra_3d_mapping",
+        "prod_infra_specialist_review",
+        "prod_infra_monitoring_plan",
+    )
+}
+
 
 def _identifier(value: object, default: str) -> str:
     normalized = re.sub(r"[^A-Za-z0-9]+", "_", str(value or default).strip())
@@ -719,7 +741,12 @@ def sync_shop_product(db: Session, product: ShopProduct, *, overwrite: bool = Fa
     item.item_type = item_type
     item.category = product.category
     item.sectors_json = _json(sorted({normalize_sector(v) for v in _json_list(product.sectors_json)}))
-    item.asset_types_json = _json([normalize_asset_type(product.category or "SITE")])
+    configured_asset_types = _LEGACY_PRODUCT_ASSET_TYPES.get(product.id)
+    item.asset_types_json = _json(
+        list(configured_asset_types)
+        if configured_asset_types is not None
+        else [normalize_asset_type(product.category or "SITE")]
+    )
     item.customer_content_json = _json(
         {
             "short_description": product.short_description,

@@ -203,8 +203,8 @@ MARITIME_PROVIDER=none
 
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
 `IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, `PROCESSING_PROVIDER`,
-`WEATHER_PROVIDER`, `SATELLITE_PROVIDER`, and `IOT_CLOUD_PROVIDER` drive
-provider boundaries. Queue
+`WEATHER_PROVIDER`, `SATELLITE_PROVIDER`, `IOT_CLOUD_PROVIDER`,
+`CONSTRUCTION_PROVIDER`, and `GIS_PROVIDER` drive provider boundaries. Queue
 delivery accepts `database`, test-only `in_memory`, `azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
@@ -216,7 +216,34 @@ and Bentley Reality Modeling names deliberately resolve to explicit unavailable
 scaffolds until their adapters are implemented and approved. Satellite accepts
 `none`, local/test `fake`, or `copernicus`. Weather accepts `none`, local/test
 `fake`, or `aemet`; Azure Maps provider names resolve to an explicit unavailable
-scaffold. GIS, construction, asset-management, and maritime remain reserved seams.
+scaffold. Construction accepts `none`, local/test `fake`, `autodesk_aps`,
+`procore`, `bentley_itwin`, or `trimble`. GIS accepts `none`, local/test `fake`,
+or `arcgis`. Every named construction/GIS vendor is an explicit unavailable
+scaffold in Phase 28; supplying credentials does not turn it into a live
+connector. Asset-management and maritime remain reserved seams.
+
+Optional enterprise OAuth application credentials are typed and redacted:
+
+```dotenv
+AUTODESK_APS_CLIENT_ID=
+AUTODESK_APS_CLIENT_SECRET=
+PROCORE_CLIENT_ID=
+PROCORE_CLIENT_SECRET=
+BENTLEY_ITWIN_CLIENT_ID=
+BENTLEY_ITWIN_CLIENT_SECRET=
+TRIMBLE_CLIENT_ID=
+TRIMBLE_CLIENT_SECRET=
+ARCGIS_CLIENT_ID=
+ARCGIS_CLIENT_SECRET=
+```
+
+These pairs are future-adapter inputs, not evidence of authorization, tenant
+selection, project access, API entitlement, or production readiness. The
+factories retain only a credential-completeness boolean in unavailable
+scaffolds and never expose credential values. Provider project/model/layer IDs
+belong in `ExternalReference` values associated with authoritative GeoVision
+UUIDs; they are not configuration and never become primary IDs. No generic
+provider registry is created in this phase.
 
 In addition to the signing and encryption guards, identity, processing,
 satellite and weather selector structure is validated when settings load;
@@ -681,7 +708,8 @@ configured account and an adapter-specific verification.
 
 ## Unsupported legacy variables
 
-Older documentation named DJI Terra, Pix4D, DroneDeploy, BIM 360, Procore, and
-ArcGIS variables. The Phase 2 settings model does not consume those variables,
-and no live adapter for them is activated. Add future credentials only alongside
-the corresponding tested adapter and typed settings fields.
+Older documentation named DJI Terra, Pix4D, DroneDeploy, and BIM 360 variables.
+Those legacy names remain unsupported. Phase 28 adds the exact typed credential
+pairs above for fail-closed Autodesk APS, Procore, Bentley iTwin, Trimble, and
+ArcGIS scaffolds; no live adapter is activated. Do not add undocumented aliases,
+provider project IDs, or tokens to the environment.

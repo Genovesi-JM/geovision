@@ -256,6 +256,19 @@ class Settings(BaseSettings):
     asset_management_provider: str = "none"
     maritime_provider: str = "none"
 
+    # Optional enterprise adapter credentials. Phase 28 provides fail-closed
+    # scaffolds only; setting these values does not activate live connectivity.
+    autodesk_aps_client_id: Optional[str] = Field(default=None, repr=False)
+    autodesk_aps_client_secret: Optional[str] = Field(default=None, repr=False)
+    procore_client_id: Optional[str] = Field(default=None, repr=False)
+    procore_client_secret: Optional[str] = Field(default=None, repr=False)
+    bentley_itwin_client_id: Optional[str] = Field(default=None, repr=False)
+    bentley_itwin_client_secret: Optional[str] = Field(default=None, repr=False)
+    trimble_client_id: Optional[str] = Field(default=None, repr=False)
+    trimble_client_secret: Optional[str] = Field(default=None, repr=False)
+    arcgis_client_id: Optional[str] = Field(default=None, repr=False)
+    arcgis_client_secret: Optional[str] = Field(default=None, repr=False)
+
     # Shared integration timeout/retry conventions.
     integration_connect_timeout_seconds: float = Field(default=5.0, gt=0)
     integration_read_timeout_seconds: float = Field(default=30.0, gt=0)
@@ -440,6 +453,16 @@ class Settings(BaseSettings):
             "nodeodm_token",
             "copernicus_access_token",
             "aemet_api_key",
+            "autodesk_aps_client_id",
+            "autodesk_aps_client_secret",
+            "procore_client_id",
+            "procore_client_secret",
+            "bentley_itwin_client_id",
+            "bentley_itwin_client_secret",
+            "trimble_client_id",
+            "trimble_client_secret",
+            "arcgis_client_id",
+            "arcgis_client_secret",
             "s3_access_key_id",
             "s3_secret_access_key",
             "azure_storage_connection_string",
@@ -772,6 +795,24 @@ class Settings(BaseSettings):
             )
         if self.weather_provider in {"aemet", "aemet_opendata"} and not self.aemet_api_key:
             raise ValueError("AEMET weather requires AEMET_API_KEY")
+        construction_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "autodesk_aps",
+            "procore",
+            "bentley_itwin",
+            "trimble",
+        }
+        if self.construction_provider not in construction_providers:
+            raise ValueError(
+                "CONSTRUCTION_PROVIDER must be none, fake, autodesk_aps, procore, "
+                "bentley_itwin, or trimble"
+            )
+        gis_providers = {"none", "null", "fake", "deterministic", "arcgis"}
+        if self.gis_provider not in gis_providers:
+            raise ValueError("GIS_PROVIDER must be none, fake, or arcgis")
         if not re.fullmatch(r"[a-z0-9][a-z0-9._-]{1,119}", self.satellite_default_collection):
             raise ValueError("SATELLITE_DEFAULT_COLLECTION is invalid")
         asset_keys = self.satellite_download_asset_key_list
@@ -975,6 +1016,12 @@ class Settings(BaseSettings):
                 raise ValueError("deployed environments cannot use the fake satellite provider")
             if self.weather_provider in {"fake", "deterministic"}:
                 raise ValueError("deployed environments cannot use the fake weather provider")
+            if self.construction_provider in {"fake", "deterministic"}:
+                raise ValueError(
+                    "deployed environments cannot use the fake construction provider"
+                )
+            if self.gis_provider in {"fake", "deterministic"}:
+                raise ValueError("deployed environments cannot use the fake GIS provider")
             if self.erp_provider == "odoo" and (
                 not self.odoo_webhook_secret or len(self.odoo_webhook_secret) < 32
             ):
@@ -1144,6 +1191,53 @@ class Settings(BaseSettings):
     def multicaixa_configuration_complete(self) -> bool:
         return bool(self.multicaixa_merchant_id and self.multicaixa_api_key)
 
+    @staticmethod
+    def _client_credentials_complete(
+        client_id: Optional[str],
+        client_secret: Optional[str],
+    ) -> bool:
+        return bool(
+            client_id
+            and client_id.strip()
+            and client_secret
+            and client_secret.strip()
+        )
+
+    @property
+    def autodesk_aps_configuration_complete(self) -> bool:
+        return self._client_credentials_complete(
+            self.autodesk_aps_client_id,
+            self.autodesk_aps_client_secret,
+        )
+
+    @property
+    def procore_configuration_complete(self) -> bool:
+        return self._client_credentials_complete(
+            self.procore_client_id,
+            self.procore_client_secret,
+        )
+
+    @property
+    def bentley_itwin_configuration_complete(self) -> bool:
+        return self._client_credentials_complete(
+            self.bentley_itwin_client_id,
+            self.bentley_itwin_client_secret,
+        )
+
+    @property
+    def trimble_configuration_complete(self) -> bool:
+        return self._client_credentials_complete(
+            self.trimble_client_id,
+            self.trimble_client_secret,
+        )
+
+    @property
+    def arcgis_configuration_complete(self) -> bool:
+        return self._client_credentials_complete(
+            self.arcgis_client_id,
+            self.arcgis_client_secret,
+        )
+
     @property
     def database_driver(self) -> str:
         scheme = urlsplit(self.database_url).scheme
@@ -1255,6 +1349,11 @@ class Settings(BaseSettings):
                     self.weather_provider in {"aemet", "aemet_opendata"}
                     and self.aemet_api_key
                 ),
+                "autodesk_aps": self.autodesk_aps_configuration_complete,
+                "procore": self.procore_configuration_complete,
+                "bentley_itwin": self.bentley_itwin_configuration_complete,
+                "trimble": self.trimble_configuration_complete,
+                "arcgis": self.arcgis_configuration_complete,
                 "erpnext": bool(
                     self.erpnext_base_url
                     and self.erpnext_api_key
