@@ -5,16 +5,18 @@ Endpoints for risk assessment using rule-based engine.
 Sectors: Mining, Infrastructure, Construction, Agriculture, Demining
 """
 import logging
-import uuid as _uuid
-from typing import Optional, List
+from typing import List
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.deps import get_current_user, get_db
+from app.deps import get_authorization_context, get_db
 from app.core.time import utc_now
+from app.models import RiskAssessment as RiskAssessmentModel, Site
+from app.modules.identity.domain import AuthorizationContext
+from app.modules.organizations.domain import permission_granted
 
 from app.services.risk_engine import (
     get_risk_engine,
@@ -27,7 +29,11 @@ from app.services.risk_engine import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/risk", tags=["risk"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/risk",
+    tags=["risk"],
+    dependencies=[Depends(get_authorization_context)],
+)
 
 
 # ============ SCHEMAS ============
@@ -54,15 +60,50 @@ class RiskHistoryResponse(BaseModel):
 
 # ============ ENDPOINTS ============
 
+def _authorized_site(
+    db: Session,
+    *,
+    context: AuthorizationContext,
+    site_id: str,
+    permission: str,
+) -> Site:
+    if (
+        not context.active_organization_id
+        or not context.active_workspace_id
+        or not permission_granted(context.permissions, permission)
+    ):
+        raise HTTPException(status_code=403, detail="Workspace access denied")
+    site = (
+        db.query(Site)
+        .filter(
+            Site.id == site_id,
+            Site.company_id == context.active_organization_id,
+            Site.is_active.is_(True),
+        )
+        .one_or_none()
+    )
+    if site is None:
+        raise HTTPException(status_code=404, detail="Site not found")
+    return site
+
 @router.post("/assess", response_model=RiskAssessmentResponse)
-async def assess_risk(request: RiskAssessmentRequest, db: Session = Depends(get_db)):
+async def assess_risk(
+    request: RiskAssessmentRequest,
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    _authorized_site(
+        db,
+        context=context,
+        site_id=request.site_id,
+        permission="asset:update",
+    )
     engine = get_risk_engine()
     result = engine.assess(site_id=request.site_id, sector=request.sector, data=request.data)
 
     # Persist to DB
-    from app.models import RiskAssessment as RAModel
     import json as _json
-    ra = RAModel(
+    ra = RiskAssessmentModel(
         id=result.assessment_id, site_id=result.site_id,
         sector=result.sector.value, risk_score=result.risk_score,
         risk_level=result.risk_level.value,
@@ -72,7 +113,8 @@ async def assess_risk(request: RiskAssessmentRequest, db: Session = Depends(get_
             "recommendations": result.recommendations,
         }),
     )
-    db.add(ra); db.commit()
+    db.add(ra)
+    db.commit()
 
     logger.info(f"Risk assessment for site {request.site_id}: score={result.risk_score}, level={result.risk_level.value}")
 
@@ -105,13 +147,26 @@ async def get_risk_history(
     site_id: str,
     sector: SectorType = Query(...),
     days: int = Query(30, ge=1, le=365),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    from app.models import RiskAssessment as RAModel
+    _authorized_site(
+        db,
+        context=context,
+        site_id=site_id,
+        permission="asset:read",
+    )
     cutoff = utc_now() - timedelta(days=days)
-    rows = (db.query(RAModel)
-            .filter(RAModel.site_id == site_id, RAModel.created_at >= cutoff)
-            .order_by(RAModel.created_at.asc()).all())
+    rows = (
+        db.query(RiskAssessmentModel)
+        .filter(
+            RiskAssessmentModel.site_id == site_id,
+            RiskAssessmentModel.sector == sector.value,
+            RiskAssessmentModel.created_at >= cutoff,
+        )
+        .order_by(RiskAssessmentModel.created_at.asc())
+        .all()
+    )
 
     if not rows:
         return RiskHistoryResponse(site_id=site_id, sector=sector.value,

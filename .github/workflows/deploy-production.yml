@@ -1,0 +1,89 @@
+name: Deploy - production
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_image_digest:
+        description: Approved staging geovision-backend digest (sha256:...)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-production
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce main and immutable digest
+        env:
+          STAGING_IMAGE_DIGEST: ${{ inputs.staging_image_digest }}
+        run: |
+          if [[ "${GITHUB_REF}" != 'refs/heads/main' ]]; then
+            echo 'Production deployment is permitted only from main.' >&2
+            exit 1
+          fi
+          if [[ ! "${STAGING_IMAGE_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo 'staging_image_digest must be an immutable lowercase sha256 digest.' >&2
+            exit 1
+          fi
+
+  deploy-production:
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      STAGING_IMAGE_DIGEST: ${{ inputs.staging_image_digest }}
+      AZURE_STAGING_ACR_NAME: ${{ vars.AZURE_STAGING_ACR_NAME }}
+      AZURE_PARAMETERS_FILE: infra/azure/prod.bicepparam
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_DEPLOYMENT_PREFIX: geovision-prod
+      AZURE_REGISTER_PROVIDERS: 'false'
+      GEOVISION_FRONTEND_BASE_URL: ${{ vars.GEOVISION_FRONTEND_BASE_URL }}
+      GEOVISION_CORS_ORIGINS: ${{ vars.GEOVISION_CORS_ORIGINS }}
+      GEOVISION_POSTGRES_ADMIN_PASSWORD: ${{ secrets.GEOVISION_POSTGRES_ADMIN_PASSWORD }}
+      GEOVISION_SECRET_KEY: ${{ secrets.GEOVISION_SECRET_KEY }}
+      GEOVISION_ENCRYPTION_KEY: ${{ secrets.GEOVISION_ENCRYPTION_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - name: Sign in to Azure with GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Provision production foundation
+        env:
+          GEOVISION_IMAGE_TAG: release-${{ github.run_id }}-${{ github.run_attempt }}
+        run: infra/azure/deploy.sh --foundation-only
+      - name: Promote the approved staging manifest without rebuilding
+        env:
+          PROMOTION_TAG: release-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          production_acr="$(az deployment sub show --name "${AZURE_DEPLOYMENT_PREFIX}-foundation" --query properties.outputs.acrName.value --output tsv)"
+          promoted_digest="$(infra/azure/promote-image.sh "${AZURE_STAGING_ACR_NAME}" "${production_acr}" "${STAGING_IMAGE_DIGEST}" "${PROMOTION_TAG}")"
+          if [[ "${promoted_digest}" != "${STAGING_IMAGE_DIGEST}" ]]; then
+            echo 'Production promotion did not preserve the approved digest.' >&2
+            exit 1
+          fi
+          printf 'GEOVISION_IMAGE_DIGEST=%s\n' "${promoted_digest}" >> "${GITHUB_ENV}"
+      - name: Run migration-first production release
+        env:
+          GEOVISION_IMAGE_TAG: release-${{ github.run_id }}-${{ github.run_attempt }}
+        run: infra/azure/deploy.sh
+      - name: Record non-sensitive deployment evidence
+        run: |
+          api_url="$(az deployment sub show --name "${AZURE_DEPLOYMENT_PREFIX}-runtime" --query properties.outputs.apiUrl.value --output tsv)"
+          printf '### Production deployment\n\n- Commit: `%s`\n- Image digest: `%s`\n- API: %s\n' \
+            "${GITHUB_SHA}" "${GEOVISION_IMAGE_DIGEST}" "${api_url}" >> "${GITHUB_STEP_SUMMARY}"

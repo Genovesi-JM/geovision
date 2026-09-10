@@ -21,14 +21,6 @@ definition = DomainModule(
             secondary_owners=("identity",),
         ),
         RouterMount("organizations.accounts", "organizations", "app.routers.accounts", 40),
-        RouterMount(
-            "organizations.customer_accounts",
-            "organizations",
-            "app.routers.customer_accounts",
-            90,
-            prefix="/accounts/customers",
-            tags=("accounts",),
-        ),
     ),
 )
 

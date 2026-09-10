@@ -39,15 +39,6 @@ definition = DomainModule(
             secondary_owners=("orders", "assets", "audit"),
         ),
         RouterMount(
-            "operations.employees",
-            "operations",
-            "app.routers.employees",
-            100,
-            prefix="/accounts/employees",
-            tags=("accounts",),
-            secondary_owners=("organizations",),
-        ),
-        RouterMount(
             "operations.admin",
             "operations",
             "app.routers.admin",

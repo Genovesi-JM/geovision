@@ -9,6 +9,7 @@ param environmentName = 'dev'
 param deployApplications = false
 param deployMigrationJob = false
 param imageTag = 'dev'
+param imageDigest = ''
 
 param frontendBaseUrl = 'https://geovisionops.com'
 param corsOrigins = 'https://geovisionops.com,https://www.geovisionops.com'

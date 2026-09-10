@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.integration import IntegrationError
-from app.deps import get_current_user
+from app.core.time import utc_now
+from app.deps import get_current_user, require_admin
 from app.integrations.erp import get_erp_adapter
 from app.models import ErpExternalReference, IntegrationOutbox, User
 from app.modules.organizations.services import get_user_company_id
@@ -20,10 +21,9 @@ from app.services.erp_callbacks import (
     apply_odoo_status_callback,
     verify_callback_signature,
 )
-from app.core.time import utc_now
+from app.services.erp_sync import process_pending
 
 _get_user_company_id = get_user_company_id
-from app.services.erp_sync import process_pending
 
 router = APIRouter(prefix="/integrations/erp", tags=["integrations"])
 
@@ -61,11 +61,6 @@ class OdooStatusCallback(BaseModel):
         if self.event_type != "order.status" and required_field is None:
             raise ValueError("callback event type does not match its status field")
         return self
-
-
-def _require_admin(user: User) -> None:
-    if user.role not in {"admin", "superadmin"}:
-        raise HTTPException(status_code=403, detail="Administrator access required")
 
 
 @router.get("/status")
@@ -113,8 +108,7 @@ def status(user: User = Depends(get_current_user), db: Session = Depends(get_db)
 
 
 @router.post("/sync")
-def sync(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    _require_admin(user)
+def sync(user: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         return process_pending(db)
     except IntegrationError as exc:
@@ -127,10 +121,9 @@ def sync(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 @router.get("/outbox")
 def list_outbox(
     limit: int = 100,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     company_id = _get_user_company_id(user, db)
     rows = (
         db.query(IntegrationOutbox)
@@ -162,10 +155,9 @@ def list_outbox(
 @router.post("/outbox/{outbox_id}/requeue")
 def requeue_outbox(
     outbox_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     company_id = _get_user_company_id(user, db)
     row = (
         db.query(IntegrationOutbox)

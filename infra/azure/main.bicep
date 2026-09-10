@@ -28,6 +28,9 @@ param deployMigrationJob bool = deployApplications
 @description('Tag of the geovision-backend image in the provisioned Azure Container Registry.')
 param imageTag string = 'dev'
 
+@description('Optional immutable sha256 manifest digest already present in this environment ACR. When supplied it takes precedence over imageTag.')
+param imageDigest string = ''
+
 @description('Public frontend origin used by CORS and generated links.')
 param frontendBaseUrl string = 'https://geovisionops.com'
 
@@ -82,6 +85,7 @@ module environment './environment.bicep' = {
     deployApplications: deployApplications
     deployMigrationJob: deployMigrationJob
     imageTag: imageTag
+    imageDigest: imageDigest
     frontendBaseUrl: frontendBaseUrl
     corsOrigins: corsOrigins
     postgresAdministratorPassword: postgresAdministratorPassword

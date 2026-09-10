@@ -312,7 +312,8 @@ how to confirm · what the automation does afterwards.
   approved provider secrets, and approve the DNS/traffic change only after the
   staging evidence is reviewed.
 - **Where:** Azure staging and the organization DNS/provider consoles, following
-  [the Azure deployment runbook](infra/azure/README.md); secrets stay in the
+  [the Azure deployment runbook](infra/azure/README.md) and
+  [release checklist](docs/RELEASE_CHECKLIST.md); secrets stay in the
   protected deployment environment and Key Vault, never Git or chat logs.
 - **Confirm:** `/health` and schema-gated `/ready` pass; authentication and
   organization isolation pass; all five workers consume and recover work;

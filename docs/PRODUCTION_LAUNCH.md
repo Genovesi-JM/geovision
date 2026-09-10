@@ -1,5 +1,10 @@
 # GeoVision — Production / Non‑Demo Launch Checklist
 
+The operational deployment record is the
+[release checklist](RELEASE_CHECKLIST.md). It requires the exact staging image
+digest, migration-first Azure release, authorization smoke tests, worker and
+integration health, reviewer evidence, and a compatible-digest rollback plan.
+
 This is the exact list of what is already real in code vs. what still needs
 **your credentials/infrastructure or client cutover work** to run fully live.
 

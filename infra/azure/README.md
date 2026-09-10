@@ -27,8 +27,14 @@ quotas are suitable for this catalog, not a high-volume runtime dependency.
 ## Prerequisites and secrets
 
 Use Azure CLI with permission to create the resource group, resources, and role
-assignments. The helper registers all required resource providers. Export the
-three values referenced by `dev.bicepparam`:
+assignments. A subscription owner performs provider registration once; routine
+deployment identities do not need that subscription-level permission:
+
+```bash
+infra/azure/deploy.sh --register-providers
+```
+
+Export the three values referenced by `dev.bicepparam`:
 
 ```bash
 export GEOVISION_POSTGRES_ADMIN_PASSWORD='...'
@@ -57,7 +63,9 @@ Set `BICEP_BIN=/path/to/bicep` when the standalone CLI is not on `PATH`.
 GEOVISION_IMAGE_TAG="$(git rev-parse --short HEAD)" infra/azure/deploy.sh
 ```
 
-The helper deliberately performs three incremental deployments:
+The helper deliberately performs three incremental deployments and resolves a
+newly built tag to its immutable manifest digest before the migration job or
+runtime apps are updated:
 
 1. foundation only (`deployApplications=false`, `deployMigrationJob=false`),
    removing the empty-registry bootstrap deadlock;
@@ -70,6 +78,30 @@ The helper deliberately performs three incremental deployments:
 On an existing environment, step 2 does not modify the running API or worker
 revisions. Never run two migration executions concurrently.
 
+To deploy an image already present in the target ACR, supply its digest. The
+helper verifies the manifest and skips the build:
+
+```bash
+GEOVISION_IMAGE_DIGEST='sha256:<64-lowercase-hex>' infra/azure/deploy.sh
+```
+
+`staging.bicepparam` and `prod.bicepparam` keep environment topology separate
+while reading URLs and secrets from the process environment. The GitHub
+workflows use Azure OIDC: staging deploys only after the complete main CI
+workflow succeeds, while production is manual, main-only, protected by the
+GitHub `production` environment, and accepts only an approved staging digest.
+Production pulls that digest from staging ACR and pushes the identical manifest
+to production ACR with `promote-image.sh`; it never rebuilds source.
+
+Configure the GitHub environments and reviewer gate exactly as listed in the
+[release checklist](../../docs/RELEASE_CHECKLIST.md). Required variables are
+`AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+`AZURE_LOCATION`, `AZURE_RESOURCE_GROUP`, `GEOVISION_FRONTEND_BASE_URL`, and
+`GEOVISION_CORS_ORIGINS`; production also requires
+`AZURE_STAGING_ACR_NAME`. Store the three `GEOVISION_*` credential values as
+environment secrets. The production OIDC identity needs `AcrPull` on staging
+ACR and `AcrPush` on production ACR.
+
 Useful outputs are `acrName`, `acrLoginServer`, `backendImage`, `apiUrl`,
 `migrationJobName`, `keyVaultName`, `appConfigurationEndpoint`,
 `storageAccountName`, `serviceBusNamespace`, `postgresServerName`, and the five
@@ -78,12 +110,16 @@ individual `*WorkerName` outputs.
 ## Rollback and teardown
 
 Database migrations are forward-only. To roll back application code, select an
-already-pushed image tag known to be compatible with the migrated schema and
+already-pushed image digest known to be compatible with the migrated schema and
 update runtime revisions without running an older migration bundle:
 
 ```bash
-GEOVISION_IMAGE_TAG='<previous-tag>' infra/azure/deploy.sh --runtime-only
+GEOVISION_IMAGE_DIGEST='sha256:<previous-compatible-digest>' \
+  infra/azure/deploy.sh --runtime-only
 ```
+
+Rollback mode rejects mutable tags and verifies that the supplied digest exists
+in the target environment's ACR before updating any runtime app.
 
 The previous Container Apps revision remains observable, and the preserved
 `.do/app.yaml` remains the provider-level rollback reference. Do not point the

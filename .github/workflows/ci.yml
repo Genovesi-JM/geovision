@@ -1,56 +1,183 @@
-name: CI - tests & smoke e2e
+name: CI - delivery gates
 
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master, feature/erp-realtime-account ]
+    branches: [main, master, feature/erp-realtime-account]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 permissions:
   contents: read
 
 concurrency:
-  group: web-backend-ci-${{ github.ref }}
+  group: delivery-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test-and-e2e:
+  migration-change-policy:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout full history
         uses: actions/checkout@v7
-
-      - name: Setup Python
-        uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: backend/requirements.txt
+          fetch-depth: 0
 
-      - name: Install backend dependencies
-        working-directory: ./backend
+      - name: Require a revision for persisted-model changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          changed_files="$(git diff --name-only "${BASE_SHA}" "${HEAD_SHA}")"
+          model_changes="$(printf '%s\n' "${changed_files}" | rg '^backend/app/(models\.py|.+/models\.py)$' || true)"
+          migration_changes="$(printf '%s\n' "${changed_files}" | rg '^backend/alembic/versions/.+\.py$' || true)"
+          if [[ -n "${model_changes}" && -z "${migration_changes}" ]]; then
+            echo 'Persisted SQLAlchemy model changes require an Alembic revision.' >&2
+            printf '%s\n' "${model_changes}" >&2
+            exit 1
+          fi
 
-      - name: Setup Node
-        uses: actions/setup-node@v7
+  backend-quality-and-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          node-version: '22'
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.deploy.txt
+            backend/requirements.ci.txt
+      - name: Install runtime and CI tooling
+        working-directory: backend
+        run: python -m pip install -r requirements.deploy.txt -r requirements.ci.txt
+      - name: Check installed dependency consistency
+        run: python -m pip check
+      - name: Compile backend modules
+        run: python -m compileall -q backend/app backend/start.py
+      - name: Run correctness-only Python lint
+        run: ruff check --output-format=github --select E9,F63,F7,F82 backend
+      - name: Audit deployed Python dependencies
+        working-directory: backend
+        run: pip-audit --strict --progress-spinner=off --desc=off --vulnerability-service osv --timeout 60 -r requirements.deploy.txt
+      - name: Validate Azure Bicep and static contracts
+        run: |
+          az bicep install
+          infra/azure/validate.sh
 
-      - name: Run backend tests (pytest)
-        working-directory: ./backend
+  backend-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.deploy.txt
+            backend/requirements.txt
+            backend/requirements.ci.txt
+      - name: Install backend test dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.txt -r requirements.ci.txt
+      - name: Run complete backend suite
+        working-directory: backend
         run: pytest -q
 
+  security-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.deploy.txt
+            backend/requirements.ci.txt
+      - name: Install security-test dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.deploy.txt -r requirements.ci.txt
+      - name: Run named authorization release gate
+        working-directory: backend
+        run: pytest -q --strict-markers -m security_regression
+
+  postgres-migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgis:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: geovision_ci
+          POSTGRES_PASSWORD: geovision_ci_password
+          POSTGRES_DB: geovision_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U geovision_ci -d geovision_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.deploy.txt
+            backend/requirements.ci.txt
+      - name: Install migration-test dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.deploy.txt -r requirements.ci.txt
+      - name: Test clean and representative previous PostgreSQL schemas
+        working-directory: backend
+        env:
+          GEOVISION_MIGRATION_TEST_DATABASE_URL: postgresql+psycopg2://geovision_ci:geovision_ci_password@127.0.0.1:5432/geovision_ci
+        run: pytest -q tests/test_migration_release_gate.py
+
+  container-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build canonical backend container
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: geovision-backend:ci-${{ github.sha }}
+
+  web-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/requirements.deploy.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install backend dependencies
+        working-directory: backend
+        run: python -m pip install -r requirements.deploy.txt
       - name: Install browser test dependencies
         run: |
           npm ci
+          npm audit --audit-level=high
           npx playwright install --with-deps chromium
-
-      - name: Run migrated backend + frontend browser tests
+      - name: Run migrated backend and browser tests
         run: npm run test:e2e:ci
-
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v7
@@ -58,3 +185,43 @@ jobs:
           name: playwright-report
           path: playwright-report/
           if-no-files-found: ignore
+
+  mobile:
+    uses: ./.github/workflows/mobile-ci.yml
+
+  release-gate:
+    if: always()
+    runs-on: ubuntu-latest
+    needs:
+      - migration-change-policy
+      - backend-quality-and-dependencies
+      - backend-tests
+      - security-regression
+      - postgres-migrations
+      - container-build
+      - web-e2e
+      - mobile
+    steps:
+      - name: Require every delivery gate
+        env:
+          MIGRATION_POLICY: ${{ needs.migration-change-policy.result }}
+          BACKEND_QUALITY: ${{ needs.backend-quality-and-dependencies.result }}
+          BACKEND_TESTS: ${{ needs.backend-tests.result }}
+          SECURITY_TESTS: ${{ needs.security-regression.result }}
+          POSTGRES_MIGRATIONS: ${{ needs.postgres-migrations.result }}
+          CONTAINER_BUILD: ${{ needs.container-build.result }}
+          WEB_E2E: ${{ needs.web-e2e.result }}
+          MOBILE: ${{ needs.mobile.result }}
+        run: |
+          case "${MIGRATION_POLICY}" in success|skipped) ;; *) exit 1 ;; esac
+          for result in \
+            "${BACKEND_QUALITY}" \
+            "${BACKEND_TESTS}" \
+            "${SECURITY_TESTS}" \
+            "${POSTGRES_MIGRATIONS}" \
+            "${CONTAINER_BUILD}" \
+            "${WEB_E2E}" \
+            "${MOBILE}"; do
+            [[ "${result}" == 'success' ]] || exit 1
+          done
+          echo 'All GeoVision delivery gates passed.'

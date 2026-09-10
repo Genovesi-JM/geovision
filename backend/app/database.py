@@ -24,9 +24,9 @@ def __dir__() -> list[str]:
 
 __all__ = [
     "Base",
-    "DATABASE_URL",
-    "SessionLocal",
-    "engine",
+    "DATABASE_URL",  # noqa: F822 - provided lazily by module __getattr__
+    "SessionLocal",  # noqa: F822 - provided lazily by module __getattr__
+    "engine",  # noqa: F822 - provided lazily by module __getattr__
     "ensure_legacy_schema",
     "ensure_user_role_column",
     "get_db",

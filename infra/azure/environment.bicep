@@ -6,6 +6,7 @@ param environmentName string
 param deployApplications bool
 param deployMigrationJob bool
 param imageTag string
+param imageDigest string
 param frontendBaseUrl string
 param corsOrigins string
 @secure()
@@ -49,7 +50,9 @@ var postgresDatabaseName = 'geovision'
 var storageContainerName = 'geovision-datasets'
 var serviceBusTopicName = 'geovision-events'
 var serviceBusSubscriptionName = 'geovision-workers'
-var backendImage = '${registry.outputs.loginServer}/geovision-backend:${imageTag}'
+var backendImage = empty(imageDigest)
+  ? '${registry.outputs.loginServer}/geovision-backend:${imageTag}'
+  : '${registry.outputs.loginServer}/geovision-backend@${imageDigest}'
 
 module network './modules/network.bicep' = {
   name: 'network'

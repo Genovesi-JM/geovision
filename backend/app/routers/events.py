@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.deps import get_current_user
+from app.deps import require_admin
 from app.integrations.events.azure_event_grid import (
     EventGridPayloadError,
     parse_event_grid_batch,
@@ -23,11 +23,6 @@ from app.workers.event_worker import default_worker_id
 
 
 router = APIRouter(prefix="/integrations/events", tags=["integrations"])
-
-
-def _require_admin(user: User) -> None:
-    if user.role not in {"admin", "superadmin"}:
-        raise HTTPException(status_code=403, detail="Administrator access required")
 
 
 @router.post("/azure/blob-created")
@@ -57,10 +52,9 @@ async def azure_blob_created(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/outbox/status")
 def outbox_status(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     rows = db.query(EventOutbox.status, func.count(EventOutbox.id)).group_by(EventOutbox.status)
     counts = {status: count for status, count in rows.all()}
     return {
@@ -76,10 +70,9 @@ def outbox_status(
 @router.get("/dead-letter")
 def dead_letters(
     limit: int = Query(default=100, ge=1, le=500),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     rows = (
         db.query(EventOutbox)
         .filter(EventOutbox.status == "dead_letter")
@@ -105,10 +98,9 @@ def dead_letters(
 @router.post("/dead-letter/{event_id}/requeue")
 def requeue(
     event_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     row = requeue_dead_letter(db, event_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Dead-letter event was not found")
@@ -118,10 +110,9 @@ def requeue(
 
 @router.post("/dispatch")
 def dispatch_once(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     return dispatch_pending_events(
         db,
         worker_id=default_worker_id(),
@@ -133,10 +124,9 @@ def dispatch_once(
 @router.get("/outbox/{event_id}/attempts")
 def delivery_attempts(
     event_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    _require_admin(user)
     if db.get(EventOutbox, event_id) is None:
         raise HTTPException(status_code=404, detail="Event was not found")
     rows = (

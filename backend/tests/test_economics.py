@@ -250,6 +250,7 @@ def _usage_payload(data, *, key: str = "usage-key-001", reference: str = "scene-
     }
 
 
+@pytest.mark.security_regression
 def test_cost_usage_idempotency_and_private_unit_economics(client, db_session):
     data = _fixture(db_session)
     finance = _user(db_session, role="GV_FINANCE", label="finance")
@@ -332,15 +333,30 @@ def test_cost_usage_idempotency_and_private_unit_economics(client, db_session):
         **_headers(data["customer"]),
         "X-Workspace-ID": data["workspace"].id,
     }
-    customer_order = client.get(
-        f"/orders/{data['order'].id}", headers=customer_headers
+    customer_paths = (
+        "/orders",
+        f"/orders/{data['order'].id}",
+        f"/orders/{data['order'].id}/progress",
+        "/mobile/home",
+        "/portal/experience",
+        "/portal/assets/summary",
     )
-    assert customer_order.status_code == 200, customer_order.text
-    serialized = json.dumps(customer_order.json()).lower()
-    assert "internal_cost" not in serialized
-    assert "provider_cost" not in serialized
-    assert "gross_margin" not in serialized
-    assert "gross_contribution" not in serialized
+    forbidden_customer_fields = (
+        "agreed_cost_amount",
+        "cost_reference",
+        "direct_cost",
+        "gross_contribution",
+        "gross_margin",
+        "internal_cost",
+        "provider_cost",
+        "provider_usage",
+    )
+    for path in customer_paths:
+        customer_response = client.get(path, headers=customer_headers)
+        assert customer_response.status_code == 200, customer_response.text
+        serialized = json.dumps(customer_response.json()).lower()
+        for forbidden in forbidden_customer_fields:
+            assert forbidden not in serialized, f"{path} exposed {forbidden}"
 
 
 def test_finance_read_boundary_and_customer_non_discovery(client, db_session):

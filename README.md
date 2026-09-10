@@ -23,6 +23,9 @@ legacy Site/IoT mapping are documented in the
 The reproducible Azure foundation, guarded migration-first release sequence,
 cost controls, rollback, and development teardown are documented in the
 [Azure deployment runbook](infra/azure/README.md).
+Release approval, migration evidence, authorization smoke tests, all five
+worker checks, integration health, immutable promotion, and rollback evidence
+are tracked in the [release checklist](docs/RELEASE_CHECKLIST.md).
 Secure invitation acceptance, service-first onboarding intents, and browser/
 mobile deep-link behavior are defined in the
 [invitation onboarding guide](docs/INVITATION_ONBOARDING_DEEP_LINKS.md). The

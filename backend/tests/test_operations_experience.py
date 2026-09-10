@@ -5,6 +5,8 @@ import json
 import uuid
 from datetime import timedelta
 
+import pytest
+
 from app.core.time import utc_now
 from app.core.tokens import create_user_access_token
 from app.models import (
@@ -519,6 +521,7 @@ def test_internal_experience_is_role_driven_and_erp_queue_is_finance_scoped(
     assert client.get("/operations/queues", headers=_headers(customer)).status_code == 403
 
 
+@pytest.mark.security_regression
 def test_contractor_job_lifecycle_is_assignment_gated_audited_and_private(
     client, db_session
 ):
@@ -747,6 +750,7 @@ def test_cancelling_accepted_assignment_revokes_linked_job_access(client, db_ses
     assert job.id not in {row["id"] for row in visible_jobs.json()}
 
 
+@pytest.mark.security_regression
 def test_contractor_upload_receipt_is_exact_non_replayable_and_idempotent(
     client, db_session, monkeypatch, tmp_path
 ):
@@ -964,6 +968,90 @@ def test_contractor_upload_receipt_is_exact_non_replayable_and_idempotent(
     assert hostile_complete.status_code == 422, hostile_complete.text
     assert hostile_complete.json()["detail"]["code"] == "file_type_not_allowed"
     assert storage.file_exists(hostile_file.storage_key) is False
+
+
+@pytest.mark.security_regression
+@pytest.mark.parametrize("revocation", ("assignment_cancelled", "job_reassigned"))
+def test_reserved_contractor_upload_is_revoked_when_assignment_changes(
+    client,
+    db_session,
+    monkeypatch,
+    tmp_path,
+    revocation,
+):
+    storage = StorageService(
+        LocalObjectStorageProvider(
+            root=tmp_path / revocation,
+            public_base_url="http://testserver/datasets/storage/local",
+            signing_secret="phase27-revocation-signing-secret",
+        )
+    )
+    monkeypatch.setattr(
+        "app.routers.fulfilment_jobs.get_storage_service",
+        lambda: storage,
+    )
+    data = _contractor_fixture(db_session)
+    contractor_headers = _headers(data["user"])
+    operations = _staff(db_session, "GV_OPERATIONS")
+    operations_headers = _headers(operations)
+    assignment = db_session.get(ContractorAssignment, data["assignment"].id)
+    assignment.status = "ACCEPTED"
+    assignment.accepted_at = utc_now()
+    db_session.commit()
+
+    content = b"phase-27-revoked-upload"
+    initiated = client.post(
+        f"/operations/contractor/me/jobs/{data['job'].id}/uploads/initiate",
+        headers=contractor_headers,
+        json={
+            "dataset_id": data["dataset"].id,
+            "filename": "revoked-evidence.jpg",
+            "content_type": "image/jpeg",
+            "size_bytes": len(content),
+            "object_area": "raw",
+        },
+    )
+    assert initiated.status_code == 201, initiated.text
+
+    if revocation == "assignment_cancelled":
+        db_session.refresh(assignment)
+        changed = client.patch(
+            f"/operations/assignments/{assignment.id}",
+            headers=operations_headers,
+            json={
+                "status": "CANCELLED",
+                "expected_version": assignment.lifecycle_version,
+            },
+        )
+    else:
+        db_session.expire_all()
+        job = db_session.get(FulfilmentJob, data["job"].id)
+        changed = client.patch(
+            f"/operations/jobs/{job.id}/assignment",
+            headers=operations_headers,
+            json={
+                "user_id": operations.id,
+                "expected_version": job.lifecycle_version,
+            },
+        )
+    assert changed.status_code == 200, changed.text
+
+    upload = client.put(
+        initiated.json()["upload_url"],
+        content=content,
+        headers=initiated.json()["required_headers"],
+    )
+    assert upload.status_code == 404, upload.text
+    completion = client.post(
+        f"/operations/contractor/me/jobs/{data['job'].id}/uploads/complete",
+        headers=contractor_headers,
+        json={
+            "dataset_id": data["dataset"].id,
+            "upload_reference": initiated.json()["upload_reference"],
+            "size_bytes": len(content),
+        },
+    )
+    assert completion.status_code == 404, completion.text
 
 
 def test_contractor_profile_updates_cannot_spoof_staff_vetting(client, db_session):

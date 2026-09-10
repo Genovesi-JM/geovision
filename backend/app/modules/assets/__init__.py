@@ -8,15 +8,6 @@ definition = DomainModule(
     maturity="implemented",
     routes=(
         RouterMount(
-            "assets.projects",
-            "assets",
-            "app.routers.projects",
-            20,
-            prefix="/projects",
-            tags=("projects",),
-            secondary_owners=("operations",),
-        ),
-        RouterMount(
             "assets.canonical",
             "assets",
             "app.routers.assets",

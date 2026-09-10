@@ -132,9 +132,11 @@ def test_mobile_legacy_sector_alias_is_returned_canonically(client):
 
 
 def test_mobile_routes_require_authentication(client):
-    assert client.get("/mobile/sites").status_code == 403
-    assert client.post("/mobile/sites", json={"name": "Forbidden"}).status_code == 403
-    assert client.get("/mobile/service-requests").status_code == 403
+    # Missing credentials are an authentication failure (401); authenticated
+    # users without a required permission continue to receive 403.
+    assert client.get("/mobile/sites").status_code == 401
+    assert client.post("/mobile/sites", json={"name": "Forbidden"}).status_code == 401
+    assert client.get("/mobile/service-requests").status_code == 401
 
 
 def test_customer_can_add_site_only_to_own_organisation(client):

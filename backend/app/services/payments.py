@@ -678,9 +678,9 @@ def __dir__():
 
 __all__ = [
     "Currency",
-    "IBANTransferAdapter",
-    "MulticaixaExpressAdapter",
-    "PayPalAdapter",
+    "IBANTransferAdapter",  # noqa: F822 - provided lazily by module __getattr__
+    "MulticaixaExpressAdapter",  # noqa: F822 - provided lazily by module __getattr__
+    "PayPalAdapter",  # noqa: F822 - provided lazily by module __getattr__
     "PaymentAdapter",
     "PaymentIntent",
     "PaymentIdempotencyConflict",
@@ -689,6 +689,6 @@ __all__ = [
     "PaymentResult",
     "PaymentStatus",
     "RefundResult",
-    "VisaMastercardAdapter",
+    "VisaMastercardAdapter",  # noqa: F822 - provided lazily by module __getattr__
     "get_payment_orchestrator",
 ]

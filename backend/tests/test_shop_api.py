@@ -115,7 +115,9 @@ def test_cart_currency_checkout_and_owned_order_contract(client):
     assert result["success"] is True
     assert result["order_id"]
 
-    assert client.get(f"/shop/orders/{result['order_id']}").status_code == 403
+    # No bearer credential is an authentication failure, not an authorization
+    # denial for an authenticated principal.
+    assert client.get(f"/shop/orders/{result['order_id']}").status_code == 401
     owned = client.get(f"/shop/orders/{result['order_id']}", headers=headers)
     assert owned.status_code == 200, owned.text
     assert owned.json()["order_number"] == result["order_number"]
