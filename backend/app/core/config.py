@@ -49,6 +49,7 @@ _URL_FIELDS = frozenset(
         "paypal_cancel_url",
         "paypal_return_url",
         "s3_endpoint_url",
+        "azure_storage_account_url",
     }
 )
 
@@ -170,9 +171,23 @@ class Settings(BaseSettings):
     integration_retry_initial_seconds: float = Field(default=0.5, ge=0)
     integration_retry_max_seconds: float = Field(default=8.0, ge=0)
 
-    # Object storage. The first implementation is S3-compatible, but consumers
-    # depend only on ObjectStorageProvider.
-    object_storage_provider: str = "s3"
+    # Object storage. Local development is filesystem-backed while deployed
+    # environments can select Azure Blob or an S3-compatible adapter.
+    object_storage_provider: str = "local"
+    local_storage_root: Path = Path("./data/object-storage")
+    dataset_direct_upload_max_bytes: int = Field(
+        default=500 * 1024 * 1024, ge=1, le=5 * 1024 * 1024 * 1024
+    )
+    dataset_signed_upload_max_bytes: int = Field(
+        # Keep the portable signed-PUT path below both S3's single-PUT limit
+        # and Azure Block Blob's single-request ceiling. Larger workloads must
+        # use a future explicit multipart/block session rather than a URL that
+        # only appears to support them.
+        default=4 * 1024 * 1024 * 1024,
+        ge=1,
+        le=5 * 1024 * 1024 * 1024,
+    )
+    dataset_signed_url_expiry_seconds: int = Field(default=900, ge=60, le=3600)
     s3_bucket: Optional[str] = None
     s3_endpoint_url: Optional[str] = Field(default=None, repr=False)
     s3_region: str = "eu-west-1"
@@ -186,6 +201,12 @@ class Settings(BaseSettings):
         repr=False,
         validation_alias=AliasChoices("S3_SECRET_ACCESS_KEY", "AWS_SECRET_ACCESS_KEY"),
     )
+    azure_storage_account_url: Optional[str] = None
+    azure_storage_container: str = "geovision-datasets"
+    azure_storage_connection_string: Optional[str] = Field(default=None, repr=False)
+    azure_storage_account_name: Optional[str] = None
+    azure_storage_account_key: Optional[str] = Field(default=None, repr=False)
+    azure_managed_identity_client_id: Optional[str] = None
 
     # ERP integration. GeoVision remains the system of record.
     erp_provider: str = "mock"
@@ -293,6 +314,8 @@ class Settings(BaseSettings):
             "openai_api_key",
             "s3_access_key_id",
             "s3_secret_access_key",
+            "azure_storage_connection_string",
+            "azure_storage_account_key",
             "erpnext_api_key",
             "erpnext_api_secret",
             "erpnext_webhook_secret",
@@ -732,6 +755,13 @@ class Settings(BaseSettings):
                     and (not self.is_deployed or self.smtp_use_tls)
                 ),
                 "s3": bool(self.s3_bucket),
+                "azure_blob": bool(
+                    self.azure_storage_container
+                    and (
+                        self.azure_storage_connection_string
+                        or self.azure_storage_account_url
+                    )
+                ),
                 "erpnext": bool(
                     self.erpnext_base_url
                     and self.erpnext_api_key

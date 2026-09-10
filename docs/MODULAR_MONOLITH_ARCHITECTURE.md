@@ -110,11 +110,11 @@ identity, text generation, processing, weather, satellite, GIS, construction
 systems, asset management, and maritime context. `app/core/events.py` provides
 the shared event and queue publisher contracts.
 
-Concrete implementations live under `app/integrations`. The current storage
-factory lazily selects the S3-compatible adapter, and the ERP factory selects
-the local mock or existing ERPNext adapter. No Azure Blob, Service Bus, Event
-Grid, Odoo, processing, weather, satellite, GIS, construction,
-asset-management, or maritime adapter is activated by this foundation work.
+Concrete implementations live under `app/integrations`. The storage factory
+lazily selects private local, S3-compatible, or Azure Blob adapters, and the ERP
+factory selects the local mock or existing ERPNext adapter. No Azure Service
+Bus, Event Grid, Odoo, processing, weather, satellite, GIS, construction,
+asset-management, or maritime adapter is activated yet.
 
 `app/core/config.py` is the single typed source for environment and provider
 configuration. It recognizes local, development, test, staging, and production
@@ -150,7 +150,7 @@ cross-domain compatibility facade until its later phase extracts the service.
 | Orders | Canonical customer/internal order APIs, catalogue pricing snapshots, separate fulfilment/settlement state machines, optimistic lifecycle guards, and legacy shop/order projections are implemented |
 | Operations | Private suppliers, generic contractors/capabilities, guarded assignments, least-privilege contractor self-access, and canonical fulfilment jobs are implemented; admin/mobile/inspection facades remain transitional |
 | Missions | Provider-neutral drone, satellite, IoT, manual-inspection, and third-party acquisitions share one asset history; drone details and legacy mobile/inspection routes are compatibility extensions |
-| Datasets | Dataset/file CRUD and upload flows exist; Phase 12 owns storage/provider hardening |
+| Datasets | Asset/mission-linked metadata, lifecycle, tenant-safe streaming/signed uploads, immutable file identity, and local/S3/Azure storage adapters are implemented |
 | Processing | Boundary only; Phase 14 owns processing jobs and photogrammetry providers |
 | Analytics | KPI catalogue, risk calculations and AI explanation endpoints exist; numeric truth remains structured |
 | Monitoring | IoT devices, telemetry, alerts, live events and watchdog behavior are substantial but transitional |

@@ -1,398 +1,593 @@
-"""
-Dataset Registry Router
+"""Canonical tenant-safe dataset registry and secure object upload API."""
 
-Endpoints for dataset ingestion from external tools:
-- DJI Terra, Pix4D, Metashape, DroneDeploy
-- ArcGIS, QGIS, LiDAR processors
-- BIM 360, Procore
+from __future__ import annotations
 
-Supported file types:
-- GeoTIFF, DSM/DTM, Orthomosaics
-- OBJ/FBX 3D models
-- LAS/LAZ/E57 point clouds
-- PDF reports, CSV, Shapefiles, GeoJSON, DXF/DWG
-"""
-import uuid
-import json
-import logging
-from datetime import datetime
-from typing import Optional, List
-from enum import Enum
+import tempfile
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
+from fastapi.responses import FileResponse
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.deps import get_db, get_current_user
-from app.services.storage import get_storage_service, detect_file_type, detect_mime_type
-from app.core.time import utc_now
-
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/datasets", tags=["datasets"], dependencies=[Depends(get_current_user)])
-
-
-# ============ ENUMS ============
-
-class SourceTool(str, Enum):
-    DJI_TERRA = "dji_terra"
-    PIX4D = "pix4d"
-    METASHAPE = "metashape"
-    DRONEDEPLOY = "dronedeploy"
-    ARCGIS = "arcgis"
-    QGIS = "qgis"
-    LIDAR_PROC = "lidar_processor"
-    BIM360 = "bim360"
-    PROCORE = "procore"
-    MANUAL = "manual"
-    API = "api"
-
-
-class DatasetStatus(str, Enum):
-    UPLOADING = "uploading"
-    PROCESSING = "processing"
-    READY = "ready"
-    ERROR = "error"
-
-
-class FileType(str, Enum):
-    GEOTIFF = "geotiff"
-    DSM = "dsm"
-    DTM = "dtm"
-    ORTHOMOSAIC = "orthomosaic"
-    POINTCLOUD_LAS = "pointcloud_las"
-    POINTCLOUD_LAZ = "pointcloud_laz"
-    POINTCLOUD_E57 = "pointcloud_e57"
-    MODEL_OBJ = "model_obj"
-    MODEL_FBX = "model_fbx"
-    SHAPEFILE = "shapefile"
-    GEOJSON = "geojson"
-    DXF = "dxf"
-    DWG = "dwg"
-    PDF = "pdf"
-    CSV = "csv"
-    IMAGE = "image"
-    OTHER = "other"
+from app.core.config import settings
+from app.deps import get_authorization_context, get_current_user, get_db
+from app.models import DatasetFile, User
+from app.modules.assets.services import AssetAccessError
+from app.modules.datasets.domain import (
+    DatasetError,
+    DatasetStatus,
+    ObjectArea,
+    normalize_dataset_type,
+)
+from app.modules.datasets.schemas import (
+    DatasetCreate,
+    DatasetFileOut,
+    DatasetListResponse,
+    DatasetOut,
+    DatasetUpdate,
+    PresignedUrlRequest,
+    PresignedUrlResponse,
+    SourceTool,
+)
+from app.modules.datasets.services import (
+    archive_dataset,
+    complete_reserved_upload_from_stream,
+    confirm_reserved_upload,
+    create_dataset as create_dataset_record,
+    dataset_file_out,
+    dataset_out,
+    delete_dataset_file,
+    download_url,
+    finalize_dataset as finalize_dataset_record,
+    get_owned_dataset,
+    list_owned_datasets,
+    reserve_upload,
+    update_dataset as update_dataset_record,
+    upload_dataset_file,
+)
+from app.modules.identity.domain import AuthorizationContext
+from app.services.storage import StorageService, get_storage_service
 
 
-# ============ SCHEMAS ============
-
-class DatasetFileOut(BaseModel):
-    id: str
-    filename: str
-    file_type: str
-    size_bytes: int
-    storage_key: str
-    download_url: Optional[str] = None
-    md5_hash: Optional[str] = None
-    created_at: datetime
+router = APIRouter(
+    prefix="/datasets",
+    tags=["datasets"],
+    dependencies=[Depends(get_current_user)],
+)
 
 
-class DatasetOut(BaseModel):
-    id: str
-    company_id: str
-    site_id: str
-    name: str
-    description: Optional[str] = None
-    source_tool: str
-    status: str
-    sector: Optional[str] = None
-    capture_date: Optional[datetime] = None
-    files: List[DatasetFileOut] = []
-    file_count: int = 0
-    total_size_bytes: int = 0
-    created_at: datetime
-    updated_at: datetime
-    model_config = ConfigDict(from_attributes=True)
+def _storage() -> StorageService:
+    return get_storage_service()
 
 
-class DatasetCreate(BaseModel):
-    site_id: str
-    name: str
-    description: Optional[str] = None
-    source_tool: SourceTool = SourceTool.MANUAL
-    sector: Optional[str] = None
-    capture_date: Optional[datetime] = None
-    metadata: Optional[dict] = None
+def _raise_dataset_error(exc: Exception) -> None:
+    code = getattr(exc, "code", "invalid_dataset")
+    if code in {
+        "asset_not_found",
+        "dataset_not_found",
+        "file_not_found",
+        "mission_not_found",
+        "upload_not_found",
+    }:
+        status_code = status.HTTP_404_NOT_FOUND
+    elif code in {"dataset_access_denied", "workspace_required"}:
+        status_code = status.HTTP_403_FORBIDDEN
+    elif code == "file_too_large":
+        status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+    elif code in {
+        "dataset_archived",
+        "invalid_transition",
+        "storage_provider_mismatch",
+        "version_conflict",
+    }:
+        status_code = status.HTTP_409_CONFLICT
+    elif code == "upload_missing":
+        status_code = status.HTTP_400_BAD_REQUEST
+    elif code == "upload_expired":
+        status_code = status.HTTP_410_GONE
+    else:
+        status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    raise HTTPException(
+        status_code=status_code,
+        detail={"code": code, "message": str(exc)},
+    ) from exc
 
 
-class DatasetUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[DatasetStatus] = None
-    capture_date: Optional[datetime] = None
-    metadata: Optional[dict] = None
+def _requested_company(
+    context: AuthorizationContext,
+    company_id: str | None,
+) -> None:
+    if company_id and company_id != context.active_organization_id:
+        raise HTTPException(status_code=404, detail="Organization was not found")
 
 
-class PresignedUrlRequest(BaseModel):
-    filename: str
-    content_type: Optional[str] = None
-
-
-class PresignedUrlResponse(BaseModel):
-    upload_url: str
-    storage_key: str
-    expires_in: int = 3600
-
-
-class DatasetListResponse(BaseModel):
-    datasets: List[DatasetOut]
-    total: int
-    page: int
-    per_page: int
-
-
-# ============ DB-backed (no more in-memory store) ============
-
-def _ds_out(ds) -> DatasetOut:
-    """Convert Dataset ORM object to DatasetOut schema."""
-    files = []
-    for f in ds.files:
-        files.append(DatasetFileOut(
-            id=f.id, filename=f.filename, file_type=detect_file_type(f.filename),
-            size_bytes=f.file_size or 0, storage_key=f.storage_key,
-            created_at=f.created_at))
-    return DatasetOut(
-        id=ds.id, company_id=ds.company_id, site_id=ds.site_id, name=ds.name,
-        source_tool=ds.source_tool, status=ds.status, sector=ds.sector,
-        files=files, file_count=ds.file_count or 0,
-        total_size_bytes=sum(f.size_bytes for f in files),
-        created_at=ds.created_at, updated_at=ds.updated_at)
-
-
-# ============ ENDPOINTS ============
-
-@router.post("/", response_model=DatasetOut)
-async def create_dataset(
-    data: DatasetCreate,
-    company_id: str = Query(..., description="Company ID"),
+@router.put("/storage/local", status_code=status.HTTP_204_NO_CONTENT)
+async def put_local_object(
+    request: Request,
+    key: str = Query(..., min_length=1, max_length=2_000),
+    expires: int = Query(..., ge=1),
+    upload: bool = Query(...),
+    signature: str = Query(..., min_length=64, max_length=64),
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
 ):
-    from app.models import Dataset as DSModel
-    dataset_id = str(uuid.uuid4())
-    ds = DSModel(id=dataset_id, company_id=company_id, site_id=data.site_id,
-                 name=data.name, source_tool=data.source_tool.value,
-                 status=DatasetStatus.UPLOADING.value, sector=data.sector,
-                 metadata_json=json.dumps(data.metadata or {}))
-    db.add(ds); db.commit(); db.refresh(ds)
-    logger.info(f"Created dataset {dataset_id} for company {company_id}")
-    return _ds_out(ds)
+    provider = storage.provider
+    validator = getattr(provider, "validate_signature", None)
+    if storage.provider_name != "local" or not callable(validator):
+        raise HTTPException(status_code=404, detail="Local storage is unavailable")
+    if not upload or not validator(
+        key=key,
+        expires=expires,
+        for_upload=True,
+        signature=signature,
+    ):
+        raise HTTPException(status_code=403, detail="Upload URL is invalid or expired")
+    reserved = db.query(DatasetFile).filter(DatasetFile.storage_key == key).one_or_none()
+    if reserved is None:
+        raise HTTPException(status_code=404, detail="Upload reservation not found")
+    try:
+        dataset = get_owned_dataset(
+            db,
+            context=context,
+            dataset_id=reserved.dataset_id,
+            write=True,
+        )
+        try:
+            content_length = int(request.headers.get("content-length") or 0)
+        except ValueError as exc:
+            raise DatasetError(
+                "invalid_file_size", "Content-Length must be an integer"
+            ) from exc
+        if content_length < 0:
+            raise DatasetError(
+                "invalid_file_size", "Content-Length cannot be negative"
+            )
+        if content_length > settings.dataset_signed_upload_max_bytes:
+            raise DatasetError("file_too_large", "Signed upload exceeds its size limit")
+        size_bytes = 0
+        with tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024) as stream:
+            async for chunk in request.stream():
+                size_bytes += len(chunk)
+                if size_bytes > settings.dataset_signed_upload_max_bytes:
+                    raise DatasetError(
+                        "file_too_large", "Signed upload exceeds its size limit"
+                    )
+                stream.write(chunk)
+            stream.seek(0)
+            complete_reserved_upload_from_stream(
+                db,
+                actor=actor,
+                dataset=dataset,
+                storage_key=key,
+                file_obj=stream,
+                content_type=request.headers.get("content-type"),
+                storage=storage,
+            )
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        db.rollback()
+        raise HTTPException(status_code=502, detail="Object upload failed") from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/storage/local")
+def get_local_object(
+    key: str = Query(..., min_length=1, max_length=2_000),
+    expires: int = Query(..., ge=1),
+    upload: bool = Query(...),
+    signature: str = Query(..., min_length=64, max_length=64),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    provider = storage.provider
+    validator = getattr(provider, "validate_signature", None)
+    path_resolver = getattr(provider, "path_for", None)
+    if (
+        storage.provider_name != "local"
+        or not callable(validator)
+        or not callable(path_resolver)
+    ):
+        raise HTTPException(status_code=404, detail="Local storage is unavailable")
+    if upload or not validator(
+        key=key,
+        expires=expires,
+        for_upload=False,
+        signature=signature,
+    ):
+        raise HTTPException(status_code=403, detail="Download URL is invalid or expired")
+    file = db.query(DatasetFile).filter(DatasetFile.storage_key == key).one_or_none()
+    if file is None or file.status != "uploaded":
+        raise HTTPException(status_code=404, detail="Dataset file not found")
+    try:
+        get_owned_dataset(
+            db,
+            context=context,
+            dataset_id=file.dataset_id,
+            write=False,
+        )
+        path = path_resolver(key)
+    except (DatasetError, AssetAccessError, ValueError) as exc:
+        _raise_dataset_error(exc)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Dataset file not found")
+    return FileResponse(path, filename=file.filename, media_type=file.mime_type)
+
+
+@router.post("/", response_model=DatasetOut, status_code=status.HTTP_201_CREATED)
+def create_dataset(
+    data: DatasetCreate,
+    company_id: str | None = Query(default=None, description="Legacy organization ID"),
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    _requested_company(context, company_id)
+    try:
+        dataset = create_dataset_record(
+            db,
+            actor=actor,
+            context=context,
+            data=data,
+            storage=storage,
+        )
+        db.commit()
+        db.refresh(dataset)
+        return dataset_out(dataset)
+    except (DatasetError, AssetAccessError, ValueError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Dataset conflicts with existing data") from exc
 
 
 @router.get("/", response_model=DatasetListResponse)
-async def list_datasets(
-    company_id: str = Query(...),
-    site_id: Optional[str] = Query(None),
-    sector: Optional[str] = Query(None),
-    status: Optional[DatasetStatus] = Query(None),
-    source_tool: Optional[SourceTool] = Query(None),
-    page: int = Query(1, ge=1),
-    per_page: int = Query(20, ge=1, le=100),
+def list_datasets(
+    company_id: str | None = Query(default=None, description="Legacy organization ID"),
+    site_id: str | None = Query(default=None, max_length=36),
+    asset_id: str | None = Query(default=None, max_length=36),
+    sector: str | None = Query(default=None, max_length=50),
+    dataset_status: DatasetStatus | None = Query(default=None, alias="status"),
+    source_tool: SourceTool | None = None,
+    dataset_type: str | None = Query(default=None, max_length=80),
+    include_archived: bool = False,
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    context: AuthorizationContext = Depends(get_authorization_context),
     db: Session = Depends(get_db),
 ):
-    from app.models import Dataset as DSModel
-    q = db.query(DSModel).filter(DSModel.company_id == company_id)
-    if site_id: q = q.filter(DSModel.site_id == site_id)
-    if sector: q = q.filter(DSModel.sector == sector)
-    if status: q = q.filter(DSModel.status == status.value)
-    if source_tool: q = q.filter(DSModel.source_tool == source_tool.value)
-    total = q.count()
-    datasets = q.offset((page-1)*per_page).limit(per_page).all()
-    return DatasetListResponse(datasets=[_ds_out(d) for d in datasets],
-                               total=total, page=page, per_page=per_page)
+    _requested_company(context, company_id)
+    try:
+        normalized_type = normalize_dataset_type(dataset_type) if dataset_type else None
+        rows, total = list_owned_datasets(
+            db,
+            context=context,
+            asset_id=asset_id,
+            site_id=site_id,
+            sector=sector,
+            status=dataset_status.value if dataset_status else None,
+            source_tool=source_tool.value if source_tool else None,
+            dataset_type=normalized_type,
+            include_archived=include_archived,
+            page=page,
+            per_page=per_page,
+        )
+        return DatasetListResponse(
+            datasets=[DatasetOut.model_validate(dataset_out(row)) for row in rows],
+            total=total,
+            page=page,
+            per_page=per_page,
+        )
+    except (DatasetError, AssetAccessError, ValueError) as exc:
+        _raise_dataset_error(exc)
 
 
 @router.get("/{dataset_id}", response_model=DatasetOut)
-async def get_dataset(dataset_id: str, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    return _ds_out(ds)
+def get_dataset(
+    dataset_id: str,
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=False
+        )
+        return dataset_out(dataset)
+    except (DatasetError, AssetAccessError) as exc:
+        _raise_dataset_error(exc)
 
 
 @router.patch("/{dataset_id}", response_model=DatasetOut)
-async def update_dataset(dataset_id: str, data: DatasetUpdate, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    if data.name is not None: ds.name = data.name
-    if data.status is not None: ds.status = data.status.value
-    if data.metadata is not None:
-        existing = json.loads(ds.metadata_json or "{}")
-        existing.update(data.metadata)
-        ds.metadata_json = json.dumps(existing)
-    ds.updated_at = utc_now()
-    db.commit(); db.refresh(ds)
-    return _ds_out(ds)
+def update_dataset(
+    dataset_id: str,
+    data: DatasetUpdate,
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=True
+        )
+        update_dataset_record(db, actor=actor, dataset=dataset, data=data)
+        db.commit()
+        db.refresh(dataset)
+        return dataset_out(dataset)
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
 
 
 @router.delete("/{dataset_id}")
-async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel, DatasetFile as DFModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    storage = get_storage_service()
-    for f in ds.files:
-        try: storage.delete_file(f.storage_key)
-        except Exception as e: logger.warning(f"Failed to delete file {f.storage_key}: {e}")
-    db.query(DFModel).filter(DFModel.dataset_id == dataset_id).delete()
-    db.delete(ds); db.commit()
-    return {"message": "Dataset deleted", "id": dataset_id}
+def delete_dataset(
+    dataset_id: str,
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    try:
+        dataset = get_owned_dataset(
+            db,
+            context=context,
+            dataset_id=dataset_id,
+            write=True,
+            include_archived=True,
+        )
+        archive_dataset(db, actor=actor, dataset=dataset)
+        db.commit()
+        return {
+            "message": "Dataset archived; tracked objects were retained",
+            "id": dataset_id,
+        }
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
 
 
 @router.post("/{dataset_id}/upload", response_model=DatasetFileOut)
-async def upload_file(dataset_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel, DatasetFile as DFModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    MAX_SIZE = 500 * 1024 * 1024
-    content = await file.read()
-    if len(content) > MAX_SIZE:
-        raise HTTPException(413, f"File too large. Max {MAX_SIZE // (1024*1024)}MB for direct upload.")
-    storage = get_storage_service()
-    filename = file.filename or f"upload_{dataset_id}"
-    storage_key = storage.generate_key(company_id=ds.company_id, site_id=ds.site_id,
-                                        dataset_id=dataset_id, filename=filename)
-    from io import BytesIO
-    key, size_bytes, md5_hash, sha256_hash = storage.upload_bytes(
-        data=content, key=storage_key,
-        content_type=file.content_type or detect_mime_type(filename),
-        metadata={"dataset_id": dataset_id, "original_filename": file.filename, "source_tool": ds.source_tool})
-    file_id = str(uuid.uuid4())
-    file_type = detect_file_type(filename)
-    df = DFModel(id=file_id, dataset_id=dataset_id, filename=filename,
-                 storage_key=storage_key, file_size=size_bytes, mime_type=file.content_type)
-    db.add(df)
-    ds.file_count = len(ds.files) + 1
-    if ds.status == DatasetStatus.UPLOADING.value:
-        ds.status = DatasetStatus.PROCESSING.value
-    ds.updated_at = utc_now()
-    db.commit(); db.refresh(df)
-    logger.info(f"Uploaded file {filename} to dataset {dataset_id}")
-    return DatasetFileOut(id=df.id, filename=df.filename, file_type=file_type,
-                          size_bytes=df.file_size or 0, storage_key=df.storage_key,
-                          created_at=df.created_at)
+async def upload_file(
+    dataset_id: str,
+    file: UploadFile = File(...),
+    object_area: ObjectArea | None = Form(default=None),
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=True
+        )
+        filename = file.filename or f"upload_{dataset_id}.bin"
+        row = upload_dataset_file(
+            db,
+            actor=actor,
+            dataset=dataset,
+            file_obj=file.file,
+            filename=filename,
+            content_type=file.content_type,
+            storage=storage,
+            object_area=object_area,
+        )
+        return dataset_file_out(row)
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
+    except (RuntimeError, SQLAlchemyError) as exc:
+        db.rollback()
+        raise HTTPException(status_code=502, detail="Object upload failed") from exc
+    finally:
+        await file.close()
 
 
-@router.post("/{dataset_id}/presigned-url", response_model=PresignedUrlResponse)
-async def get_upload_url(dataset_id: str, request: PresignedUrlRequest, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    storage = get_storage_service()
-    storage_key = storage.generate_key(company_id=ds.company_id, site_id=ds.site_id,
-                                        dataset_id=dataset_id, filename=request.filename)
-    upload_url = storage.get_presigned_url(key=storage_key, expires_in=3600, for_upload=True)
-    return PresignedUrlResponse(upload_url=upload_url, storage_key=storage_key, expires_in=3600)
+@router.post(
+    "/{dataset_id}/presigned-url",
+    response_model=PresignedUrlResponse,
+)
+def get_upload_url(
+    dataset_id: str,
+    request: PresignedUrlRequest,
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=True
+        )
+        file, upload_url, expires_in = reserve_upload(
+            db,
+            actor=actor,
+            dataset=dataset,
+            filename=request.filename,
+            content_type=request.content_type,
+            size_bytes=request.size_bytes,
+            storage=storage,
+            object_area=request.object_area,
+        )
+        headers: dict[str, str] = {}
+        if request.content_type:
+            headers["Content-Type"] = request.content_type
+        if storage.provider_name == "azure_blob":
+            headers["x-ms-blob-type"] = "BlockBlob"
+        return PresignedUrlResponse(
+            upload_url=upload_url,
+            storage_key=file.storage_key or "",
+            expires_in=expires_in,
+            file_id=file.id,
+            storage_provider=storage.provider_name,
+            required_headers=headers,
+        )
+    except (DatasetError, AssetAccessError, ValueError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
+    except RuntimeError as exc:
+        db.rollback()
+        raise HTTPException(status_code=502, detail="Signed upload is unavailable") from exc
 
 
-@router.post("/{dataset_id}/confirm-upload")
-async def confirm_upload(dataset_id: str, storage_key: str = Form(...),
-                          filename: str = Form(...), size_bytes: int = Form(...),
-                          db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel, DatasetFile as DFModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    storage = get_storage_service()
-    if not storage.file_exists(storage_key):
-        raise HTTPException(400, "File not found in storage")
-    file_id = str(uuid.uuid4())
-    file_type = detect_file_type(filename)
-    df = DFModel(id=file_id, dataset_id=dataset_id, filename=filename,
-                 storage_key=storage_key, file_size=size_bytes)
-    db.add(df); ds.file_count = len(ds.files) + 1; ds.updated_at = utc_now()
-    db.commit(); db.refresh(df)
-    return DatasetFileOut(id=df.id, filename=df.filename, file_type=file_type,
-                          size_bytes=df.file_size or 0, storage_key=df.storage_key,
-                          created_at=df.created_at)
+@router.post("/{dataset_id}/confirm-upload", response_model=DatasetFileOut)
+def confirm_upload(
+    dataset_id: str,
+    storage_key: str = Form(..., min_length=1, max_length=2_000),
+    filename: str = Form(..., min_length=1, max_length=240),
+    size_bytes: int = Form(..., ge=0),
+    sha256_hash: str | None = Form(default=None, max_length=64),
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=True
+        )
+        file = confirm_reserved_upload(
+            db,
+            actor=actor,
+            dataset=dataset,
+            storage_key=storage_key,
+            filename=filename,
+            claimed_size_bytes=size_bytes,
+            sha256_hash=sha256_hash,
+            storage=storage,
+        )
+        return dataset_file_out(file)
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
+    except RuntimeError as exc:
+        db.rollback()
+        raise HTTPException(status_code=502, detail="Upload confirmation failed") from exc
 
 
 @router.get("/{dataset_id}/files/{file_id}/download")
-async def get_download_url(dataset_id: str, file_id: str, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel, DatasetFile as DFModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    df = db.get(DFModel, file_id)
-    if not df or df.dataset_id != dataset_id: raise HTTPException(404, "File not found")
-    storage = get_storage_service()
-    download_url = storage.get_presigned_url(key=df.storage_key, expires_in=3600, for_upload=False)
-    return {"download_url": download_url, "filename": df.filename, "expires_in": 3600}
+def get_download_url(
+    dataset_id: str,
+    file_id: str,
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=False
+        )
+        file, url, expires_in = download_url(
+            dataset=dataset,
+            file_id=file_id,
+            storage=storage,
+        )
+        return {
+            "download_url": url,
+            "filename": file.filename,
+            "expires_in": expires_in,
+        }
+    except (DatasetError, AssetAccessError) as exc:
+        _raise_dataset_error(exc)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail="Download is unavailable") from exc
 
 
 @router.delete("/{dataset_id}/files/{file_id}")
-async def delete_file(dataset_id: str, file_id: str, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel, DatasetFile as DFModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    df = db.get(DFModel, file_id)
-    if not df or df.dataset_id != dataset_id: raise HTTPException(404, "File not found")
-    storage = get_storage_service()
-    storage.delete_file(df.storage_key)
-    db.delete(df); ds.file_count = max(0, (ds.file_count or 0) - 1)
-    ds.updated_at = utc_now(); db.commit()
-    return {"message": "File deleted", "id": file_id}
+def delete_file(
+    dataset_id: str,
+    file_id: str,
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_storage),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=True
+        )
+        delete_dataset_file(
+            db,
+            actor=actor,
+            dataset=dataset,
+            file_id=file_id,
+            storage=storage,
+        )
+        return {"message": "File deleted", "id": file_id}
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
+    except RuntimeError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=502,
+            detail="Storage deletion failed; database reference was retained",
+        ) from exc
 
 
 @router.post("/{dataset_id}/finalize", response_model=DatasetOut)
-async def finalize_dataset(dataset_id: str, db: Session = Depends(get_db)):
-    from app.models import Dataset as DSModel
-    ds = db.get(DSModel, dataset_id)
-    if not ds: raise HTTPException(404, "Dataset not found")
-    if not ds.files: raise HTTPException(400, "Dataset has no files")
-    ds.status = DatasetStatus.READY.value; ds.updated_at = utc_now()
-    db.commit(); db.refresh(ds)
-    logger.info(f"Finalized dataset {dataset_id} with {ds.file_count} files")
-    return _ds_out(ds)
+def finalize_dataset(
+    dataset_id: str,
+    actor: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+):
+    try:
+        dataset = get_owned_dataset(
+            db, context=context, dataset_id=dataset_id, write=True
+        )
+        finalize_dataset_record(db, actor=actor, dataset=dataset)
+        db.commit()
+        db.refresh(dataset)
+        return dataset_out(dataset)
+    except (DatasetError, AssetAccessError) as exc:
+        db.rollback()
+        _raise_dataset_error(exc)
 
-
-# ============ CONNECTOR WEBHOOKS ============
 
 @router.post("/webhooks/{source_tool}")
-async def source_webhook(
+def source_webhook(
     source_tool: SourceTool,
-    company_id: str = Query(...),
+    company_id: str | None = Query(default=None),
+    context: AuthorizationContext = Depends(get_authorization_context),
 ):
-    """
-    Webhook endpoint for external tools to push data.
-    
-    Each tool sends data in its own format, which we normalize.
-    """
-    
-    # FUTURE: Implement per-tool webhook handlers
-    # - DJI Terra: Project export notifications
-    # - Pix4D: Processing complete callbacks
-    # - BIM 360: Model update webhooks
-    
-    return {
-        "status": "received",
-        "source_tool": source_tool.value,
-        "message": f"Webhook handler for {source_tool.value} not yet implemented"
-    }
-
-
-# ============ API CONNECTOR SYNC ============
-
-@router.post("/sync/{source_tool}")
-async def sync_from_source(
-    source_tool: SourceTool,
-    company_id: str = Query(...),
-    site_id: str = Query(...),
-    project_id: Optional[str] = Query(None, description="External project ID"),
-):
-    """
-    Pull data from external tool API.
-    
-    Requires API credentials configured for the company.
-    """
-    
-    # FUTURE: Implement per-tool API sync
-    # - Pix4D Cloud API
-    # - DroneDeploy API
-    # - BIM 360 API
-    
+    _requested_company(context, company_id)
     return {
         "status": "not_implemented",
         "source_tool": source_tool.value,
-        "message": f"API sync for {source_tool.value} coming soon. Please use direct upload or webhooks."
+        "message": "Use the authenticated dataset upload flow for provider data",
     }
+
+
+@router.post("/sync/{source_tool}")
+def sync_from_source(
+    source_tool: SourceTool,
+    company_id: str | None = Query(default=None),
+    site_id: str | None = Query(default=None),
+    project_id: str | None = Query(default=None, description="External project ID"),
+    context: AuthorizationContext = Depends(get_authorization_context),
+):
+    del site_id, project_id
+    _requested_company(context, company_id)
+    return {
+        "status": "not_implemented",
+        "source_tool": source_tool.value,
+        "message": "Provider sync requires a configured adapter; direct upload is available",
+    }
+
+
+__all__ = ["router"]

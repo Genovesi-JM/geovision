@@ -32,7 +32,7 @@ from app.services.storage import StorageService
 
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
-PHASE_11_OPENAPI_SHA256 = "e80da5106dced5e34b7d75fdd07863e326a5529a034aa8f8849225c7892c210b"
+PHASE_12_OPENAPI_SHA256 = "25e11f2b06d0d951008f521125df3a9999322fdfefa91750fad92689017b9825"
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
 DEPLOYED_BACKEND_BASE = "https://api.geovisionops.com"
@@ -1215,6 +1215,7 @@ def test_s3_factory_rejects_partial_explicit_credentials(monkeypatch):
     for access_key, secret_key in (("access-only", None), (None, "secret-only")):
         config = Settings(
             _env_file=None,
+            object_storage_provider="s3",
             s3_access_key_id=access_key,
             s3_secret_access_key=secret_key,
         )
@@ -1357,4 +1358,4 @@ def test_openapi_contract_is_byte_stable(client):
         sort_keys=True,
         separators=(",", ":"),
     ).encode()
-    assert hashlib.sha256(payload).hexdigest() == PHASE_11_OPENAPI_SHA256
+    assert hashlib.sha256(payload).hexdigest() == PHASE_12_OPENAPI_SHA256

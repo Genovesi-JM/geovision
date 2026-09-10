@@ -20,7 +20,7 @@ instead of treating legacy structures as disposable.
 | R10 | High | ERP outbox work is provider-pinned and has bounded due-time retries plus terminal failure state, but no independent scheduled worker or dead-letter/operator workflow; provider-side ERP deduplication is not yet proven | ERP records remain pending unless sync is invoked manually, terminal work lacks a dedicated recovery surface, and an uncertain provider write requires manual reconciliation | Add an asynchronous worker with concurrency control, terminal/dead-letter visibility and operator controls in Phase 13; permit uncertain-write retries only after provider-side uniqueness/idempotency is verified |
 | R11 | High | Typed configuration fails closed for signing/encryption in staging/production, but the JWT guard is syntactic rather than an entropy assessment and most provider validation occurs when a factory/adapter is used; local/development may still generate an ephemeral JWT key or explicit `plain:` connector compatibility values | Misclassified environments can invalidate sessions, weak-looking secrets can pass a length/placeholder check, or a dormant provider misconfiguration can remain undiscovered until use | Use high-entropy managed secrets, exercise every enabled provider in deployment checks, keep redacted diagnostics, require encryption anywhere real connector credentials are used, and track historical-row remediation under R24 |
 | R12 | High | Phase 8 derives payment truth from the owned order, routes operations through the provider port, separates settlement/fulfilment, and deduplicates signed Stripe/Multicaixa callbacks; bank fields are still not live-validated and PayPal lacks deployed webhook verification/API-backed refunds | An operator can deploy invalid bank details or mistake an unsupported PayPal operation for a live capability | Require verified banking values and keep unavailable capability states explicit; add and verify PayPal webhook/refund support only when real credentials and provider verification are available |
-| R13 | High | Dataset/document storage uses a provider port and classifies S3 failures, but local-file support is read-only compatibility, failed writes have no local fallback, uploads are fully buffered, and some legacy facade shapes collapse error detail | Large uploads can exhaust memory, callers can lose retry/diagnostic context, and Azure migration can strand objects or break URLs | Add streaming and explicit error propagation, immutable GeoVision file IDs, an Azure Blob adapter, dual-read migration and checksum verification before cutover in Phase 12 |
+| R13 | Medium | Dataset storage now has durable file identity, streaming, signed uploads, local/S3/Azure adapters, provider size/checksum verification, and recoverable deletion; legacy Document flows still use their older facade | New dataset uploads no longer require relational blobs or full buffering, but legacy documents can retain weaker storage behavior | Route new geospatial payloads through canonical datasets and harden/retire the legacy Document facade during the report/document phases |
 | R14 | High | The provider-neutral ERP port preserves the current ERPNext adapter, while the playbook specifies a later Odoo integration | Replacing ERP code prematurely can interrupt commerce and accounting synchronization | Add Odoo as another adapter and retire ERPNext only after an approved Phase 21 cutover |
 | R15 | High | Current deployment is DigitalOcean; provider ports exist but Azure infrastructure, Blob, Service Bus and Event Grid adapters are absent | A big-bang cloud move can mix domain refactoring with operational migration | Implement Azure adapters behind the established interfaces and perform staged infrastructure migration with rollback |
 | R16 | Medium | The current public scope hides or combines some sectors, while the playbook requires five explicit verticals including Ports/Industrial | UI, catalogue and data fixtures may contradict the new architecture or over-promise immature capabilities | Treat sector activation as later feature-flagged phases; do not change public claims during foundation work |
@@ -37,6 +37,7 @@ instead of treating legacy structures as disposable.
 | R27 | High | Phase 9 stores private contractor/supplier contacts, qualifications, insurance, licences, quality notes and cost-bearing assignments in GeoVision | A broad customer/staff query, unsafe metadata field, or backup/export could expose personal data, internal margins, or another customer's operational details | Keep resource APIs internal, contractor views allowlisted and assignment-scoped, reject credentials in metadata, audit changes, restrict database/export access, define retention and document-access controls, and review live privacy/legal requirements before onboarding contractors |
 | R28 | High | Phase 10 derives executable job graphs from paid service lines and currently publishes operational events to a transactional local ledger | A bad dependency graph can deadlock or start processing before capture/upload completes; a multi-process deployment cannot yet distribute local events to workers | Keep planning idempotent, reject cross-order/self/cyclic edges, gate work on completed dependencies, audit/version every mutation, reconcile orders against jobs, and replace the local publisher behind its port with the Phase 13 durable broker/outbox before horizontal worker scaling |
 | R29 | High | Phase 11 maps legacy drone missions and manual inspections into a common acquisition history while preserving both source tables and APIs | A partial cutover or repeated backfill can duplicate history, lose flight detail, leak provider/assignee metadata, or let sector code depend on drone-only structures | Keep deterministic legacy identities and uniqueness constraints, dual-write through compatibility services, expose allowlisted customer projections, test rollback/re-upgrade parity, and retire legacy tables only after deployed clients and row-count checks confirm cutover |
+| R30 | High | Phase 12 pins every object reference to local, S3-compatible, or Azure Blob storage; changing the configured default deliberately does not move old bytes, and signed uploads currently use a portable single-PUT ceiling | A settings-only cutover can make historical objects unavailable, and files above the ceiling need a real multipart/block client rather than a larger advertised limit | Run a staged copy with size/checksum verification, dual-provider read window, transactional reference switch, and rollback; add provider-specific multipart/block sessions only when client/workload evidence requires them |
 
 ## Controls that already reduce risk
 
@@ -330,3 +331,25 @@ without a compatibility plan.
   source preservation and stable acquisition counts.
 - **Introduced and controlled:** R29 records the compatibility and privacy risk
   during dual-write cutover. Legacy retirement remains explicitly deferred.
+
+## Phase 12 outcome
+
+- **Reduced:** R13, because canonical dataset bytes remain outside relational
+  storage and local, S3-compatible, and Azure Blob adapters now support
+  streaming, short-lived signed URLs, stat/checksum evidence, and safe errors
+  behind the dataset-owned provider port.
+- **Contained:** Cross-tenant object access, because dataset operations require
+  exact active organization/workspace ownership and local signed routes repeat
+  that authorization at read/write time. File paths use immutable GeoVision IDs
+  and provider credentials are never serialized to clients.
+- **Contained:** Orphan-state risk, because upload reservations precede provider
+  writes, file deletion persists a recoverable intermediate state, failed
+  provider deletion restores the reference, and dataset deletion is an archive
+  that retains tracked objects.
+- **Contained:** Legacy data migration, because additive backfill maps Site
+  datasets to generic Assets/workspaces where possible, keeps original rows and
+  keys, and passes rollback/re-upgrade checks on SQLite and PostgreSQL.
+- **Introduced and controlled:** R30 records provider-cutover and very-large-file
+  strategy. Existing rows remain provider-pinned; live Azure RBAC and a staged
+  copy/checksum cutover are deployment gates, and files above the portable
+  single-PUT ceiling are not falsely advertised as supported.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import mimetypes
 from pathlib import Path
+import re
 from typing import Any, BinaryIO, Optional
 
 from app.core.integration import IntegrationResult
@@ -67,6 +68,47 @@ class StorageService:
             f"{dataset_id}/{timestamp}_{safe_filename}"
         )
 
+    def generate_dataset_key(
+        self,
+        *,
+        organization_id: str,
+        asset_id: str,
+        mission_id: str | None,
+        dataset_id: str,
+        file_id: str,
+        area: str,
+        filename: str,
+    ) -> str:
+        """Build a stable, provider-independent key for canonical datasets."""
+
+        identifiers = {
+            "organization_id": organization_id,
+            "asset_id": asset_id,
+            "dataset_id": dataset_id,
+            "file_id": file_id,
+        }
+        for label, value in identifiers.items():
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", value or ""):
+                raise ValueError(f"invalid {label}")
+        mission_segment = mission_id or "standalone"
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,99}", mission_segment):
+            raise ValueError("invalid mission_id")
+        normalized_area = area.strip().lower()
+        if normalized_area not in {"raw", "processed", "derived", "reports"}:
+            raise ValueError("invalid object area")
+        safe_filename = "".join(
+            character
+            for character in Path(filename).name
+            if character.isalnum() or character in "._-"
+        )
+        if not safe_filename:
+            raise ValueError("invalid filename")
+        return (
+            f"organizations/{organization_id}/assets/{asset_id}/missions/"
+            f"{mission_segment}/datasets/{dataset_id}/{normalized_area}/"
+            f"{file_id}_{safe_filename}"
+        )
+
     def upload_file(
         self,
         file_obj: BinaryIO,
@@ -100,18 +142,23 @@ class StorageService:
         return self._value(self.provider.presign(key, expires_in, for_upload))
 
     def delete_file(self, key: str) -> bool:
-        result = self.provider.delete(key)
-        return bool(result.value) if result.ok else False
+        return bool(self._value(self.provider.delete(key)))
 
     def file_exists(self, key: str) -> bool:
-        result = self.provider.exists(key)
-        return bool(result.value) if result.ok else False
+        return bool(self._value(self.provider.exists(key)))
+
+    def stat_file(self, key: str) -> Optional[dict[str, Any]]:
+        value = self._value(self.provider.stat(key))
+        return dict(value) if value is not None else None
 
     def get_file_info(self, key: str) -> Optional[dict[str, Any]]:
-        result = self.provider.stat(key)
-        if not result.ok or result.value is None:
-            return None
-        return dict(result.value)
+        return self.stat_file(key)
+
+    def object_uri(self, key: str) -> str:
+        resolver = getattr(self.provider, "object_uri", None)
+        if callable(resolver):
+            return str(resolver(key))
+        return f"{self.provider_name}://{key}"
 
     def download_file(self, key: str) -> bytes:
         try:

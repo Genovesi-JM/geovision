@@ -582,15 +582,15 @@ class SiteOut(BaseModel):
 
 class DatasetCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=200)
-    description: Optional[str] = None
-    data_type: str = Field(default="drone_imagery")
-    source: Optional[str] = None
+    description: Optional[str] = Field(default=None, max_length=10_000)
+    data_type: str = Field(default="drone_imagery", min_length=2, max_length=50)
+    source: Optional[str] = Field(default=None, max_length=100)
     metadata: Optional[dict] = None
 
 
 class DatasetOut(BaseModel):
     id: str
-    site_id: str
+    site_id: Optional[str] = None
     company_id: str
     name: str
     description: Optional[str] = None
@@ -755,15 +755,66 @@ async def delete_site(site_id: str, db: Session = Depends(get_db)):
 @router.post("/sites/{site_id}/datasets", response_model=DatasetOut)
 async def create_dataset(site_id: str, data: DatasetCreate, db: Session = Depends(get_db)):
     from app.models import Site, Dataset as DSModel
+    from app.modules.assets.services import synchronize_legacy_site
+    from app.modules.datasets.domain import (
+        normalize_dataset_type,
+        reject_sensitive_metadata,
+    )
+
     site = db.get(Site, site_id)
     if not site: raise HTTPException(404, "Site not found")
-    ds = DSModel(id=str(uuid.uuid4()), company_id=site.company_id, site_id=site_id,
-                 name=data.name, source_tool=data.data_type, status="pending")
-    db.add(ds); db.commit(); db.refresh(ds)
+    asset = synchronize_legacy_site(db, site)
+    try:
+        dataset_type = normalize_dataset_type(data.data_type)
+        metadata = reject_sensitive_metadata(data.metadata or {})
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    dataset_type = {
+        "DRONE_IMAGERY": "RGB_IMAGES",
+        "POINTCLOUD": "POINT_CLOUD",
+    }.get(dataset_type, dataset_type)
+    now = utc_now()
+    ds = DSModel(
+        id=str(uuid.uuid4()),
+        company_id=site.company_id,
+        workspace_id=asset.workspace_id,
+        site_id=site_id,
+        asset_id=asset.id,
+        name=data.name,
+        description=data.description,
+        source_tool="manual",
+        data_type=data.data_type.lower(),
+        dataset_type=dataset_type,
+        provider_code="admin",
+        source=data.source,
+        source_reference=data.source,
+        storage_provider=settings.object_storage_provider.lower(),
+        processing_level="RAW",
+        quality_status="UNREVIEWED",
+        provenance_json=json.dumps({"created_via": "admin"}),
+        status="uploading",
+        sector=site.sector,
+        metadata_json=json.dumps(metadata),
+        lifecycle_version=1,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(ds)
+    _log_audit(
+        db,
+        site.company_id,
+        "dataset.created",
+        "dataset",
+        ds.id,
+        details={"dataset_type": dataset_type, "asset_id": asset.id},
+    )
+    db.commit(); db.refresh(ds)
     return DatasetOut(id=ds.id, site_id=site_id, company_id=site.company_id,
-                      name=ds.name, data_type=ds.source_tool or "drone_imagery",
-                      source=data.source, status=ds.status,
-                      created_at=ds.created_at, processed_at=None)
+                      name=ds.name, description=ds.description,
+                      data_type=ds.data_type or ds.dataset_type.lower(),
+                      source=ds.source, storage_path=ds.storage_path,
+                      size_bytes=ds.total_size_bytes or 0, status=ds.status,
+                      created_at=ds.created_at, processed_at=ds.processed_at)
 
 
 @router.get("/datasets", response_model=List[DatasetOut])
@@ -776,12 +827,20 @@ async def list_all_datasets(
     q = db.query(DSModel)
     if company_id: q = q.filter(DSModel.company_id == company_id)
     if site_id: q = q.filter(DSModel.site_id == site_id)
-    if data_type: q = q.filter(DSModel.source_tool == data_type)
+    if data_type:
+        normalized = data_type.lower()
+        q = q.filter(
+            (func.lower(DSModel.data_type) == normalized)
+            | (func.lower(DSModel.dataset_type) == normalized)
+        )
     if status: q = q.filter(DSModel.status == status)
     datasets = q.all()
     return [DatasetOut(id=d.id, site_id=d.site_id, company_id=d.company_id,
-            name=d.name, data_type=d.source_tool or "drone_imagery", status=d.status,
-            created_at=d.created_at, processed_at=None) for d in datasets]
+            name=d.name, description=d.description,
+            data_type=d.data_type or d.dataset_type.lower(), source=d.source,
+            storage_path=d.storage_path, size_bytes=d.total_size_bytes or 0,
+            status=d.status, created_at=d.created_at,
+            processed_at=d.processed_at) for d in datasets]
 
 
 @router.delete("/datasets/{dataset_id}")
@@ -789,8 +848,24 @@ async def delete_dataset(dataset_id: str, db: Session = Depends(get_db)):
     from app.models import Dataset as DSModel
     ds = db.get(DSModel, dataset_id)
     if not ds: raise HTTPException(404, "Dataset not found")
-    db.delete(ds); db.commit()
-    return {"message": "Dataset deleted", "dataset_id": dataset_id}
+    if ds.status != "archived":
+        ds.status = "archived"
+        ds.archived_at = utc_now()
+        ds.updated_at = utc_now()
+        ds.lifecycle_version = (ds.lifecycle_version or 0) + 1
+        _log_audit(
+            db,
+            ds.company_id,
+            "dataset.archived",
+            "dataset",
+            ds.id,
+            details={"retained_object_count": ds.file_count or 0},
+        )
+        db.commit()
+    return {
+        "message": "Dataset archived; tracked objects were retained",
+        "dataset_id": dataset_id,
+    }
 
 
 # ============ DOCUMENTS MANAGEMENT ============

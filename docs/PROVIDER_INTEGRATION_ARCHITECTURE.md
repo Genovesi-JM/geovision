@@ -106,9 +106,9 @@ backfill can be considered after those ownership boundaries are established.
 
 ## Ports and implementation status
 
-| Capability and owning module | Port | Phase 2 implementation status |
+| Capability and owning module | Port | Current implementation status |
 |---|---|---|
-| Dataset object storage | `ObjectStorageProvider` | Existing S3-compatible behavior is isolated in `S3ObjectStorageProvider`; no Azure Blob adapter yet |
+| Dataset object storage | `ObjectStorageProvider` | Private local, S3-compatible, and Azure Blob adapters implement provider-neutral streaming, signed URLs, stat/checksum, deletion, and object URI operations |
 | Domain events and queue publication | `EventPublisher`, `QueuePublisher` | Contracts and explicit null event publisher only; no durable cloud queue adapter |
 | Processing | `ProcessingProvider` | Port only; processing jobs and photogrammetry adapters belong to Phase 14 |
 | Weather | `WeatherProvider` | Port only; provider integration belongs to Phase 15 |
@@ -131,19 +131,22 @@ have passed.
 
 ### Object storage
 
-`StorageService` preserves the existing tuple, boolean, dictionary, and byte
-return shapes used by routers. Internally it consumes an injected
-`ObjectStorageProvider`. Its default factory lazily imports the S3-compatible
-adapter, while tests can pass a fake provider without importing `boto3`.
+`StorageService` preserves legacy return shapes while canonical dataset
+services consume an injected `ObjectStorageProvider`. The lazy factory selects
+a private filesystem adapter in local/dev/test, an S3-compatible adapter, or an
+Azure Blob adapter. Domain imports and fake-provider tests do not initialize a
+vendor SDK.
 
-Object keys remain provider-independent application paths. The S3 factory
-rejects a partial explicit access-key pair; when neither value is supplied it
-uses the SDK credential chain. Existing local-file reads are retained for
-compatibility, but failed writes do not fall back locally. Uploads are currently
-buffered fully in process memory, and some legacy facade methods collapse
-classified provider errors into boolean or `None` return shapes. Storage
-cutover, immutable file identity, dual-read migration, streaming uploads, and
-checksum verification remain Phase 12 work.
+Canonical object keys use organization, Asset, Acquisition/standalone,
+dataset, area, immutable file ID, and safe filename segments. Backend uploads
+stream and calculate MD5/SHA-256. Larger uploads use short-lived scoped URLs,
+durable reservations, explicit confirmation, provider size/checksum evidence,
+and a portable single-PUT ceiling. Azure deployment uses managed identity and
+user-delegation SAS by default; master credentials stay server-side. Dataset
+archive retains objects, while file deletion uses a recoverable intermediate
+state and tombstone. Existing rows stay pinned to their provider, so a provider
+cutover still requires copy/checksum/reference migration and rollback rather
+than changing the default setting. See `docs/DATASET_STORAGE.md`.
 
 ### ERP
 

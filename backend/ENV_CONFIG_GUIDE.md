@@ -175,7 +175,7 @@ credentials to domain modules:
 
 ```dotenv
 IDENTITY_PROVIDER=internal
-OBJECT_STORAGE_PROVIDER=s3
+OBJECT_STORAGE_PROVIDER=local
 QUEUE_PROVIDER=null
 PROCESSING_PROVIDER=none
 WEATHER_PROVIDER=none
@@ -210,11 +210,19 @@ external account can complete a live request.
 
 ## Object storage
 
-The current concrete implementation is the existing S3-compatible adapter. It
-supports AWS S3 and compatible endpoints such as MinIO or R2. Dataset and
-document code calls the `ObjectStorageProvider` port through the compatibility
-storage service, so a future Azure Blob adapter can be added without changing
-domain behavior.
+Canonical datasets use private local filesystem, S3-compatible, or Azure Blob
+adapters behind `ObjectStorageProvider`. Local is the default only for
+local/dev/test and is rejected when resolved in a deployed runtime.
+
+```dotenv
+OBJECT_STORAGE_PROVIDER=local
+LOCAL_STORAGE_ROOT=./data/object-storage
+DATASET_DIRECT_UPLOAD_MAX_BYTES=524288000
+DATASET_SIGNED_UPLOAD_MAX_BYTES=4294967296
+DATASET_SIGNED_URL_EXPIRY_SECONDS=900
+```
+
+S3-compatible storage supports AWS S3 and endpoints such as MinIO or R2:
 
 ```dotenv
 OBJECT_STORAGE_PROVIDER=s3
@@ -230,16 +238,27 @@ explicit keys are absent, the S3 SDK may use its normal credential chain. If one
 explicit key is supplied without the other, provider creation fails instead of
 silently falling back to that chain.
 
-The example configuration is not a self-contained local storage service: new
-uploads require SDK-resolvable credentials and a reachable bucket, or a local
-S3-compatible emulator configured through `S3_ENDPOINT_URL`. There is no local
-filesystem write fallback. The legacy local-file path is read-only compatibility
-for previously stored documents. Current uploads are read fully into memory to
-calculate hashes before transfer, so large geospatial-file limits and streaming
-hardening remain Phase 12 work. The compatibility service also preserves older
-boolean/`None` return shapes for some calls, which can hide the distinction
-between not-found and a provider failure; use the provider-level normalized
-result when that distinction is operationally required.
+Azure Blob is selected independently:
+
+```dotenv
+OBJECT_STORAGE_PROVIDER=azure_blob
+AZURE_STORAGE_ACCOUNT_URL=https://example.blob.core.windows.net
+AZURE_STORAGE_CONTAINER=geovision-datasets
+AZURE_MANAGED_IDENTITY_CLIENT_ID=
+AZURE_STORAGE_CONNECTION_STRING=
+AZURE_STORAGE_ACCOUNT_NAME=
+AZURE_STORAGE_ACCOUNT_KEY=
+```
+
+Staging/production uses managed identity when no account key is configured.
+Account keys and account-key connection strings are intended for controlled
+local integration testing and are redacted from settings diagnostics. The
+factory rejects incomplete explicit name/key credentials. Dataset uploads
+stream, or use short-lived scoped URLs with durable reservations and explicit
+completion. Existing object rows remain pinned to their original provider; a
+provider change requires a staged copy/checksum/reference migration rather than
+a settings-only switch. See `docs/DATASET_STORAGE.md` for the object-key,
+authorization, deletion, and rollback contracts.
 
 ## ERP
 

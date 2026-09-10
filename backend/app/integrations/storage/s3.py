@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from io import BytesIO
+import re
 from typing import Any, BinaryIO, Mapping, Optional
 
 import boto3
@@ -24,6 +25,22 @@ from app.core.integration import (
     IntegrationStatus,
 )
 from app.modules.datasets.ports import StoredObject
+
+
+_CHUNK_SIZE = 1024 * 1024
+
+
+def _measure(file_obj: BinaryIO) -> tuple[int, str, str]:
+    md5 = hashlib.md5()
+    sha256 = hashlib.sha256()
+    size_bytes = 0
+    file_obj.seek(0)
+    while chunk := file_obj.read(_CHUNK_SIZE):
+        size_bytes += len(chunk)
+        md5.update(chunk)
+        sha256.update(chunk)
+    file_obj.seek(0)
+    return size_bytes, md5.hexdigest(), sha256.hexdigest()
 
 
 class S3ObjectStorageProvider:
@@ -153,15 +170,13 @@ class S3ObjectStorageProvider:
         content_type: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
     ) -> IntegrationResult[StoredObject]:
-        file_obj.seek(0)
-        content = file_obj.read()
+        size_bytes, md5_hash, sha256_hash = _measure(file_obj)
         stored = StoredObject(
             key=key,
-            size_bytes=len(content),
-            md5_hash=hashlib.md5(content).hexdigest(),
-            sha256_hash=hashlib.sha256(content).hexdigest(),
+            size_bytes=size_bytes,
+            md5_hash=md5_hash,
+            sha256_hash=sha256_hash,
         )
-        file_obj.seek(0)
 
         extra_args: dict[str, Any] = {}
         if content_type:
@@ -245,11 +260,16 @@ class S3ObjectStorageProvider:
     def stat(self, key: str) -> IntegrationResult[Optional[Mapping[str, Any]]]:
         try:
             response = self.client.head_object(Bucket=self.bucket, Key=key)
+            etag = str(response.get("ETag") or "").strip('"').lower()
             value: Optional[Mapping[str, Any]] = {
                 "size_bytes": response.get("ContentLength"),
                 "content_type": response.get("ContentType"),
                 "last_modified": response.get("LastModified"),
                 "metadata": response.get("Metadata", {}),
+                # A plain 32-hex ETag is provider-calculated content MD5 for
+                # single-part, non-composite objects. Multipart ETags contain
+                # a dash and are deliberately not represented as checksums.
+                "md5_hash": etag if re.fullmatch(r"[a-f0-9]{32}", etag) else None,
             }
         except ClientError as exc:
             error_code = str(exc.response.get("Error", {}).get("Code", ""))
@@ -276,6 +296,9 @@ class S3ObjectStorageProvider:
             operation="get_bytes",
             value=value,
         )
+
+    def object_uri(self, key: str) -> str:
+        return f"s3://{self.bucket}/{key}"
 
 
 __all__ = ["S3ObjectStorageProvider"]

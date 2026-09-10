@@ -12,6 +12,8 @@ requests
 
 # S3-compatible storage
 boto3>=1.34.0
+azure-storage-blob>=12.23.0
+azure-identity>=1.19.0
 
 # Encryption for secrets at rest
 cryptography>=42.0.0

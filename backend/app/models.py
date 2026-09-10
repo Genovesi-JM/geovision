@@ -1677,14 +1677,50 @@ class Dataset(Base):
     __tablename__ = "datasets"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    company_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
-    site_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True, index=True)
+    company_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    workspace_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    site_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("sites.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    asset_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    mission_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("acquisitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_tool: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     data_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="drone_imagery")
     source: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    dataset_type: Mapped[str] = mapped_column(
+        String(80), nullable=False, default="OTHER", server_default="OTHER", index=True
+    )
+    provider_code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
+    source_reference: Mapped[Optional[str]] = mapped_column(String(240), nullable=True)
+    storage_provider: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="local", server_default="local"
+    )
+    object_prefix: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    crs: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    resolution: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    resolution_unit: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    processing_level: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="RAW", server_default="RAW", index=True
+    )
+    quality_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="UNREVIEWED", server_default="UNREVIEWED", index=True
+    )
+    provenance_json: Mapped[str] = mapped_column(
+        Text, nullable=False, default="{}", server_default="{}"
+    )
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="uploading", server_default="uploading"
+    )
     sector: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     capture_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default="{}")
@@ -1694,23 +1730,69 @@ class Dataset(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
     processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
 
-    files = relationship("DatasetFile", back_populates="dataset", cascade="all, delete-orphan")
+    files = relationship(
+        "DatasetFile",
+        back_populates="dataset",
+        passive_deletes="all",
+    )
+
+    __table_args__ = (
+        CheckConstraint("resolution IS NULL OR resolution > 0", name="ck_dataset_resolution"),
+        CheckConstraint("file_count >= 0", name="ck_dataset_file_count"),
+        CheckConstraint("total_size_bytes >= 0", name="ck_dataset_total_size"),
+        CheckConstraint("lifecycle_version > 0", name="ck_dataset_version"),
+        Index("ix_datasets_asset_capture", asset_id, capture_date),
+    )
 
 
 class DatasetFile(Base):
     __tablename__ = "dataset_files"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    dataset_id: Mapped[str] = mapped_column(String(36), ForeignKey("datasets.id", ondelete="CASCADE"), nullable=False, index=True)
+    dataset_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("datasets.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
     filename: Mapped[str] = mapped_column(String, nullable=False)
     storage_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    storage_provider: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="local", server_default="local"
+    )
+    storage_uri: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    object_area: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="raw", server_default="raw"
+    )
     file_size: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     mime_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    md5_hash: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    sha256_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="pending_upload", server_default="pending_upload"
+    )
+    upload_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    confirmed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    lifecycle_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=1, server_default="1"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
 
     dataset = relationship("Dataset", back_populates="files")
+
+    __table_args__ = (
+        CheckConstraint("file_size >= 0", name="ck_dataset_file_size"),
+        CheckConstraint("lifecycle_version > 0", name="ck_dataset_file_version"),
+    )
 
 
 # â”€â”€ Cart â”€â”€

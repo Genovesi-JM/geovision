@@ -229,9 +229,52 @@ def ensure_legacy_schema() -> None:
                 "file_count": "ALTER TABLE datasets ADD COLUMN file_count INTEGER DEFAULT 0",
                 "total_size_bytes": "ALTER TABLE datasets ADD COLUMN total_size_bytes INTEGER DEFAULT 0",
                 "processed_at": "ALTER TABLE datasets ADD COLUMN processed_at TIMESTAMP",
+                "workspace_id": "ALTER TABLE datasets ADD COLUMN workspace_id VARCHAR(36)",
+                "asset_id": "ALTER TABLE datasets ADD COLUMN asset_id VARCHAR(36)",
+                "mission_id": "ALTER TABLE datasets ADD COLUMN mission_id VARCHAR(36)",
+                "dataset_type": "ALTER TABLE datasets ADD COLUMN dataset_type VARCHAR(80) DEFAULT 'OTHER' NOT NULL",
+                "provider_code": "ALTER TABLE datasets ADD COLUMN provider_code VARCHAR(80)",
+                "source_reference": "ALTER TABLE datasets ADD COLUMN source_reference VARCHAR(240)",
+                "storage_provider": "ALTER TABLE datasets ADD COLUMN storage_provider VARCHAR(40) DEFAULT 'legacy_unknown' NOT NULL",
+                "object_prefix": "ALTER TABLE datasets ADD COLUMN object_prefix TEXT",
+                "crs": "ALTER TABLE datasets ADD COLUMN crs VARCHAR(100)",
+                "resolution": "ALTER TABLE datasets ADD COLUMN resolution FLOAT",
+                "resolution_unit": "ALTER TABLE datasets ADD COLUMN resolution_unit VARCHAR(30)",
+                "processing_level": "ALTER TABLE datasets ADD COLUMN processing_level VARCHAR(30) DEFAULT 'RAW' NOT NULL",
+                "quality_status": "ALTER TABLE datasets ADD COLUMN quality_status VARCHAR(30) DEFAULT 'UNREVIEWED' NOT NULL",
+                "provenance_json": "ALTER TABLE datasets ADD COLUMN provenance_json TEXT DEFAULT '{}' NOT NULL",
+                "archived_at": "ALTER TABLE datasets ADD COLUMN archived_at TIMESTAMP",
+                "created_by_user_id": "ALTER TABLE datasets ADD COLUMN created_by_user_id VARCHAR(36)",
+                "lifecycle_version": "ALTER TABLE datasets ADD COLUMN lifecycle_version INTEGER DEFAULT 1 NOT NULL",
             }
             for col, ddl in _ds_adds.items():
                 if col not in ds_cols:
+                    try:
+                        conn.execute(text(ddl))
+                    except Exception:
+                        pass
+
+        # Dataset files: keep older local developer DBs readable. Alembic still
+        # owns constraints, backfills, and production schema evolution.
+        try:
+            ds_file_cols = [c["name"] for c in inspector.get_columns("dataset_files")]
+        except Exception:
+            ds_file_cols = []
+
+        if ds_file_cols:
+            _ds_file_adds = {
+                "storage_provider": "ALTER TABLE dataset_files ADD COLUMN storage_provider VARCHAR(40) DEFAULT 'legacy_unknown' NOT NULL",
+                "storage_uri": "ALTER TABLE dataset_files ADD COLUMN storage_uri TEXT",
+                "object_area": "ALTER TABLE dataset_files ADD COLUMN object_area VARCHAR(20) DEFAULT 'raw' NOT NULL",
+                "md5_hash": "ALTER TABLE dataset_files ADD COLUMN md5_hash VARCHAR(32)",
+                "sha256_hash": "ALTER TABLE dataset_files ADD COLUMN sha256_hash VARCHAR(64)",
+                "upload_expires_at": "ALTER TABLE dataset_files ADD COLUMN upload_expires_at TIMESTAMP",
+                "confirmed_at": "ALTER TABLE dataset_files ADD COLUMN confirmed_at TIMESTAMP",
+                "deleted_at": "ALTER TABLE dataset_files ADD COLUMN deleted_at TIMESTAMP",
+                "lifecycle_version": "ALTER TABLE dataset_files ADD COLUMN lifecycle_version INTEGER DEFAULT 1 NOT NULL",
+            }
+            for col, ddl in _ds_file_adds.items():
+                if col not in ds_file_cols:
                     try:
                         conn.execute(text(ddl))
                     except Exception:
