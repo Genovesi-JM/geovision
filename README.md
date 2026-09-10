@@ -20,6 +20,9 @@ tenancy, role permissions, compatibility names, and migration steps are in the
 cross-sector hierarchy, GeoJSON contract, PostGIS projection, permissions, and
 legacy Site/IoT mapping are documented in the
 [generic Asset/PostGIS guide](docs/ASSET_POSTGIS_FOUNDATION.md).
+The reproducible Azure foundation, guarded migration-first release sequence,
+cost controls, rollback, and development teardown are documented in the
+[Azure deployment runbook](infra/azure/README.md).
 Secure invitation acceptance, service-first onboarding intents, and browser/
 mobile deep-link behavior are defined in the
 [invitation onboarding guide](docs/INVITATION_ONBOARDING_DEEP_LINKS.md). The

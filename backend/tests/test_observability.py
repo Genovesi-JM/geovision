@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import StringIO
 import json
 import logging
+import sys
 from types import SimpleNamespace
 
 from fastapi import FastAPI
@@ -120,4 +121,27 @@ def test_azure_monitor_configuration_falls_back_without_credentials():
         "structured_logging": True,
         "azure_monitor_configured": False,
         "fallback_reason": "connection_string_not_configured",
+    }
+
+
+def test_azure_monitor_configuration_falls_back_when_exporter_is_unavailable(
+    monkeypatch,
+):
+    monkeypatch.setitem(sys.modules, "azure.monitor.opentelemetry", None)
+
+    result = configure_observability(
+        SimpleNamespace(
+            log_level="INFO",
+            observability_exporter="azure_monitor",
+            applicationinsights_connection_string=(
+                "InstrumentationKey=00000000-0000-0000-0000-000000000000"
+            ),
+        )
+    )
+
+    assert result == {
+        "exporter": "azure_monitor",
+        "structured_logging": True,
+        "azure_monitor_configured": False,
+        "fallback_reason": "azure_monitor_exporter_unavailable",
     }

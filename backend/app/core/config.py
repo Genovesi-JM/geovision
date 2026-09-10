@@ -111,6 +111,9 @@ class Settings(BaseSettings):
         ge=1,
         validation_alias=AliasChoices("MIGRATE_TIMEOUT_SECONDS", "MIGRATE_TIMEOUT"),
     )
+    run_migrations_on_startup: bool = True
+    startup_compatibility_bootstrap: bool = True
+    readiness_require_current_schema: bool = False
 
     # Public application URLs and browser access.
     frontend_base: str = Field(default="http://127.0.0.1:8001", repr=False)

@@ -36,6 +36,9 @@ APP_NAME=GeoVision Backend
 APP_VERSION=1.0.0
 PORT=8010
 MIGRATE_TIMEOUT_SECONDS=120
+RUN_MIGRATIONS_ON_STARTUP=true
+STARTUP_COMPATIBILITY_BOOTSTRAP=true
+READINESS_REQUIRE_CURRENT_SCHEMA=false
 
 BACKEND_BASE=http://127.0.0.1:8010
 FRONTEND_BASE=http://127.0.0.1:8001
@@ -49,6 +52,12 @@ ACCOUNTS_DATABASE_URL=sqlite:///./accounts.db
 `MIGRATE_TIMEOUT` remains an alias for `MIGRATE_TIMEOUT_SECONDS`. Legacy
 `postgres://` database URLs are normalized to SQLAlchemy's `postgresql://`
 scheme. Database URLs are treated as sensitive in configuration diagnostics.
+The three startup switches preserve the single-process local/legacy behavior.
+In a scaled deployment, run `python start.py migrate` once, then start every API
+replica with `python start.py serve --skip-migrations`; the Azure template also
+sets compatibility bootstrap off and schema-head readiness on. Do not disable
+startup migrations unless a guarded deployment job owns both Alembic and the
+idempotent reference-data bootstrap.
 In staging and production, `BACKEND_BASE` and `FRONTEND_BASE` must be absolute
 HTTPS URLs with a host and no userinfo, query string, or fragment. Use the
 dedicated GeoVision origin rather than a shared static-host origin for the

@@ -10,8 +10,10 @@ services:
     profiles: ["intelligence"]
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.workers.intelligence_worker"]
+    healthcheck:
+      disable: true
     environment:
       DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
       OBJECT_STORAGE_PROVIDER: ${OBJECT_STORAGE_PROVIDER:-local}
@@ -26,3 +28,4 @@ services:
     volumes: [geovision-runtime:/runtime]
     depends_on:
       db: {condition: service_healthy}
+      backend: {condition: service_healthy}

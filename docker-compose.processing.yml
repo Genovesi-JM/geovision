@@ -17,8 +17,10 @@ services:
     profiles: ["processing"]
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.workers.event_worker"]
+    healthcheck:
+      disable: true
     environment:
       DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
       QUEUE_PROVIDER: database
@@ -27,13 +29,16 @@ services:
       NODEODM_BASE_URL: http://nodeodm:3000
     depends_on:
       db: {condition: service_healthy}
+      backend: {condition: service_healthy}
 
   processing-worker:
     profiles: ["processing"]
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.workers.processing_worker"]
+    healthcheck:
+      disable: true
     environment:
       DATABASE_URL: postgresql+psycopg2://geovision:${POSTGRES_PASSWORD}@db:5432/geovision
       OBJECT_STORAGE_PROVIDER: local
@@ -44,6 +49,7 @@ services:
     depends_on:
       db: {condition: service_healthy}
       nodeodm: {condition: service_started}
+      backend: {condition: service_healthy}
 
 volumes:
   geovision-nodeodm:

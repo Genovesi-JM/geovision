@@ -7,25 +7,18 @@ from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-
 from .bootstrap import register_application_routes
 from .core import database
 from .core.config import settings
-from .core.integration import sanitize_integration_message
 from .core.observability import configure_observability, get_logger, log_event
+from .core.readiness import assert_database_ready
 from .middleware import (
     HTTPSRedirectMiddleware,
     RateLimitMiddleware,
     RequestContextMiddleware,
     SecurityHeadersMiddleware,
 )
-from .seed_data import (
-    seed_admin_users,
-)
-from .services.cart import seed_shop_products, seed_kit_products
-from .modules.catalog.services import sync_catalog_from_legacy
-from .sectors.services import sync_enabled_sector_definitions
+from .startup_bootstrap import run_compatibility_bootstrap
 from .workers import application_workers
 
 
@@ -90,41 +83,13 @@ def create_application() -> FastAPI:
 
     database.init_db_engine()
 
-    # Ensure DB schema is up-to-date (add missing columns)
-    try:
-        database.ensure_legacy_schema()
-        log_event(logger, logging.INFO, "database.schema_drift_check.completed")
-    except Exception as exc:
+    if settings.startup_compatibility_bootstrap:
+        run_compatibility_bootstrap()
+    else:
         log_event(
             logger,
-            logging.WARNING,
-            "database.schema_drift_check.failed",
-            error=sanitize_integration_message(exc),
-        )
-
-    try:
-        db = database.SessionLocal()
-        try:
-            sync_enabled_sector_definitions(db)
-            seed_shop_products(db)
-            seed_kit_products(db)
-            sync_catalog_from_legacy(db)
-            inserted_users = seed_admin_users()
-            if inserted_users:
-                log_event(
-                    logger,
-                    logging.INFO,
-                    "application.admin_seed.completed",
-                    inserted_users=inserted_users,
-                )
-        finally:
-            db.close()
-    except Exception as exc:
-        log_event(
-            logger,
-            logging.WARNING,
-            "application.seed.failed",
-            error=sanitize_integration_message(exc),
+            logging.INFO,
+            "application.compatibility_bootstrap.skipped",
         )
 
     # Composition is explicit, ordered, and compatibility-preserving. Router
@@ -140,10 +105,10 @@ def create_application() -> FastAPI:
         """Report readiness only when the application can reach its database."""
 
         try:
-            if database.engine is None:
-                raise RuntimeError("database engine is not initialized")
-            with database.engine.connect() as connection:
-                connection.execute(text("SELECT 1"))
+            assert_database_ready(
+                database.engine,
+                require_current_schema=settings.readiness_require_current_schema,
+            )
         except Exception as exc:
             raise HTTPException(status_code=503, detail="service unavailable") from exc
         return {"status": "ready"}

@@ -296,3 +296,30 @@ how to confirm · what the automation does afterwards.
   callback rejects/age and mapping drift. Retain the old provider long enough to
   drain or reconcile rows already pinned to it; never relabel those rows. Follow
   [the Odoo 19 runbook](docs/ODOO_19_INTEGRATION.md) for rotation and rollback.
+
+## 18. Azure subscription deployment and production cutover
+
+- **Reason:** The Azure Bicep foundation, shared container image, explicit
+  migration job, readiness checks and guarded release helper are implemented,
+  but no account-bound Azure resources, billable services, production data,
+  DNS, certificates or live provider credentials have been created or tested.
+  Local validation cannot prove regional quota, tenant policy, real workload
+  performance, backup restore, data migration or a zero-loss traffic cutover.
+- **Action:** An Azure owner must approve the subscription, region, resource
+  names, budget/alerts, RBAC assignees, data residency and network policy. Run
+  the documented `what-if`, provision an isolated dev/staging environment,
+  build an immutable image, rehearse backup/restore and migration, configure
+  approved provider secrets, and approve the DNS/traffic change only after the
+  staging evidence is reviewed.
+- **Where:** Azure staging and the organization DNS/provider consoles, following
+  [the Azure deployment runbook](infra/azure/README.md); secrets stay in the
+  protected deployment environment and Key Vault, never Git or chat logs.
+- **Confirm:** `/health` and schema-gated `/ready` pass; authentication and
+  organization isolation pass; all five workers consume and recover work;
+  Blob, Service Bus, monitoring and external integrations pass representative
+  checks; database restore and compatible-image rollback are rehearsed; and a
+  monitored canary shows no error, latency or data-consistency regression.
+- **After:** Cut traffic gradually, retain the DigitalOcean definition and last
+  compatible image/database recovery point through the agreed observation
+  window, then decommission the old environment only under a separate human
+  approval. **Production cutover is not currently safe or authorized.**

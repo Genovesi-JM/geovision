@@ -1,19 +1,26 @@
-import sys
+import argparse
 import subprocess
+import sys
+from pathlib import Path
+from typing import Sequence
 
 from app.core.config import settings
 from app.core.integration import sanitize_integration_message
 
 
-def main() -> None:
-    migrate_timeout_s = settings.migrate_timeout_seconds
+_BACKEND_ROOT = Path(__file__).resolve().parent
 
-    # Run DB migrations for the main database.
+
+def _run_migrations() -> None:
+    """Upgrade the primary database or stop without starting the API."""
+
+    migrate_timeout_s = settings.migrate_timeout_seconds
     try:
         print(f"[start] Running migrations (timeout={migrate_timeout_s}s)...", flush=True)
         subprocess.run(
             [sys.executable, "-m", "alembic", "upgrade", "head"],
             check=True,
+            cwd=_BACKEND_ROOT,
             timeout=migrate_timeout_s,
         )
         print("[start] Migrations complete.", flush=True)
@@ -37,11 +44,68 @@ def main() -> None:
     # ── Ensure critical columns exist (handles schema drift) ──
     _ensure_schema_columns()
 
+
+def _serve() -> None:
+    """Start the portable ASGI process after database preparation."""
+
     import uvicorn
 
     port = settings.port
     print(f"[start] Starting server on 0.0.0.0:{port}...", flush=True)
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)
+
+
+def _run_compatibility_bootstrap() -> None:
+    """Prepare legacy/reference data once in the migration-job process."""
+
+    from app.startup_bootstrap import run_compatibility_bootstrap
+
+    run_compatibility_bootstrap(strict=True)
+
+
+def _arguments(argv: Sequence[str]):
+    parser = argparse.ArgumentParser(description="Start or migrate the GeoVision backend")
+    parser.add_argument(
+        "command",
+        choices=("serve", "migrate"),
+        default="serve",
+        nargs="?",
+        help="serve the API (default) or run the one-shot database migration job",
+    )
+    parser.add_argument(
+        "--skip-migrations",
+        action="store_true",
+        help="serve without schema writes after a separate migration job has succeeded",
+    )
+    parsed = parser.parse_args(list(argv))
+    if parsed.command == "migrate" and parsed.skip_migrations:
+        parser.error("--skip-migrations is only valid with the serve command")
+    return parsed
+
+
+def main(argv: Sequence[str] = ()) -> None:
+    """Run the default-compatible server or the one-shot migration command."""
+
+    args = _arguments(argv)
+    if args.command == "migrate":
+        _run_migrations()
+        _run_compatibility_bootstrap()
+        return
+
+    run_migrations = settings.run_migrations_on_startup and not args.skip_migrations
+    if run_migrations:
+        _run_migrations()
+    else:
+        # Legacy schema repair and seed operations are also database writes.
+        # Disable them for horizontally scaled API replicas when migration
+        # ownership has been delegated to a one-shot deployment job.
+        settings.startup_compatibility_bootstrap = False
+        print(
+            "[start] Database migration delegated to an external job; "
+            "starting a read-only API bootstrap.",
+            flush=True,
+        )
+    _serve()
 
 
 def _ensure_schema_columns():
@@ -96,4 +160,4 @@ def _ensure_schema_columns():
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

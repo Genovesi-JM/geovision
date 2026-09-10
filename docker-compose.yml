@@ -32,7 +32,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     env_file:
       - path: .env.iot
         required: false
@@ -54,8 +54,10 @@ services:
   event-worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.workers.event_worker"]
+    healthcheck:
+      disable: true
     env_file:
       - path: .env.iot
         required: false
@@ -64,12 +66,15 @@ services:
       QUEUE_PROVIDER: database
     depends_on:
       db: {condition: service_healthy}
+      backend: {condition: service_healthy}
 
   erp-worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.workers.erp_worker"]
+    healthcheck:
+      disable: true
     env_file:
       - path: .env.iot
         required: false
@@ -87,12 +92,15 @@ services:
       ERPNEXT_API_SECRET: ${ERPNEXT_API_SECRET:-}
     depends_on:
       db: {condition: service_healthy}
+      backend: {condition: service_healthy}
 
   notification-worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile.iot
+      dockerfile: Dockerfile
     command: ["python", "-m", "app.workers.notification_worker"]
+    healthcheck:
+      disable: true
     env_file:
       - path: .env.iot
         required: false
@@ -113,6 +121,7 @@ services:
     depends_on:
       db: {condition: service_healthy}
       mailpit: {condition: service_started}
+      backend: {condition: service_healthy}
 
   frontend:
     build:
