@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.deps import get_db
 from app.modules.economics.auth import EconomicsRecorder, EconomicsViewer
 from app.modules.economics.domain import EconomicsError
@@ -16,6 +19,7 @@ from app.modules.economics.schemas import (
     ProviderUsageCreate,
     ProviderUsageListOut,
     ProviderUsageOut,
+    ProviderUsageSummaryOut,
     UnitEconomicsOut,
 )
 from app.modules.economics.services import (
@@ -23,6 +27,7 @@ from app.modules.economics.services import (
     internal_cost_out,
     list_internal_costs,
     list_provider_usage,
+    location_provider_usage_summary,
     order_economics,
     organization_economics,
     provider_usage_out,
@@ -104,7 +109,28 @@ def get_provider_usage(
         )
     except EconomicsError as exc:
         _raise_domain(exc)
-    return ProviderUsageListOut(items=[provider_usage_out(row) for row in rows], total=total)
+    return ProviderUsageListOut(
+        items=[provider_usage_out(row) for row in rows], total=total
+    )
+
+
+@router.get("/location-usage/summary", response_model=ProviderUsageSummaryOut)
+def get_location_usage_summary(
+    _actor: EconomicsViewer,
+    organization_id: str = Query(min_length=1, max_length=36),
+    workspace_id: str | None = Query(default=None, max_length=36),
+    days: int = Query(default=30, ge=1, le=365),
+    db: Session = Depends(get_db),
+) -> ProviderUsageSummaryOut:
+    try:
+        return location_provider_usage_summary(
+            db,
+            organization_id=organization_id,
+            workspace_id=workspace_id,
+            since=utc_now() - timedelta(days=days),
+        )
+    except EconomicsError as exc:
+        _raise_domain(exc)
 
 
 @router.post(
@@ -170,7 +196,9 @@ def get_internal_costs(
         )
     except EconomicsError as exc:
         _raise_domain(exc)
-    return InternalCostListOut(items=[internal_cost_out(row) for row in rows], total=total)
+    return InternalCostListOut(
+        items=[internal_cost_out(row) for row in rows], total=total
+    )
 
 
 @router.get("/orders/{order_id}", response_model=UnitEconomicsOut)

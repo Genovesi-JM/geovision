@@ -132,3 +132,8 @@ hard-coded assumptions, allowing finance to reconcile Spain launch usage as
 Google pricing changes.
 Each completed provider call receives a server-generated usage identifier;
 client request identifiers cannot suppress or merge billable usage records.
+
+Finance-authorized staff can query an aggregated 1–365 day location-usage
+summary by organization and optional workspace. It returns provider/service
+call totals and attributable cost only; individual requests and location data
+are not part of that response.

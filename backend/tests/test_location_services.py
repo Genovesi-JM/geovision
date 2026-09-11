@@ -309,6 +309,7 @@ def test_successful_live_call_records_private_usage_without_location_data(
         usage_rows = (
             db_session.query(ProviderUsage)
             .filter(ProviderUsage.service == "places_autocomplete")
+            .filter(ProviderUsage.idempotency_key.like("location:%"))
             .all()
         )
         assert len(usage_rows) == 2

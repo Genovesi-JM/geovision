@@ -296,18 +296,22 @@ def test_cost_usage_idempotency_and_private_unit_economics(client, db_session):
     assert replay.status_code == 201
     assert replay.json()["id"] == usage.json()["id"]
 
-    assert db_session.query(InternalCost).filter(
-        InternalCost.idempotency_key == "cost-key-001"
-    ).count() == 1
-    assert db_session.query(ProviderUsage).filter(
-        ProviderUsage.idempotency_key == "usage-key-001"
-    ).count() == 1
+    assert (
+        db_session.query(InternalCost)
+        .filter(InternalCost.idempotency_key == "cost-key-001")
+        .count()
+        == 1
+    )
+    assert (
+        db_session.query(ProviderUsage)
+        .filter(ProviderUsage.idempotency_key == "usage-key-001")
+        .count()
+        == 1
+    )
     audited_ids = {
         row.resource_id
         for row in db_session.query(AuditLog)
-        .filter(
-            AuditLog.resource_id.in_([cost.json()["id"], usage.json()["id"]])
-        )
+        .filter(AuditLog.resource_id.in_([cost.json()["id"], usage.json()["id"]]))
         .all()
     }
     assert audited_ids == {cost.json()["id"], usage.json()["id"]}
@@ -396,6 +400,42 @@ def test_finance_read_boundary_and_customer_non_discovery(client, db_session):
     assert denied_write.status_code == 403
 
 
+def test_location_usage_summary_is_aggregated_and_finance_only(client, db_session):
+    data = _fixture(db_session)
+    finance = _user(db_session, role="GV_FINANCE", label="location-summary")
+    operations = _user(db_session, role="GV_OPERATIONS", label="location-writer")
+    for index, service in enumerate(
+        ("places_autocomplete", "places_autocomplete", "routes_compute"),
+        start=1,
+    ):
+        payload = _usage_payload(data, key=f"location-summary-{index:03d}")
+        payload.update(provider="google_maps", service=service)
+        response = client.post(
+            "/internal/economics/provider-usage",
+            headers=_headers(operations),
+            json=payload,
+        )
+        assert response.status_code == 201, response.text
+
+    path = (
+        "/internal/economics/location-usage/summary"
+        f"?organization_id={data['organization'].id}"
+        f"&workspace_id={data['workspace'].id}&days=30"
+    )
+    response = client.get(path, headers=_headers(finance))
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["total_calls"] == 3
+    assert {(item["service"], item["call_count"]) for item in body["items"]} == {
+        ("places_autocomplete", 2),
+        ("routes_compute", 1),
+    }
+    assert all("metadata" not in item for item in body["items"])
+
+    denied = client.get(path, headers=_headers(data["customer"]))
+    assert denied.status_code == 403
+
+
 def test_scope_currency_metadata_and_idempotency_fail_closed(client, db_session):
     data = _fixture(db_session)
     finance = _user(db_session, role="GV_FINANCE", label="finance-invalid")
@@ -449,9 +489,12 @@ def test_scope_currency_metadata_and_idempotency_fail_closed(client, db_session)
     response = client.post("/internal/economics/costs", headers=headers, json=drifted)
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "idempotency_conflict"
-    assert db_session.query(InternalCost).filter(
-        InternalCost.idempotency_key == "cost-conflict-001"
-    ).count() == 1
+    assert (
+        db_session.query(InternalCost)
+        .filter(InternalCost.idempotency_key == "cost-conflict-001")
+        .count()
+        == 1
+    )
 
 
 def test_provider_usage_system_actor_org_scoped_keys_and_repeat_reference(db_session):
@@ -492,9 +535,12 @@ def test_provider_usage_system_actor_org_scoped_keys_and_repeat_reference(db_ses
 
     assert first.id != second.id != third.id
     assert first.created_by_user_id is None
-    assert db_session.query(ProviderUsage).filter(
-        ProviderUsage.provider_reference == "provider-batch-42"
-    ).count() == 3
+    assert (
+        db_session.query(ProviderUsage)
+        .filter(ProviderUsage.provider_reference == "provider-batch-42")
+        .count()
+        == 3
+    )
     system_audits = (
         db_session.query(AuditLog)
         .filter(

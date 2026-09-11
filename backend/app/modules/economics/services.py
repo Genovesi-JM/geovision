@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
 import hashlib
 import json
 import uuid
 from typing import Any, Iterable
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.time import utc_now
@@ -44,6 +45,8 @@ from .schemas import (
     InternalCostOut,
     ProviderUsageCreate,
     ProviderUsageOut,
+    ProviderUsageSummaryItemOut,
+    ProviderUsageSummaryOut,
     UnitEconomicsOut,
 )
 
@@ -94,7 +97,11 @@ def _must_match(current: str | None, candidate: str | None) -> str | None:
 
 
 def _order_organization(order: Order) -> str | None:
-    if order.organization_id and order.company_id and order.organization_id != order.company_id:
+    if (
+        order.organization_id
+        and order.company_id
+        and order.organization_id != order.company_id
+    ):
         return None
     return order.organization_id or order.company_id
 
@@ -115,7 +122,9 @@ class _ProviderScope:
     report_id: str | None
 
 
-def _validate_provider_scope(db: Session, payload: ProviderUsageCreate) -> _ProviderScope:
+def _validate_provider_scope(
+    db: Session, payload: ProviderUsageCreate
+) -> _ProviderScope:
     if db.get(Company, payload.organization_id) is None:
         raise _invalid_reference()
 
@@ -165,7 +174,9 @@ def _validate_provider_scope(db: Session, payload: ProviderUsageCreate) -> _Prov
     if payload.notification_delivery_id:
         delivery = db.get(NotificationDelivery, payload.notification_delivery_id)
         notification = (
-            db.get(Notification, delivery.notification_id) if delivery is not None else None
+            db.get(Notification, delivery.notification_id)
+            if delivery is not None
+            else None
         )
         if delivery is None or notification is None:
             raise _invalid_reference()
@@ -407,9 +418,7 @@ def _validate_cost_scope(db: Session, payload: InternalCostCreate) -> _CostScope
             raise _invalid_reference()
         if not assignment.order_id and not assignment.fulfilment_job_id:
             raise _invalid_reference()
-        fulfilment_job_id = _must_match(
-            fulfilment_job_id, assignment.fulfilment_job_id
-        )
+        fulfilment_job_id = _must_match(fulfilment_job_id, assignment.fulfilment_job_id)
         if fulfilment_job_id:
             job = db.get(FulfilmentJob, fulfilment_job_id)
             if job is None or job.order_id != order.id:
@@ -591,7 +600,9 @@ def list_provider_usage(
 ) -> tuple[list[ProviderUsage], int]:
     if db.get(Company, organization_id) is None:
         raise _invalid_reference()
-    query = db.query(ProviderUsage).filter(ProviderUsage.organization_id == organization_id)
+    query = db.query(ProviderUsage).filter(
+        ProviderUsage.organization_id == organization_id
+    )
     if workspace_id:
         workspace = db.get(Account, workspace_id)
         if workspace is None or workspace.organization_id != organization_id:
@@ -613,6 +624,66 @@ def list_provider_usage(
     return rows, total
 
 
+def location_provider_usage_summary(
+    db: Session,
+    *,
+    organization_id: str,
+    since: datetime,
+    workspace_id: str | None = None,
+) -> ProviderUsageSummaryOut:
+    if db.get(Company, organization_id) is None:
+        raise _invalid_reference()
+    query = db.query(
+        ProviderUsage.provider,
+        ProviderUsage.service,
+        ProviderUsage.currency,
+        func.count(ProviderUsage.id),
+        func.sum(ProviderUsage.quantity),
+        func.coalesce(func.sum(ProviderUsage.total_cost), 0),
+    ).filter(
+        ProviderUsage.organization_id == organization_id,
+        ProviderUsage.occurred_at >= since,
+        ProviderUsage.service.in_(
+            {
+                "places_autocomplete",
+                "place_details",
+                "routes_compute",
+                "geocoding_reverse",
+            }
+        ),
+    )
+    if workspace_id:
+        workspace = db.get(Account, workspace_id)
+        if workspace is None or workspace.organization_id != organization_id:
+            raise _invalid_reference()
+        query = query.filter(ProviderUsage.workspace_id == workspace_id)
+    rows = (
+        query.group_by(
+            ProviderUsage.provider,
+            ProviderUsage.service,
+            ProviderUsage.currency,
+        )
+        .order_by(ProviderUsage.provider, ProviderUsage.service)
+        .all()
+    )
+    items = [
+        ProviderUsageSummaryItemOut(
+            provider=provider,
+            service=service,
+            currency=currency,
+            call_count=int(call_count),
+            quantity=Decimal(quantity),
+            total_cost=Decimal(total_cost),
+        )
+        for provider, service, currency, call_count, quantity, total_cost in rows
+    ]
+    return ProviderUsageSummaryOut(
+        items=items,
+        total_calls=sum(item.call_count for item in items),
+        generated_at=utc_now(),
+    )
+
+
 def list_internal_costs(
     db: Session,
     *,
@@ -626,7 +697,9 @@ def list_internal_costs(
 ) -> tuple[list[InternalCost], int]:
     if db.get(Company, organization_id) is None:
         raise _invalid_reference()
-    query = db.query(InternalCost).filter(InternalCost.organization_id == organization_id)
+    query = db.query(InternalCost).filter(
+        InternalCost.organization_id == organization_id
+    )
     if workspace_id:
         workspace = db.get(Account, workspace_id)
         if workspace is None or workspace.organization_id != organization_id:
@@ -690,7 +763,9 @@ def _unit_economics(
             currency = str(order.currency or "").upper()
             revenue[currency] += Decimal(order.total or 0)
             order_ids[currency].add(order.id)
-            line_counts[currency] += sum(1 for item in line_items if item.order_id == order.id)
+            line_counts[currency] += sum(
+                1 for item in line_items if item.order_id == order.id
+            )
 
     for row in costs:
         currency = row.currency.upper()
@@ -734,7 +809,9 @@ def _unit_economics(
                 line_item_count=line_counts[currency],
                 cost_breakdown=[
                     CostBreakdownOut(cost_type=cost_type, amount=value.quantize(_MONEY))
-                    for (breakdown_currency, cost_type), value in sorted(breakdown.items())
+                    for (breakdown_currency, cost_type), value in sorted(
+                        breakdown.items()
+                    )
                     if breakdown_currency == currency
                 ],
             )
@@ -770,7 +847,9 @@ def catalog_item_economics(db: Session, catalog_item_id: str) -> UnitEconomicsOu
     catalog_item = db.get(CatalogItem, catalog_item_id)
     if catalog_item is None:
         raise _invalid_reference()
-    items = db.query(OrderItem).filter(OrderItem.catalog_item_id == catalog_item_id).all()
+    items = (
+        db.query(OrderItem).filter(OrderItem.catalog_item_id == catalog_item_id).all()
+    )
     order_ids = {row.order_id for row in items}
     orders = db.query(Order).filter(Order.id.in_(order_ids)).all() if order_ids else []
     costs = (
@@ -810,7 +889,11 @@ def organization_economics(db: Session, organization_id: str) -> UnitEconomicsOu
     )
     orders = [row for row in orders if _order_organization(row) == organization_id]
     order_ids = {row.id for row in orders}
-    items = db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).all() if order_ids else []
+    items = (
+        db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).all()
+        if order_ids
+        else []
+    )
     costs = (
         db.query(InternalCost)
         .filter(InternalCost.organization_id == organization_id)

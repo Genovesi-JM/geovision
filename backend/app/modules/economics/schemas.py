@@ -93,11 +93,17 @@ class ProviderUsageCreate(_StrictModel):
                         Decimal("0.0001"), rounding=ROUND_HALF_UP
                     )
             except InvalidOperation as exc:
-                raise ValueError("calculated provider cost is outside the supported range") from exc
+                raise ValueError(
+                    "calculated provider cost is outside the supported range"
+                ) from exc
             if calculated > Decimal("9999999999999999.9999"):
-                raise ValueError("calculated provider cost is outside the supported range")
+                raise ValueError(
+                    "calculated provider cost is outside the supported range"
+                )
             if self.total_cost is not None and calculated != self.total_cost:
-                raise ValueError("total_cost must equal quantity multiplied by unit_cost")
+                raise ValueError(
+                    "total_cost must equal quantity multiplied by unit_cost"
+                )
         return self
 
 
@@ -199,6 +205,21 @@ class ProviderUsageListOut(BaseModel):
     total: int
 
 
+class ProviderUsageSummaryItemOut(BaseModel):
+    provider: str
+    service: str
+    call_count: int
+    quantity: Decimal
+    currency: str | None
+    total_cost: Decimal
+
+
+class ProviderUsageSummaryOut(BaseModel):
+    items: list[ProviderUsageSummaryItemOut]
+    total_calls: int
+    generated_at: datetime
+
+
 class InternalCostListOut(BaseModel):
     items: list[InternalCostOut]
     total: int
@@ -239,5 +260,7 @@ __all__ = [
     "ProviderUsageCreate",
     "ProviderUsageListOut",
     "ProviderUsageOut",
+    "ProviderUsageSummaryItemOut",
+    "ProviderUsageSummaryOut",
     "UnitEconomicsOut",
 ]
