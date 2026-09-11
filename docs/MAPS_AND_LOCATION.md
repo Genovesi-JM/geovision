@@ -24,6 +24,12 @@ attribution. Runtime tile configuration is restricted to known provider hosts,
 required XYZ placeholders and provider zoom limits; invalid configuration fails
 closed instead of loading an arbitrary tile origin.
 
+Point features in that portal expose an allowlisted Google Maps directions link
+and an explicit route-estimate action. Browser location is requested only when
+the customer presses that action; the resulting coordinates are sent to the
+authenticated GeoVision route endpoint and are not inserted into a provider
+URL by the portal.
+
 An asset with valid coordinates also offers Google Maps and Apple Maps driving
 handoff. GeoVision constructs only allowlisted HTTPS universal links from
 validated latitude/longitude values. This works without an API key and does not

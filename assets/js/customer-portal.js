@@ -150,6 +150,66 @@ function normalizeBaseMap(raw = window.GV_MAP_TILES) {
   };
 }
 
+function pointCoordinate(feature) {
+  if (!isRecord(feature) || feature.geometry?.type !== "Point") return null;
+  const coordinates = asArray(feature.geometry.coordinates).map(Number);
+  if (coordinates.length < 2 || !coordinates.slice(0, 2).every(Number.isFinite)) return null;
+  const [longitude, latitude] = coordinates;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  return { latitude, longitude };
+}
+
+function googleDirectionsUrl({ latitude, longitude }) {
+  const url = new URL("https://www.google.com/maps/dir/");
+  url.searchParams.set("api", "1");
+  url.searchParams.set("destination", `${latitude},${longitude}`);
+  url.searchParams.set("travelmode", "driving");
+  return url.href;
+}
+
+function currentBrowserPosition() {
+  if (!navigator.geolocation) return Promise.reject(new Error("Location is unavailable in this browser"));
+  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      const latitude = Number(coords?.latitude);
+      const longitude = Number(coords?.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        reject(new Error("The browser returned an invalid location"));
+        return;
+      }
+      resolve({ latitude, longitude });
+    },
+    () => reject(new Error("Location permission is required to estimate a route")),
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 },
+  ));
+}
+
+function normalizeRouteEstimate(raw) {
+  if (!isRecord(raw)) return null;
+  const distanceMeters = Number(raw.distance_meters);
+  const durationSeconds = Number(raw.duration_seconds);
+  if (!Number.isInteger(distanceMeters) || distanceMeters < 0 ||
+      !Number.isInteger(durationSeconds) || durationSeconds < 0) return null;
+  return {
+    distanceMeters,
+    durationSeconds,
+    simulated: raw.simulated === true,
+    trafficAware: raw.traffic_aware === true,
+  };
+}
+
+function routeDistance(meters) {
+  return meters < 1000 ? `${meters} m` : `${(meters / 1000).toFixed(1)} km`;
+}
+
+function routeDuration(seconds) {
+  const minutes = Math.ceil(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return remainder ? `${hours} h ${remainder} min` : `${hours} h`;
+}
+
 function node(tag, options = {}, children = []) {
   const element = document.createElement(tag);
   if (options.className) element.className = options.className;
@@ -1342,6 +1402,32 @@ class CustomerPortal {
     this.mapLayers.clear();
   }
 
+  async estimateRoute(destination, label, output) {
+    output.replaceChildren(node("p", { text: "Calculating driving route…" }));
+    try {
+      const origin = await currentBrowserPosition();
+      const raw = await this.api.post("/location/routes:compute", {
+        origin,
+        destination,
+        language_code: document.documentElement.lang || "pt",
+      });
+      const estimate = normalizeRouteEstimate(raw);
+      if (!estimate) throw new Error("Invalid route response");
+      const quality = estimate.simulated
+        ? "Demonstration estimate — not live navigation"
+        : estimate.trafficAware
+          ? "Provider estimate with traffic"
+          : "Provider estimate without live traffic";
+      output.replaceChildren(
+        node("strong", { text: `Route to ${label}` }),
+        node("p", { text: `${routeDistance(estimate.distanceMeters)} · ${routeDuration(estimate.durationSeconds)}` }),
+        node("small", { text: quality }),
+      );
+    } catch (_) {
+      output.replaceChildren(node("p", { text: "The route estimate is unavailable. Check location permission and try again." }));
+    }
+  }
+
   async renderMap(assetId = null) {
     const view = document.getElementById("view-map");
     const controls = document.getElementById("geo-layers");
@@ -1372,6 +1458,11 @@ class CustomerPortal {
         attribution: baseMap.attribution,
         maxZoom: baseMap.maxZoom,
       }).addTo(this.map);
+      const routeOutput = node("section", {
+        className: "portal-map-route",
+        attrs: { "aria-live": "polite", "aria-label": "Driving route estimate" },
+      }, node("p", { text: "Select a map point to estimate a driving route from your current location." }));
+      side.appendChild(routeOutput);
       const colors = { ASSET: "#22d3ee", OBSERVATION: "#f59e0b", DEVICE: "#34d399" };
       projection.layers.forEach((layer) => {
         const leafletLayer = window.L.geoJSON(layer.collection, {
@@ -1385,10 +1476,30 @@ class CustomerPortal {
           style: { color: colors[layer.kind], weight: 3, fillOpacity: .16 },
           onEachFeature: (feature, rendered) => {
             const popup = node("div");
+            const label = asString(feature.properties.name || feature.properties.observation_type, layer.label);
             popup.append(
-              node("strong", { text: asString(feature.properties.name || feature.properties.observation_type, layer.label) }),
+              node("strong", { text: label }),
               node("p", { text: asString(feature.properties.status || feature.properties.severity, layer.kind) }),
             );
+            const destination = pointCoordinate(feature);
+            if (destination) {
+              const actions = node("div", { className: "portal-map-popup-actions" });
+              actions.appendChild(node("a", {
+                text: "Open directions",
+                attrs: {
+                  href: googleDirectionsUrl(destination),
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                },
+              }));
+              const estimate = node("button", {
+                text: "Estimate route",
+                attrs: { type: "button" },
+              });
+              estimate.addEventListener("click", () => this.estimateRoute(destination, label, routeOutput));
+              actions.appendChild(estimate);
+              popup.appendChild(actions);
+            }
             rendered.bindPopup(popup);
           },
         });

@@ -512,3 +512,31 @@ body[data-portal-state="loading"] .view-panel {
     transition: none;
   }
 }
+.portal-map-route {
+  padding: .85rem;
+  border: 1px solid rgba(56, 189, 248, .24);
+  border-radius: 12px;
+  background: rgba(8, 47, 73, .3);
+}
+
+.portal-map-route p { margin: .35rem 0; }
+.portal-map-route small { color: #94a3b8; }
+
+.portal-map-popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin-top: .5rem;
+}
+
+.portal-map-popup-actions a,
+.portal-map-popup-actions button {
+  border: 1px solid #0891b2;
+  border-radius: 7px;
+  padding: .35rem .5rem;
+  background: #ecfeff;
+  color: #164e63;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+}

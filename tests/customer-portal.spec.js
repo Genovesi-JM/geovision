@@ -177,6 +177,14 @@ async function installApi(page, options = {}) {
     localStorage.setItem('gv_account_id', workspaceId);
     localStorage.setItem('gv_role', 'admin');
     localStorage.setItem('gv_user', JSON.stringify({ email: 'customer@example.test', role: 'admin', name: 'Customer User' }));
+    Object.defineProperty(navigator, 'geolocation', {
+      configurable: true,
+      value: {
+        getCurrentPosition(success) {
+          success({ coords: { latitude: -8.9, longitude: 13.2 } });
+        },
+      },
+    });
   }, options.workspaceId || 'workspace-a');
 
   await page.route(`${API_ORIGIN}/**`, async (route) => {
@@ -199,6 +207,12 @@ async function installApi(page, options = {}) {
     }
     if (url.pathname === '/portal/map-layers') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(mapLayers(workspaceId)) });
+    }
+    if (url.pathname === '/location/routes:compute') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        provider: 'google_maps', simulated: false, distance_meters: 12800,
+        duration_seconds: 1140, traffic_aware: false, encoded_polyline: null,
+      }) });
     }
     if (url.pathname === '/actions') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
@@ -406,6 +420,12 @@ test.describe('contextual customer portal', () => {
     await expect(page.getByRole('button', { name: 'Assets (1)' })).toBeVisible();
     await expect(page.locator('.leaflet-tile-pane img').first()).toHaveAttribute('src', /https:\/\/tile\.openstreetmap\.org\//);
     await expect(page.locator('.leaflet-control-attribution')).toContainText('OpenStreetMap contributors');
+    await page.locator('.leaflet-interactive').first().click();
+    const directions = page.getByRole('link', { name: 'Open directions' });
+    await expect(directions).toHaveAttribute('href', /https:\/\/www\.google\.com\/maps\/dir\/.*destination=-8\.84%2C13\.23/);
+    await page.getByRole('button', { name: 'Estimate route' }).click();
+    await expect(page.locator('.portal-map-route')).toContainText('12.8 km · 19 min');
+    expect(requests.some((request) => request.path === '/location/routes:compute' && request.workspaceId === 'workspace-a')).toBeTruthy();
     expect(requests.some((request) => request.path === '/portal/map-layers' && request.workspaceId === 'workspace-a')).toBeTruthy();
   });
 
