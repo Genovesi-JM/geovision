@@ -71,3 +71,37 @@ class RouteEstimate {
         encodedPolyline: json['encoded_polyline'] as String?,
       );
 }
+
+class ReverseGeocodedAddress {
+  const ReverseGeocodedAddress({
+    required this.provider,
+    required this.simulated,
+    required this.providerReference,
+    required this.formattedAddress,
+    required this.latitude,
+    required this.longitude,
+    this.granularity,
+  });
+
+  final String provider;
+  final bool simulated;
+  final String providerReference;
+  final String formattedAddress;
+  final double latitude;
+  final double longitude;
+  final String? granularity;
+
+  factory ReverseGeocodedAddress.fromJson(Map<String, dynamic> json) {
+    final coordinate =
+        Map<String, dynamic>.from(json['coordinate'] as Map<dynamic, dynamic>);
+    return ReverseGeocodedAddress(
+      provider: json['provider'] as String,
+      simulated: json['simulated'] as bool? ?? false,
+      providerReference: json['provider_reference'] as String,
+      formattedAddress: json['formatted_address'] as String,
+      latitude: (coordinate['latitude'] as num).toDouble(),
+      longitude: (coordinate['longitude'] as num).toDouble(),
+      granularity: json['granularity'] as String?,
+    );
+  }
+}

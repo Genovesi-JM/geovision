@@ -48,6 +48,14 @@ class _LocationAdapter implements HttpClientAdapter {
           'traffic_aware': false,
           'encoded_polyline': 'encoded-route',
         },
+      '/location/addresses:reverse' => {
+          'provider': 'google_maps',
+          'simulated': false,
+          'provider_reference': 'place-1',
+          'formatted_address': 'Madrid, Spain',
+          'coordinate': {'latitude': 40.4168, 'longitude': -3.7038},
+          'granularity': 'APPROXIMATE',
+        },
       _ => throw StateError('Unexpected request: ${options.path}'),
     };
     return ResponseBody.fromString(
@@ -179,6 +187,25 @@ void main() {
       ),
       throwsA(isA<LocationSearchException>()),
     );
+  });
+
+  test('reverse geocoding remains server-side and preserves quality metadata',
+      () async {
+    final adapter = _LocationAdapter();
+    final repository =
+        LocationRepository(_client(adapter, _liveConfig), _liveConfig);
+
+    final address = await repository.reverseGeocode(
+      latitude: 40.4168,
+      longitude: -3.7038,
+      languageCode: 'es',
+      regionCode: 'ES',
+    );
+
+    expect(address.formattedAddress, 'Madrid, Spain');
+    expect(address.granularity, 'APPROXIMATE');
+    expect(adapter.requests.single.path, '/location/addresses:reverse');
+    expect(adapter.requests.single.data['region_code'], 'ES');
   });
 }
 

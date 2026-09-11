@@ -163,6 +163,57 @@ class LocationRepository {
     }
   }
 
+  Future<ReverseGeocodedAddress> reverseGeocode({
+    required double latitude,
+    required double longitude,
+    required String languageCode,
+    String? regionCode,
+  }) async {
+    _validateCoordinate(latitude, longitude);
+    if (_config.demoMode) {
+      final nearest = _demoLocations.reduce((current, candidate) {
+        final currentDistance = _distanceMeters(
+          latitude,
+          longitude,
+          current.latitude,
+          current.longitude,
+        );
+        final candidateDistance = _distanceMeters(
+          latitude,
+          longitude,
+          candidate.latitude,
+          candidate.longitude,
+        );
+        return candidateDistance < currentDistance ? candidate : current;
+      });
+      return ReverseGeocodedAddress(
+        provider: 'deterministic',
+        simulated: true,
+        providerReference: nearest.providerReference,
+        formattedAddress: nearest.formattedAddress,
+        latitude: latitude,
+        longitude: longitude,
+        granularity: 'SIMULATED_LOCALITY',
+      );
+    }
+
+    try {
+      final response = await _api.raw.post(
+        '/location/addresses:reverse',
+        data: {
+          'coordinate': {'latitude': latitude, 'longitude': longitude},
+          'language_code': languageCode,
+          if (regionCode != null && regionCode.isNotEmpty)
+            'region_code': regionCode,
+        },
+      );
+      return ReverseGeocodedAddress.fromJson(
+          Map<String, dynamic>.from(response.data as Map));
+    } catch (error) {
+      throw LocationSearchException(_api.mapError(error).message);
+    }
+  }
+
   static void _validateCoordinate(double latitude, double longitude) {
     if (!latitude.isFinite ||
         !longitude.isFinite ||

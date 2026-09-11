@@ -81,6 +81,11 @@ site country as a region hint. Selecting a suggestion moves the marker, while
 manual map taps and device GPS remain available. Demo mode uses deterministic
 Luanda and Madrid entries without an external request.
 
+After a manual map tap or GPS selection, the mobile picker offers an explicit
+“identify this point” action. It performs reverse geocoding only on demand,
+shows the returned address and keeps the original coordinate as the selected
+site position, avoiding paid calls while the marker is being adjusted.
+
 The asset map can also request a driving estimate from the device's current
 position. Distance and duration come through the same server boundary and are
 labelled as simulated, traffic-aware or non-traffic-aware. The estimate does

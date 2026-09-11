@@ -32,9 +32,11 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       : LatLng(widget.initial!.lat, widget.initial!.lng);
   bool locating = false;
   bool searching = false;
+  bool resolvingAddress = false;
   Timer? searchDebounce;
   List<LocationSuggestion> suggestions = const [];
   String? searchError;
+  String? selectedAddress;
   late String searchSessionToken = _newSessionToken();
 
   @override
@@ -83,7 +85,10 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
           options: MapOptions(
             initialCenter: selected,
             initialZoom: widget.initial == null ? 5.5 : 16,
-            onTap: (_, point) => setState(() => selected = point),
+            onTap: (_, point) => setState(() {
+              selected = point;
+              selectedAddress = null;
+            }),
           ),
           children: [
             TileLayer(
@@ -171,6 +176,31 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 12),
                 ),
+                if (selectedAddress != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: GvSpacing.xs),
+                    child: Text(
+                      selectedAddress!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: resolvingAddress ? null : _identifyPoint,
+                    icon: resolvingAddress
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.location_searching, size: 18),
+                    label: Text(t(
+                      'Identificar este ponto',
+                      'Identify this point',
+                      'Identificar este punto',
+                      'Identifier ce point',
+                    )),
+                  ),
               ]),
             ),
           ),
@@ -257,6 +287,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       if (!mounted) return;
       selected = LatLng(place.latitude, place.longitude);
       searchController.text = place.formattedAddress;
+      selectedAddress = place.formattedAddress;
       searchSessionToken = _newSessionToken();
       mapController.move(selected, 16);
       setState(() {
@@ -278,6 +309,29 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
       searchError = null;
       searchSessionToken = _newSessionToken();
     });
+  }
+
+  Future<void> _identifyPoint() async {
+    final language = Localizations.localeOf(context).languageCode;
+    setState(() {
+      resolvingAddress = true;
+      searchError = null;
+    });
+    try {
+      final address = await ref.read(locationRepositoryProvider).reverseGeocode(
+            latitude: selected.latitude,
+            longitude: selected.longitude,
+            languageCode: language,
+            regionCode: widget.regionCode,
+          );
+      if (!mounted) return;
+      searchController.text = address.formattedAddress;
+      setState(() => selectedAddress = address.formattedAddress);
+    } catch (error) {
+      if (mounted) setState(() => searchError = '$error');
+    } finally {
+      if (mounted) setState(() => resolvingAddress = false);
+    }
   }
 
   String _newSessionToken() {
@@ -323,6 +377,7 @@ class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
         ),
       );
       selected = LatLng(position.latitude, position.longitude);
+      selectedAddress = null;
       mapController.move(selected, 17);
       if (mounted) setState(() {});
     } catch (error) {
