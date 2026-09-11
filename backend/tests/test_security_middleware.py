@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from starlette.requests import Request
 
 from app.core.config import Settings, settings
-from app.middleware import RateLimiter, _get_client_ip
+from app.middleware import RATE_LIMIT_RULES, RateLimiter, _get_client_ip
 
 
 def _request(peer: str, forwarded: str | None = None) -> Request:
@@ -97,3 +97,9 @@ def test_rate_limiter_cleanup_removes_an_empty_key():
     assert limited is False
     assert remaining == 1
     assert "one-shot" not in limiter._requests
+
+
+def test_paid_location_operations_have_explicit_cost_guardrails():
+    assert RATE_LIMIT_RULES[("POST", "/location/places:autocomplete")] == (60, 60)
+    assert RATE_LIMIT_RULES[("POST", "/location/places:resolve")] == (30, 60)
+    assert RATE_LIMIT_RULES[("POST", "/location/routes:compute")] == (20, 60)

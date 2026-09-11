@@ -8,18 +8,15 @@ Includes:
 
 from __future__ import annotations
 
-import hashlib
 import ipaddress
 import json
 import logging
 import time
 import uuid
-from datetime import datetime
 from typing import Callable, Dict, Optional, Tuple
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
 
 from ..core.config import settings
 from ..core.observability import (
@@ -81,9 +78,9 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         request_id = safe_identifier(request.headers.get("x-request-id")) or str(
             uuid.uuid4()
         )
-        correlation_id = safe_identifier(
-            request.headers.get("x-correlation-id")
-        ) or request_id
+        correlation_id = (
+            safe_identifier(request.headers.get("x-correlation-id")) or request_id
+        )
         request.state.request_id = request_id
         request.state.correlation_id = correlation_id
         token = bind_context(
@@ -132,6 +129,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
 # 1) Security Headers Middleware
 # ═══════════════════════════════════════════════════════════════
 
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Adds production security headers to every response.
 
@@ -146,20 +144,22 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
 
     # CSP policy — allows YouTube embeds, Google APIs, CDN assets
-    CSP_POLICY = "; ".join([
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-        "img-src 'self' data: https: blob:",
-        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
-        "connect-src 'self' https://api.geovisionops.com https://accounts.google.com https://login.microsoftonline.com https://graph.microsoft.com https://wa.me",
-        "frame-src 'self' https://accounts.google.com https://login.microsoftonline.com https://www.youtube.com https://youtube.com",
-        "media-src 'self' https: blob:",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self' https://accounts.google.com https://login.microsoftonline.com",
-        "frame-ancestors 'self'",
-    ])
+    CSP_POLICY = "; ".join(
+        [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' https://apis.google.com https://accounts.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+            "img-src 'self' data: https: blob:",
+            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com",
+            "connect-src 'self' https://api.geovisionops.com https://accounts.google.com https://login.microsoftonline.com https://graph.microsoft.com https://wa.me",
+            "frame-src 'self' https://accounts.google.com https://login.microsoftonline.com https://www.youtube.com https://youtube.com",
+            "media-src 'self' https: blob:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self' https://accounts.google.com https://login.microsoftonline.com",
+            "frame-ancestors 'self'",
+        ]
+    )
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
@@ -171,7 +171,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self), payment=(self)"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(self), payment=(self)"
+        )
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
 
         # Authentication responses can contain access/refresh tokens or
@@ -182,7 +184,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         if is_deployed:
             # HSTS: 1 year, include subdomains (preload when ready)
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
             response.headers["Content-Security-Policy"] = self.CSP_POLICY
             response.headers["Cross-Origin-Resource-Policy"] = "same-site"
 
@@ -192,6 +196,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # ═══════════════════════════════════════════════════════════════
 # 2) Rate Limiting Middleware
 # ═══════════════════════════════════════════════════════════════
+
 
 class RateLimiter:
     """In-memory sliding-window rate limiter.
@@ -239,7 +244,9 @@ class RateLimiter:
             for key in oldest:
                 self._requests.pop(key, None)
 
-    def is_rate_limited(self, key: str, max_requests: int, window_seconds: int) -> Tuple[bool, int]:
+    def is_rate_limited(
+        self, key: str, max_requests: int, window_seconds: int
+    ) -> Tuple[bool, int]:
         """Check if key is rate limited. Returns (is_limited, remaining)."""
         now = time.time()
         self._operations += 1
@@ -276,6 +283,11 @@ RATE_LIMIT_RULES: Dict[Tuple[str, str], Tuple[int, int]] = {
     ("DELETE", "/auth/account"): (5, 300),
     ("POST", "/auth/account/delete"): (5, 300),
     ("POST", "/payments/webhook"): (60, 60),
+    # Paid location-provider operations receive tighter per-client ceilings.
+    # Provider-console quotas and budget alerts remain mandatory deployment gates.
+    ("POST", "/location/places:autocomplete"): (60, 60),
+    ("POST", "/location/places:resolve"): (30, 60),
+    ("POST", "/location/routes:compute"): (20, 60),
 }
 
 
@@ -305,7 +317,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         is_limited, remaining = _limiter.is_rate_limited(key, max_req, window)
         if is_limited:
             return Response(
-                content=json.dumps({"detail": "Too many requests. Please try again later."}),
+                content=json.dumps(
+                    {"detail": "Too many requests. Please try again later."}
+                ),
                 status_code=429,
                 media_type="application/json",
                 headers={
@@ -357,6 +371,7 @@ def _get_client_ip(request: Request) -> str:
 # 3) Audit Logging Helper
 # ═══════════════════════════════════════════════════════════════
 
+
 def log_audit(
     db,
     action: str,
@@ -403,6 +418,7 @@ def log_audit(
 # ═══════════════════════════════════════════════════════════════
 # 4) HTTPS Redirect (for non-Render deployments)
 # ═══════════════════════════════════════════════════════════════
+
 
 class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
     """Redirect HTTP to HTTPS in staging and production.

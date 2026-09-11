@@ -80,3 +80,9 @@ allowed applications and APIs, licence/attribution review, privacy impact,
 Spain and Angola coverage test, degraded/offline behavior, monitoring and
 rollback to the demo provider. No empty or invalid credential may silently
 claim that live maps are active.
+
+GeoVision also applies per-client, per-minute API ceilings before a request can
+reach the paid provider: 60 autocomplete calls, 30 place resolutions and 20
+route computations. These application limits reduce accidental or abusive
+spend, but do not replace hard quotas, alerts and budgets in the Google Cloud
+project.
