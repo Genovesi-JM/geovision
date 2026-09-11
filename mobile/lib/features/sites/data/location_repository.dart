@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
@@ -111,6 +113,84 @@ class LocationRepository {
     } catch (error) {
       throw LocationSearchException(_api.mapError(error).message);
     }
+  }
+
+  Future<RouteEstimate> computeDrivingRoute({
+    required double originLatitude,
+    required double originLongitude,
+    required double destinationLatitude,
+    required double destinationLongitude,
+    required String languageCode,
+  }) async {
+    _validateCoordinate(originLatitude, originLongitude);
+    _validateCoordinate(destinationLatitude, destinationLongitude);
+    if (_config.demoMode) {
+      final directMeters = _distanceMeters(
+        originLatitude,
+        originLongitude,
+        destinationLatitude,
+        destinationLongitude,
+      );
+      final roadMeters = (directMeters * 1.2).round();
+      return RouteEstimate(
+        provider: 'deterministic',
+        simulated: true,
+        distanceMeters: roadMeters,
+        durationSeconds: (roadMeters / 12.5).round(),
+        trafficAware: false,
+      );
+    }
+
+    try {
+      final response = await _api.raw.post(
+        '/location/routes:compute',
+        data: {
+          'origin': {
+            'latitude': originLatitude,
+            'longitude': originLongitude,
+          },
+          'destination': {
+            'latitude': destinationLatitude,
+            'longitude': destinationLongitude,
+          },
+          'language_code': languageCode,
+        },
+      );
+      return RouteEstimate.fromJson(
+          Map<String, dynamic>.from(response.data as Map));
+    } catch (error) {
+      throw LocationSearchException(_api.mapError(error).message);
+    }
+  }
+
+  static void _validateCoordinate(double latitude, double longitude) {
+    if (!latitude.isFinite ||
+        !longitude.isFinite ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180) {
+      throw const LocationSearchException('Invalid map coordinates.');
+    }
+  }
+
+  static double _distanceMeters(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const radius = 6371000.0;
+    final phi1 = lat1 * math.pi / 180;
+    final phi2 = lat2 * math.pi / 180;
+    final deltaPhi = (lat2 - lat1) * math.pi / 180;
+    final deltaLambda = (lon2 - lon1) * math.pi / 180;
+    final a = math.sin(deltaPhi / 2) * math.sin(deltaPhi / 2) +
+        math.cos(phi1) *
+            math.cos(phi2) *
+            math.sin(deltaLambda / 2) *
+            math.sin(deltaLambda / 2);
+    return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 }
 

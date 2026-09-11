@@ -40,6 +40,14 @@ class _LocationAdapter implements HttpClientAdapter {
           'formatted_address': 'Madrid, Spain',
           'coordinate': {'latitude': 40.4168, 'longitude': -3.7038},
         },
+      '/location/routes:compute' => {
+          'provider': 'google_maps',
+          'simulated': false,
+          'distance_meters': 12500,
+          'duration_seconds': 1020,
+          'traffic_aware': false,
+          'encoded_polyline': 'encoded-route',
+        },
       _ => throw StateError('Unexpected request: ${options.path}'),
     };
     return ResponseBody.fromString(
@@ -117,6 +125,60 @@ void main() {
     expect(place.displayName, 'Luanda');
     expect(place.latitude, -8.838333);
     expect(adapter.requests, isEmpty);
+  });
+
+  test('route estimates use the backend and retain honest provider metadata',
+      () async {
+    final adapter = _LocationAdapter();
+    final repository =
+        LocationRepository(_client(adapter, _liveConfig), _liveConfig);
+
+    final route = await repository.computeDrivingRoute(
+      originLatitude: 40.4,
+      originLongitude: -3.7,
+      destinationLatitude: 40.5,
+      destinationLongitude: -3.6,
+      languageCode: 'es',
+    );
+
+    expect(route.distanceMeters, 12500);
+    expect(route.durationSeconds, 1020);
+    expect(route.simulated, isFalse);
+    expect(route.trafficAware, isFalse);
+    expect(adapter.requests.single.path, '/location/routes:compute');
+    expect(adapter.requests.single.data['origin'], {
+      'latitude': 40.4,
+      'longitude': -3.7,
+    });
+  });
+
+  test('demo route is explicitly simulated and coordinate validation is strict',
+      () async {
+    final adapter = _LocationAdapter();
+    final repository =
+        LocationRepository(_client(adapter, _demoConfig), _demoConfig);
+
+    final route = await repository.computeDrivingRoute(
+      originLatitude: -8.83,
+      originLongitude: 13.23,
+      destinationLatitude: -8.9,
+      destinationLongitude: 13.3,
+      languageCode: 'pt',
+    );
+
+    expect(route.distanceMeters, greaterThan(0));
+    expect(route.simulated, isTrue);
+    expect(adapter.requests, isEmpty);
+    await expectLater(
+      repository.computeDrivingRoute(
+        originLatitude: double.nan,
+        originLongitude: 13.23,
+        destinationLatitude: -8.9,
+        destinationLongitude: 13.3,
+        languageCode: 'pt',
+      ),
+      throwsA(isA<LocationSearchException>()),
+    );
   });
 }
 

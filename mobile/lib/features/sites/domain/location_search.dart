@@ -44,3 +44,30 @@ class ResolvedLocation {
     );
   }
 }
+
+class RouteEstimate {
+  const RouteEstimate({
+    required this.provider,
+    required this.simulated,
+    required this.distanceMeters,
+    required this.durationSeconds,
+    required this.trafficAware,
+    this.encodedPolyline,
+  });
+
+  final String provider;
+  final bool simulated;
+  final int distanceMeters;
+  final int durationSeconds;
+  final bool trafficAware;
+  final String? encodedPolyline;
+
+  factory RouteEstimate.fromJson(Map<String, dynamic> json) => RouteEstimate(
+        provider: json['provider'] as String,
+        simulated: json['simulated'] as bool? ?? false,
+        distanceMeters: (json['distance_meters'] as num).round(),
+        durationSeconds: (json['duration_seconds'] as num).round(),
+        trafficAware: json['traffic_aware'] as bool? ?? false,
+        encodedPolyline: json['encoded_polyline'] as String?,
+      );
+}

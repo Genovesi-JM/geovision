@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../app/providers.dart';
@@ -9,6 +10,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../integrations/maps/external_map_navigation.dart';
+import '../../sites/data/location_repository.dart';
+import '../../sites/domain/location_search.dart';
 import '../data/assets_repository.dart';
 
 class AssetMapScreen extends ConsumerWidget {
@@ -92,6 +95,11 @@ class AssetMapScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: GvSpacing.md),
+              _RoutePlanner(
+                destinationLatitude: item.latitude!,
+                destinationLongitude: item.longitude!,
+              ),
+              const SizedBox(height: GvSpacing.md),
               GvCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,6 +173,132 @@ class AssetMapScreen extends ConsumerWidget {
             content: Text('The map application could not be opened.')),
       );
     }
+  }
+}
+
+class _RoutePlanner extends ConsumerStatefulWidget {
+  const _RoutePlanner({
+    required this.destinationLatitude,
+    required this.destinationLongitude,
+  });
+
+  final double destinationLatitude;
+  final double destinationLongitude;
+
+  @override
+  ConsumerState<_RoutePlanner> createState() => _RoutePlannerState();
+}
+
+class _RoutePlannerState extends ConsumerState<_RoutePlanner> {
+  bool loading = false;
+  RouteEstimate? estimate;
+  String? error;
+
+  @override
+  Widget build(BuildContext context) => GvCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(children: [
+              Icon(Icons.route_outlined, color: GvColors.accentCyan),
+              SizedBox(width: GvSpacing.sm),
+              Expanded(
+                child: Text('Driving route estimate',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ]),
+            const SizedBox(height: GvSpacing.xs),
+            if (estimate == null)
+              const Text(
+                'Use your current position to estimate distance and travel time.',
+                style: TextStyle(color: GvColors.textSecondary),
+              )
+            else ...[
+              Text(
+                '${_distance(estimate!.distanceMeters)} • '
+                '${_duration(estimate!.durationSeconds)}',
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              Text(
+                estimate!.simulated
+                    ? 'Demonstration estimate — not live navigation'
+                    : estimate!.trafficAware
+                        ? 'Live provider estimate with traffic'
+                        : 'Provider estimate without live traffic',
+                style: const TextStyle(
+                    color: GvColors.textSecondary, fontSize: 12),
+              ),
+            ],
+            if (error != null) ...[
+              const SizedBox(height: GvSpacing.xs),
+              Text(error!, style: const TextStyle(color: GvColors.critical)),
+            ],
+            const SizedBox(height: GvSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: loading ? null : _estimate,
+              icon: loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location),
+              label: Text(estimate == null ? 'Estimate route' : 'Refresh'),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _estimate() async {
+    final languageCode = Localizations.localeOf(context).languageCode;
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        throw StateError('Enable location services on the device.');
+      }
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        throw StateError(
+            'Location permission is required to estimate a route.');
+      }
+      final origin = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+      final result =
+          await ref.read(locationRepositoryProvider).computeDrivingRoute(
+                originLatitude: origin.latitude,
+                originLongitude: origin.longitude,
+                destinationLatitude: widget.destinationLatitude,
+                destinationLongitude: widget.destinationLongitude,
+                languageCode: languageCode,
+              );
+      if (mounted) setState(() => estimate = result);
+    } catch (failure) {
+      if (mounted) setState(() => error = '$failure');
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  static String _distance(int meters) =>
+      meters < 1000 ? '$meters m' : '${(meters / 1000).toStringAsFixed(1)} km';
+
+  static String _duration(int seconds) {
+    final minutes = (seconds / 60).ceil();
+    if (minutes < 60) return '$minutes min';
+    final hours = minutes ~/ 60;
+    final remainder = minutes % 60;
+    return remainder == 0 ? '$hours h' : '$hours h $remainder min';
   }
 }
 

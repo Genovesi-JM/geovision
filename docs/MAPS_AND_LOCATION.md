@@ -68,6 +68,11 @@ site country as a region hint. Selecting a suggestion moves the marker, while
 manual map taps and device GPS remain available. Demo mode uses deterministic
 Luanda and Madrid entries without an external request.
 
+The asset map can also request a driving estimate from the device's current
+position. Distance and duration come through the same server boundary and are
+labelled as simulated, traffic-aware or non-traffic-aware. The estimate does
+not replace the explicit Google Maps and Apple Maps navigation handoff.
+
 ## Production acceptance gate
 
 Before enabling a live provider, record the account owner, billing limits,
