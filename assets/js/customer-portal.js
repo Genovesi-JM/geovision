@@ -702,6 +702,7 @@ class CustomerPortal {
     this.map = null;
     this.mapSearchMarker = null;
     this.mapRouteLayer = null;
+    this.mapRouteEndpoints = null;
     this.mapSearchTimer = null;
     this.mapLayers = new Map();
     this.api = new PortalApi(apiBase, () => this.workspaceId);
@@ -1465,6 +1466,7 @@ class CustomerPortal {
     this.mapSearchTimer = null;
     this.mapSearchMarker = null;
     this.mapRouteLayer = null;
+    this.mapRouteEndpoints = null;
     if (this.map) {
       this.map.remove();
       this.map = null;
@@ -1579,7 +1581,29 @@ class CustomerPortal {
       if (!estimate) throw new Error("Invalid route response");
       const routePoints = decodeGooglePolyline(estimate.encodedPolyline);
       if (this.mapRouteLayer) this.mapRouteLayer.remove();
+      if (this.mapRouteEndpoints) this.mapRouteEndpoints.remove();
       this.mapRouteLayer = null;
+      this.mapRouteEndpoints = null;
+      if (this.map) {
+        this.mapRouteEndpoints = window.L.layerGroup([
+          window.L.circleMarker([origin.latitude, origin.longitude], {
+            radius: 7,
+            color: "#ffffff",
+            weight: 3,
+            fillColor: "#2563eb",
+            fillOpacity: 1,
+            className: "portal-route-origin",
+          }).bindTooltip("Current position"),
+          window.L.circleMarker([destination.latitude, destination.longitude], {
+            radius: 7,
+            color: "#ffffff",
+            weight: 3,
+            fillColor: "#ef4444",
+            fillOpacity: 1,
+            className: "portal-route-destination",
+          }).bindTooltip(label),
+        ]).addTo(this.map);
+      }
       if (routePoints.length && this.map) {
         this.mapRouteLayer = window.L.polyline(routePoints, {
           color: "#38bdf8",

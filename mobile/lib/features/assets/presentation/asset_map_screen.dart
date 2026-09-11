@@ -27,6 +27,8 @@ class AssetMapScreen extends ConsumerStatefulWidget {
 class _AssetMapScreenState extends ConsumerState<AssetMapScreen> {
   final mapController = MapController();
   List<LatLng> routePoints = const [];
+  LatLng? routeOrigin;
+  LatLng? routeDestination;
 
   @override
   void dispose() {
@@ -100,8 +102,19 @@ class _AssetMapScreenState extends ConsumerState<AssetMapScreen> {
                               ),
                             MarkerLayer(
                               markers: [
+                                if (routeOrigin != null)
+                                  Marker(
+                                    point: routeOrigin!,
+                                    width: 42,
+                                    height: 42,
+                                    child: const Icon(
+                                      Icons.my_location,
+                                      size: 34,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ),
                                 Marker(
-                                  point: position,
+                                  point: routeDestination ?? position,
                                   width: 56,
                                   height: 56,
                                   child: const Icon(
@@ -203,20 +216,23 @@ class _AssetMapScreenState extends ConsumerState<AssetMapScreen> {
     }
   }
 
-  void _showRoute(RouteEstimate estimate) {
+  void _showRoute(RouteEstimate estimate, LatLng origin, LatLng destination) {
     final decoded = decodeEncodedPolyline(estimate.encodedPolyline);
     if (!mounted) return;
-    setState(() => routePoints = decoded);
-    if (decoded.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        mapController.fitCamera(CameraFit.coordinates(
-          coordinates: decoded,
-          padding: const EdgeInsets.all(32),
-          maxZoom: 16,
-        ));
-      });
-    }
+    setState(() {
+      routePoints = decoded;
+      routeOrigin = origin;
+      routeDestination = destination;
+    });
+    final cameraPoints = decoded.isNotEmpty ? decoded : [origin, destination];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      mapController.fitCamera(CameraFit.coordinates(
+        coordinates: cameraPoints,
+        padding: const EdgeInsets.all(32),
+        maxZoom: 16,
+      ));
+    });
   }
 }
 
@@ -229,7 +245,11 @@ class _RoutePlanner extends ConsumerStatefulWidget {
 
   final double destinationLatitude;
   final double destinationLongitude;
-  final ValueChanged<RouteEstimate> onEstimate;
+  final void Function(
+    RouteEstimate estimate,
+    LatLng origin,
+    LatLng destination,
+  ) onEstimate;
 
   @override
   ConsumerState<_RoutePlanner> createState() => _RoutePlannerState();
@@ -330,7 +350,11 @@ class _RoutePlannerState extends ConsumerState<_RoutePlanner> {
               );
       if (mounted) {
         setState(() => estimate = result);
-        widget.onEstimate(result);
+        widget.onEstimate(
+          result,
+          LatLng(origin.latitude, origin.longitude),
+          LatLng(widget.destinationLatitude, widget.destinationLongitude),
+        );
       }
     } catch (failure) {
       if (mounted) setState(() => error = '$failure');

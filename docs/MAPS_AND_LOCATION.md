@@ -35,6 +35,8 @@ decodes and draws that route over the base map. Oversized, malformed or
 out-of-range geometry is ignored rather than rendered.
 The mobile asset map applies the same bounded decoder and overlays the returned
 route before fitting the camera to its validated points.
+Both clients mark the device origin separately from the selected destination so
+an estimate cannot be mistaken for the asset's own position.
 
 The web map also includes authenticated place autocomplete. Input is debounced,
 one opaque session token is reused through the selected Place Details request,

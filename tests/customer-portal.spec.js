@@ -444,13 +444,15 @@ test.describe('contextual customer portal', () => {
     await page.getByRole('button', { name: 'Estimate route' }).click();
     await expect(page.locator('.portal-map-route')).toContainText('12.8 km · 19 min');
     await expect(page.locator('.portal-route-line')).toHaveCount(1);
+    await expect(page.locator('.portal-route-origin')).toHaveCount(1);
+    await expect(page.locator('.portal-route-destination')).toHaveCount(1);
     await page.locator('#portal-map-search-input').fill('Madrid');
     await page.getByRole('button', { name: /Madrid Community of Madrid/ }).click();
     await expect(page.locator('#portal-map-search-input')).toHaveValue('Madrid, Spain');
     const placeRequests = requests.filter((request) => request.path.startsWith('/location/places:'));
     expect(placeRequests).toHaveLength(2);
     expect(placeRequests[0].body.session_token).toBe(placeRequests[1].body.session_token);
-    await expect(page.locator('path.leaflet-interactive')).toHaveCount(3);
+    await expect(page.locator('path.leaflet-interactive')).toHaveCount(5);
     expect(requests.some((request) => request.path === '/location/routes:compute' && request.workspaceId === 'workspace-a')).toBeTruthy();
     expect(requests.some((request) => request.path === '/portal/map-layers' && request.workspaceId === 'workspace-a')).toBeTruthy();
   });

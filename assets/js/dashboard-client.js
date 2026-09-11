@@ -1,4 +1,4 @@
-import { initCustomerPortal } from "./customer-portal.js?v=6";
+import { initCustomerPortal } from "./customer-portal.js?v=7";
 
 const SESSION_EMAIL_KEY = "gv_email";
 const SESSION_ROLE_KEY = "gv_role";
