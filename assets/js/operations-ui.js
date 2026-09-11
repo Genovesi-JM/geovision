@@ -13,6 +13,28 @@ export class ApiError extends Error {
   }
 }
 
+const STATUS_LABELS_ES = Object.freeze({
+  ACTIVE: "Activo", AVAILABLE: "Disponible", COMPLETED: "Completada",
+  SUCCEEDED: "Correcto", READY: "Lista", APPROVED: "Aprobado",
+  HEALTHY: "Correcto", FAILED: "Fallido", ERROR: "Error",
+  BLOCKED: "Bloqueada", CANCELLED: "Cancelada", REJECTED: "Rechazado",
+  UNHEALTHY: "No disponible", WAITING_INPUT: "Esperando información",
+  PENDING: "Pendiente", LIMITED: "Disponibilidad limitada",
+  QA_REVIEW: "Revisión de calidad", RETRYING: "Reintentando",
+  RETRY_WAIT: "Esperando reintento", DEGRADED: "Degradado",
+  OFFERED: "Ofrecida", ACCEPTED: "Aceptada", DECLINED: "Rechazada",
+  IN_PROGRESS: "En curso", ASSIGNED: "Asignada", SCHEDULED: "Programada",
+  PLANNED: "Planificada", NEEDS_REVIEW: "Requiere revisión",
+  REVIEW_REQUIRED: "Revisión requerida", PUBLISHED: "Publicado",
+  UNAVAILABLE: "No disponible", ON_HOLD: "En espera", INACTIVE: "Inactivo",
+  LOW: "Baja", NORMAL: "Normal", HIGH: "Alta", URGENT: "Urgente",
+});
+
+export function statusLabel(value, fallback = "Desconocido") {
+  const key = optionalString(value).toUpperCase();
+  return STATUS_LABELS_ES[key] || sentence(value, fallback);
+}
+
 export function readAccessToken() {
   const token = localStorage.getItem("gv_token");
   return typeof token === "string" && token.trim() ? token.trim() : "";
@@ -46,7 +68,7 @@ export class OperationsApi {
 
   async request(path, options = {}) {
     const token = readAccessToken();
-    if (!token) throw new ApiError(401, "Sign in to continue.", "missing_session");
+    if (!token) throw new ApiError(401, "Inicia sesión para continuar.", "missing_session");
     const headers = new Headers(options.headers || {});
     headers.set("Accept", "application/json");
     headers.set("Authorization", `Bearer ${token}`);
@@ -64,7 +86,7 @@ export class OperationsApi {
       }
     }
     if (!response.ok) {
-      const fallback = response.status === 401 ? "Your session has expired." : response.status === 403 ? "You do not have access to this workspace." : `Request failed (${response.status}).`;
+      const fallback = response.status === 401 ? "Tu sesión ha caducado." : response.status === 403 ? "No tienes acceso a este espacio." : `La solicitud ha fallado (${response.status}).`;
       const problem = extractError(payload, fallback);
       throw new ApiError(response.status, problem.message, problem.code);
     }
@@ -81,7 +103,7 @@ export function isRecord(value) {
 }
 
 export function requiredString(value, field) {
-  if (typeof value !== "string" || !value.trim()) throw new Error(`Invalid ${field}`);
+  if (typeof value !== "string" || !value.trim()) throw new Error(`Campo no válido: ${field}`);
   return value.trim();
 }
 
@@ -101,7 +123,7 @@ export function collection(value, field = "items") {
 }
 
 export function capabilities(value, allowlist) {
-  if (!Array.isArray(value)) throw new Error("Invalid capabilities");
+  if (!Array.isArray(value)) throw new Error("La lista de capacidades no es válida");
   const allowed = new Set(allowlist);
   return new Set(value.filter((item) => typeof item === "string" && allowed.has(item)));
 }
@@ -132,10 +154,10 @@ export function replace(target, ...children) {
 }
 
 export function formatDate(value, options = {}) {
-  if (!value) return "Not scheduled";
+  if (!value) return "Sin programar";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not scheduled";
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short", ...options }).format(date);
+  if (Number.isNaN(date.getTime())) return "Sin programar";
+  return new Intl.DateTimeFormat("es-ES", { dateStyle: "medium", timeStyle: "short", ...options }).format(date);
 }
 
 export function toLocalInput(value) {
@@ -146,7 +168,7 @@ export function toLocalInput(value) {
   return local.toISOString().slice(0, 16);
 }
 
-export function sentence(value, fallback = "Unknown") {
+export function sentence(value, fallback = "Desconocido") {
   const input = optionalString(value, fallback).replace(/[_-]+/g, " ").toLowerCase();
   return input.charAt(0).toUpperCase() + input.slice(1);
 }
@@ -160,7 +182,7 @@ export function statusTone(value) {
 }
 
 export function pill(value) {
-  return node("span", { className: "status-pill", text: sentence(value), attrs: { "data-tone": statusTone(value) } });
+  return node("span", { className: "status-pill", text: statusLabel(value), attrs: { "data-tone": statusTone(value) } });
 }
 
 export function button(label, options = {}) {
@@ -206,7 +228,7 @@ export function table(headers, rows, options = {}) {
     body.appendChild(row);
   });
   tableElement.appendChild(body);
-  return node("div", { className: "table-scroll", attrs: { tabindex: "0", "aria-label": options.label || "Scrollable data table" } }, tableElement);
+  return node("div", { className: "table-scroll", attrs: { tabindex: "0", "aria-label": options.label || "Tabla de datos desplazable" } }, tableElement);
 }
 
 export function setStatus(element, message = "", tone = "") {
@@ -232,7 +254,7 @@ export function encodePath(value) {
 
 export function visibleError(error) {
   if (error instanceof ApiError) return error.message;
-  return "The workspace could not load verified data. Try again.";
+  return "No se pudieron cargar los datos verificados. Inténtalo de nuevo.";
 }
 
 export function setBusy(element, busy) {

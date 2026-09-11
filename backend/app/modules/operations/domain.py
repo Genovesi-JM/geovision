@@ -20,6 +20,27 @@ class ContractorAvailability(str, Enum):
     UNAVAILABLE = "UNAVAILABLE"
 
 
+class ContractorResourceType(str, Enum):
+    EMPLOYEE = "EMPLOYEE"
+    FREELANCER = "FREELANCER"
+    PARTNER_COMPANY = "PARTNER_COMPANY"
+    FIELD_TECHNICIAN = "FIELD_TECHNICIAN"
+    DRONE_OPERATOR = "DRONE_OPERATOR"
+    SECTOR_SPECIALIST = "SECTOR_SPECIALIST"
+
+
+_LEGACY_RESOURCE_TYPES = {
+    "PILOT": ContractorResourceType.DRONE_OPERATOR.value,
+    "TECHNICIAN": ContractorResourceType.FIELD_TECHNICIAN.value,
+}
+
+
+def normalize_contractor_resource_type(value: str) -> str:
+    normalized = value.strip().upper().replace(" ", "_")
+    normalized = _LEGACY_RESOURCE_TYPES.get(normalized, normalized)
+    return ContractorResourceType(normalized).value
+
+
 class AssignmentStatus(str, Enum):
     OFFERED = "OFFERED"
     ACCEPTED = "ACCEPTED"

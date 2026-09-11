@@ -1,42 +1,42 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="GeoVision contractor job workspace."><title>My Jobs — GeoVision</title>
+  <meta name="description" content="Espacio de tareas para colaboradores externos de GeoVision."><meta name="robots" content="noindex,nofollow"><title>Mis tareas — GeoVision</title>
   <link rel="stylesheet" href="assets/css/operations-portal.css?v=1"><script src="assets/js/config.js?v=5"></script>
 </head>
 <body class="contractor-body" data-contractor-state="loading">
-  <a class="skip-link" href="#contractor-content">Skip to job content</a>
-  <div class="access-screen" id="contractor-loading" role="status" aria-live="polite"><div class="access-card"><span class="brand-mark" aria-hidden="true">G</span><h1>Opening My Jobs</h1><p>Checking your contractor access and assigned work.</p></div></div>
-  <div class="access-screen" id="contractor-denied" hidden><div class="access-card" role="alert"><span class="brand-mark" aria-hidden="true">G</span><p class="eyebrow">Access restricted</p><h1>No active contractor workspace</h1><p id="contractor-denied-message">This account does not have access to an active GeoVision contractor profile.</p><div class="button-row"><a class="button button-primary" href="dashboard.html">Go to customer portal</a><button class="button button-secondary" id="contractor-denied-logout" type="button">Sign out</button></div></div></div>
+  <a class="skip-link" href="#contractor-content">Saltar al contenido de las tareas</a>
+  <div class="access-screen" id="contractor-loading" role="status" aria-live="polite"><div class="access-card"><span class="brand-mark" aria-hidden="true">G</span><h1>Abriendo Mis tareas</h1><p>Comprobando tu acceso y el trabajo asignado.</p></div></div>
+  <div class="access-screen" id="contractor-denied" hidden><div class="access-card" role="alert"><span class="brand-mark" aria-hidden="true">G</span><p class="eyebrow">Acceso restringido</p><h1>No hay un espacio de colaborador activo</h1><p id="contractor-denied-message">Esta cuenta no tiene acceso a un perfil activo de colaborador de GeoVision.</p><div class="button-row"><a class="button button-primary" href="dashboard.html">Ir al portal del cliente</a><button class="button button-secondary" id="contractor-denied-logout" type="button">Cerrar sesión</button></div></div></div>
   <div class="contractor-app" id="contractor-app" hidden>
     <header class="contractor-header">
-      <a class="contractor-brand" href="contractor.html" aria-label="GeoVision My Jobs home"><span class="brand-mark" aria-hidden="true">G</span><span><strong>GeoVision</strong><small>My Jobs</small></span></a>
-      <button class="icon-button contractor-menu-button" id="contractor-menu" type="button" aria-label="Open navigation" aria-controls="contractor-navigation" aria-expanded="false"><span aria-hidden="true">☰</span></button>
-      <nav class="contractor-nav" id="contractor-navigation" aria-label="Contractor workspace"></nav>
-      <div class="contractor-account"><span id="contractor-user-name">Contractor</span><button class="button button-secondary" id="contractor-logout" type="button">Sign out</button></div>
+      <a class="contractor-brand" href="contractor.html" aria-label="Inicio de Mis tareas de GeoVision"><span class="brand-mark" aria-hidden="true">G</span><span><strong>GeoVision</strong><small>Mis tareas</small></span></a>
+      <button class="icon-button contractor-menu-button" id="contractor-menu" type="button" aria-label="Abrir navegación" aria-controls="contractor-navigation" aria-expanded="false"><span aria-hidden="true">☰</span></button>
+      <nav class="contractor-nav" id="contractor-navigation" aria-label="Espacio del colaborador"></nav>
+      <div class="contractor-account"><span id="contractor-user-name">Colaborador</span><button class="button button-secondary" id="contractor-logout" type="button">Cerrar sesión</button></div>
     </header>
     <main class="contractor-main" id="contractor-content" tabindex="-1">
-      <div class="contractor-heading"><div><p class="eyebrow">Assigned work only</p><h1 id="contractor-view-title">My Jobs</h1></div><button class="button button-secondary" id="contractor-refresh" type="button">Refresh</button></div>
-      <p class="privacy-notice">This workspace shows only the schedule, location, requirements and files needed for jobs assigned to you.</p>
+      <div class="contractor-heading"><div><p class="eyebrow">Solo trabajo asignado</p><h1 id="contractor-view-title">Mis tareas</h1></div><button class="button button-secondary" id="contractor-refresh" type="button">Actualizar</button></div>
+      <p class="privacy-notice">Este espacio muestra únicamente el horario, la ubicación, los requisitos y los archivos necesarios para tus tareas asignadas.</p>
       <p class="global-status" id="contractor-status" role="status" aria-live="polite"></p>
       <section class="view-surface contractor-surface" id="contractor-view" aria-busy="false"></section>
     </main>
   </div>
   <dialog class="operations-dialog" id="contractor-upload-dialog" aria-labelledby="contractor-upload-title" hidden>
     <form method="dialog" id="contractor-upload-form">
-      <div class="dialog-header"><div><p class="eyebrow">Assigned job</p><h2 id="contractor-upload-title">Register a deliverable</h2></div><button class="icon-button" value="cancel" type="submit" aria-label="Close dialog">×</button></div>
+      <div class="dialog-header"><div><p class="eyebrow">Tarea asignada</p><h2 id="contractor-upload-title">Registrar una entrega</h2></div><button class="icon-button" value="cancel" type="submit" aria-label="Cerrar ventana">×</button></div>
       <input id="upload-job-id" name="job_id" type="hidden">
       <div class="form-grid">
-        <label><span>Upload destination</span><select id="upload-dataset" name="dataset_id" required><option value="">Choose an approved destination</option></select></label>
-        <label><span>File</span><input id="upload-file" name="file" type="file" required></label>
-        <label><span>Deliverable type</span><select id="upload-area" name="object_area"><option value="raw">Raw capture</option><option value="processed">Processed output</option><option value="derived">Derived data</option><option value="reports">Report</option></select></label>
+        <label><span>Destino de la entrega</span><select id="upload-dataset" name="dataset_id" required><option value="">Elegir un destino autorizado</option></select></label>
+        <label><span>Archivo</span><input id="upload-file" name="file" type="file" required></label>
+        <label><span>Tipo de entrega</span><select id="upload-area" name="object_area"><option value="raw">Captura original</option><option value="processed">Resultado procesado</option><option value="derived">Datos derivados</option><option value="reports">Informe</option></select></label>
       </div>
-      <p class="form-help">The upload link is short-lived. GeoVision records the completed file against this assigned job only.</p>
+      <p class="form-help">El enlace de subida caduca pronto. GeoVision registra el archivo únicamente en esta tarea asignada.</p>
       <p class="form-feedback" id="upload-feedback" role="status" aria-live="polite"></p>
-      <div class="dialog-actions"><button class="button button-secondary" value="cancel" type="submit">Cancel</button><button class="button button-primary" id="upload-submit" value="default" type="submit">Upload deliverable</button></div>
+      <div class="dialog-actions"><button class="button button-secondary" value="cancel" type="submit">Cancelar</button><button class="button button-primary" id="upload-submit" value="default" type="submit">Subir entrega</button></div>
     </form>
   </dialog>
-  <script type="module" src="assets/js/contractor-ops.js?v=1"></script>
+  <script type="module" src="assets/js/contractor-ops.js?v=2"></script>
 </body>
 </html>

@@ -51,23 +51,23 @@ _CAPABILITY_ORDER: tuple[InternalCapability, ...] = (
 )
 
 _NAVIGATION = (
-    ("dashboard", "Dashboard", "/admin.html?view=dashboard"),
-    ("organizations", "Customers / Organizations", "/admin.html?view=organizations"),
-    ("assets", "Assets", "/admin.html?view=assets"),
-    ("orders", "Orders", "/admin.html?view=orders"),
-    ("jobs", "Jobs", "/admin.html?view=jobs"),
-    ("missions", "Missions", "/admin.html?view=missions"),
-    ("processing", "Processing", "/admin.html?view=processing"),
-    ("reports_qa", "Reports QA", "/admin.html?view=reports-qa"),
-    ("contractors", "Contractors", "/admin.html?view=contractors"),
+    ("dashboard", "Resumen", "/admin.html?view=dashboard"),
+    ("organizations", "Clientes y organizaciones", "/admin.html?view=organizations"),
+    ("assets", "Activos", "/admin.html?view=assets"),
+    ("orders", "Pedidos", "/admin.html?view=orders"),
+    ("jobs", "Tareas", "/admin.html?view=jobs"),
+    ("missions", "Misiones", "/admin.html?view=missions"),
+    ("processing", "Procesamiento", "/admin.html?view=processing"),
+    ("reports_qa", "Calidad de informes", "/admin.html?view=reports-qa"),
+    ("contractors", "Colaboradores", "/admin.html?view=contractors"),
     (
         "inventory",
-        "Suppliers / Inventory",
+        "Proveedores e inventario",
         "/admin.html?view=inventory",
     ),
-    ("finance_sync", "Finance sync", "/admin.html?view=finance-sync"),
-    ("integrations", "Integrations", "/admin.html?view=integrations"),
-    ("system_health", "System health", "/admin.html?view=system-health"),
+    ("finance_sync", "Sincronización financiera", "/admin.html?view=finance-sync"),
+    ("integrations", "Integraciones", "/admin.html?view=integrations"),
+    ("system_health", "Estado del sistema", "/admin.html?view=system-health"),
 )
 
 # Finance staff receive the ERP accounting/commerce slice only. Integration
@@ -555,9 +555,9 @@ def contractor_experience(
     )
     capabilities = ["my_jobs", "job_status", "uploads", "profile", "documents"]
     navigation = (
-        ("my_jobs", "My Jobs", "/contractor.html?view=jobs"),
-        ("profile", "Profile", "/contractor.html?view=profile"),
-        ("documents", "Documents", "/contractor.html?view=documents"),
+        ("my_jobs", "Mis tareas", "/contractor.html?view=jobs"),
+        ("profile", "Mi perfil", "/contractor.html?view=profile"),
+        ("documents", "Documentación", "/contractor.html?view=documents"),
     )
     return ContractorExperienceOut(
         contractor={

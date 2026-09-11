@@ -6,9 +6,9 @@ import {
 } from "./operations-ui.js";
 
 const NAVIGATION = Object.freeze({
-  my_jobs: { label: "My Jobs", view: "jobs" },
-  profile: { label: "Profile", view: "profile" },
-  documents: { label: "Documents", view: "documents" },
+  my_jobs: { label: "Mis tareas", view: "jobs" },
+  profile: { label: "Mi perfil", view: "profile" },
+  documents: { label: "Documentación", view: "documents" },
 });
 const CAPABILITIES = Object.freeze(["my_jobs", "job_status", "uploads", "profile", "documents"]);
 const TRANSITIONS = new Set(["IN_PROGRESS", "WAITING_INPUT", "QA_REVIEW"]);
@@ -29,10 +29,10 @@ const elements = {
 
 function expectedPath(key) { return `/contractor.html?view=${NAVIGATION[key].view}`; }
 function validateExperience(payload) {
-  if (!isRecord(payload) || payload.surface !== "CONTRACTOR" || !isRecord(payload.contractor)) throw new Error("Invalid contractor experience");
+  if (!isRecord(payload) || payload.surface !== "CONTRACTOR" || !isRecord(payload.contractor)) throw new Error("Experiencia de colaborador no válida");
   requiredString(payload.contractor.id, "contractor.id"); requiredString(payload.contractor.display_name, "contractor.display_name");
-  if (optionalString(payload.contractor.status).toUpperCase() !== "ACTIVE") throw new Error("Inactive contractor profile");
-  if (!Array.isArray(payload.navigation) || !isRecord(payload.job_counts)) throw new Error("Invalid contractor authorization");
+  if (optionalString(payload.contractor.status).toUpperCase() !== "ACTIVE") throw new Error("Perfil de colaborador inactivo");
+  if (!Array.isArray(payload.navigation) || !isRecord(payload.job_counts)) throw new Error("Autorización de colaborador no válida");
   const granted = capabilities(payload.capabilities, CAPABILITIES);
   const visible = new Set();
   payload.navigation.forEach((item) => {
@@ -41,7 +41,7 @@ function validateExperience(payload) {
     visible.add(item.key);
   });
   const visibleKeys = Object.keys(NAVIGATION).filter((key) => visible.has(key));
-  if (!visibleKeys.includes("my_jobs")) throw new Error("My Jobs access is unavailable");
+  if (!visibleKeys.includes("my_jobs")) throw new Error("El acceso a Mis tareas no está disponible");
   return { capabilities: granted, visibleKeys, contractor: payload.contractor, counts: payload.job_counts };
 }
 function can(key) { return state.capabilities.has(key); }
@@ -54,8 +54,8 @@ function jobIdFromLocation() { return safeId(new URLSearchParams(location.search
 function showDenied(error) {
   document.body.dataset.contractorState = "denied"; elements.loading.hidden = true; elements.app.hidden = true; elements.denied.hidden = false;
   elements.deniedMessage.textContent = error instanceof ApiError && error.status === 401
-    ? "Your session has expired. Sign in again to request verified access."
-    : "This account does not have access to an active GeoVision contractor profile.";
+    ? "Tu sesión ha caducado. Inicia sesión de nuevo para solicitar acceso verificado."
+    : "Esta cuenta no tiene acceso a un perfil activo de colaborador de GeoVision.";
 }
 
 function buildNavigation() {
@@ -65,14 +65,14 @@ function buildNavigation() {
   }));
 }
 function setActiveNavigation() { elements.nav.querySelectorAll(".nav-link").forEach((item) => item.setAttribute("aria-current", item.dataset.capability === state.current ? "page" : "false")); }
-function closeMenu() { elements.nav.dataset.open = "false"; elements.menu.setAttribute("aria-expanded", "false"); elements.menu.setAttribute("aria-label", "Open navigation"); }
+function closeMenu() { elements.nav.dataset.open = "false"; elements.menu.setAttribute("aria-expanded", "false"); elements.menu.setAttribute("aria-label", "Abrir navegación"); }
 async function navigate(key, options = {}) {
   if (!canNavigate(key)) return; state.current = key; state.detail = null; setActiveNavigation(); elements.title.textContent = NAVIGATION[key].label;
   if (!options.popstate) history.pushState({ contractorView: key }, "", expectedPath(key)); closeMenu(); await renderCurrent(Boolean(options.force));
 }
 
 function scheduleText(job) {
-  if (!job.scheduled_start) return "Open details for the accepted assignment window";
+  if (!job.scheduled_start) return "Abre los detalles para consultar la franja de la asignación";
   const end = job.scheduled_end ? ` – ${formatDate(job.scheduled_end)}` : "";
   return `${formatDate(job.scheduled_start)}${end}`;
 }
@@ -97,15 +97,15 @@ function requirementValues(requirements) {
 }
 function requirementsList(requirements) {
   const values = requirementValues(requirements);
-  return values.length ? node("ul", { className: "requirement-list", attrs: { "aria-label": "Required equipment and capabilities" } }, values.map((value) => node("li", { text: value }))) : node("p", { text: "No additional equipment or capability requirements listed." });
+  return values.length ? node("ul", { className: "requirement-list", attrs: { "aria-label": "Equipo y capacidades requeridos" } }, values.map((value) => node("li", { text: value }))) : node("p", { text: "No se han indicado requisitos adicionales de equipo o capacidades." });
 }
 
 function jobCard(job) {
-  const open = button("View details", { variant: "primary", onClick: () => openJob(job.id) });
+  const open = button("Ver detalles", { variant: "primary", onClick: () => openJob(job.id) });
   return node("article", { className: "job-card" }, [
     node("div", { className: "job-meta" }, [pill(job.state), node("span", { className: "kpi-note", text: sentence(job.priority) })]),
-    node("h2", { text: optionalString(job.title, "Assigned job") }),
-    node("p", { text: optionalString(job.job_number, "Job") }),
+    node("h2", { text: optionalString(job.title, "Tarea asignada") }),
+    node("p", { text: optionalString(job.job_number, "Tarea") }),
     node("p", { text: scheduleText(job) }), requirementsList(job.requirements),
     node("div", { className: "button-row" }, open),
   ]);
@@ -117,13 +117,13 @@ function offerCard(offer) {
   const location = safeLocation(offer.location).map(([, value]) => value).join(" · ");
   const documents = Array.isArray(offer.required_documents) ? offer.required_documents.map((item) => typeof item === "string" ? item : optionalString(item.name || item.label || item.type)).filter(Boolean) : [];
   return node("article", { className: "job-card offer-card" }, [
-    node("div", { className: "job-meta" }, [pill("OFFERED"), node("span", { className: "kpi-note", text: optionalString(offer.assignment_number, "New offer") })]),
-    node("h2", { text: optionalString(offer.title, "Work offer") }),
-    node("p", { text: offer.window_start ? `${formatDate(offer.window_start)}${offer.window_end ? ` – ${formatDate(offer.window_end)}` : ""}` : "Schedule to be confirmed" }),
+    node("div", { className: "job-meta" }, [pill("OFFERED"), node("span", { className: "kpi-note", text: optionalString(offer.assignment_number, "Nueva oferta") })]),
+    node("h2", { text: optionalString(offer.title, "Oferta de trabajo") }),
+    node("p", { text: offer.window_start ? `${formatDate(offer.window_start)}${offer.window_end ? ` – ${formatDate(offer.window_end)}` : ""}` : "Horario pendiente de confirmación" }),
     location ? node("p", { text: location }) : null,
     requirementsList(offer.requirements),
-    documents.length ? node("ul", { className: "requirement-list", attrs: { "aria-label": "Required documents" } }, documents.map((item) => node("li", { text: item }))) : null,
-    node("div", { className: "button-row" }, [button("Accept assignment", { variant: "primary", onClick: () => decideAssignment(offer, "ACCEPTED") }), button("Decline", { variant: "danger", onClick: () => decideAssignment(offer, "DECLINED") })]),
+    documents.length ? node("ul", { className: "requirement-list", attrs: { "aria-label": "Documentos requeridos" } }, documents.map((item) => node("li", { text: item }))) : null,
+    node("div", { className: "button-row" }, [button("Aceptar asignación", { variant: "primary", onClick: () => decideAssignment(offer, "ACCEPTED") }), button("Rechazar", { variant: "danger", onClick: () => decideAssignment(offer, "DECLINED") })]),
   ]);
 }
 async function renderJobs(force) {
@@ -133,12 +133,12 @@ async function renderJobs(force) {
   const counts = state.counts || {};
   replace(elements.view,
     node("div", { className: "kpi-grid" }, [
-      ["Offered", counts.offered], ["Scheduled", counts.scheduled], ["Active", counts.active], ["In review", counts.review], ["Completed", counts.completed],
+      ["Ofrecidas", counts.offered], ["Programadas", counts.scheduled], ["Activas", counts.active], ["En revisión", counts.review], ["Completadas", counts.completed],
     ].map(([label, value]) => node("article", { className: "kpi-card" }, [node("span", { className: "kpi-label", text: label }), node("strong", { className: "kpi-value", text: finiteNumber(value).toLocaleString() })]))),
-    offers.length ? sectionHeading("New work offers", "Review the schedule, location and requirements before accepting.") : null,
+    offers.length ? sectionHeading("Nuevas ofertas de trabajo", "Revisa horario, ubicación, remuneración y requisitos antes de aceptar.") : null,
     offers.length ? node("div", { className: "job-grid offers-grid" }, offers.map(offerCard)) : null,
-    sectionHeading("Assigned jobs", "Only work assigned to this contractor profile appears here."),
-    jobs.length ? node("div", { className: "job-grid" }, jobs.map(jobCard)) : emptyState("No assigned jobs", "New assigned work will appear here after GeoVision schedules it."),
+    sectionHeading("Tareas asignadas", "Aquí solo aparece el trabajo asignado a este perfil."),
+    jobs.length ? node("div", { className: "job-grid" }, jobs.map(jobCard)) : emptyState("Sin tareas asignadas", "El nuevo trabajo aparecerá aquí cuando GeoVision lo programe."),
   );
 }
 
@@ -149,9 +149,9 @@ async function openJob(rawId) {
 }
 function safeLocation(locationValue) {
   if (!isRecord(locationValue)) return [];
-  const labels = [["Location", locationValue.label || locationValue.name || locationValue.address], ["Area", locationValue.city || locationValue.region], ["Country", locationValue.country]];
+  const labels = [["Ubicación", locationValue.label || locationValue.name || locationValue.address], ["Zona", locationValue.city || locationValue.region], ["País", locationValue.country]];
   const lat = Number(locationValue.latitude); const lon = Number(locationValue.longitude);
-  if (Number.isFinite(lat) && Number.isFinite(lon)) labels.push(["Coordinates", `${lat.toFixed(5)}, ${lon.toFixed(5)}`]);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) labels.push(["Coordenadas", `${lat.toFixed(5)}, ${lon.toFixed(5)}`]);
   return labels.filter(([, value]) => typeof value === "string" && value.trim());
 }
 function detailList(rows) { return node("ul", { className: "detail-list" }, rows.map(([label, value]) => node("li", {}, [node("span", { text: label }), value instanceof Node ? value : node("strong", { text: value })]))); }
@@ -160,8 +160,8 @@ function assignmentActions(detail) {
   const assignment = detail.assignment;
   if (!isRecord(assignment) || optionalString(assignment.status).toUpperCase() !== "OFFERED") return null;
   return node("div", { className: "button-row" }, [
-    button("Accept assignment", { variant: "primary", onClick: () => decideAssignment(assignment, "ACCEPTED", detail.id) }),
-    button("Decline", { variant: "danger", onClick: () => decideAssignment(assignment, "DECLINED", detail.id) }),
+    button("Aceptar asignación", { variant: "primary", onClick: () => decideAssignment(assignment, "ACCEPTED", detail.id) }),
+    button("Rechazar", { variant: "danger", onClick: () => decideAssignment(assignment, "DECLINED", detail.id) }),
   ]);
 }
 async function refreshExperience() {
@@ -170,10 +170,10 @@ async function refreshExperience() {
 }
 async function decideAssignment(assignment, decision, jobId = "") {
   if (!isRecord(assignment) || optionalString(assignment.status).toUpperCase() !== "OFFERED") return;
-  setStatus(elements.status, decision === "ACCEPTED" ? "Accepting assignment…" : "Declining assignment…");
+  setStatus(elements.status, decision === "ACCEPTED" ? "Aceptando asignación…" : "Rechazando asignación…");
   try {
     await API.post(`/operations/contractor/me/assignments/${encodePath(assignment.id)}/decision`, { decision, expected_version: finiteNumber(assignment.lifecycle_version, 1) });
-    state.jobs = null; state.offers = null; state.detail = null; await refreshExperience(); setStatus(elements.status, `Assignment ${decision.toLowerCase()}.`, "success");
+    state.jobs = null; state.offers = null; state.detail = null; await refreshExperience(); setStatus(elements.status, decision === "ACCEPTED" ? "Asignación aceptada." : "Asignación rechazada.", "success");
     if (jobId && decision === "ACCEPTED") await renderJobDetail(jobId, true); else { history.replaceState({ contractorView: "my_jobs" }, "", expectedPath("my_jobs")); await renderJobs(true); }
   } catch (error) { setStatus(elements.status, visibleError(error), "error"); }
 }
@@ -183,17 +183,17 @@ function statusActions(detail) {
   const allowed = Array.isArray(detail.allowed_transitions) ? detail.allowed_transitions.filter((value) => TRANSITIONS.has(value)) : [];
   if (!allowed.length) return null;
   return node("div", { className: "button-row" }, allowed.map((next) => {
-    if (next !== "WAITING_INPUT") return button(`Mark ${sentence(next)}`, { variant: "primary", onClick: () => updateJobState(detail, next) });
-    const reason = node("input", { attrs: { type: "text", maxlength: "2000", placeholder: "Reason required", "aria-label": "Reason for waiting for input" } });
-    return node("div", { className: "waiting-input-action" }, [reason, button("Mark waiting for input", { variant: "primary", onClick: () => updateJobState(detail, next, reason.value) })]);
+    if (next !== "WAITING_INPUT") return button(`Marcar: ${sentence(next)}`, { variant: "primary", onClick: () => updateJobState(detail, next) });
+    const reason = node("input", { attrs: { type: "text", maxlength: "2000", placeholder: "Motivo obligatorio", "aria-label": "Motivo de espera de información" } });
+    return node("div", { className: "waiting-input-action" }, [reason, button("Marcar en espera de información", { variant: "primary", onClick: () => updateJobState(detail, next, reason.value) })]);
   }));
 }
 async function updateJobState(detail, next, reason = "") {
-  if (next === "WAITING_INPUT" && !optionalString(reason)) { setStatus(elements.status, "Add a reason before marking this job as waiting for input.", "error"); return; }
-  setStatus(elements.status, `Updating job to ${sentence(next).toLowerCase()}…`);
+  if (next === "WAITING_INPUT" && !optionalString(reason)) { setStatus(elements.status, "Añade un motivo antes de marcar esta tarea en espera.", "error"); return; }
+  setStatus(elements.status, `Actualizando tarea a ${sentence(next).toLowerCase()}…`);
   try {
     const result = await API.patch(`/operations/contractor/me/jobs/${encodePath(detail.id)}/state`, { state: next, reason: optionalString(reason) || null, expected_version: finiteNumber(detail.lifecycle_version, 1) });
-    state.detail = result; state.jobs = null; setStatus(elements.status, "Job status updated.", "success"); renderJobDetailView(result);
+    state.detail = result; state.jobs = null; setStatus(elements.status, "Estado de la tarea actualizado.", "success"); renderJobDetailView(result);
   } catch (error) { setStatus(elements.status, visibleError(error), "error"); }
 }
 
@@ -201,13 +201,13 @@ function acceptedAssignment(detail) { return isRecord(detail?.assignment) && ["A
 function uploadTargets(detail) { return collection(detail.upload_targets).filter((target) => safeId(target.dataset_id) && optionalString(target.status).toUpperCase() !== "ARCHIVED"); }
 function uploadAction(detail) {
   if (!can("uploads") || !acceptedAssignment(detail) || !uploadTargets(detail).length) return null;
-  return button("Upload deliverable", { variant: "primary", onClick: () => openUpload(detail) });
+  return button("Subir entrega", { variant: "primary", onClick: () => openUpload(detail) });
 }
 function openUpload(detail) {
   const targets = uploadTargets(detail); if (!targets.length || !acceptedAssignment(detail)) return;
   document.getElementById("upload-job-id").value = detail.id;
   const select = document.getElementById("upload-dataset");
-  replace(select, node("option", { text: "Choose an approved destination", attrs: { value: "" } }), ...targets.map((target) => node("option", { text: `${optionalString(target.name, "Deliverable")} · ${finiteNumber(target.file_count)} file${finiteNumber(target.file_count) === 1 ? "" : "s"}`, attrs: { value: target.dataset_id } })));
+  replace(select, node("option", { text: "Elige un destino aprobado", attrs: { value: "" } }), ...targets.map((target) => node("option", { text: `${optionalString(target.name, "Entrega")} · ${finiteNumber(target.file_count)} archivo${finiteNumber(target.file_count) === 1 ? "" : "s"}`, attrs: { value: target.dataset_id } })));
   document.getElementById("upload-file").value = ""; document.getElementById("upload-area").value = "raw"; elements.uploadFeedback.textContent = ""; delete elements.uploadFeedback.dataset.tone;
   elements.uploadDialog.showModal();
 }
@@ -219,7 +219,7 @@ async function sha256Hex(file) {
 function safeUploadUrl(value) {
   const url = new URL(requiredString(value, "upload_url"), location.href);
   const localHttp = url.protocol === "http:" && ["127.0.0.1", "localhost"].includes(url.hostname);
-  if (url.protocol !== "https:" && !localHttp) throw new Error("The upload destination is not secure.");
+  if (url.protocol !== "https:" && !localHttp) throw new Error("El destino de subida no es seguro.");
   return url.href;
 }
 async function submitUpload(event) {
@@ -227,19 +227,19 @@ async function submitUpload(event) {
   const jobId = encodePath(document.getElementById("upload-job-id").value); const datasetId = safeId(document.getElementById("upload-dataset").value);
   const file = document.getElementById("upload-file").files?.[0]; const area = document.getElementById("upload-area").value;
   const targets = state.detail ? uploadTargets(state.detail) : [];
-  if (!file || !datasetId || !targets.some((target) => target.dataset_id === datasetId) || !acceptedAssignment(state.detail)) { elements.uploadFeedback.dataset.tone = "error"; elements.uploadFeedback.textContent = "Choose an approved destination and a file."; return; }
-  const submit = document.getElementById("upload-submit"); submit.disabled = true; elements.uploadFeedback.textContent = "Preparing the secure upload…";
+  if (!file || !datasetId || !targets.some((target) => target.dataset_id === datasetId) || !acceptedAssignment(state.detail)) { elements.uploadFeedback.dataset.tone = "error"; elements.uploadFeedback.textContent = "Elige un destino aprobado y un archivo."; return; }
+  const submit = document.getElementById("upload-submit"); submit.disabled = true; elements.uploadFeedback.textContent = "Preparando la subida segura…";
   try {
     const initiated = await API.post(`/operations/contractor/me/jobs/${jobId}/uploads/initiate`, { dataset_id: datasetId, filename: safeFilename(file.name), content_type: optionalString(file.type) || null, size_bytes: file.size, object_area: area });
-    if (!isRecord(initiated) || !safeId(initiated.upload_reference) || !isRecord(initiated.required_headers)) throw new Error("Invalid upload authorization.");
+    if (!isRecord(initiated) || !safeId(initiated.upload_reference) || !isRecord(initiated.required_headers)) throw new Error("Autorización de subida no válida.");
     const headers = new Headers();
     Object.entries(initiated.required_headers).forEach(([key, value]) => { if (typeof value === "string") headers.set(key, value); });
     const uploadResponse = await fetch(safeUploadUrl(initiated.upload_url), { method: "PUT", headers, body: file, credentials: "omit" });
-    if (!uploadResponse.ok) throw new Error("The file transfer did not complete.");
-    elements.uploadFeedback.textContent = "Confirming the uploaded file…";
+    if (!uploadResponse.ok) throw new Error("La transferencia del archivo no se ha completado.");
+    elements.uploadFeedback.textContent = "Confirmando el archivo subido…";
     await API.post(`/operations/contractor/me/jobs/${jobId}/uploads/complete`, { dataset_id: datasetId, upload_reference: initiated.upload_reference, size_bytes: file.size, sha256_hash: await sha256Hex(file) });
-    elements.uploadDialog.close(); state.detail = null; setStatus(elements.status, "Deliverable uploaded and confirmed.", "success"); await renderJobDetail(document.getElementById("upload-job-id").value, true);
-  } catch (error) { elements.uploadFeedback.dataset.tone = "error"; elements.uploadFeedback.textContent = error instanceof Error ? error.message : "The upload failed."; }
+    elements.uploadDialog.close(); state.detail = null; setStatus(elements.status, "Entrega subida y confirmada.", "success"); await renderJobDetail(document.getElementById("upload-job-id").value, true);
+  } catch (error) { elements.uploadFeedback.dataset.tone = "error"; elements.uploadFeedback.textContent = error instanceof Error ? error.message : "La subida ha fallado."; }
   finally { submit.disabled = false; }
 }
 
@@ -251,17 +251,17 @@ async function renderJobDetail(id, force) {
   } finally { setBusy(elements.view, false); }
 }
 function renderJobDetailView(detail) {
-  if (!isRecord(detail) || !safeId(detail.id)) throw new Error("Invalid assigned job detail");
-  const back = button("← Back to My Jobs", { onClick: async () => { history.pushState({ contractorView: "my_jobs" }, "", expectedPath("my_jobs")); state.detail = null; await renderJobs(false); } }); back.classList.add("detail-back");
+  if (!isRecord(detail) || !safeId(detail.id)) throw new Error("Detalle de tarea asignada no válido");
+  const back = button("← Volver a Mis tareas", { onClick: async () => { history.pushState({ contractorView: "my_jobs" }, "", expectedPath("my_jobs")); state.detail = null; await renderJobs(false); } }); back.classList.add("detail-back");
   const assignment = isRecord(detail.assignment) ? detail.assignment : null;
   const scheduled = { ...detail, scheduled_start: detail.scheduled_start || assignment?.window_start, scheduled_end: detail.scheduled_end || assignment?.window_end };
   const locations = safeLocation(assignment?.location || detail.location);
   const requiredDocs = assignment && Array.isArray(assignment.required_documents) ? assignment.required_documents : [];
   const actionNodes = [assignmentActions(detail), statusActions(detail), uploadAction(detail)].filter(Boolean);
-  replace(elements.view, back, sectionHeading(optionalString(detail.title, "Assigned job"), `${optionalString(detail.job_number, "Job")} · ${scheduleText(scheduled)}`),
+  replace(elements.view, back, sectionHeading(optionalString(detail.title, "Tarea asignada"), `${optionalString(detail.job_number, "Tarea")} · ${scheduleText(scheduled)}`),
     node("div", { className: "detail-grid" }, [
-      card("Job details", node("div", { className: "card-body" }, [detailList([["Status", pill(detail.state)],["Priority", sentence(detail.priority)],["Starts", formatDate(scheduled.scheduled_start)],["Ends", formatDate(scheduled.scheduled_end)]]), node("h3", { text: "Required equipment and capabilities" }), requirementsList(assignment?.requirements || detail.requirements), requiredDocs.length ? node("div", {}, [node("h3", { text: "Required documents" }), node("ul", { className: "requirement-list" }, requiredDocs.map((item) => node("li", { text: typeof item === "string" ? item : optionalString(item.name || item.label || item.type, "Required document") })))]) : null, actionNodes.length ? node("div", { className: "card-body job-actions" }, actionNodes) : null])),
-      card("Schedule and location", node("div", { className: "card-body" }, locations.length ? detailList(locations) : emptyState("Location pending", "GeoVision has not published a job location yet."))),
+      card("Detalles de la tarea", node("div", { className: "card-body" }, [detailList([["Estado", pill(detail.state)],["Prioridad", sentence(detail.priority)],["Inicio", formatDate(scheduled.scheduled_start)],["Fin", formatDate(scheduled.scheduled_end)]]), node("h3", { text: "Equipo y capacidades requeridos" }), requirementsList(assignment?.requirements || detail.requirements), requiredDocs.length ? node("div", {}, [node("h3", { text: "Documentos requeridos" }), node("ul", { className: "requirement-list" }, requiredDocs.map((item) => node("li", { text: typeof item === "string" ? item : optionalString(item.name || item.label || item.type, "Documento requerido") })))]) : null, actionNodes.length ? node("div", { className: "card-body job-actions" }, actionNodes) : null])),
+      card("Horario y ubicación", node("div", { className: "card-body" }, locations.length ? detailList(locations) : emptyState("Ubicación pendiente", "GeoVision todavía no ha publicado la ubicación de esta tarea."))),
     ])
   );
 }
@@ -272,42 +272,43 @@ function profileInput(label, name, value, options = {}) {
   return node("label", {}, [node("span", { text: label }), control]);
 }
 async function renderProfile(force) {
-  const profile = await loadProfile(force); if (!isRecord(profile)) throw new Error("Invalid contractor profile");
+  const profile = await loadProfile(force); if (!isRecord(profile)) throw new Error("Perfil de colaborador no válido");
   const form = node("form", { id: "contractor-profile-form" }, [
-    node("div", { className: "form-grid" }, [profileInput("Display name","display_name",profile.display_name), profileInput("Availability","availability",profile.availability,{select:["AVAILABLE","LIMITED","UNAVAILABLE"]}), profileInput("Contact email","contact_email",profile.contact_email,{type:"email",maxlength:320}), profileInput("Contact phone","contact_phone",profile.contact_phone,{type:"tel",maxlength:50}), profileInput("Region","region",profile.region,{maxlength:120}), profileInput("Service areas (comma-separated)","service_area",tagValues(profile.service_area).join(", "))]),
+    node("div", { className: "form-grid" }, [profileInput("Nombre visible","display_name",profile.display_name), profileInput("Disponibilidad","availability",profile.availability,{select:["AVAILABLE","LIMITED","UNAVAILABLE"]}), profileInput("Correo de contacto","contact_email",profile.contact_email,{type:"email",maxlength:320}), profileInput("Teléfono de contacto","contact_phone",profile.contact_phone,{type:"tel",maxlength:50}), profileInput("Región","region",profile.region,{maxlength:120}), profileInput("Zonas de servicio (separadas por comas)","service_area",tagValues(profile.service_area).join(", "))]),
     node("p", { className: "form-feedback", id: "profile-feedback", attrs: { role: "status", "aria-live": "polite" } }),
-    node("div", { className: "dialog-actions" }, button("Save profile", { variant: "primary", type: "submit", attrs: { id: "profile-save" } })),
+    node("div", { className: "dialog-actions" }, button("Guardar perfil", { variant: "primary", type: "submit", attrs: { id: "profile-save" } })),
   ]);
   form.addEventListener("submit", saveProfile);
-  replace(elements.view, sectionHeading("Contractor profile", "Keep contact details and availability current. Vetting documents remain staff-controlled."), card(null, form));
+  const identity = detailList([["Tipo de vínculo", sentence(profile.resource_type)], ["País", optionalString(profile.country_code, "ES")], ["Capacidades verificadas", collection(profile.capabilities).map((item) => optionalString(item.name || item.code)).filter(Boolean).join(", ") || "Pendientes"], ["Equipos declarados", tagValues(profile.equipment).join(", ") || "Sin equipos declarados"]]);
+  replace(elements.view, sectionHeading("Mi perfil profesional", "Mantén actualizados tus datos y disponibilidad. La validación documental y la evaluación de calidad corresponden a GeoVision."), node("div", { className: "content-grid" }, [card("Vínculo y capacidades", node("div", { className: "card-body" }, identity), "half"), card("Datos editables", form, "half")]));
 }
 async function saveProfile(event) {
-  event.preventDefault(); const data = new FormData(event.currentTarget); const feedback = document.getElementById("profile-feedback"); const save = document.getElementById("profile-save"); save.disabled = true; feedback.textContent = "Saving profile…";
+  event.preventDefault(); const data = new FormData(event.currentTarget); const feedback = document.getElementById("profile-feedback"); const save = document.getElementById("profile-save"); save.disabled = true; feedback.textContent = "Guardando perfil…";
   try {
     state.profile = await API.patch("/operations/contractor/me/profile", { display_name: optionalString(data.get("display_name")), availability: optionalString(data.get("availability")), contact_email: optionalString(data.get("contact_email")) || null, contact_phone: optionalString(data.get("contact_phone")) || null, region: optionalString(data.get("region")) || null, service_area: optionalString(data.get("service_area")).split(",").map((item) => item.trim()).filter(Boolean).slice(0,100) });
-    feedback.textContent = "Profile saved."; feedback.dataset.tone = "success"; document.getElementById("contractor-user-name").textContent = optionalString(state.profile.display_name, state.contractor.display_name);
+    feedback.textContent = "Perfil guardado."; feedback.dataset.tone = "success"; document.getElementById("contractor-user-name").textContent = optionalString(state.profile.display_name, state.contractor.display_name);
   } catch (error) { feedback.textContent = visibleError(error); feedback.dataset.tone = "error"; }
   finally { save.disabled = false; }
 }
 
-function documentLabel(item) { return optionalString(item.name || item.label || item.title || item.type, "Vetting document"); }
-function documentStatus(item) { return optionalString(item.status || item.state, "On file"); }
+function documentLabel(item) { return optionalString(item.name || item.label || item.title || item.type, "Documento de validación"); }
+function documentStatus(item) { return optionalString(item.status || item.state, "Registrado"); }
 async function renderDocuments(force) {
   const profile = await loadProfile(force); const documents = collection(profile.document_refs); const certifications = collection(profile.certifications);
-  const renderItems = (items, emptyTitle) => items.length ? node("ul", { className: "activity-list" }, items.map((item) => node("li", {}, [node("div", {}, [node("strong", { text: documentLabel(item) }), item.expires_at ? node("span", { text: `Expires ${formatDate(item.expires_at, { timeStyle: undefined })}` }) : null]), pill(documentStatus(item))]))) : emptyState(emptyTitle, "GeoVision staff will update this record after review.");
-  replace(elements.view, sectionHeading("Documents", "Read-only vetting status. Job deliverables must be uploaded from an accepted job."), node("div", { className: "content-grid" }, [card("Vetting documents", node("div", { className: "card-body" }, renderItems(documents, "No vetted documents listed")), "half"), card("Certifications", node("div", { className: "card-body" }, renderItems(certifications, "No certifications listed")), "half")]));
+  const renderItems = (items, emptyTitle) => items.length ? node("ul", { className: "activity-list" }, items.map((item) => node("li", {}, [node("div", {}, [node("strong", { text: documentLabel(item) }), item.expires_at ? node("span", { text: `Caduca ${formatDate(item.expires_at, { timeStyle: undefined })}` }) : null]), pill(documentStatus(item))]))) : emptyState(emptyTitle, "El equipo de GeoVision actualizará este registro después de revisarlo.");
+  replace(elements.view, sectionHeading("Documentación y contratos", "Estado de validación en modo consulta. Las entregas de tareas se suben desde una asignación aceptada."), node("div", { className: "content-grid" }, [card("Documentos de validación", node("div", { className: "card-body" }, renderItems(documents, "Sin documentos validados")), "half"), card("Certificaciones", node("div", { className: "card-body" }, renderItems(certifications, "Sin certificaciones registradas")), "half")]));
 }
 
 async function renderCurrent(force = false) {
   setBusy(elements.view, true); setStatus(elements.status, "");
   try { if (state.current === "my_jobs") await renderJobs(force); else if (state.current === "profile") await renderProfile(force); else await renderDocuments(force); }
-  catch (error) { replace(elements.view, emptyState("This view could not load", visibleError(error))); setStatus(elements.status, visibleError(error), "error"); }
+  catch (error) { replace(elements.view, emptyState("No se ha podido cargar esta vista", visibleError(error))); setStatus(elements.status, visibleError(error), "error"); }
   finally { setBusy(elements.view, false); }
 }
 
 async function init() {
   installLogout(document.getElementById("contractor-logout"), document.getElementById("contractor-denied-logout"));
-  elements.menu.addEventListener("click", () => { const open = elements.nav.dataset.open !== "true"; elements.nav.dataset.open = String(open); elements.menu.setAttribute("aria-expanded", String(open)); elements.menu.setAttribute("aria-label", open ? "Close navigation" : "Open navigation"); });
+  elements.menu.addEventListener("click", () => { const open = elements.nav.dataset.open !== "true"; elements.nav.dataset.open = String(open); elements.menu.setAttribute("aria-expanded", String(open)); elements.menu.setAttribute("aria-label", open ? "Cerrar navegación" : "Abrir navegación"); });
   elements.refresh.addEventListener("click", () => renderCurrent(true)); elements.uploadForm.addEventListener("submit", submitUpload);
   window.addEventListener("popstate", async () => { state.current = viewKeyFromLocation(); setActiveNavigation(); elements.title.textContent = NAVIGATION[state.current].label; state.detail = null; await renderCurrent(); });
   try {

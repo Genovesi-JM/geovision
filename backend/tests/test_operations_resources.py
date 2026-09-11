@@ -69,11 +69,23 @@ def test_operations_can_search_private_contractors_and_suppliers(client, db_sess
         },
     )
     assert contractor.status_code == 201, contractor.text
+    assert contractor.json()["resource_type"] == "DRONE_OPERATOR"
     assert {row["code"] for row in contractor.json()["capabilities"]} == {
         "RGB",
         "RTK",
         "AGRICULTURE",
     }
+
+    invalid_type = client.post(
+        "/operations/contractors",
+        headers=admin_headers,
+        json={
+            "code": f"UNKNOWN_{suffix}",
+            "display_name": "Unknown resource type",
+            "resource_type": "UNCONTROLLED_TYPE",
+        },
+    )
+    assert invalid_type.status_code == 422
 
     suitable = client.get(
         "/operations/contractors?country_code=AO&region=luanda&capability=RTK",

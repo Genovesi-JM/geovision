@@ -4,12 +4,12 @@ const AxeBuilder = require('@axe-core/playwright').default;
 const BASE = process.env.TEST_BASE_URL || 'http://127.0.0.1:8001';
 const API = 'http://127.0.0.1:8010';
 const NAV = {
-  dashboard: ['Dashboard', 'dashboard'], organizations: ['Customers / Organizations', 'organizations'],
-  assets: ['Assets', 'assets'], orders: ['Orders', 'orders'], jobs: ['Jobs', 'jobs'],
-  missions: ['Missions', 'missions'], processing: ['Processing', 'processing'],
-  reports_qa: ['Reports QA', 'reports-qa'], contractors: ['Contractors', 'contractors'],
-  inventory: ['Suppliers / Inventory', 'inventory'], finance_sync: ['Finance sync', 'finance-sync'],
-  integrations: ['Integrations', 'integrations'], system_health: ['System health', 'system-health'],
+  dashboard: ['Resumen', 'dashboard'], organizations: ['Clientes y organizaciones', 'organizations'],
+  assets: ['Activos', 'assets'], orders: ['Pedidos', 'orders'], jobs: ['Tareas', 'jobs'],
+  missions: ['Misiones', 'missions'], processing: ['Procesamiento', 'processing'],
+  reports_qa: ['Calidad de informes', 'reports-qa'], contractors: ['Colaboradores', 'contractors'],
+  inventory: ['Proveedores e inventario', 'inventory'], finance_sync: ['Sincronización financiera', 'finance-sync'],
+  integrations: ['Integraciones', 'integrations'], system_health: ['Estado del sistema', 'system-health'],
 };
 
 const now = '2026-09-10T10:00:00Z';
@@ -32,7 +32,7 @@ function internalExperience(keys, permissions = ['operations:access'], roles = [
 
 function contractorExperience(overrides = {}) {
   const keys = overrides.keys || ['my_jobs', 'job_status', 'uploads', 'profile', 'documents'];
-  const paths = { my_jobs: ['My Jobs', 'jobs'], profile: ['Profile', 'profile'], documents: ['Documents', 'documents'] };
+  const paths = { my_jobs: ['Mis tareas', 'jobs'], profile: ['Mi perfil', 'profile'], documents: ['Documentación', 'documents'] };
   const navigation = ['my_jobs', 'profile', 'documents'].filter((key) => keys.includes(key)).map((key) => ({ key, label: paths[key][0], path: `/contractor.html?view=${paths[key][1]}`, capability: key }));
   return {
     surface: 'CONTRACTOR', contractor: { id: 'contractor-1', display_name: 'Field Partner', resource_type: 'DRONE_OPERATOR', status: 'ACTIVE', availability: 'AVAILABLE' },
@@ -96,9 +96,9 @@ test.describe('Phase 24 Operations authorization', () => {
     await page.goto(`${BASE}/admin.html`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#operations-app')).toBeVisible();
     await expect(page.locator('#operations-navigation .nav-link')).toHaveCount(3);
-    await expect(page.locator('#operations-navigation')).toContainText('Dashboard');
-    await expect(page.locator('#operations-navigation')).toContainText('Jobs');
-    await expect(page.locator('#operations-navigation')).not.toContainText('Finance sync');
+    await expect(page.locator('#operations-navigation')).toContainText('Resumen');
+    await expect(page.locator('#operations-navigation')).toContainText('Tareas');
+    await expect(page.locator('#operations-navigation')).not.toContainText('Sincronización financiera');
     await expect(page.locator('[data-compatibility="platform-admin"]')).toHaveCount(0);
   });
 
@@ -141,11 +141,11 @@ test.describe('Phase 24 internal workflows', () => {
       return null;
     });
     await page.goto(`${BASE}/admin.html?view=finance-sync`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByText('Location API calls')).toBeVisible();
+    await expect(page.getByText('Llamadas a API de ubicación')).toBeVisible();
     await expect(page.getByText('7', { exact: true }).first()).toBeVisible();
-    const usageTable = page.getByLabel('Location provider usage over the last 30 days');
+    const usageTable = page.getByLabel('Uso de proveedores de ubicación en los últimos 30 días');
     await expect(usageTable).toContainText('Google maps');
-    await expect(usageTable).toContainText('Not priced');
+    await expect(usageTable).toContainText('Sin precio');
     await expect(page.locator('#operations-view')).not.toContainText('query');
     await expect(page.locator('#operations-view')).not.toContainText('coordinates');
   });
@@ -161,8 +161,8 @@ test.describe('Phase 24 internal workflows', () => {
     });
     await page.goto(`${BASE}/admin.html?view=processing`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByText('Provider timed out; credentials redacted')).toBeVisible();
-    await page.getByRole('button', { name: 'Retry' }).click();
-    await expect(page.getByText('No processing work')).toBeVisible();
+    await page.getByRole('button', { name: 'Reintentar' }).click();
+    await expect(page.getByText('Sin trabajos de procesamiento')).toBeVisible();
     expect(retryBody).toEqual({});
   });
 
@@ -178,11 +178,11 @@ test.describe('Phase 24 internal workflows', () => {
       return null;
     });
     await page.goto(`${BASE}/admin.html?view=jobs`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Manage' }).click();
+    await page.getByRole('button', { name: 'Gestionar' }).click();
     await page.locator('#workflow-contractor').selectOption('contractor-1');
     await page.locator('#workflow-location').fill('North gate, Bay 2');
     await page.locator('#workflow-reason').fill('Capability match confirmed');
-    await page.getByRole('button', { name: 'Save changes' }).click();
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect.poll(() => offeredBody).not.toBeNull();
     expect(offeredBody).toMatchObject({ contractor_id: 'contractor-1', order_id: 'order-internal-1', fulfilment_job_id: 'job-1', title: 'Thermal inspection', location: { label: 'North gate, Bay 2' }, requirements: { equipment: ['Thermal camera'], capabilities: ['Certified pilot'] }, internal_notes: 'Capability match confirmed' });
     expect(seen.some((value) => value.includes('/operations/jobs/job-1/assignment'))).toBe(false);
@@ -200,9 +200,9 @@ test.describe('Phase 24 internal workflows', () => {
       return null;
     });
     await page.goto(`${BASE}/admin.html?view=missions`, { waitUntil: 'domcontentloaded' });
-    await page.getByLabel('New state for GVM-001').selectOption('IN_PROGRESS');
-    await page.getByLabel('Reason for changing GVM-001').fill('Crew checked in');
-    await page.getByRole('button', { name: 'Apply' }).click();
+    await page.getByLabel('Nuevo estado de GVM-001').selectOption('IN_PROGRESS');
+    await page.getByLabel('Motivo para cambiar GVM-001').fill('Crew checked in');
+    await page.getByRole('button', { name: 'Aplicar' }).click();
     await expect.poll(() => payload).not.toBeNull();
     expect(payload).toEqual({ state: 'IN_PROGRESS', reason: 'Crew checked in', expected_version: 4 });
   });
@@ -218,9 +218,9 @@ test.describe('Phase 24 internal workflows', () => {
       return null;
     });
     await page.goto(`${BASE}/admin.html?view=reports-qa`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Approve' }).click();
-    await expect(page.getByRole('button', { name: 'Publish' })).toBeVisible();
-    await page.getByRole('button', { name: 'Publish' }).click();
+    await page.getByRole('button', { name: 'Aprobar' }).click();
+    await expect(page.getByRole('button', { name: 'Publicar' })).toBeVisible();
+    await page.getByRole('button', { name: 'Publicar' }).click();
     expect(actions).toEqual([
       { action: 'approve', body: { expected_lifecycle_version: 5, note: null } },
       { action: 'publish', body: { expected_lifecycle_version: 6, note: null } },
@@ -234,8 +234,8 @@ test.describe('Phase 24 internal workflows', () => {
       return null;
     });
     await page.goto(`${BASE}/admin.html?view=reports-qa`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('button', { name: 'Approve' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Publish' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Aprobar' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Publicar' })).toHaveCount(0);
   });
 });
 
@@ -253,13 +253,13 @@ test.describe('Phase 24 restricted contractor workspace', () => {
       return null;
     });
     await page.goto(`${BASE}/contractor.html`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'New work offers' })).toBeVisible();
-    await page.getByRole('button', { name: 'Accept assignment' }).click();
+    await expect(page.getByRole('heading', { name: 'Nuevas ofertas de trabajo' })).toBeVisible();
+    await page.getByRole('button', { name: 'Aceptar asignación' }).click();
     await expect(page.getByRole('heading', { name: 'Thermal inspection' })).toBeVisible();
     expect(decisionBody).toEqual({ decision: 'ACCEPTED', expected_version: 2 });
-    await page.getByRole('button', { name: 'View details' }).click();
+    await page.getByRole('button', { name: 'Ver detalles' }).click();
     await expect(page.getByText('North gate', { exact: true })).toBeVisible();
-    await expect(page.getByText(/Sep 12, 2026/).first()).toBeVisible();
+    await expect(page.getByText(/12 sept 2026/).first()).toBeVisible();
     const visibleText = await page.locator('#contractor-app').innerText();
     expect(visibleText).not.toContain('secret-order');
     expect(visibleText).not.toContain('secret-asset');
@@ -284,17 +284,17 @@ test.describe('Phase 24 restricted contractor workspace', () => {
       return null;
     });
     await page.goto(`${BASE}/contractor.html?view=jobs&job=job-1`, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Mark waiting for input' }).click();
-    await expect(page.locator('#contractor-status')).toContainText('Add a reason');
+    await page.getByRole('button', { name: 'Marcar en espera de información' }).click();
+    await expect(page.locator('#contractor-status')).toContainText('Añade un motivo');
     expect(stateBodies).toHaveLength(0);
-    await page.getByLabel('Reason for waiting for input').fill('Weather hold');
-    await page.getByRole('button', { name: 'Mark waiting for input' }).click();
+    await page.getByLabel('Motivo de espera de información').fill('Weather hold');
+    await page.getByRole('button', { name: 'Marcar en espera de información' }).click();
     expect(stateBodies).toEqual([{ state: 'WAITING_INPUT', reason: 'Weather hold', expected_version: 3 }]);
-    await page.getByRole('button', { name: 'Upload deliverable' }).click();
+    await page.getByRole('button', { name: 'Subir entrega' }).click();
     await expect(page.locator('#upload-dataset option')).toHaveCount(2);
     await page.locator('#upload-dataset').selectOption('dataset-1');
     await page.locator('#upload-file').setInputFiles({ name: 'field.txt', mimeType: 'text/plain', buffer: Buffer.from('field-data') });
-    await page.getByRole('button', { name: 'Upload deliverable' }).last().click();
+    await page.getByRole('button', { name: 'Subir entrega' }).last().click();
     await expect.poll(() => completedBody).not.toBeNull();
     expect(initiatedBody).toMatchObject({ dataset_id: 'dataset-1', filename: 'field.txt', content_type: 'text/plain', size_bytes: 10, object_area: 'raw' });
     expect(uploadedBytes).toBe(10);
@@ -311,7 +311,7 @@ test.describe('Phase 24 restricted contractor workspace', () => {
       return null;
     });
     await page.goto(`${BASE}/contractor.html?view=jobs&job=job-1`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('button', { name: 'Upload deliverable' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Subir entrega' })).toHaveCount(0);
   });
 
   test('saves contractor profile without granting document editing', async ({ page }) => {
@@ -325,7 +325,7 @@ test.describe('Phase 24 restricted contractor workspace', () => {
     });
     await page.goto(`${BASE}/contractor.html?view=profile`, { waitUntil: 'domcontentloaded' });
     await page.locator('#profile-region').fill('Bengo');
-    await page.getByRole('button', { name: 'Save profile' }).click();
+    await page.getByRole('button', { name: 'Guardar perfil' }).click();
     await expect.poll(() => saved).not.toBeNull();
     expect(saved.region).toBe('Bengo');
     expect(saved).not.toHaveProperty('document_refs');

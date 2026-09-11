@@ -10,9 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.modules.operations.domain import (
     AssignmentStatus,
     ContractorAvailability,
+    ContractorResourceType,
     ContractorStatus,
     ServiceRequestStatus,
     reject_sensitive_keys,
+    normalize_contractor_resource_type,
 )
 
 
@@ -65,7 +67,7 @@ class ContractorCreate(BaseModel):
     user_id: str | None = Field(default=None, max_length=36)
     display_name: str = Field(min_length=2, max_length=200)
     legal_name: str | None = Field(default=None, max_length=200)
-    resource_type: str = Field(min_length=2, max_length=50)
+    resource_type: ContractorResourceType
     status: ContractorStatus = ContractorStatus.ACTIVE
     availability: ContractorAvailability = ContractorAvailability.AVAILABLE
     contact_email: str | None = Field(default=None, max_length=320)
@@ -86,10 +88,10 @@ class ContractorCreate(BaseModel):
     def normalize_country(cls, value: str | None) -> str | None:
         return value.strip().upper() if value else value
 
-    @field_validator("resource_type")
+    @field_validator("resource_type", mode="before")
     @classmethod
     def normalize_resource_type(cls, value: str) -> str:
-        return value.strip().upper().replace(" ", "_")
+        return normalize_contractor_resource_type(value)
 
     @field_validator("capability_codes")
     @classmethod
@@ -110,7 +112,7 @@ class ContractorUpdate(BaseModel):
     user_id: str | None = Field(default=None, max_length=36)
     display_name: str | None = Field(default=None, min_length=2, max_length=200)
     legal_name: str | None = Field(default=None, max_length=200)
-    resource_type: str | None = Field(default=None, min_length=2, max_length=50)
+    resource_type: ContractorResourceType | None = None
     status: ContractorStatus | None = None
     availability: ContractorAvailability | None = None
     contact_email: str | None = Field(default=None, max_length=320)
@@ -131,10 +133,10 @@ class ContractorUpdate(BaseModel):
     def normalize_country(cls, value: str | None) -> str | None:
         return value.strip().upper() if value else value
 
-    @field_validator("resource_type")
+    @field_validator("resource_type", mode="before")
     @classmethod
     def normalize_resource_type(cls, value: str | None) -> str | None:
-        return value.strip().upper().replace(" ", "_") if value else value
+        return normalize_contractor_resource_type(value) if value else value
 
     @field_validator("capability_codes")
     @classmethod
