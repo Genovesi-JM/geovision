@@ -25,9 +25,9 @@ from app.sectors.registry import (
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 GENERATED_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json", "/redoc"}
-PHASE_43_ROUTE_COUNT = 417
+PHASE_43_ROUTE_COUNT = 418
 PHASE_43_ROUTE_SHA256 = (
-    "21cf9fd0a931ea25375be99cac77687a4c356e1c97c256e7a3144828f3a0ecd8"
+    "c1ce57353ac8d463b03c7c32243960b40a0e693f78bd7542158cf1b770b4561e"
 )
 
 
