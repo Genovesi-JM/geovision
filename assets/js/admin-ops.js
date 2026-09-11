@@ -157,7 +157,36 @@ async function transitionReport(item, action) {
   } catch (error) { setStatus(elements.status, visibleError(error), "error"); }
 }
 async function renderReports(force) { const queues = await queueData(force); const rows = queueRows("reports", queues.reports_qa); replace(elements.view, sectionHeading("Reports QA", "Authorized reviewers can approve and publish reports through the canonical lifecycle."), rows.length ? card(null, table(["Report","Status","QA level","Revision","Updated","Action"], rows, { label: "Reports awaiting quality review" })) : emptyState("No reports awaiting QA", "The review queue is clear.")); }
-async function renderIntegrations(force, finance = false) { const queues = await queueData(force); const rows = queueRows("integrations", queues.integrations); const title = finance ? "Finance sync" : "Integration delivery"; replace(elements.view, sectionHeading(title, "Safe queue diagnostics show delivery state without exposing provider credentials."), rows.length ? card(null, table(["Provider","Resource","Status","Attempts","Failure","Next attempt"], rows, { label: `${title} queue` })) : emptyState("No delivery issues", "No pending, failed or dead-letter deliveries are visible to your role.")); }
+async function renderIntegrations(force, finance = false) {
+  const [queues, usage] = await Promise.all([
+    queueData(force),
+    finance ? API.get("/internal/economics/location-usage/summary?days=30") : Promise.resolve(null),
+  ]);
+  const rows = queueRows("integrations", queues.integrations);
+  const title = finance ? "Finance sync" : "Integration delivery";
+  const content = [sectionHeading(title, "Safe queue diagnostics show delivery state without exposing provider credentials.")];
+  if (finance) {
+    if (!isRecord(usage) || !Array.isArray(usage.items)) throw new Error("Invalid location usage summary");
+    const usageRows = usage.items.map((item) => [
+      sentence(item.provider, "Provider"),
+      sentence(item.service, "Service"),
+      finiteNumber(item.call_count).toLocaleString(),
+      finiteNumber(item.quantity).toLocaleString(),
+      optionalString(item.currency, "Not priced"),
+      item.currency ? finiteNumber(item.total_cost).toLocaleString() : "Not priced",
+    ]);
+    content.push(
+      node("div", { className: "kpi-grid" }, [numberCard("Location API calls", usage.total_calls, "Last 30 days")]),
+      usageRows.length
+        ? card("Location provider usage", table(["Provider", "Service", "Calls", "Quantity", "Currency", "Cost"], usageRows, { label: "Location provider usage over the last 30 days" }))
+        : emptyState("No location usage", "No paid location-provider calls were recorded in the last 30 days."),
+    );
+  }
+  content.push(rows.length
+    ? card(null, table(["Provider", "Resource", "Status", "Attempts", "Failure", "Next attempt"], rows, { label: `${title} queue` }))
+    : emptyState("No delivery issues", "No pending, failed or dead-letter deliveries are visible to your role."));
+  replace(elements.view, ...content);
+}
 
 async function loadJobs(force = false) { if (!state.jobs || force) state.jobs = collection(await API.get("/operations/jobs?limit=200")); return state.jobs; }
 async function loadContractors(force = false) { if (!can("contractors")) return []; if (!state.contractors || force) state.contractors = collection(await API.get("/operations/contractors?limit=200")); return state.contractors; }

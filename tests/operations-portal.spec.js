@@ -130,6 +130,26 @@ test.describe('Phase 24 Operations authorization', () => {
 });
 
 test.describe('Phase 24 internal workflows', () => {
+  test('shows finance-only aggregate location usage without request details', async ({ page }) => {
+    await mockApi(page, ({ path }) => {
+      if (path === '/operations/experience') return { body: internalExperience(['finance_sync'], ['billing:internal'], ['GV_FINANCE']) };
+      if (path === '/operations/queues') return { body: emptyQueues() };
+      if (path === '/internal/economics/location-usage/summary') return { body: {
+        items: [{ provider: 'google_maps', service: 'routes_compute', call_count: 7, quantity: '7', currency: null, total_cost: '0' }],
+        total_calls: 7, generated_at: now,
+      } };
+      return null;
+    });
+    await page.goto(`${BASE}/admin.html?view=finance-sync`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('Location API calls')).toBeVisible();
+    await expect(page.getByText('7', { exact: true }).first()).toBeVisible();
+    const usageTable = page.getByLabel('Location provider usage over the last 30 days');
+    await expect(usageTable).toContainText('Google maps');
+    await expect(usageTable).toContainText('Not priced');
+    await expect(page.locator('#operations-view')).not.toContainText('query');
+    await expect(page.locator('#operations-view')).not.toContainText('coordinates');
+  });
+
   test('shows safe processing failure details and retries a retryable job', async ({ page }) => {
     let retried = false;
     let retryBody = null;

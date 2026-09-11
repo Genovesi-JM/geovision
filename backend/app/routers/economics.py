@@ -117,7 +117,7 @@ def get_provider_usage(
 @router.get("/location-usage/summary", response_model=ProviderUsageSummaryOut)
 def get_location_usage_summary(
     _actor: EconomicsViewer,
-    organization_id: str = Query(min_length=1, max_length=36),
+    organization_id: str | None = Query(default=None, min_length=1, max_length=36),
     workspace_id: str | None = Query(default=None, max_length=36),
     days: int = Query(default=30, ge=1, le=365),
     db: Session = Depends(get_db),

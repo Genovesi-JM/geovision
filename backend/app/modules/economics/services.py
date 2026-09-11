@@ -627,12 +627,10 @@ def list_provider_usage(
 def location_provider_usage_summary(
     db: Session,
     *,
-    organization_id: str,
+    organization_id: str | None,
     since: datetime,
     workspace_id: str | None = None,
 ) -> ProviderUsageSummaryOut:
-    if db.get(Company, organization_id) is None:
-        raise _invalid_reference()
     query = db.query(
         ProviderUsage.provider,
         ProviderUsage.service,
@@ -641,7 +639,6 @@ def location_provider_usage_summary(
         func.sum(ProviderUsage.quantity),
         func.coalesce(func.sum(ProviderUsage.total_cost), 0),
     ).filter(
-        ProviderUsage.organization_id == organization_id,
         ProviderUsage.occurred_at >= since,
         ProviderUsage.service.in_(
             {
@@ -652,7 +649,17 @@ def location_provider_usage_summary(
             }
         ),
     )
+    if organization_id:
+        if db.get(Company, organization_id) is None:
+            raise _invalid_reference()
+        query = query.filter(ProviderUsage.organization_id == organization_id)
     if workspace_id:
+        if not organization_id:
+            raise EconomicsError(
+                "scope_reference_invalid",
+                "Workspace summaries require an organization scope",
+                status_code=422,
+            )
         workspace = db.get(Account, workspace_id)
         if workspace is None or workspace.organization_id != organization_id:
             raise _invalid_reference()

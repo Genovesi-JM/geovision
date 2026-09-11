@@ -137,3 +137,6 @@ Finance-authorized staff can query an aggregated 1–365 day location-usage
 summary by organization and optional workspace. It returns provider/service
 call totals and attributable cost only; individual requests and location data
 are not part of that response.
+The internal Finance sync view consumes this aggregate directly and shows the
+last 30 days of call volume and attributable cost without exposing request
+payloads.

@@ -432,6 +432,20 @@ def test_location_usage_summary_is_aggregated_and_finance_only(client, db_sessio
     }
     assert all("metadata" not in item for item in body["items"])
 
+    all_organizations = client.get(
+        "/internal/economics/location-usage/summary?days=30",
+        headers=_headers(finance),
+    )
+    assert all_organizations.status_code == 200
+    assert all_organizations.json()["total_calls"] == 3
+
+    invalid_scope = client.get(
+        "/internal/economics/location-usage/summary"
+        f"?workspace_id={data['workspace'].id}",
+        headers=_headers(finance),
+    )
+    assert invalid_scope.status_code == 422
+
     denied = client.get(path, headers=_headers(data["customer"]))
     assert denied.status_code == 403
 
