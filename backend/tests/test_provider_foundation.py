@@ -33,7 +33,7 @@ from app.services.storage import StorageService
 
 APP_ROOT = Path(__file__).resolve().parents[1] / "app"
 SPAIN_FIRST_OPENAPI_SHA256 = (
-    "e38ff5d7f4845625dd470cda4aa91530c60bb0d9a2cd8c19497776988fed150c"
+    "1724c271c6560b420c64a01e1c01b4044740bef0100fc045fb48b1f7235d00cf"
 )
 TEST_FERNET_KEY = base64.urlsafe_b64encode(b"g" * 32).decode()
 DEPLOYED_FRONTEND_BASE = "https://geovisionops.com"
