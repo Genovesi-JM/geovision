@@ -30,6 +30,10 @@ param intelligenceWorkerName string
 param notificationWorkerName string
 param processingWorkerName string
 param migrationJobName string
+param apiMinReplicas int
+param apiMaxReplicas int
+param workerMinReplicas int
+param workerMaxReplicas int
 param tags object
 
 var apiBaseUrl = 'https://${apiName}.${managedEnvironment.properties.defaultDomain}'
@@ -267,8 +271,8 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
         }
       ]
       scale: {
-        maxReplicas: 2
-        minReplicas: 1
+        maxReplicas: apiMaxReplicas
+        minReplicas: apiMinReplicas
         rules: [
           {
             name: 'http-concurrency'
@@ -319,8 +323,20 @@ resource eventWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplic
         }
       ]
       scale: {
-        maxReplicas: 1
-        minReplicas: 1
+        maxReplicas: workerMaxReplicas
+        minReplicas: workerMinReplicas
+        rules: [
+          {
+            name: 'cpu-utilization'
+            custom: {
+              type: 'cpu'
+              metadata: {
+                type: 'Utilization'
+                value: '70'
+              }
+            }
+          }
+        ]
       }
     }
   }
@@ -366,8 +382,20 @@ resource erpWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplicat
         }
       ]
       scale: {
-        maxReplicas: 1
-        minReplicas: 1
+        maxReplicas: workerMaxReplicas
+        minReplicas: workerMinReplicas
+        rules: [
+          {
+            name: 'cpu-utilization'
+            custom: {
+              type: 'cpu'
+              metadata: {
+                type: 'Utilization'
+                value: '70'
+              }
+            }
+          }
+        ]
       }
     }
   }
@@ -413,8 +441,20 @@ resource notificationWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
         }
       ]
       scale: {
-        maxReplicas: 1
-        minReplicas: 1
+        maxReplicas: workerMaxReplicas
+        minReplicas: workerMinReplicas
+        rules: [
+          {
+            name: 'cpu-utilization'
+            custom: {
+              type: 'cpu'
+              metadata: {
+                type: 'Utilization'
+                value: '70'
+              }
+            }
+          }
+        ]
       }
     }
   }
@@ -460,8 +500,20 @@ resource processingWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployA
         }
       ]
       scale: {
-        maxReplicas: 1
-        minReplicas: 1
+        maxReplicas: workerMaxReplicas
+        minReplicas: workerMinReplicas
+        rules: [
+          {
+            name: 'cpu-utilization'
+            custom: {
+              type: 'cpu'
+              metadata: {
+                type: 'Utilization'
+                value: '70'
+              }
+            }
+          }
+        ]
       }
     }
   }
@@ -511,8 +563,20 @@ resource intelligenceWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
         }
       ]
       scale: {
-        maxReplicas: 1
-        minReplicas: 1
+        maxReplicas: workerMaxReplicas
+        minReplicas: workerMinReplicas
+        rules: [
+          {
+            name: 'cpu-utilization'
+            custom: {
+              type: 'cpu'
+              metadata: {
+                type: 'Utilization'
+                value: '70'
+              }
+            }
+          }
+        ]
       }
     }
   }

@@ -4,17 +4,20 @@ param databaseName string
 param administratorLogin string
 @secure()
 param administratorPassword string
+param environmentName string
 param delegatedSubnetResourceId string
 param privateDnsZoneResourceId string
 param tags object
+
+var isProduction = environmentName == 'prod'
 
 resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
   name: serverName
   location: location
   tags: tags
   sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
+    name: isProduction ? 'Standard_D2ds_v5' : 'Standard_B1ms'
+    tier: isProduction ? 'GeneralPurpose' : 'Burstable'
   }
   properties: {
     administratorLogin: administratorLogin
@@ -24,11 +27,11 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
       passwordAuth: 'Enabled'
     }
     backup: {
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
+      backupRetentionDays: isProduction ? 35 : 7
+      geoRedundantBackup: isProduction ? 'Enabled' : 'Disabled'
     }
     highAvailability: {
-      mode: 'Disabled'
+      mode: isProduction ? 'SameZone' : 'Disabled'
     }
     maintenanceWindow: {
       customWindow: 'Enabled'
@@ -43,8 +46,8 @@ resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' = {
     }
     storage: {
       autoGrow: 'Enabled'
-      storageSizeGB: 32
-      tier: 'P4'
+      storageSizeGB: isProduction ? 128 : 32
+      tier: isProduction ? 'P10' : 'P4'
     }
     version: '16'
   }

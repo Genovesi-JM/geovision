@@ -165,6 +165,36 @@ class AzureTemplateContractTests(unittest.TestCase):
                 parameters, r"param (secretKey|encryptionKey) = '[^']+'"
             )
 
+    def test_public_production_uses_scalable_resilient_profile(self) -> None:
+        production = (AZURE_ROOT / "prod.bicepparam").read_text()
+        applications = (AZURE_ROOT / "modules/container-apps.bicep").read_text()
+        postgres = (AZURE_ROOT / "modules/postgres.bicep").read_text()
+        storage = (AZURE_ROOT / "modules/storage.bicep").read_text()
+
+        for expected in (
+            "param apiMinReplicas = 2",
+            "param apiMaxReplicas = 10",
+            "param workerMaxReplicas = 3",
+        ):
+            self.assertIn(expected, production)
+        self.assertIn("maxReplicas: apiMaxReplicas", applications)
+        self.assertEqual(applications.count("maxReplicas: workerMaxReplicas"), 5)
+        self.assertEqual(applications.count("name: 'cpu-utilization'"), 5)
+        self.assertIn("'Standard_D2ds_v5'", postgres)
+        self.assertIn("backupRetentionDays: isProduction ? 35 : 7", postgres)
+        self.assertIn("mode: isProduction ? 'SameZone' : 'Disabled'", postgres)
+        self.assertIn("'Standard_ZRS'", storage)
+
+    def test_staging_keeps_cost_bounded_while_exercising_autoscaling(self) -> None:
+        staging = (AZURE_ROOT / "staging.bicepparam").read_text()
+        for expected in (
+            "param apiMinReplicas = 1",
+            "param apiMaxReplicas = 3",
+            "param workerMinReplicas = 1",
+            "param workerMaxReplicas = 1",
+        ):
+            self.assertIn(expected, staging)
+
 
 if __name__ == "__main__":
     unittest.main()

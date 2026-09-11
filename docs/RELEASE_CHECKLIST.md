@@ -157,6 +157,21 @@ deployment or close any human gate in `HUMAN_GATES.md`.
 
 ## Production approval and deployment
 
+- [ ] Run a representative staging load test for API reads/writes, uploads and
+  each enabled worker; record p95 latency, error rate, queue age, database CPU/
+  connections and the replica count reached without using customer data.
+- [ ] Confirm the production profile keeps at least two API replicas, permits
+  horizontal API/worker scaling, uses highly available PostgreSQL with
+  geo-redundant backups, and uses zone-redundant dataset storage.
+- [ ] Set and test alerts for API saturation/error rate, replica ceiling,
+  PostgreSQL CPU/storage/connections, oldest queue item/dead letters, provider
+  quotas and monthly budget. Assign an owner and escalation path to every alert.
+- [ ] Prove scale-out does not duplicate a payment, ERP command, notification,
+  processing job, IoT decision or published report; prove an expired worker
+  lease is safely reclaimed.
+- [ ] Record the initial capacity envelope and the threshold that triggers the
+  next SKU/replica/partition review. Scaling ceilings are changed through the
+  reviewed environment profile, never as an undocumented portal hotfix.
 - [ ] Human Gate 18 and every integration-specific human gate are approved.
 - [ ] Start `Deploy - production` from `main` and supply the exact approved
   staging digest. Do not supply a tag.

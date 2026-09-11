@@ -20,3 +20,9 @@ param encryptionKey = readEnvironmentVariable('GEOVISION_ENCRYPTION_KEY')
 param virtualNetworkAddressPrefix = '10.56.0.0/21'
 param containerAppsSubnetPrefix = '10.56.0.0/23'
 param postgresSubnetPrefix = '10.56.2.0/28'
+
+// Public production starts highly available and can scale without a template rewrite.
+param apiMinReplicas = 2
+param apiMaxReplicas = 10
+param workerMinReplicas = 1
+param workerMaxReplicas = 3

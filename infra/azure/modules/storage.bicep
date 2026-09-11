@@ -1,7 +1,10 @@
 param location string
 param storageAccountName string
 param containerName string
+param environmentName string
 param tags object
+
+var isProduction = environmentName == 'prod'
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
@@ -9,7 +12,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   tags: tags
   kind: 'StorageV2'
   sku: {
-    name: 'Standard_LRS'
+    name: isProduction ? 'Standard_ZRS' : 'Standard_LRS'
   }
   properties: {
     accessTier: 'Hot'
@@ -43,11 +46,11 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01'
   properties: {
     containerDeleteRetentionPolicy: {
       enabled: true
-      days: 7
+      days: isProduction ? 30 : 7
     }
     deleteRetentionPolicy: {
       enabled: true
-      days: 7
+      days: isProduction ? 30 : 7
     }
   }
 }

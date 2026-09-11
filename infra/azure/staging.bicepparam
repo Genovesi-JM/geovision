@@ -20,3 +20,8 @@ param encryptionKey = readEnvironmentVariable('GEOVISION_ENCRYPTION_KEY')
 param virtualNetworkAddressPrefix = '10.48.0.0/21'
 param containerAppsSubnetPrefix = '10.48.0.0/23'
 param postgresSubnetPrefix = '10.48.2.0/28'
+
+param apiMinReplicas = 1
+param apiMaxReplicas = 3
+param workerMinReplicas = 1
+param workerMaxReplicas = 1

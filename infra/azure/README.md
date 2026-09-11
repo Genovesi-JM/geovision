@@ -102,6 +102,16 @@ Configure the GitHub environments and reviewer gate exactly as listed in the
 environment secrets. The production OIDC identity needs `AcrPull` on staging
 ACR and `AcrPush` on production ACR.
 
+The committed environment profiles deliberately separate pilot cost from
+public-production resilience. Staging keeps one warm API/worker replica and
+allows the API to reach three replicas. Production keeps two API replicas warm,
+scales HTTP traffic up to ten replicas, and permits each lease-safe durable
+worker to scale to three replicas on CPU pressure. Production PostgreSQL uses a
+general-purpose SKU, same-zone high availability, 35-day geo-redundant backups
+and storage auto-growth; dataset storage uses zone-redundant storage and 30-day
+soft-delete retention. These are safe starting ceilings, not a substitute for
+measured capacity tests, quotas, budgets and alerting before public traffic.
+
 Useful outputs are `acrName`, `acrLoginServer`, `backendImage`, `apiUrl`,
 `migrationJobName`, `keyVaultName`, `appConfigurationEndpoint`,
 `storageAccountName`, `serviceBusNamespace`, `postgresServerName`, and the five

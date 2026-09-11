@@ -61,6 +61,22 @@ param containerAppsSubnetPrefix string = '10.40.0.0/23'
 @description('Delegated subnet used only by PostgreSQL Flexible Server.')
 param postgresSubnetPrefix string = '10.40.2.0/28'
 
+@description('Minimum API replicas. Production keeps two warm replicas for availability.')
+@minValue(1)
+param apiMinReplicas int = environmentName == 'prod' ? 2 : 1
+
+@description('Maximum API replicas available to the HTTP concurrency scaler.')
+@minValue(2)
+param apiMaxReplicas int = environmentName == 'prod' ? 10 : 3
+
+@description('Minimum replicas for each durable background worker.')
+@minValue(1)
+param workerMinReplicas int = 1
+
+@description('Maximum replicas for each lease-safe background worker.')
+@minValue(1)
+param workerMaxReplicas int = environmentName == 'prod' ? 3 : 1
+
 @description('Common governance tags.')
 param tags object = {
   application: 'geovision'
@@ -94,6 +110,10 @@ module environment './environment.bicep' = {
     virtualNetworkAddressPrefix: virtualNetworkAddressPrefix
     containerAppsSubnetPrefix: containerAppsSubnetPrefix
     postgresSubnetPrefix: postgresSubnetPrefix
+    apiMinReplicas: apiMinReplicas
+    apiMaxReplicas: apiMaxReplicas
+    workerMinReplicas: workerMinReplicas
+    workerMaxReplicas: workerMaxReplicas
     tags: tags
   }
 }

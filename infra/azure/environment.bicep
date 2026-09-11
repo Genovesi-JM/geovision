@@ -18,6 +18,10 @@ param encryptionKey string
 param virtualNetworkAddressPrefix string
 param containerAppsSubnetPrefix string
 param postgresSubnetPrefix string
+param apiMinReplicas int
+param apiMaxReplicas int
+param workerMinReplicas int
+param workerMaxReplicas int
 param tags object
 
 var compactWorkloadName = replace(toLower(workloadName), '-', '')
@@ -101,6 +105,7 @@ module storage './modules/storage.bicep' = {
     location: location
     storageAccountName: names.storage
     containerName: storageContainerName
+    environmentName: environmentName
     tags: tags
   }
 }
@@ -124,6 +129,7 @@ module postgres './modules/postgres.bicep' = {
     databaseName: postgresDatabaseName
     administratorLogin: postgresAdministratorLogin
     administratorPassword: postgresAdministratorPassword
+    environmentName: environmentName
     delegatedSubnetResourceId: network.outputs.postgresSubnetId
     privateDnsZoneResourceId: network.outputs.postgresPrivateDnsZoneId
     tags: tags
@@ -216,6 +222,10 @@ module applications './modules/container-apps.bicep' = {
     notificationWorkerName: names.notificationWorker
     processingWorkerName: names.processingWorker
     migrationJobName: names.migrationJob
+    apiMinReplicas: apiMinReplicas
+    apiMaxReplicas: apiMaxReplicas
+    workerMinReplicas: workerMinReplicas
+    workerMaxReplicas: workerMaxReplicas
     tags: tags
   }
   dependsOn: [
