@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../domain/site.dart';
 
-class LocationPickerScreen extends StatefulWidget {
+class LocationPickerScreen extends ConsumerStatefulWidget {
   const LocationPickerScreen({super.key, this.initial});
   final GeoPoint? initial;
 
   @override
-  State<LocationPickerScreen> createState() => _LocationPickerScreenState();
+  ConsumerState<LocationPickerScreen> createState() =>
+      _LocationPickerScreenState();
 }
 
-class _LocationPickerScreenState extends State<LocationPickerScreen> {
+class _LocationPickerScreenState extends ConsumerState<LocationPickerScreen> {
   final mapController = MapController();
   late LatLng selected = widget.initial == null
       ? const LatLng(-11.2027, 17.8739)
@@ -32,6 +35,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mapProvider = ref.watch(locationMapProviderProvider);
+    final tileUrl = mapProvider.tileUrlTemplate();
     final language = Localizations.localeOf(context).languageCode;
     String t(String pt, String en, String es, String fr) => switch (language) {
           'pt' => pt,
@@ -63,8 +68,9 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              urlTemplate: tileUrl!,
               userAgentPackageName: 'com.geovision.geovision',
+              maxZoom: mapProvider.maxZoom,
             ),
             MarkerLayer(markers: [
               Marker(
@@ -109,15 +115,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 'Usar mi ubicación', 'Utiliser ma position')),
           ),
         ),
-        const Positioned(
+        Positioned(
           left: 8,
           bottom: 4,
           child: DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xCCFFFFFF)),
+            decoration: const BoxDecoration(color: Color(0xCCFFFFFF)),
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-              child: Text('© OpenStreetMap contributors',
-                  style: TextStyle(color: Colors.black87, fontSize: 10)),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              child: Text(mapProvider.attribution,
+                  style: const TextStyle(color: Colors.black87, fontSize: 10)),
             ),
           ),
         ),

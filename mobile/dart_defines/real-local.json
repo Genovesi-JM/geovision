@@ -5,6 +5,6 @@
   "GV_IOT_PROVIDER": "backend",
   "GV_PAYMENT_PROVIDER": "bank_transfer",
   "GV_PUSH_PROVIDER": "mock",
-  "GV_MAP_PROVIDER": "demo",
+  "GV_MAP_PROVIDER": "openstreetmap",
   "GV_BIOMETRIC": "false"
 }

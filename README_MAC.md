@@ -65,7 +65,7 @@ All config is passed via `--dart-define` (never committed). See `.env.example`.
 | `GV_FLAVOR` | `dev` | `dev` \| `staging` \| `prod` |
 | `GV_API_BASE_URL` | flavor default | Override backend URL |
 | `GV_DEMO_MODE` | on for dev/staging | Force demo data on/off |
-| `GV_MAP_PROVIDER` | `demo` | `demo` \| `mapbox` |
+| `GV_MAP_PROVIDER` | `demo` | `demo` \| `openstreetmap` \| `mapbox` |
 | `GV_PAYMENT_PROVIDER` | `mock` | `mock` \| `bank_transfer` \| `stripe` |
 | `GV_PUSH_PROVIDER` | `mock` | `mock` \| `apns` \| `fcm` |
 

@@ -1,11 +1,15 @@
 import '../../features/sites/domain/site.dart';
 
-/// Abstract map-tile contract. Concrete providers (demo / Mapbox / ArcGIS)
-/// implement this so the map UI is provider-agnostic and always runnable
-/// without credentials.
+/// Provider-neutral raster map contract.
+///
+/// Credentials are resolved at the application composition boundary. Screens
+/// receive only this safe rendering contract and never read secrets directly.
 abstract interface class MapProvider {
   String get id;
+  String get displayName;
   bool get requiresCredentials;
+  String get attribution;
+  double get maxZoom;
 
   /// Returns an XYZ raster tile URL template, or null for a locally-drawn
   /// demo canvas.

@@ -8,7 +8,13 @@ class DemoMapProvider implements MapProvider {
   @override
   String get id => 'demo';
   @override
+  String get displayName => 'GeoVision demo';
+  @override
   bool get requiresCredentials => false;
+  @override
+  String get attribution => 'GeoVision demonstration map';
+  @override
+  double get maxZoom => 18;
   @override
   String? tileUrlTemplate() => null;
   @override

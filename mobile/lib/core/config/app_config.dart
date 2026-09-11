@@ -29,7 +29,7 @@ class AppConfig {
   final Duration receiveTimeout;
 
   /// Feature-flag style selectors for pluggable provider adapters.
-  final String mapProvider; // demo | mapbox | arcgis
+  final String mapProvider; // demo | openstreetmap | mapbox
   final String paymentProvider; // mock | stripe | multicaixa | bank_transfer
   final String pushProvider; // mock | apns | fcm | azure_notification_hubs
 

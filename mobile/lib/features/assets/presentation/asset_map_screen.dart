@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
@@ -15,6 +18,7 @@ class AssetMapScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asset = ref.watch(customerAssetDetailProvider(assetId));
+    final mapProvider = ref.watch(mapProviderProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Asset map')),
       body: asset.when(
@@ -33,6 +37,8 @@ class AssetMapScreen extends ConsumerWidget {
               icon: Icons.location_off_outlined,
             );
           }
+          final tileUrl = mapProvider.tileUrlTemplate();
+          final position = LatLng(item.latitude!, item.longitude!);
           return ListView(
             padding: const EdgeInsets.all(GvSpacing.lg),
             children: [
@@ -42,22 +48,46 @@ class AssetMapScreen extends ConsumerWidget {
                     'Map position for ${item.name}, latitude ${item.latitude}, longitude ${item.longitude}',
                 child: Container(
                   height: 360,
+                  clipBehavior: Clip.antiAlias,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(GvSpacing.radiusLg),
                     border: Border.all(color: GvColors.border),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF092337), Color(0xFF071A20)],
-                    ),
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.location_on,
-                      size: 58,
-                      color: GvColors.accentCyan,
-                    ),
-                  ),
+                  child: tileUrl == null
+                      ? const _DemoMapSurface()
+                      : FlutterMap(
+                          options: MapOptions(
+                            initialCenter: position,
+                            initialZoom: 15,
+                            maxZoom: mapProvider.maxZoom,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: tileUrl,
+                              userAgentPackageName: 'com.geovision.geovision',
+                              maxZoom: mapProvider.maxZoom,
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: position,
+                                  width: 56,
+                                  height: 56,
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    size: 52,
+                                    color: GvColors.critical,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            RichAttributionWidget(
+                              attributions: [
+                                TextSourceAttribution(mapProvider.attribution),
+                              ],
+                            ),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: GvSpacing.md),
@@ -78,6 +108,14 @@ class AssetMapScreen extends ConsumerWidget {
                       '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
                       style: const TextStyle(color: GvColors.textMuted),
                     ),
+                    const SizedBox(height: GvSpacing.xs),
+                    Text(
+                      mapProvider.displayName,
+                      style: const TextStyle(
+                        color: GvColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -87,4 +125,26 @@ class AssetMapScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _DemoMapSurface extends StatelessWidget {
+  const _DemoMapSurface();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF092337), Color(0xFF071A20)],
+          ),
+        ),
+        child: const Center(
+          child: Icon(
+            Icons.location_on,
+            size: 58,
+            color: GvColors.accentCyan,
+          ),
+        ),
+      );
 }

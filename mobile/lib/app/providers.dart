@@ -19,6 +19,7 @@ import '../integrations/drones/mock_drone_provider.dart';
 import '../integrations/maps/demo_map_provider.dart';
 import '../integrations/maps/map_provider.dart';
 import '../integrations/maps/mapbox_map_provider.dart';
+import '../integrations/maps/open_street_map_provider.dart';
 import '../integrations/payments/bank_transfer_provider.dart';
 import '../integrations/payments/mock_payment_provider.dart';
 import '../integrations/payments/payment_provider.dart';
@@ -72,6 +73,9 @@ final offlineSyncServiceProvider = Provider<OfflineSyncService>(
 final mapProviderProvider = Provider<MapProvider>((ref) {
   final cfg = ref.watch(appConfigProvider);
   switch (cfg.mapProvider) {
+    case 'openstreetmap':
+    case 'osm':
+      return const OpenStreetMapProvider();
     case 'mapbox':
       const token = String.fromEnvironment('GV_MAPBOX_TOKEN');
       if (token.isNotEmpty) return const MapboxMapProvider(token);
@@ -79,6 +83,16 @@ final mapProviderProvider = Provider<MapProvider>((ref) {
     default:
       return const DemoMapProvider();
   }
+});
+
+/// Location selection must remain usable when the operational map is running
+/// in credential-free demo mode. It therefore falls back explicitly to OSM,
+/// rather than letting individual screens hard-code a provider URL.
+final locationMapProviderProvider = Provider<MapProvider>((ref) {
+  final provider = ref.watch(mapProviderProvider);
+  return provider.tileUrlTemplate() == null
+      ? const OpenStreetMapProvider()
+      : provider;
 });
 
 final paymentProviderProvider = Provider<PaymentProvider>((ref) {

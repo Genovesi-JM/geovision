@@ -21,11 +21,11 @@ plus pilot supervision.
 | Provider | Purpose | State | Env / define | Webhooks | Test method | Human gate |
 |----------|---------|-------|--------------|----------|-------------|------------|
 | Demo map | Credential-free operational map | **Mock working** | `GV_MAP_PROVIDER=demo` | — | Widget/manual | No |
-| OpenStreetMap | Credential-free site point selection | **Working** | No key; attribution required | — | iOS/Android build + simulator | No |
+| OpenStreetMap | Credential-free site point selection and operational asset tiles | **Working** | `GV_MAP_PROVIDER=openstreetmap`; attribution required | — | Provider tests + iOS/Android build | No for pilot; tile-policy review for production volume |
 | Device location | Optional precise site coordinates | **Working** with foreground permission | iOS/Android permission declarations | — | Simulator + physical-device follow-up | User permission |
 | Offline world geography | Countries, regions and cities for international site registration | **Working** for 11 initial markets | Bundled `country_state_city` data; Angola official override | — | Unit + native builds | No |
-| Mapbox | Satellite tiles + layers | Interface prepared · Credential required | `GV_MAP_PROVIDER=mapbox`, `GV_MAPBOX_TOKEN` | — | Token in staging | Yes (account/token) |
-| ArcGIS | Enterprise GIS layers | Interface prepared | `GV_MAP_PROVIDER=arcgis` | — | — | Yes |
+| Mapbox | Satellite tiles on asset maps through the shared map renderer | **Adapter working** · Credential required | `GV_MAP_PROVIDER=mapbox`, `GV_MAPBOX_TOKEN` | — | Provider contract + restricted token in staging | Yes (account/token/licence) |
+| ArcGIS | Enterprise GIS layers | Future integration-registry adapter; not a mobile selector | Server-managed connection | Provider-dependent | — | Yes |
 | Demo delivery map | Order route, vehicle position and progress timeline | **Mock working** | Default in demo mode | — | Unit + iOS Simulator | No |
 | Google Maps + logistics feed | Live delivery tiles, route and courier position | Interface prepared · Credential required | Future `GV_DELIVERY_PROVIDER=google_maps`, API key | Provider-dependent | Staging delivery | Yes (API/logistics account) |
 | Mock payment | Demo checkout | **Mock working** | `GV_PAYMENT_PROVIDER=mock` | — | Unit | No |
@@ -57,6 +57,11 @@ plus pilot supervision.
 2. Select it via the feature-flag `--dart-define`.
 3. Add credentials through `--dart-define` / secret manager — never in git.
 4. Add a mock-parity test; document the gate here and in `HUMAN_GATES.md`.
+
+Map rendering and address/search/routing are separate capabilities. A map-tile
+token must not be treated as authorization for geocoding, Places, Directions,
+live fleet location, or customer enterprise GIS. See
+[`docs/MAPS_AND_LOCATION.md`](docs/MAPS_AND_LOCATION.md).
 
 ### IoT outcome contract
 
