@@ -162,9 +162,9 @@
     } catch (err) {
       // Fallback static contacts if API fails
       createWidget([
-        { channel: 'whatsapp', label: 'Suporte', value: '+244 928 917 269', link: 'https://wa.me/244928917269?text=Ol%C3%A1%20GeoVision%2C%20preciso%20de%20ajuda.' },
+        { channel: 'email', label: 'España y Europa', value: 'support@geovisionops.com', link: 'mailto:support@geovisionops.com?subject=Contacto%20GeoVision' },
+        { channel: 'whatsapp', label: 'Soporte Angola', value: '+244 928 917 269', link: 'https://wa.me/244928917269?text=Hola%20GeoVision%2C%20necesito%20ayuda.' },
         { channel: 'instagram', label: 'Instagram', value: '@Geovision.operations', link: 'https://instagram.com/Geovision.operations' },
-        { channel: 'email', label: 'Suporte', value: 'support@geovisionops.com', link: 'mailto:support@geovisionops.com?subject=Contacto%20via%20GeoVision' },
       ]);
     }
   }

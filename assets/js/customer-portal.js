@@ -305,17 +305,17 @@ function formatDate(value) {
   }).format(date);
 }
 
-function formatMoney(value, currency = "AOA") {
+function formatMoney(value, currency = "EUR") {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return "—";
   try {
     return new Intl.NumberFormat(document.documentElement.lang || "pt", {
       style: "currency",
-      currency: asString(currency, "AOA"),
-      maximumFractionDigits: 0,
+      currency: asString(currency, "EUR"),
+      maximumFractionDigits: asString(currency, "EUR") === "AOA" ? 0 : 2,
     }).format(amount / 100);
   } catch (_) {
-    return `${amount / 100} ${asString(currency, "AOA")}`;
+    return `${amount / 100} ${asString(currency, "EUR")}`;
   }
 }
 

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="referrer" content="no-referrer" />
-  <title>GeoVision - A ligar...</title>
+  <title>GeoVision - Conectando...</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <style>
@@ -16,7 +16,7 @@
 <body>
   <div class="card">
     <div class="spinner"></div>
-    <div id="msg">A ligar à sua conta...</div>
+    <div id="msg">Conectando con su cuenta...</div>
   </div>
 
   <script src="assets/js/config.js?v=5"></script>
@@ -41,7 +41,7 @@
         try { history.replaceState(null, '', window.location.pathname); } catch(_){}
       }
       if (!token) {
-        document.getElementById('msg').textContent = 'Token ausente. Volta ao login.';
+        document.getElementById('msg').textContent = 'Falta el token. Vuelva al inicio de sesión.';
         setTimeout(() => window.location.replace('login.html'), 1200);
         return;
       }
@@ -55,7 +55,7 @@
         if (nonceKey) sessionStorage.removeItem(nonceKey);
       } catch (_) {}
       if (!expectedNonce || !browser_nonce || expectedNonce !== browser_nonce) {
-        document.getElementById('msg').textContent = 'A sessão não pertence a este pedido de login. Volta ao login.';
+        document.getElementById('msg').textContent = 'La sesión no corresponde a esta solicitud. Vuelva al inicio de sesión.';
         setTimeout(() => window.location.replace('login.html'), 1200);
         return;
       }
@@ -90,9 +90,9 @@
         }
         if (profile.account_id) localStorage.setItem('gv_account_id', profile.account_id);
         if (profile.account_name) localStorage.setItem('gv_account_name', profile.account_name);
-        localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Login concluído com sucesso', type: 'success', ts: Date.now() }));
+        localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Sesión iniciada correctamente', type: 'success', ts: Date.now() }));
       } catch (e) {
-        document.getElementById('msg').textContent = 'Não foi possível validar a sessão. Volta ao login.';
+        document.getElementById('msg').textContent = 'No se pudo validar la sesión. Vuelva al inicio de sesión.';
         setTimeout(() => window.location.replace('login.html'), 1200);
         return;
       }

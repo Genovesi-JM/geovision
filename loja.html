@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -997,7 +997,7 @@
             <div class="loja-cart-title" data-i18n="loja.cart.title">Carrinho</div>
             <div class="loja-cart-count" id="cart-count">0 <span data-i18n="loja.cart.items">itens</span></div>
           </div>
-          <small class="loja-cart-note" data-i18n="loja.cart.multicurrency">AOA · USD · EUR</small>
+          <small class="loja-cart-note" data-i18n="loja.cart.multicurrency">EUR · AOA · USD</small>
         </div>
 
         <div class="loja-cart-items" id="cart-items">
@@ -1012,19 +1012,19 @@
 
         <div class="loja-cart-total">
           <span data-i18n="loja.cart.subtotal">Subtotal</span>
-          <strong id="cart-subtotal">0 AOA</strong>
+          <strong id="cart-subtotal">0,00 €</strong>
         </div>
         <div class="loja-cart-total" id="discount-row" style="display:none;">
           <span data-i18n="loja.cart.discount">Discount</span>
-          <strong id="cart-discount" style="color:#22c55e;">-0 AOA</strong>
+          <strong id="cart-discount" style="color:#22c55e;">-0,00 €</strong>
         </div>
         <div class="loja-cart-total" id="tax-row" style="display:none;">
-          <span data-i18n="loja.cart.vat" style="font-size:0.8rem;color:#94a3b8;">IVA (14%) incl.</span>
-          <strong id="cart-tax" style="font-size:0.8rem;color:#94a3b8;">0 AOA</strong>
+          <span data-i18n="loja.cart.vat" style="font-size:0.8rem;color:#94a3b8;">IVA incluído</span>
+          <strong id="cart-tax" style="font-size:0.8rem;color:#94a3b8;">0,00 €</strong>
         </div>
         <div class="loja-cart-total" style="border-top:1px solid rgba(148,163,184,0.3);padding-top:0.4rem;margin-top:0.3rem;">
           <span><strong data-i18n="common.total">Total</strong></span>
-          <strong id="cart-total">0 AOA</strong>
+          <strong id="cart-total">0,00 €</strong>
         </div>
 
         <!-- Multi-currency totals -->
@@ -1036,7 +1036,7 @@
         </div>
 
         <p class="form-hint" style="font-size:0.72rem;color:#9ca3af;margin-top:0.6rem;" data-i18n="loja.cart.couponHint">
-          Coupons: WELCOME10 (10% off), DRONE50K (50,000 AOA off)
+          Cupón: WELCOME10 (10% de descuento)
         </p>
       </aside>
 
@@ -1100,13 +1100,13 @@
     document.getElementById("year").textContent = new Date().getFullYear();
   </script>
 <script src="https://js.stripe.com/v3/"></script>
-  <script src="assets/js/i18n.js?v=29"></script>
+  <script src="assets/js/i18n.js?v=30"></script>
 <script src="assets/js/config.js?v=5"></script>
 <script src="assets/js/site.js?v=3"></script>
 <script src="assets/js/session.js?v=1"></script>
 <script src="assets/js/app.js"></script>
   <script src="assets/js/account-profiles.js?v=5"></script>
-  <script src="assets/js/loja-shop.js?v=11"></script>
+  <script src="assets/js/loja-shop.js?v=12"></script>
 <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
 <script src="assets/js/chatbot.js?v=5"></script>
 <script src="assets/js/contacts.js?v=3"></script>
@@ -1176,13 +1176,24 @@
           <input type="text" id="billing-phone" class="checkout-input" placeholder="Telefone" data-i18n-placeholder="admin.modal.phone" aria-label="Telefone" />
           <input type="text" id="billing-company" class="checkout-input" placeholder="Empresa (opcional)" data-i18n-placeholder="loja.checkout.company" aria-label="Empresa" />
           <input type="text" id="billing-nif" class="checkout-input" placeholder="NIF (opcional)" data-i18n-placeholder="loja.checkout.taxId" aria-label="NIF" />
+          <select id="billing-country" class="checkout-input" aria-label="País de faturação">
+            <option value="ES" selected>España</option>
+            <option value="PT">Portugal</option>
+            <option value="AO">Angola</option>
+            <option value="OTHER">Otro país</option>
+          </select>
         </div>
 
         <div class="checkout-section">
           <h4 data-i18n="loja.checkout.currency">Moeda</h4>
           <div class="currency-selector">
             <label class="currency-option">
-              <input type="radio" name="checkout-currency" value="AOA" checked onchange="onCurrencyChange(this.value)" />
+              <input type="radio" name="checkout-currency" value="EUR" checked onchange="onCurrencyChange(this.value)" />
+              <span class="currency-flag">🇪🇺</span>
+              <span>EUR <small style="color:#94a3b8;">Euro</small></span>
+            </label>
+            <label class="currency-option">
+              <input type="radio" name="checkout-currency" value="AOA" onchange="onCurrencyChange(this.value)" />
               <span class="currency-flag">🇦🇴</span>
               <span>AOA <small style="color:#94a3b8;">Kwanza</small></span>
             </label>
@@ -1191,52 +1202,47 @@
               <span class="currency-flag">🇺🇸</span>
               <span>USD <small style="color:#94a3b8;">Dollar</small></span>
             </label>
-            <label class="currency-option">
-              <input type="radio" name="checkout-currency" value="EUR" onchange="onCurrencyChange(this.value)" />
-              <span class="currency-flag">🇪🇺</span>
-              <span>EUR <small style="color:#94a3b8;">Euro</small></span>
-            </label>
           </div>
         </div>
 
         <div class="checkout-section">
           <h4 data-i18n="loja.checkout.paymentMethod">Método de Pagamento</h4>
           <div class="payment-methods">
+            <!-- EUR/USD methods -->
+            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('visa_mastercard')">
+              <input type="radio" name="payment" value="visa_mastercard" checked />
+              <div>
+                <div class="payment-label" data-i18n="loja.payment.visa">Visa / Mastercard</div>
+                <div class="payment-desc" data-i18n="loja.payment.visaDesc">Cartão de crédito ou débito</div>
+              </div>
+            </label>
+            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('iban_international')">
+              <input type="radio" name="payment" value="iban_international" />
+              <div>
+                <div class="payment-label" data-i18n="loja.payment.ibanIntl">Transferencia SEPA / IBAN</div>
+                <div class="payment-desc" data-i18n="loja.payment.ibanIntlDesc">Transferencia bancaria en EUR o USD</div>
+              </div>
+            </label>
+            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('paypal')">
+              <input type="radio" name="payment" value="paypal" />
+              <div>
+                <div class="payment-label"><i class="fa-brands fa-paypal" style="color:#003087;"></i> PayPal</div>
+                <div class="payment-desc">Pago seguro mediante PayPal</div>
+              </div>
+            </label>
             <!-- AOA methods -->
-            <label class="payment-option" data-currencies="AOA" onclick="selectPayment('multicaixa_express')">
-              <input type="radio" name="payment" value="multicaixa_express" checked />
+            <label class="payment-option" data-currencies="AOA" onclick="selectPayment('multicaixa_express')" style="display:none;">
+              <input type="radio" name="payment" value="multicaixa_express" />
               <div>
                 <div class="payment-label" data-i18n="loja.payment.multicaixa">Multicaixa Express</div>
                 <div class="payment-desc" data-i18n="loja.payment.multicaixaDesc">Pagamento por QR code ou referência</div>
               </div>
             </label>
-            <label class="payment-option" data-currencies="AOA" onclick="selectPayment('iban_angola')">
+            <label class="payment-option" data-currencies="AOA" onclick="selectPayment('iban_angola')" style="display:none;">
               <input type="radio" name="payment" value="iban_angola" />
               <div>
                 <div class="payment-label" data-i18n="loja.payment.ibanAngola">IBAN Angola</div>
                 <div class="payment-desc" data-i18n="loja.payment.ibanAngolaDesc">Transferência bancária local em AOA</div>
-              </div>
-            </label>
-            <!-- USD/EUR methods -->
-            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('visa_mastercard')" style="display:none;">
-              <input type="radio" name="payment" value="visa_mastercard" />
-              <div>
-                <div class="payment-label" data-i18n="loja.payment.visa">Visa / Mastercard</div>
-                <div class="payment-desc" data-i18n="loja.payment.visaDesc">Cartão de crédito ou débito internacional</div>
-              </div>
-            </label>
-            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('iban_international')" style="display:none;">
-              <input type="radio" name="payment" value="iban_international" />
-              <div>
-                <div class="payment-label" data-i18n="loja.payment.ibanIntl">IBAN Internacional</div>
-                <div class="payment-desc" data-i18n="loja.payment.ibanIntlDesc">SWIFT/SEPA em USD ou EUR</div>
-              </div>
-            </label>
-            <label class="payment-option" data-currencies="USD,EUR" onclick="selectPayment('paypal')" style="display:none;">
-              <input type="radio" name="payment" value="paypal" />
-              <div>
-                <div class="payment-label"><i class="fa-brands fa-paypal" style="color:#003087;"></i> PayPal</div>
-                <div class="payment-desc">Pagamento seguro via PayPal</div>
               </div>
             </label>
           </div>

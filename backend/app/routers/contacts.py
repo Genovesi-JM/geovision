@@ -46,14 +46,14 @@ class ContactCreate(BaseModel):
 # ── Default contact methods (seeded if table is empty) ──
 
 DEFAULT_CONTACTS = [
-    {"channel": "whatsapp", "label": "Suporte", "value": "+244928917269", "sort_order": 1},
-    {"channel": "whatsapp", "label": "Vendas", "value": "+244928917269", "sort_order": 2},
-    {"channel": "instagram", "label": "Instagram", "value": "Geovision.operations", "sort_order": 3},
-    {"channel": "email", "label": "Suporte", "value": "support@geovisionops.com", "sort_order": 4},
-    {"channel": "email", "label": "Vendas", "value": "sales@geovisionops.com", "sort_order": 5},
-    {"channel": "email", "label": "Financeiro", "value": "finance@geovisionops.com", "sort_order": 6},
-    {"channel": "email", "label": "Info", "value": "info@geovisionops.com", "sort_order": 7},
-    {"channel": "phone", "label": "Telefone", "value": "+244928917269", "sort_order": 8},
+    {"channel": "email", "label": "España y Europa", "value": "support@geovisionops.com", "sort_order": 1},
+    {"channel": "email", "label": "Ventas", "value": "sales@geovisionops.com", "sort_order": 2},
+    {"channel": "email", "label": "Facturación", "value": "finance@geovisionops.com", "sort_order": 3},
+    {"channel": "whatsapp", "label": "Soporte Angola", "value": "+244928917269", "sort_order": 4},
+    {"channel": "whatsapp", "label": "Ventas Angola", "value": "+244928917269", "sort_order": 5},
+    {"channel": "instagram", "label": "Instagram", "value": "Geovision.operations", "sort_order": 6},
+    {"channel": "email", "label": "Información", "value": "info@geovisionops.com", "sort_order": 7},
+    {"channel": "phone", "label": "Teléfono Angola", "value": "+244928917269", "sort_order": 8},
 ]
 
 
@@ -61,15 +61,15 @@ def _build_link(channel: str, value: str, name: str = "", company: str = "", con
     """Build the correct deep-link for each channel."""
     if channel == "whatsapp":
         # Build dynamic pre-filled message
-        parts = ["Olá GeoVision"]
+        parts = ["Hola GeoVision"]
         if name:
-            parts.append(f"sou {name}")
+            parts.append(f"soy {name}")
         if company:
-            parts.append(f"da {company}")
+            parts.append(f"de {company}")
         if context:
-            parts.append(f"Preciso de suporte sobre {context}")
+            parts.append(f"Necesito ayuda con {context}")
         else:
-            parts.append("Preciso de ajuda")
+            parts.append("Necesito ayuda")
         msg = ", ".join(parts) + "."
         phone = value.replace("+", "").replace(" ", "").replace("-", "")
         return f"https://wa.me/{phone}?text={quote(msg)}"
@@ -77,8 +77,8 @@ def _build_link(channel: str, value: str, name: str = "", company: str = "", con
         handle = value.lstrip("@").strip()
         return f"https://instagram.com/{handle}"
     elif channel == "email":
-        subject = quote("Contacto via GeoVision")
-        body = quote(f"Olá,\n\nContacto via plataforma GeoVision.\n\nNome: {name}\nEmpresa: {company}\n\n")
+        subject = quote("Contacto desde GeoVision")
+        body = quote(f"Hola,\n\nContacto desde la plataforma GeoVision.\n\nNombre: {name}\nEmpresa: {company}\n\n")
         return f"mailto:{value}?subject={subject}&body={body}"
     elif channel == "phone":
         phone = value.replace(" ", "").replace("-", "")

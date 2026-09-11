@@ -91,16 +91,28 @@ class CartSectorValidationError(ValueError):
 
 
 # ============ TAX CONFIGURATION ============
-# NOTE: All product prices INCLUDE IVA (14%). Tax is not added on top.
+# NOTE: Product prices include the tax applicable to the checkout market.
 # The tax_amount field represents the IVA portion already embedded in the price.
 # Formula: tax_amount = price - price / (1 + tax_rate)
 
 TAX_RATES = {
     "AO": 0.14,
+    "ES": 0.21,
     "PT": 0.23,
     "US": 0.0,
-    "default": 0.14,
+    "default": 0.21,
 }
+
+CURRENCY_TAX_RATES = {
+    "EUR": TAX_RATES["ES"],
+    "AOA": TAX_RATES["AO"],
+    "USD": TAX_RATES["US"],
+}
+
+
+def tax_rate_for_currency(currency: str | None) -> float:
+    """Return the launch-market tax rate used for tax-inclusive catalogue prices."""
+    return CURRENCY_TAX_RATES.get((currency or "EUR").upper(), TAX_RATES["default"])
 
 
 # ============ SECTOR LABELS ============
@@ -1670,7 +1682,7 @@ class CartService:
             user_id=user_id,
             company_id=company_id,
             session_id=session_id or str(uuid.uuid4()),
-            currency="AOA",
+            currency="EUR",
             is_active=True,
             expires_at=_utcnow() + timedelta(days=7),
         )
@@ -1704,9 +1716,9 @@ class CartService:
         return self._to_data(c) if c else None
 
     @staticmethod
-    def _price_for_currency(product, currency="AOA"):
+    def _price_for_currency(product, currency="EUR"):
         """Return the correct price (centavos) for the given currency."""
-        cur = (currency or "AOA").upper()
+        cur = (currency or "EUR").upper()
         if cur == "USD" and getattr(product, "price_usd", 0):
             return product.price_usd
         if cur == "EUR" and getattr(product, "price_eur", 0):
@@ -1735,7 +1747,7 @@ class CartService:
         if product.track_inventory and product.stock_quantity < quantity:
             raise ValueError("Insufficient stock")
         # Use cart currency or the one provided
-        cur = currency or cart.currency or "AOA"
+        cur = currency or cart.currency or "EUR"
         if currency and cart.currency != cur:
             cart.currency = cur
         existing = next(
@@ -1747,9 +1759,10 @@ class CartService:
             None,
         )
         price = self._price_for_currency(product, cur)
-        tax_rate = float(product.tax_rate)
+        tax_rate = tax_rate_for_currency(cur)
         if existing:
             existing.quantity += quantity
+            existing.tax_rate = tax_rate
             existing.total_price = existing.unit_price * existing.quantity
             # IVA is included in price: tax portion = price - price / (1 + rate)
             existing.tax_amount = int(
@@ -1813,7 +1826,7 @@ class CartService:
         cart = self._find(cart_id)
         if not cart:
             raise ValueError("Cart not found")
-        cur = (new_currency or "AOA").upper()
+        cur = (new_currency or "EUR").upper()
         if cur not in ("AOA", "USD", "EUR"):
             raise ValueError(f"Moeda inválida: {cur}")
         cart.currency = cur
@@ -1824,7 +1837,8 @@ class CartService:
                 item.unit_price = new_price
                 item.total_price = new_price * item.quantity
                 # IVA included: tax portion = price - price / (1 + rate)
-                rate = float(item.tax_rate)
+                rate = tax_rate_for_currency(cur)
+                item.tax_rate = rate
                 item.tax_amount = int(item.total_price - item.total_price / (1 + rate))
         self._recalc(cart)
         self.db.commit()
@@ -1977,12 +1991,12 @@ class CartService:
             discount_amount=cart.discount_amount or 0,
             discount_type=cart.discount_type,
             coupon_code=cart.coupon_code,
-            tax_rate=0.14,
+            tax_rate=tax_rate_for_currency(cart.currency),
             tax_amount=cart.tax_amount or 0,
             delivery_cost=cart.delivery_cost or 0,
             delivery_method=cart.delivery_method,
             total=cart.total or 0,
-            currency=cart.currency or "AOA",
+            currency=cart.currency or "EUR",
             created_at=cart.created_at or _utcnow(),
             updated_at=cart.updated_at or _utcnow(),
         )

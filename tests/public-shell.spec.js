@@ -71,4 +71,20 @@ test.describe('Shared public shell', () => {
     await page.locator('#close-forgot-email').click();
     await expect(overlay).toBeHidden();
   });
+
+  test('uses Spain-first defaults for a new visitor', async ({ page }) => {
+    await page.addInitScript(() => localStorage.clear());
+    await page.goto(`${BASE}/loja.html`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+    await expect(page.locator('.lang-btn[data-lang="es"]')).toHaveClass(/active/);
+    await expect(page.locator('input[name="checkout-currency"][value="EUR"]')).toBeChecked();
+    await expect(page.locator('[data-i18n="loja.cart.vat"]')).toContainText('21%');
+
+    const currencyOrder = await page.locator('.currency-selector input').evaluateAll((inputs) =>
+      inputs.map((input) => input.value)
+    );
+    expect(currencyOrder).toEqual(['EUR', 'AOA', 'USD']);
+    await expect(page.locator('select#billing-country')).toHaveValue('ES');
+  });
 });

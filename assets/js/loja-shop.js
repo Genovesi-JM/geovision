@@ -159,13 +159,13 @@ function generateCartId() {
 
 // ============ FORMATAÇÃO ============
 
-let selectedCurrency = "AOA";
+let selectedCurrency = "EUR";
 
 function formatPrice(cents, currency) {
-  const cur = currency || selectedCurrency || "AOA";
+  const cur = currency || selectedCurrency || "EUR";
   const value = cents / 100;
-  const locales = { AOA: "pt-AO", USD: "en-US", EUR: "pt-PT" };
-  return value.toLocaleString(locales[cur] || "pt-AO", {
+  const locales = { AOA: "pt-AO", USD: "en-US", EUR: "es-ES" };
+  return value.toLocaleString(locales[cur] || "es-ES", {
     style: "currency", currency: cur,
     minimumFractionDigits: cur === "AOA" ? 0 : 2,
     maximumFractionDigits: cur === "AOA" ? 0 : 2,
@@ -178,6 +178,12 @@ function formatAOA(cents) {
 
 function formatAOASimple(cents) {
   return formatPrice(cents, selectedCurrency);
+}
+
+function taxLabel(currency = selectedCurrency) {
+  const rates = { EUR: 21, AOA: 14, USD: 0 };
+  const rate = rates[currency] ?? 21;
+  return rate > 0 ? `IVA (${rate}%) incluido` : "Impuestos incluidos cuando corresponda";
 }
 
 /** Get the correct price for a product based on selected currency */
@@ -202,12 +208,14 @@ async function loadPaymentMethods() {
     if (!res.ok) return;
     const data = await res.json();
     enabledPaymentMethods = new Set((data.methods || []).filter((m) => m.enabled).map((m) => m.method));
-    onCurrencyChange(selectedCurrency || 'AOA');
+    onCurrencyChange(selectedCurrency || 'EUR');
   } catch (_) { /* leave all methods available on error */ }
 }
 
 async function onCurrencyChange(currency) {
   selectedCurrency = currency;
+  const taxLabelEl = document.querySelector('[data-i18n="loja.cart.vat"]');
+  if (taxLabelEl) taxLabelEl.textContent = taxLabel(currency);
   // Show/hide payment methods based on currency AND real availability
   document.querySelectorAll('.payment-option[data-currencies]').forEach(el => {
     const currencies = el.getAttribute('data-currencies').split(',');
@@ -386,9 +394,9 @@ function renderCart() {
   if (multiTotalEl) {
     const totals = computeMultiCurrencyTotals();
     multiTotalEl.innerHTML = `
+      <div class="multi-total-row"><span class="cur-badge cur-eur">EUR</span> ${formatPrice(totals.eur, 'EUR')}</div>
       <div class="multi-total-row"><span class="cur-badge cur-aoa">AOA</span> ${formatPrice(totals.aoa, 'AOA')}</div>
       <div class="multi-total-row"><span class="cur-badge cur-usd">USD</span> ${formatPrice(totals.usd, 'USD')}</div>
-      <div class="multi-total-row"><span class="cur-badge cur-eur">EUR</span> ${formatPrice(totals.eur, 'EUR')}</div>
     `;
     multiTotalEl.style.display = "block";
   }
@@ -731,6 +739,10 @@ function renderProducts() {
       </div>
       <div class="loja-card-footer">
         <div class="loja-prices-multi">
+          <div class="loja-price-row loja-price-eur${selectedCurrency === 'EUR' ? ' active' : ''}">
+            <span class="cur-badge cur-eur">EUR</span>
+            ${formatPrice(p.price_eur || 0, 'EUR')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
+          </div>
           <div class="loja-price-row loja-price-aoa${selectedCurrency === 'AOA' ? ' active' : ''}">
             <span class="cur-badge cur-aoa">AOA</span>
             ${formatPrice(p.price, 'AOA')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
@@ -738,10 +750,6 @@ function renderProducts() {
           <div class="loja-price-row loja-price-usd${selectedCurrency === 'USD' ? ' active' : ''}">
             <span class="cur-badge cur-usd">USD</span>
             ${formatPrice(p.price_usd || 0, 'USD')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
-          </div>
-          <div class="loja-price-row loja-price-eur${selectedCurrency === 'EUR' ? ' active' : ''}">
-            <span class="cur-badge cur-eur">EUR</span>
-            ${formatPrice(p.price_eur || 0, 'EUR')}${p.unit_label ? `<span class="unit">/${esc(p.unit_label)}</span>` : ""}
           </div>
         </div>
         <button class="btn-add" onclick="handleAddToCart('${esc(p.id)}')">
@@ -869,11 +877,11 @@ function closeCheckoutModal() {
     paymentInstructions.innerHTML = "";
   }
 
-  // Reset currency to AOA
-  selectedCurrency = "AOA";
-  const aoaRadio = document.querySelector('input[name="checkout-currency"][value="AOA"]');
-  if (aoaRadio) aoaRadio.checked = true;
-  onCurrencyChange("AOA");
+  // Reset currency to Spain-first default
+  selectedCurrency = "EUR";
+  const eurRadio = document.querySelector('input[name="checkout-currency"][value="EUR"]');
+  if (eurRadio) eurRadio.checked = true;
+  onCurrencyChange("EUR");
 }
 
 function renderCheckoutSummary() {
@@ -891,7 +899,7 @@ function renderCheckoutSummary() {
   if (currentCart.discount_amount > 0) {
     html += `<p><strong>Desconto:</strong> -${formatAOA(currentCart.discount_amount)}</p>`;
   }
-  html += `<p style="font-size:0.85rem;color:#94a3b8;"><em>${esc(storeT('loja.checkout.taxIncluded'))}: ${formatAOA(currentCart.tax_amount)}</em></p>`;
+  html += `<p style="font-size:0.85rem;color:#94a3b8;"><em>${esc(taxLabel(selectedCurrency))}: ${formatAOA(currentCart.tax_amount)}</em></p>`;
   html += `<p class="checkout-total"><strong>Total:</strong> ${formatAOA(currentCart.total)}</p>`;
 
   // Multi-currency totals
@@ -899,9 +907,9 @@ function renderCheckoutSummary() {
   html += `<div class="checkout-multi-totals" style="margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid rgba(148,163,184,0.2);">
     <p style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.1em;">${esc(storeT('loja.checkout.allCurrencies'))}:</p>
     <div style="display:flex;flex-direction:column;gap:0.3rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-eur" style="font-size:0.7rem;">EUR</span><strong>${formatPrice(totals.eur, 'EUR')}</strong></div>
       <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-aoa" style="font-size:0.7rem;">AOA</span><strong>${formatPrice(totals.aoa, 'AOA')}</strong></div>
       <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-usd" style="font-size:0.7rem;">USD</span><strong>${formatPrice(totals.usd, 'USD')}</strong></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;"><span class="cur-badge cur-eur" style="font-size:0.7rem;">EUR</span><strong>${formatPrice(totals.eur, 'EUR')}</strong></div>
     </div>
   </div>`;
   
@@ -914,6 +922,7 @@ async function processCheckout() {
   const phone = document.getElementById("billing-phone")?.value?.trim();
   const company = document.getElementById("billing-company")?.value?.trim();
   const nif = document.getElementById("billing-nif")?.value?.trim();
+  const country = document.getElementById("billing-country")?.value || "ES";
   const paymentMethod = document.querySelector('input[name="payment"]:checked')?.value;
 
   if (!email || !name) {
@@ -941,14 +950,14 @@ async function processCheckout() {
       headers,
       body: JSON.stringify({
         payment_method: paymentMethod,
-        currency: selectedCurrency || "AOA",
+        currency: selectedCurrency || "EUR",
         billing_info: {
           name,
           email,
           phone: phone || null,
           company: company || null,
           nif: nif || null,
-          country: "",
+          country,
         },
       }),
     });
@@ -1226,6 +1235,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
   loadCart();
   loadPaymentMethods();
+  onCurrencyChange("EUR");
   initStripe();
 
   // Handle Stripe return redirect

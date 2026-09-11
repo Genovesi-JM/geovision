@@ -354,7 +354,7 @@ const translations = {
   "index.feature.integration": { pt: "Integração GIS", en: "GIS Integration", es: "Integración GIS" },
   "index.feature.integration.desc": { pt: "Exportação para todos os principais formatos GIS: GeoTIFF, Shapefile, KML, DXF.", en: "Export to all major GIS formats: GeoTIFF, Shapefile, KML, DXF.", es: "Exportación a todos los formatos GIS principales: GeoTIFF, Shapefile, KML, DXF." },
   "index.feature.support": { pt: "Suporte Local", en: "Local Support", es: "Soporte Local" },
-  "index.feature.support.desc": { pt: "Equipas no terreno em Angola com capacidade de mobilização rápida a nível mundial.", en: "On-ground teams based in Angola with rapid deployment capability worldwide.", es: "Equipos en terreno en Angola con capacidad de despliegue rápido a nivel mundial." },
+  "index.feature.support.desc": { pt: "Operação preparada para Espanha e Europa, com capacidade de mobilização internacional e suporte em Angola.", en: "Operations prepared for Spain and Europe, with international deployment capability and support in Angola.", es: "Operación preparada para España y Europa, con capacidad de despliegue internacional y soporte en Angola." },
   "index.feature.compliance": { pt: "Conformidade", en: "Compliance Ready", es: "Listo para Cumplimiento" },
   "index.feature.compliance.desc": { pt: "Relatórios formatados para submissão regulamentar e requisitos de auditoria.", en: "Reports formatted for regulatory submission and audit requirements.", es: "Informes formateados para presentación regulatoria y requisitos de auditoría." },
   "index.cta.subtitle": { pt: "Contacte a nossa equipa para uma proposta personalizada às suas necessidades.", en: "Contact our team for a customized proposal based on your requirements.", es: "Contacte a nuestro equipo para una propuesta personalizada según sus requisitos." },
@@ -397,8 +397,8 @@ const translations = {
   "about.hero.subtitle": { pt: "Transformamos observações de campo, dados aéreos e telemetria em decisões que a sua equipa consegue acompanhar e auditar.", en: "We turn field observations, aerial data and telemetry into decisions your team can follow and audit.", es: "Transformamos observaciones de campo, datos aéreos y telemetría en decisiones que su equipo puede seguir y auditar." },
   "about.who.eyebrow": { pt: "Quem Somos", en: "Who We Are", es: "Quiénes Somos" },
   "about.who.title": { pt: "Parceiro de Inteligência e Execução", en: "Intelligence & Execution Partner", es: "Socio de Inteligencia y Ejecución" },
-  "about.who.title2": { pt: "Inteligência Operacional Nascida em Angola", en: "Angolan-Born Operational Intelligence", es: "Inteligencia Operacional Nacida en Angola" },
-  "about.who.p1": { pt: "GeoVision é uma empresa de inteligência operacional nascida em Angola, combinando operações de drone, análise geoespacial, reflorestação aérea e sistemas de monitorização de risco para apoiar setores estratégicos a nível mundial.", en: "GeoVision is an Angolan-born operational intelligence company combining drone operations, geospatial analysis, aerial reforestation and risk monitoring systems to support strategic sectors worldwide.", es: "GeoVision es una empresa de inteligencia operacional nacida en Angola, combinando operaciones de drones, análisis geoespacial, reforestación aérea y sistemas de monitoreo de riesgos para apoyar sectores estratégicos a nivel mundial." },
+  "about.who.title2": { pt: "Inteligência operacional para Espanha e Europa", en: "Operational intelligence for Spain and Europe", es: "Inteligencia operacional para España y Europa" },
+  "about.who.p1": { pt: "A GeoVision combina operações de drone, análise geoespacial, reflorestação aérea e monitorização de risco para clientes em Espanha e na Europa, mantendo Angola como mercado de origem e expansão.", en: "GeoVision combines drone operations, geospatial analysis, aerial reforestation and risk monitoring for customers in Spain and Europe, while retaining Angola as its origin and expansion market.", es: "GeoVision combina operaciones con drones, análisis geoespacial, reforestación aérea y monitorización de riesgos para clientes en España y Europa, manteniendo Angola como mercado de origen y expansión." },
   "about.who.p2": { pt: "Não nos posicionamos apenas como fornecedor de serviços de drone. Operamos como parceiro de inteligência e execução para operações industriais e territoriais — incluindo reflorestação, recuperação ambiental e monitorização NDVI pós-intervenção.", en: "We do not position ourselves merely as a drone service provider. We operate as an intelligence and execution partner for industrial and territorial operations — including reforestation, environmental recovery and post-intervention NDVI monitoring.", es: "No nos posicionamos simplemente como proveedor de servicios de drones. Operamos como socio de inteligencia y ejecución para operaciones industriales y territoriales — incluyendo reforestación, recuperación ambiental y monitorización NDVI post-intervención." },
   "about.who.p3": { pt: "Com profunda experiência local e tecnologia de nível empresarial, fazemos a ponte entre a aquisição de dados e os resultados operacionais.", en: "With deep local expertise and enterprise-grade technology, we bridge the gap between data acquisition and operational outcomes.", es: "Con profunda experiencia local y tecnología de nivel empresarial, cerramos la brecha entre la adquisición de datos y los resultados operacionales." },
   "about.purpose.eyebrow": { pt: "Nosso Propósito", en: "Our Purpose", es: "Nuestro Propósito" },
@@ -432,8 +432,8 @@ const translations = {
   "about.why.eyebrow": { pt: "Porquê GeoVision", en: "Why GeoVision", es: "Por Qué GeoVision" },
   "about.why.title": { pt: "As Vantagens Competitivas", en: "The Competitive Advantages", es: "Las Ventajas Competitivas" },
   "about.africa.eyebrow": { pt: "Compromisso Estratégico", en: "Strategic Commitment", es: "Compromiso Estratégico" },
-  "about.africa.title": { pt: "De Angola para o Mundo", en: "From Angola to the World", es: "De Angola para el Mundo" },
-  "about.africa.text": { pt: "Angola é a nossa base e o ponto de partida. Compreendemos profundamente o contexto local — o ambiente regulatório, os desafios de infraestrutura, as realidades operacionais. Esta experiência, combinada com padrões internacionais, posiciona-nos de forma única para servir clientes em qualquer parte do mundo que precisam de resultados, não desculpas.", en: "Angola is our home base and starting point. We deeply understand the local context — the regulatory environment, the infrastructure challenges, the operational realities. This expertise, combined with international standards, makes us uniquely positioned to serve clients anywhere in the world who need results, not excuses.", es: "Angola es nuestra base y punto de partida. Comprendemos profundamente el contexto local — el entorno regulatorio, los desafíos de infraestructura, las realidades operacionales. Esta experiencia, combinada con estándares internacionales, nos posiciona de manera única para servir a clientes en cualquier parte del mundo que necesitan resultados, no excusas." },
+  "about.africa.title": { pt: "Espanha primeiro. Alcance internacional.", en: "Spain first. International reach.", es: "España primero. Alcance internacional." },
+  "about.africa.text": { pt: "A primeira fase comercial está orientada para Espanha, com pilotos, preços em euros e requisitos europeus como referência. A experiência de origem em Angola permanece uma vantagem para operações exigentes e futuras expansões internacionais.", en: "The first commercial phase is focused on Spain, using pilots, euro pricing and European requirements as the baseline. Our Angolan roots remain an advantage for demanding operations and future international expansion.", es: "La primera fase comercial está orientada a España, con pilotos, precios en euros y requisitos europeos como referencia. Nuestra experiencia de origen en Angola sigue siendo una ventaja para operaciones exigentes y futuras expansiones internacionales." },
   "about.cta.title": { pt: "Pronto para Trabalhar Connosco?", en: "Ready to Work with Us?", es: "¿Listo para Trabajar con Nosotros?" },
   "about.cta.subtitle": { pt: "Vamos discutir como a GeoVision pode apoiar as suas operações.", en: "Let's discuss how GeoVision can support your operations.", es: "Hablemos de cómo GeoVision puede apoyar sus operaciones." },
   "about.cta.button": { pt: "Contactar Equipa", en: "Contact Our Team", es: "Contactar Equipo" },
@@ -556,10 +556,10 @@ const translations = {
   "loja.cart.apply": { pt: "Aplicar", en: "Apply", es: "Aplicar" },
   "loja.cart.subtotal": { pt: "Subtotal", en: "Subtotal", es: "Subtotal" },
   "loja.cart.discount": { pt: "Desconto", en: "Discount", es: "Descuento" },
-  "loja.cart.vat": { pt: "IVA (14%)", en: "VAT (14%)", es: "IVA (14%)" },
+  "loja.cart.vat": { pt: "IVA incluído", en: "VAT included", es: "IVA incluido" },
   "loja.cart.clear": { pt: "Limpar", en: "Clear", es: "Limpiar" },
   "loja.cart.checkout": { pt: "Finalizar", en: "Checkout", es: "Pagar" },
-  "loja.cart.demo": { pt: "Cupões de demonstração: WELCOME10 (10% de desconto), DRONE50K (50.000 AOA de desconto)", en: "Demo coupons: WELCOME10 (10% off), DRONE50K (50,000 AOA off)", es: "Cupones de demostración: WELCOME10 (10% de descuento), DRONE50K (50.000 AOA de descuento)" },
+  "loja.cart.demo": { pt: "Cupão de demonstração: WELCOME10 (10% de desconto)", en: "Demo coupon: WELCOME10 (10% off)", es: "Cupón de demostración: WELCOME10 (10% de descuento)" },
   "loja.demo.title": { pt: "Demonstração em Tempo Real", en: "Real-time Demo", es: "Demo en Tiempo Real" },
   "loja.demo.status": { pt: "Aguardando envio...", en: "Awaiting submission...", es: "Esperando envío..." },
   "loja.demo.desc": { pt: "Quando clicar em \"Enviar Pedido\", mostramos abaixo o payload enviado e a resposta retornada pelo FastAPI.", en: "When you click \"Submit Order\", we display the payload sent and the response returned by FastAPI below.", es: "Cuando haga clic en \"Enviar Pedido\", mostramos abajo el payload enviado y la respuesta retornada por FastAPI." },
@@ -981,10 +981,10 @@ const translations = {
   "about.why.payment.title": { pt: "Opções de Pagamento Flexíveis", en: "Flexible Payment Options", es: "Opciones de Pago Flexibles" },
   "about.why.payment.desc": { pt: "Infraestrutura de pagamento adaptável que suporta diversos requisitos empresariais.", en: "Adaptable payment infrastructure supporting diverse enterprise requirements.", es: "Infraestructura de pago adaptable que soporta diversos requisitos empresariales." },
   "about.why.local.title": { pt: "Expertise Operacional Local", en: "Local Operational Expertise", es: "Expertise Operacional Local" },
-  "about.why.local.desc": { pt: "Profundo conhecimento do terreno angolano e experiência adaptável a contextos operacionais em todo o mundo.", en: "Deep understanding of Angolan terrain and adaptable expertise for operational contexts worldwide.", es: "Profundo conocimiento del terreno angoleño y experiencia adaptable a contextos operacionales en todo el mundo." },
+  "about.why.local.desc": { pt: "Operação preparada para o contexto espanhol e europeu, com experiência adaptável a mercados internacionais.", en: "Operations prepared for the Spanish and European context, with experience adaptable to international markets.", es: "Operación preparada para el contexto español y europeo, con experiencia adaptable a mercados internacionales." },
 
   // ============ ABOUT PAGE - COMMITMENT & CTA ============
-  "about.commitment.desc": { pt: "Nascida em Angola, a GeoVision está comprometida com o desenvolvimento sustentável, transparência operacional e modernização de infraestruturas — de Angola para mercados emergentes em todo o mundo. A nossa missão vai além da prestação de serviços, contribuindo ativamente para o avanço tecnológico global.", en: "Born in Angola, GeoVision is committed to supporting sustainable development, operational transparency and infrastructure modernization — from Angola to emerging markets worldwide. Our mission extends beyond service delivery to actively contributing to global technological advancement.", es: "Nacida en Angola, GeoVision está comprometida con el desarrollo sostenible, la transparencia operacional y la modernización de infraestructuras — de Angola para mercados emergentes en todo el mundo. Nuestra misión va más allá de la prestación de servicios, contribuyendo activamente al avance tecnológico global." },
+  "about.commitment.desc": { pt: "Na fase de lançamento, a GeoVision concentra-se em Espanha e na Europa, com compromisso com o desenvolvimento sustentável, a transparência operacional e a modernização de infraestruturas. Angola mantém-se como mercado estratégico de expansão.", en: "During the launch phase, GeoVision is focused on Spain and Europe, with a commitment to sustainable development, operational transparency and infrastructure modernization. Angola remains a strategic expansion market.", es: "Durante la fase de lanzamiento, GeoVision se centra en España y Europa, con un compromiso con el desarrollo sostenible, la transparencia operacional y la modernización de infraestructuras. Angola se mantiene como mercado estratégico de expansión." },
   "about.cta.subtitle2": { pt: "Comece por um ativo, um local ou uma decisão crítica. Definimos o primeiro caso de uso, os dados necessários e como o progresso será medido.", en: "Start with an asset, location or critical decision. We define the first use case, the data required and how progress will be measured.", es: "Empiece por un activo, un lugar o una decisión crítica. Definimos el primer caso de uso, los datos necesarios y cómo se medirá el progreso." },
   "about.cta.requestProposal": { pt: "Agendar diagnóstico", en: "Schedule a diagnosis", es: "Programar un diagnóstico" },
   "about.cta.contactOps": { pt: "Contactar Equipa de Operações", en: "Contact Operations Team", es: "Contactar Equipo de Operaciones" },
@@ -1066,7 +1066,7 @@ const translations = {
   "tech.why.risk.title": { pt: "Apoio à Decisão", en: "Decision Support", es: "Apoyo a la Decisión" },
   "tech.why.risk.desc": { pt: "Dashboards KPI setoriais e relatórios estruturados que suportam a tomada de decisão com dados reais.", en: "Sector KPI dashboards and structured reports that support decision-making with real data.", es: "Dashboards KPI sectoriales e informes estructurados que apoyan la toma de decisiones con datos reales." },
   "tech.why.payment.title": { pt: "Multi-Moeda", en: "Multi-Currency", es: "Multi-Moneda" },
-  "tech.why.payment.desc": { pt: "Pagamento flexível em AOA, USD e EUR com múltiplos métodos de pagamento.", en: "Flexible payment in AOA, USD and EUR with multiple payment methods.", es: "Pago flexible en AOA, USD y EUR con múltiples métodos de pago." },
+  "tech.why.payment.desc": { pt: "Pagamento principal em EUR por cartão ou SEPA, com AOA e USD disponíveis para operações internacionais.", en: "Primary payment in EUR by card or SEPA, with AOA and USD available for international operations.", es: "Pago principal en EUR con tarjeta o SEPA, con AOA y USD disponibles para operaciones internacionales." },
   "tech.why.local.title": { pt: "Conhecimento Local", en: "Local Knowledge", es: "Conocimiento Local" },
   "tech.why.local.desc": { pt: "Profundo conhecimento do terreno, regulamentação e contextos operacionais em cada região.", en: "Deep knowledge of terrain, regulations and operational contexts in each region.", es: "Profundo conocimiento del terreno, regulamentación y contextos operacionales en cada región." },
 
@@ -1240,7 +1240,7 @@ const translations = {
   // ============ LOJA - CHECKOUT EXTRAS ============
   "loja.checkout.currency": { pt: "Moeda", en: "Currency", es: "Moneda" },
   "loja.checkout.processing": { pt: "A processar…", en: "Processing…", es: "Procesando…" },
-  "loja.checkout.taxIncluded": { pt: "IVA (14%) incluído", en: "VAT (14%) included", es: "IVA (14%) incluido" },
+  "loja.checkout.taxIncluded": { pt: "IVA incluído", en: "VAT included", es: "IVA incluido" },
   "loja.checkout.allCurrencies": { pt: "Valores em todas as moedas", en: "Values in all currencies", es: "Valores en todas las monedas" },
   "loja.checkout.orderCreated": { pt: "Pedido criado", en: "Order created", es: "Pedido creado" },
   "loja.checkout.orderCreatedRef": { pt: "Pedido {number} criado com sucesso!", en: "Order {number} created successfully!", es: "¡Pedido {number} creado correctamente!" },
@@ -1385,8 +1385,8 @@ const translations = {
 
   // ============ LOGIN - FORGOT EMAIL MODAL ============
   "login.forgotEmail": { pt: "Esqueceu o email?", en: "Forgot email?", es: "¿Olvidó el email?" },
-  "login.forgotEmail.whatsapp": { pt: "WhatsApp — +244 928 917 269", en: "WhatsApp — +244 928 917 269", es: "WhatsApp — +244 928 917 269" },
-  "login.forgotEmail.call": { pt: "Ligar — +244 928 917 269", en: "Call — +244 928 917 269", es: "Llamar — +244 928 917 269" },
+  "login.forgotEmail.whatsapp": { pt: "WhatsApp Angola — +244 928 917 269", en: "Angola WhatsApp — +244 928 917 269", es: "WhatsApp Angola — +244 928 917 269" },
+  "login.forgotEmail.call": { pt: "Telefone Angola — +244 928 917 269", en: "Angola phone — +244 928 917 269", es: "Teléfono Angola — +244 928 917 269" },
   "login.forgotEmail.email": { pt: "suporte@geovisionops.com", en: "suporte@geovisionops.com", es: "suporte@geovisionops.com" },
 
   // ============ INDEX PAGE - MISSING KEYS ============
@@ -1597,8 +1597,8 @@ const translations = {
   // ============ TECHNOLOGY PAGE - MISSING KEYS ============
 
   // ============ LOJA PAGE - MISSING KEYS ============
-  "loja.cart.multicurrency": { pt: "AOA · USD · EUR", en: "AOA · USD · EUR", es: "AOA · USD · EUR" },
-  "loja.cart.couponHint": { pt: "Coupons: WELCOME10 (10% off), DRONE50K (50,000 AOA off)", en: "Coupons: WELCOME10 (10% off), DRONE50K (50,000 AOA off)", es: "Cupones: WELCOME10 (10% desc.), DRONE50K (50.000 AOA desc.)" },
+  "loja.cart.multicurrency": { pt: "EUR · AOA · USD", en: "EUR · AOA · USD", es: "EUR · AOA · USD" },
+  "loja.cart.couponHint": { pt: "Cupão: WELCOME10 (10% de desconto)", en: "Coupon: WELCOME10 (10% off)", es: "Cupón: WELCOME10 (10% de descuento)" },
 
   // ============ DASHBOARD PAGE - MISSING KEYS ============
 
@@ -1927,7 +1927,7 @@ Object.assign(translations, {
 // ============ i18n ENGINE ============
 class I18n {
   constructor() {
-    this.currentLang = localStorage.getItem('gv_lang') || 'pt'; // Portuguese as default
+    this.currentLang = localStorage.getItem('gv_lang') || 'es'; // Spain-first launch default
     this.translations = translations;
     this.supportedLangs = ['pt', 'en', 'es'];
   }
@@ -1938,7 +1938,7 @@ class I18n {
       console.warn(`Translation missing: ${key}`);
       return key;
     }
-    return translation[this.currentLang] || translation['pt'] || translation['en'] || key;
+    return translation[this.currentLang] || translation['es'] || translation['en'] || translation['pt'] || key;
   }
 
   setLanguage(lang) {

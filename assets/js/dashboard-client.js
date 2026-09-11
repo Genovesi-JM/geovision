@@ -610,7 +610,7 @@ async function renderDeviceMap() {
   wireGeoWorkspace();
   const accountId = alertAccountId();
   if (!iotMap) {
-    iotMap = L.map(el, { scrollWheelZoom: true }).setView([-8.83, 13.23], 6); // Angola default
+    iotMap = L.map(el, { scrollWheelZoom: true }).setView([40.4168, -3.7038], 6); // Spain-first default
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(iotMap);
     geoLayers = { sites: L.layerGroup().addTo(iotMap), devices: L.layerGroup().addTo(iotMap), alerts: L.layerGroup().addTo(iotMap) };
   }

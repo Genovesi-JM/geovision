@@ -112,7 +112,7 @@ class BillingInfo(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     postal_code: Optional[str] = None
-    country: str = "AO"
+    country: str = "ES"
 
 
 class CheckoutRequest(BaseModel):
@@ -120,7 +120,7 @@ class CheckoutRequest(BaseModel):
         ...,
         description="multicaixa_express, visa_mastercard, iban_angola, iban_international, paypal",
     )
-    currency: str = Field(default="AOA", description="AOA, USD, or EUR")
+    currency: str = Field(default="EUR", description="EUR, AOA, or USD")
     billing_info: BillingInfo
     customer_notes: Optional[str] = None
 
@@ -991,7 +991,7 @@ async def checkout(
         )
 
     # Validate currency
-    req_currency = (request.currency or "AOA").upper()
+    req_currency = (request.currency or "EUR").upper()
     if req_currency not in ("AOA", "USD", "EUR"):
         raise HTTPException(status_code=400, detail=f"Moeda inválida: {req_currency}")
 

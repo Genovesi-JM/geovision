@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -1032,7 +1032,7 @@
               <span class="kpi-label" data-i18n="admin.kpi.revenue">Receita Mensal</span>
               <span class="kpi-icon"><i class="fa-solid fa-dollar-sign"></i></span>
             </div>
-            <div class="kpi-value" id="kpi-revenue">0 AOA</div>
+            <div class="kpi-value" id="kpi-revenue">0 EUR</div>
             <div class="kpi-change" data-i18n="admin.kpi.change.revenue">+22% vs mês anterior</div>
           </div>
           <div class="kpi-card warning">
@@ -1730,7 +1730,7 @@
                   <th data-i18n="common.type">Tipo</th>
                   <th data-i18n="adm.category">Categoria</th>
                   <th data-i18n="nav.sectors">Setores</th>
-                  <th style="text-align:right">Preços (AOA / USD / EUR)</th>
+                  <th style="text-align:right">Precios (EUR / AOA / USD)</th>
                   <th style="text-align:center">Stock</th>
                   <th style="text-align:center" data-i18n="common.status">Estado</th>
                   <th style="text-align:center" data-i18n="common.actions">Ações</th>
@@ -2117,7 +2117,7 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=29"></script>
+  <script src="assets/js/i18n.js?v=30"></script>
   <script src="assets/js/account-profiles.js?v=5"></script>
   <script>
     const publicSectorTaxonomy = window.GV_SECTOR_TAXONOMY;
@@ -2897,9 +2897,9 @@
           <td>${p.category || '—'}</td>
           <td>${sectors || '—'}</td>
           <td style="text-align:right;font-family:monospace;white-space:nowrap;">
-            <div><span style="background:#1a6b3c;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">AOA</span>${priceFormatted}</div>
+            <div><span style="background:#6c3483;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">EUR</span>${priceEur}</div>
+            <div style="font-size:.8rem;margin-top:2px;"><span style="background:#1a6b3c;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">AOA</span>${priceFormatted}</div>
             <div style="font-size:.8rem;margin-top:2px;"><span style="background:#1a5276;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">USD</span>${priceUsd}</div>
-            <div style="font-size:.8rem;margin-top:2px;"><span style="background:#6c3483;color:#fff;padding:0 4px;border-radius:3px;font-size:.6rem;margin-right:3px;">EUR</span>${priceEur}</div>
           </td>
           <td style="text-align:center;">${stockDisplay}</td>
           <td style="text-align:center;">${statusBadge}</td>

@@ -257,6 +257,31 @@ def test_cart_currency_checkout_and_owned_order_contract(client):
     assert any(order["id"] == result["order_id"] for order in history.json())
 
 
+def test_new_cart_uses_spain_first_currency_and_tax(client):
+    product = client.get("/shop/products").json()[0]
+    cart_id = "spain_first_cart"
+
+    empty_cart = client.get(f"/shop/cart/{cart_id}")
+    assert empty_cart.status_code == 200
+    assert empty_cart.json()["currency"] == "EUR"
+    assert empty_cart.json()["tax_rate"] == pytest.approx(0.21)
+
+    added = client.post(
+        f"/shop/cart/{cart_id}/items",
+        json={"product_id": product["id"], "quantity": 1},
+    )
+    assert added.status_code == 200, added.text
+    assert added.json()["currency"] == "EUR"
+    assert added.json()["items"][0]["tax_rate"] == pytest.approx(0.21)
+
+    angola = client.patch(f"/shop/cart/{cart_id}/currency", json={"currency": "AOA"})
+    assert angola.json()["items"][0]["tax_rate"] == pytest.approx(0.14)
+
+    dollar = client.patch(f"/shop/cart/{cart_id}/currency", json={"currency": "USD"})
+    assert dollar.json()["items"][0]["tax_rate"] == pytest.approx(0.0)
+    assert dollar.json()["tax_amount"] == 0
+
+
 def test_authenticated_checkout_never_downgrades_workspace_denial_to_guest(client):
     headers = _customer_headers(client)
     headers["X-Account-ID"] = str(uuid.uuid4())

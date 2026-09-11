@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -2031,26 +2031,26 @@
           <p class="page-subtitle" data-i18n="dash.support.desc">Estamos aqui para ajudar. Escolha o seu canal preferido.</p>
         </div>
         <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-          <div class="card" style="margin-bottom:0;">
+          <div class="card" style="margin-bottom:0;order:2;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-mobile-screen-button"></i></div>
-              <h3 style="margin-bottom:0.5rem;" data-i18n="admin.modal.whatsapp">WhatsApp</h3>
+              <h3 style="margin-bottom:0.5rem;">WhatsApp Angola</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;" data-i18n="dash.support.whatsapp">Resposta rápida via chat</p>
               <a href="https://wa.me/244928917269" target="_blank" class="btn btn-primary" style="text-decoration:none;" data-i18n="dash.support.openWhatsapp">Abrir WhatsApp</a>
             </div>
           </div>
-          <div class="card" style="margin-bottom:0;">
+          <div class="card" style="margin-bottom:0;order:1;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-envelope"></i></div>
               <h3 style="margin-bottom:0.5rem;" data-i18n="common.email">Email</h3>
-              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">suporte@geovisionops.com</p>
-              <a href="mailto:suporte@geovisionops.com" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.sendEmail">Enviar Email</a>
+              <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">support@geovisionops.com</p>
+              <a href="mailto:support@geovisionops.com" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.sendEmail">Enviar Email</a>
             </div>
           </div>
-          <div class="card" style="margin-bottom:0;">
+          <div class="card" style="margin-bottom:0;order:3;">
             <div class="card-body" style="text-align:center;">
               <div style="font-size:2.5rem;margin-bottom:0.75rem;"><i class="fa-solid fa-phone"></i></div>
-              <h3 style="margin-bottom:0.5rem;" data-i18n="admin.modal.phone">Telefone</h3>
+              <h3 style="margin-bottom:0.5rem;">Teléfono Angola</h3>
               <p style="color:#9ca3af;font-size:0.85rem;margin-bottom:1rem;">+244 928 917 269</p>
               <a href="tel:+244928917269" class="btn btn-secondary" style="text-decoration:none;" data-i18n="dash.support.callNow">Ligar Agora</a>
             </div>
@@ -2161,7 +2161,7 @@
     </div>
   </div>
 
-  <script src="assets/js/i18n.js?v=27"></script>
+  <script src="assets/js/i18n.js?v=30"></script>
   <script src="assets/js/config.js?v=6"></script>
   <script src="assets/js/account-profiles.js?v=5"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
@@ -2295,19 +2295,20 @@
 
     // ============ ORDERS ============
 
-    function formatAOA(cents) {
+    function formatMoney(cents, currency = "EUR") {
       const value = cents / 100;
-      return value.toLocaleString("pt-AO", {
+      const locale = currency === "AOA" ? "pt-AO" : currency === "USD" ? "en-US" : "es-ES";
+      return value.toLocaleString(locale, {
         style: "currency",
-        currency: "AOA",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
+        currency,
+        minimumFractionDigits: currency === "AOA" ? 0 : 2,
+        maximumFractionDigits: currency === "AOA" ? 0 : 2,
       });
     }
 
     function formatDate(isoDate) {
       const d = new Date(isoDate);
-      return d.toLocaleDateString("pt-AO", {
+      return d.toLocaleDateString("es-ES", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -2497,7 +2498,7 @@
                 <span class="order-status status-${order.fulfilment_status || order.status}">${order.fulfilment_status || order.status || 'pending'}</span>
               </div>
               <div class="order-items-text">${order.item_count || '?'} ${order.item_count === 1 ? 'item' : 'itens'}</div>
-              <div class="order-total">${formatAOA(order.total)}</div>
+              <div class="order-total">${formatMoney(order.total, order.currency || "EUR")}</div>
               <div class="order-actions">
                 <button class="btn btn-sm btn-secondary" onclick="viewOrder('${order.id}')">${window.t("dash.ord.viewDetails")}</button>
               </div>
@@ -2549,7 +2550,7 @@
         let itemsHtml = (order.items || []).map(item => `
           <div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid rgba(148,163,184,0.2);">
             <span>${item.quantity}x ${item.product_name}</span>
-            <span>${formatAOA(item.total_price)}</span>
+            <span>${formatMoney(item.total_price, item.currency || order.currency || "EUR")}</span>
           </div>
         `).join("");
 
@@ -2588,7 +2589,7 @@
             ${itemsHtml}
             <div style="display:flex;justify-content:space-between;padding:0.6rem 0;font-weight:600;">
               <span>${window.t("common.total")}</span>
-              <span>${formatAOA(order.total)}</span>
+              <span>${formatMoney(order.total, order.currency || "EUR")}</span>
             </div>
           </div>
 

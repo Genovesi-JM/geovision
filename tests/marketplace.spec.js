@@ -5,6 +5,7 @@ test.describe('GeoVision first-party catalogue', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.clear();
+      localStorage.setItem('gv_lang', 'pt');
       localStorage.setItem('gv_catalog_sector', 'environment');
     });
     await page.goto(`${BASE}/loja.html`);
