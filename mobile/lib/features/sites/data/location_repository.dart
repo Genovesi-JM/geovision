@@ -23,18 +23,18 @@ class LocationRepository {
 
   static const _demoLocations = <ResolvedLocation>[
     ResolvedLocation(
+      providerReference: 'fake-madrid',
+      displayName: 'Madrid',
+      formattedAddress: 'Madrid, España',
+      latitude: 40.4168,
+      longitude: -3.7038,
+    ),
+    ResolvedLocation(
       providerReference: 'fake-luanda',
       displayName: 'Luanda',
       formattedAddress: 'Luanda, Angola',
       latitude: -8.838333,
       longitude: 13.234444,
-    ),
-    ResolvedLocation(
-      providerReference: 'fake-madrid',
-      displayName: 'Madrid',
-      formattedAddress: 'Madrid, Espanha',
-      latitude: 40.4168,
-      longitude: -3.7038,
     ),
   ];
 

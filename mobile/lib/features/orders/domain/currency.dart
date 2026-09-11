@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 import 'product.dart';
 
-enum StoreCurrency { akz, eur, usd }
+enum StoreCurrency { eur, akz, usd }
 
 extension StoreCurrencyValue on StoreCurrency {
   static StoreCurrency fromCode(String code) => switch (code.toUpperCase()) {
@@ -45,7 +45,11 @@ abstract final class StoreMoney {
   }
 
   static String formatCents(int cents, StoreCurrency target) {
-    final locale = target == StoreCurrency.akz ? 'pt_AO' : 'en_US';
+    final locale = switch (target) {
+      StoreCurrency.eur => 'es_ES',
+      StoreCurrency.akz => 'pt_AO',
+      StoreCurrency.usd => 'en_US',
+    };
     return NumberFormat.currency(
       locale: locale,
       symbol: target.symbol,
@@ -81,4 +85,4 @@ abstract final class StoreMoney {
 }
 
 final storeCurrencyProvider =
-    StateProvider<StoreCurrency>((ref) => StoreCurrency.akz);
+    StateProvider<StoreCurrency>((ref) => StoreCurrency.eur);

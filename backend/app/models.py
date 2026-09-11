@@ -1509,7 +1509,7 @@ class Company(Base):
     address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # Present in the production Alembic schema and required by migrated
     # databases.  Keep it mapped so ORM inserts do not fail outside tests.
-    country: Mapped[str] = mapped_column(String(100), nullable=False, default="Angola")
+    country: Mapped[str] = mapped_column(String(100), nullable=False, default="Spain")
     organization_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -1519,8 +1519,8 @@ class Company(Base):
     timezone: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
-        default="UTC",
-        server_default="UTC",
+        default="Europe/Madrid",
+        server_default="Europe/Madrid",
     )
     sectors: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, default="[]"
@@ -1911,7 +1911,7 @@ class Site(Base):
     )
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    country: Mapped[str] = mapped_column(String(100), nullable=False, default="Angola")
+    country: Mapped[str] = mapped_column(String(100), nullable=False, default="Spain")
     province: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     municipality: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     latitude: Mapped[Optional[float]] = mapped_column(Numeric(10, 6), nullable=True)
@@ -4919,7 +4919,7 @@ class Cart(Base):
     subtotal: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     tax_amount: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
+    currency: Mapped[str] = mapped_column(String(5), nullable=False, default="EUR")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=utc_now, nullable=False
@@ -5021,6 +5021,7 @@ class ShopProduct(Base):
     price: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     price_usd: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     price_eur: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # `price` is the legacy AOA list; Spain uses the explicit `price_eur` value.
     currency: Mapped[str] = mapped_column(String(5), nullable=False, default="AOA")
     tax_rate: Mapped[float] = mapped_column(Numeric(5, 4), nullable=False, default=0.14)
     duration_hours: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

@@ -15,8 +15,8 @@ class SiteRegion {
   final String name;
 }
 
-/// Countries selected for GeoVision's initial African and Lusophone/European
-/// commercial footprint. Data is bundled and works offline.
+/// Countries selected for GeoVision's Spain-first commercial footprint and
+/// planned international expansion. Data is bundled and works offline.
 abstract final class SiteGeography {
   static const supportedCountryCodes = {
     'AO',
@@ -41,8 +41,8 @@ abstract final class SiteGeography {
         .toList()
       ..sort((a, b) => a.name.compareTo(b.name));
     selected.sort((a, b) {
-      if (a.code == 'AO') return -1;
-      if (b.code == 'AO') return 1;
+      if (a.code == 'ES') return -1;
+      if (b.code == 'ES') return 1;
       return a.name.compareTo(b.name);
     });
     return selected;

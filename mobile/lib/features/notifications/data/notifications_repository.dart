@@ -364,8 +364,8 @@ class NotificationsRepository implements NotificationsGateway {
         workspaceId: 'demo-workspace',
         category: 'REPORT',
         type: 'report.published',
-        title: 'Your results are ready',
-        body: 'NDVI Health Report — Kilombo North is ready to review.',
+        title: 'Tus resultados están listos',
+        body: 'El informe NDVI de Finca Madrid Norte está listo para revisar.',
         severity: 'INFO',
         targetType: 'REPORT',
         targetId: 'rp-1',
@@ -380,8 +380,9 @@ class NotificationsRepository implements NotificationsGateway {
         workspaceId: 'demo-workspace',
         category: 'DEVICE',
         type: 'device.offline_detected',
-        title: 'Asset needs attention',
-        body: 'Kilombo North has not reported recent device data.',
+        title: 'El activo requiere atención',
+        body:
+            'Finca Madrid Norte no ha enviado datos recientes del dispositivo.',
         severity: 'WARNING',
         targetType: 'ASSET',
         targetId: 'site-1',
@@ -395,8 +396,8 @@ class NotificationsRepository implements NotificationsGateway {
         organizationId: 'demo-organization',
         category: 'SHIPMENT',
         type: 'shipment.state_changed',
-        title: 'Delivery update',
-        body: 'Order GV-2405-0187 is in transit.',
+        title: 'Actualización de entrega',
+        body: 'El pedido GV-2405-0187 está en tránsito.',
         severity: 'INFO',
         targetType: 'SHIPMENT',
         targetId: 'GV-2405-0187',
@@ -417,21 +418,21 @@ class NotificationsRepository implements NotificationsGateway {
       return const NotificationContextDetails(
         type: 'REPORT',
         id: 'rp-1',
-        title: 'NDVI Health Report — Kilombo North',
-        status: 'Published',
+        title: 'Informe de salud NDVI — Finca Madrid Norte',
+        status: 'Publicado',
         description:
-            'Fresh multispectral findings and recommended field actions.',
-        facts: {'Asset': 'Kilombo North Fields', 'Type': 'NDVI'},
+            'Nuevos resultados multiespectrales y acciones de campo recomendadas.',
+        facts: {'Activo': 'Finca Madrid Norte', 'Tipo': 'NDVI'},
       );
     }
     if (type == 'ASSET' && id == 'site-1') {
       return const NotificationContextDetails(
         type: 'ASSET',
         id: 'site-1',
-        title: 'Kilombo North Fields',
-        status: 'Needs attention',
-        description: 'Agricultural asset in Malanje, Angola.',
-        facts: {'Sector': 'Agriculture', 'Open alerts': '2'},
+        title: 'Finca Madrid Norte',
+        status: 'Requiere atención',
+        description: 'Activo agrícola en la Comunidad de Madrid, España.',
+        facts: {'Sector': 'Agricultura', 'Alertas abiertas': '2'},
       );
     }
     return NotificationContextDetails(

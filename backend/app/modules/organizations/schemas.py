@@ -70,8 +70,8 @@ class WorkspaceCreate(BaseModel):
 class OrganizationCreate(BaseModel):
     name: str = Field(min_length=2, max_length=200)
     organization_type: str = Field(default="customer", min_length=2, max_length=50)
-    country: str = Field(default="Angola", min_length=2, max_length=100)
-    timezone: str = Field(default="UTC", min_length=1, max_length=64)
+    country: str = Field(default="Spain", min_length=2, max_length=100)
+    timezone: str = Field(default="Europe/Madrid", min_length=1, max_length=64)
     workspace: WorkspaceCreate
 
     _timezone = field_validator("timezone")(_validate_timezone)

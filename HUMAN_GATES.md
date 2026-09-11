@@ -3,6 +3,15 @@
 Actions the autonomous loop will NOT perform. For each: reason · action · where ·
 how to confirm · what the automation does afterwards.
 
+## Spain-first launch order
+
+The initial commercial baseline is Spain: Spanish customer experience, EUR,
+Europe/Madrid, Spanish legal and fiscal review, Stripe/card plus SEPA, and
+Spain-focused Google Maps, AEMET and MITECO validation. Angola remains a
+supported expansion market, but its Multicaixa and fiscal gates must not delay
+the first Spanish pilot. The ordered execution plan is maintained in
+[the Spain-first launch audit](docs/SPAIN_FIRST_LAUNCH_AUDIT.md).
+
 ## 1. Xcode licence / iOS toolchain
 - **Reason:** The iOS Simulator build and interactive launch pass, but Xcode 15.4 is below Flutter's recommended Xcode 16+.
 - **Action:** Update Xcode through the App Store and install/select a current iOS Simulator runtime.
@@ -79,18 +88,22 @@ how to confirm · what the automation does afterwards.
 - **Action:** Test foreground location on one iPhone and one Android device; approve the privacy-policy description before release.
 - **After:** tune accuracy/timeouts if required; background location remains disabled.
 
-## 10. ERPNext staging and Angolan fiscal validation
-- **Reason:** The ERPNext adapter, outbox and mobile account view are implemented,
-  but production accounting requires hosting, a restricted API user, accounts,
-  warehouses, taxes and numbering approved for the operating companies. Generic
-  ERP capability is not proof of AGT compliance.
-- **Action:** Create an ERPNext staging company/API user and have an Angolan
-  accountant validate IVA, SAF-T/AGT requirements and invoice workflow.
-- **Where:** ERPNext staging and GeoVision's secret manager; never Git.
+## 10. ERP staging and Spanish fiscal validation
+- **Reason:** The provider-neutral ERP boundary, Odoo/ERPNext adapters, outbox
+  and mobile account view are implemented, but production accounting requires
+  hosting, a restricted API user, accounts, warehouses, taxes and numbering
+  approved for the operating companies. Generic ERP capability is not proof of
+  Spanish or Angolan fiscal compliance.
+- **Action:** Create a Spanish staging company and restricted API user in the
+  selected ERP, then have a Spanish accountant validate IVA, invoicing,
+  numbering, record retention and the complete order-to-reconciliation flow.
+  Validate Angolan AGT requirements separately before the Angola expansion.
+- **Where:** The selected ERP staging environment and GeoVision's secret
+  manager; never Git.
 - **Confirm:** One sandbox order completes order → invoice → payment → delivery
-  reconciliation and the accountant signs off the configuration.
-- **After:** Set `ERP_PROVIDER=erpnext`, add restricted credentials, map custom
-  fields, deploy the independent ERP and event workers, and alert on
+  reconciliation in EUR and the Spanish accountant signs off the configuration.
+- **After:** Select the reviewed `ERP_PROVIDER`, add restricted credentials,
+  map custom fields, deploy the independent ERP and event workers, and alert on
   retry/dead-letter counts. Do not requeue an uncertain write until provider
   uniqueness and its external result have been reconciled.
 
@@ -291,7 +304,8 @@ how to confirm · what the automation does afterwards.
   claim, bounded retry, dead-letter inspection/requeue, API-key rotation,
   backup/restore and rollback. Throughout, GeoVision checkout, assets and
   intelligence remain available and the accountant signs off the commercial and
-  Angolan fiscal workflow.
+  Spanish launch workflow. Repeat the jurisdiction-specific sign-off before an
+  Angolan commercial cutover.
 - **After:** Set `ERP_PROVIDER=odoo`, load `ODOO_*` values only from the server
   secret manager, deploy the independent ERP and event workers and alert on oldest due
   work, claim age, retry/dead-letter volume, authentication/rate-limit errors,

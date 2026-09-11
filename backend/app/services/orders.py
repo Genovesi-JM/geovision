@@ -11,13 +11,12 @@ Manages order lifecycle:
 import json
 import uuid
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 from enum import Enum
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
@@ -315,7 +314,7 @@ class OrderService:
             lifecycle_version=1,
             checkout_idempotency_key=idempotency_key,
             status=OrderStatus.AWAITING_PAYMENT.value, payment_method=payment_method.value,
-            payment_reference=payment_reference, currency=currency or cart.currency or "AOA",
+            payment_reference=payment_reference, currency=currency or cart.currency or "EUR",
             subtotal=cart.subtotal, discount_total=cart.discount_amount,
             coupon_code=cart.coupon_code, tax_amount=cart.tax_amount,
             shipping_fee=cart.delivery_cost, total=cart.total,
@@ -343,7 +342,7 @@ class OrderService:
                 product_type=item.product_type,
                 catalog_item_type=catalog_item.item_type,
                 sku=catalog_item.code,
-                currency=currency or cart.currency or "AOA",
+                currency=currency or cart.currency or "EUR",
                 qty=item.quantity, unit_price=item.unit_price,
                 line_total=item.total_price, tax_rate=item.tax_rate,
                 tax_amount=item.tax_amount, discount_amount=0, status="pending",
@@ -355,7 +354,7 @@ class OrderService:
                         "name": catalog_item.name,
                         "item_type": catalog_item.item_type,
                         "price_model": catalog_item.price_model,
-                        "currency": currency or cart.currency or "AOA",
+                        "currency": currency or cart.currency or "EUR",
                         "unit_amount": int(item.unit_price),
                         "quantity": item.quantity,
                         "tax_rate": float(item.tax_rate or 0),
@@ -441,11 +440,11 @@ class OrderService:
         provider = provider_map.get(payment_method)
         if not provider:
             return None
-        # Use the order's currency instead of hardcoded AOA
+        # Preserve an explicit order currency; Spain-first checkouts default to EUR.
         try:
-            order_currency = Currency(order.currency or "AOA")
+            order_currency = Currency(order.currency or "EUR")
         except ValueError:
-            order_currency = Currency.AOA
+            order_currency = Currency.EUR
         result = await orchestrator.create_payment(
             company_id=order.company_id or "default",
             # Orders currently use a Numeric column while payments store the
@@ -702,7 +701,7 @@ class OrderService:
             company_id=getattr(order, 'company_id', None), site_id=getattr(order, 'site_id', None),
             project_name=None, status=order.status,
             payment_method=order.payment_method, payment_reference=order.payment_reference,
-            currency=order.currency or "AOA", subtotal=order.subtotal,
+            currency=order.currency or "EUR", subtotal=order.subtotal,
             discount_amount=order.discount_total or 0, coupon_code=order.coupon_code,
             tax_amount=order.tax_amount or 0, delivery_cost=order.shipping_fee or 0,
             total=order.total, items=items, events=events, deliverables=deliverables,

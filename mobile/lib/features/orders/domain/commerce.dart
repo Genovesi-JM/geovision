@@ -23,7 +23,7 @@ class RemoteCart {
 
   factory RemoteCart.fromJson(Map<String, dynamic> json) => RemoteCart(
         id: json['id'].toString(),
-        currency: (json['currency'] ?? 'AOA').toString(),
+        currency: (json['currency'] ?? 'EUR').toString(),
         itemCount: (json['item_count'] as num?)?.toInt() ?? 0,
         subtotal: (json['subtotal'] as num?)?.toInt() ?? 0,
         discount: (json['discount_amount'] as num?)?.toInt() ?? 0,

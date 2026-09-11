@@ -14,11 +14,11 @@ class AccountOverviewRepository {
   Future<AccountOverview> load() async {
     if (_config.demoMode) {
       return AccountOverview(
-        organisationName: 'Fazenda Kilombo Agro',
+        organisationName: 'GeoVision España Demo',
         plan: 'Professional',
         status: 'active',
-        currency: 'AOA',
-        outstandingCents: 5424500,
+        currency: 'EUR',
+        outstandingCents: 54245,
         paidPayments: 8,
         pendingPayments: 1,
         sites: 3,
@@ -32,14 +32,14 @@ class AccountOverviewRepository {
               id: 'demo-1',
               number: 'GV-2026-00187',
               status: 'dispatched',
-              totalCents: 5424500,
-              currency: 'AOA'),
+              totalCents: 54245,
+              currency: 'EUR'),
           AccountOrderSummary(
               id: 'demo-2',
               number: 'GV-2026-00172',
               status: 'completed',
-              totalCents: 12350000,
-              currency: 'AOA'),
+              totalCents: 123500,
+              currency: 'EUR'),
         ],
       );
     }

@@ -58,10 +58,11 @@ void main() {
         DemoData.orders().where((o) => o.delivery != null).single.delivery!;
     expect(delivery.trackingCode, isNotEmpty);
     expect(delivery.progress, inInclusiveRange(0, 1));
-    expect(delivery.destination, contains('Luanda'));
+    expect(delivery.destination, contains('Madrid'));
   });
 
   test('store presents deterministic AKZ, EUR and USD prices', () {
+    expect(StoreCurrency.values.first, StoreCurrency.eur);
     const usdCents = 10000;
     expect(
         StoreMoney.formatUsdCents(usdCents, StoreCurrency.usd), contains(r'$'));

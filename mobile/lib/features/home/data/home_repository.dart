@@ -19,11 +19,11 @@ class HomeRepository {
   }
 
   HomeSummary _demo() => HomeSummary(
-        workspaceId: _api.workspaceId ?? 'demo-workspace-farm',
-        organizationName: 'Fazenda Kilombo Agro',
+        workspaceId: _api.workspaceId ?? 'demo-workspace-spain-farm',
+        organizationName: 'GeoVision España Demo',
         workspaceName: _api.workspaceId == 'demo-workspace-infrastructure'
-            ? 'Luanda Infrastructure'
-            : 'Kilombo Farm',
+            ? 'Infraestructuras Madrid'
+            : 'Finca Madrid Norte',
         attention: const HomeAttention(
           critical: 1,
           attention: 2,
@@ -37,24 +37,24 @@ class HomeRepository {
             id: 'home-action-critical',
             targetType: 'ACTION',
             targetId: 'action-demo-critical',
-            title: 'Irrigation failure needs a decision',
-            summary: 'Inspect the Block A pump before the next cycle.',
+            title: 'El fallo de riego requiere una decisión',
+            summary: 'Revisar la bomba del Bloque A antes del próximo ciclo.',
             severity: 'critical',
           ),
           HomePriorityItem(
             id: 'home-action-scheduled',
             targetType: 'ACTION',
             targetId: 'action-demo-scheduled',
-            title: 'Field inspection scheduled',
-            summary: 'GeoVision Field Team · tomorrow at 09:00',
+            title: 'Inspección de campo programada',
+            summary: 'Equipo de campo GeoVision · mañana a las 09:00',
             severity: 'scheduled',
           ),
         ],
         latestResult: HomeResult(
           targetType: 'REPORT',
           targetId: 'rp-1',
-          title: 'NDVI Health Report — Kilombo North',
-          summary: 'Published result from the latest multispectral survey.',
+          title: 'Informe de salud NDVI — Madrid Norte',
+          summary: 'Resultado publicado del último vuelo multiespectral.',
           completedAt: DateTime(2026, 9, 9),
         ),
         updatedAt: DateTime.now().toUtc(),

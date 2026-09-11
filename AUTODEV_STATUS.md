@@ -7,6 +7,12 @@ construction, infrastructure, and combined-sector wording is not the current
 cross-surface contract; use the Phase 34
 [canonical six-sector taxonomy](docs/SECTOR_TAXONOMY.md).
 
+> **Current launch override (11 September 2026):** the AKZ- and Angola-first
+> statements below describe the July milestone, not the current launch order.
+> Phases 55–56 use Spain, Spanish, EUR and Europe/Madrid as the first commercial
+> and demo baseline. Angola, AOA and Multicaixa remain supported for expansion.
+> See [the Spain-first audit and timeline](docs/SPAIN_FIRST_LAUNCH_AUDIT.md).
+
 | Check | Result | Evidence |
 |---|---|---|
 | Flutter dependency resolution | PASS | Flutter 3.44.7 dependencies resolved |

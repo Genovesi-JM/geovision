@@ -70,7 +70,7 @@ class OrdersRepository {
         createdAt: DateTime.tryParse('${row['created_at'] ?? ''}') ??
             DateTime.fromMillisecondsSinceEpoch(0),
         totalCents: (row['total'] as num?)?.toInt() ?? 0,
-        currency: (row['currency'] ?? 'AOA').toString(),
+        currency: (row['currency'] ?? 'EUR').toString(),
         status:
             (row['fulfilment_status'] ?? row['status'] ?? 'created').toString(),
         paymentStatus:
@@ -148,7 +148,7 @@ class OrdersRepository {
         'phone': phone,
         'company_name': company,
         'address': address,
-        'country': 'AO',
+        'country': currency.toUpperCase() == 'AOA' ? 'AO' : 'ES',
       },
       'customer_notes': notes,
     });

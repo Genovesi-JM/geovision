@@ -9,11 +9,11 @@ class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});
 
   static final _whatsapp = Uri.parse(
-      'https://wa.me/244928917269?text=Ol%C3%A1%20GeoVision%2C%20preciso%20de%20ajuda.');
+      'https://wa.me/244928917269?text=Hola%20GeoVision%2C%20necesito%20ayuda.');
   static final _instagram =
       Uri.parse('https://instagram.com/Geovision.operations');
   static final _email = Uri.parse(
-      'mailto:support@geovisionops.com?subject=Contacto%20via%20GeoVision');
+      'mailto:support@geovisionops.com?subject=Contacto%20desde%20GeoVision');
 
   @override
   Widget build(BuildContext context) {
@@ -45,15 +45,15 @@ class SupportScreen extends StatelessWidget {
           ),
           const SizedBox(height: GvSpacing.lg),
           _ContactTile(
-              icon: Icons.chat,
-              title: 'WhatsApp',
-              value: '+244 928 917 269',
-              onTap: () => _open(context, _whatsapp, copy.error)),
-          _ContactTile(
               icon: Icons.email_outlined,
               title: 'Email',
               value: 'support@geovisionops.com',
               onTap: () => _open(context, _email, copy.error)),
+          _ContactTile(
+              icon: Icons.chat,
+              title: 'WhatsApp Angola',
+              value: '+244 928 917 269',
+              onTap: () => _open(context, _whatsapp, copy.error)),
           _ContactTile(
               icon: Icons.camera_alt_outlined,
               title: 'Instagram',

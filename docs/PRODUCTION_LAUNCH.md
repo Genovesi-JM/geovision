@@ -1,5 +1,12 @@
 # GeoVision production and non-demo launch guide
 
+The current launch baseline is **Spain first**: Spanish, EUR,
+Europe/Madrid, Spanish company and fiscal validation, Stripe/card plus SEPA,
+and Spain-focused map, AEMET and MITECO rehearsals. Angola remains supported as
+the next market and is not removed. Follow the ordered
+[Spain-first audit and timeline](SPAIN_FIRST_LAUNCH_AUDIT.md) before this
+provider-by-provider guide.
+
 The operational deployment record is the
 [release checklist](RELEASE_CHECKLIST.md). It requires the exact staging image
 digest, migration-first Azure release, authorization smoke tests, worker and
@@ -54,9 +61,9 @@ uses `https://api.geovisionops.com` (see `assets/js/config.js`).
 | **Production backend hosting** | A live, healthy server for `api.geovisionops.com`; verify readiness rather than assuming the saved deployment state. | Deploy the FastAPI app; point DNS + TLS at it. |
 | **Entra External ID** | An external tenant, GeoVision API registration and delegated API scope, approved client registrations, exact issuer/audience/tenant configuration, and the web/mobile MSAL client cutover. | Build the client exchange described below, then follow the [Entra cutover runbook](ENTRA_CUTOVER_RUNBOOK.md); prove Graph and invalid tokens are rejected before switching the external login/exchange provider. |
 | **Card payments (Stripe)** | Approved Stripe account, keys, webhook, settlement/refund and reconciliation evidence. | Validate the sandbox and signed webhook first; only then set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` in the deployment secret store. A non-empty key makes the method discoverable, so configuration alone must not be treated as approval. |
-| **Multicaixa Express** | Approved merchant account, credentials, signed callback, settlement/refund and reconciliation evidence. | Validate the provider workflow first; only then set `MULTICAIXA_MERCHANT_ID`, `MULTICAIXA_API_KEY`, and `MULTICAIXA_WEBHOOK_SECRET` in the deployment secret store. |
+| **SEPA / company IBAN** | Spanish legal beneficiary, EUR account, verified IBAN and an owned reconciliation process. | Set the server-side company IBAN only after finance validates beneficiary display, sandbox instructions, reconciliation and refund handling. |
+| **Multicaixa Express (Angola expansion)** | Approved merchant account, credentials, signed callback, settlement/refund and reconciliation evidence. | Validate after the Spanish pilot unless an Angolan customer contract requires it earlier; only then set `MULTICAIXA_MERCHANT_ID`, `MULTICAIXA_API_KEY`, and `MULTICAIXA_WEBHOOK_SECRET` in the deployment secret store. |
 | **PayPal** | Approved REST app, webhook/capture/refund and reconciliation evidence. | Validate the sandbox and production cutover first; only then set `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, and `PAYPAL_MODE=live` in the deployment secret store. |
-| **Company IBAN** | Your real IBANs. | Set `COMPANY_IBAN`, `COMPANY_IBAN_INTL` (defaults are placeholders). |
 | **Odoo 19 ERP/CRM** | Odoo Custom plan/database, reviewed GeoVision bridge addon, least-privilege bot/API key, signed callback, accounting/fiscal configuration and tested rollback. | Complete [Gate 17](../HUMAN_GATES.md#17-odoo-19-live-erpcrm-activation), then select `ERP_PROVIDER=odoo` with server-managed `ODOO_*` secrets and deploy the ERP and event workers. See the [Odoo runbook](ODOO_19_INTEGRATION.md). |
 | **Push notifications** | Azure Notification Hubs plus APNs/FCM credentials, signed-app capabilities, platform configuration files and native host channel handlers. | Flutter's channel boundary and backend-managed Azure installation/delivery are implemented. Complete [Gate 16](../HUMAN_GATES.md#16-live-email-and-mobile-push-activation), wire/test the signed host side, then select `apns`, `fcm`, or `azure_notification_hubs` with `GV_PUSH_PROVIDER`. Missing host support fails closed without mock push. |
 | **Maps** | Approved tile provider, licence and restricted client token. | Use `openstreetmap` only within its tile policy or set `GV_MAP_PROVIDER=mapbox` with a restricted public token; production remains `demo` until approved. |

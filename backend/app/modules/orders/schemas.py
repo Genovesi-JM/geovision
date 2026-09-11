@@ -13,7 +13,7 @@ class CheckoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     payment_method: str = Field(min_length=2, max_length=40)
-    currency: str = Field(default="AOA", min_length=3, max_length=5)
+    currency: str = Field(default="EUR", min_length=3, max_length=5)
     billing_info: dict[str, Any]
     customer_notes: str | None = Field(default=None, max_length=2_000)
 
@@ -38,7 +38,7 @@ class DraftOrderCreate(BaseModel):
     organization_id: str = Field(min_length=1, max_length=36)
     workspace_id: str | None = Field(default=None, max_length=36)
     customer_id: str | None = Field(default=None, max_length=36)
-    currency: str = Field(default="AOA", min_length=3, max_length=5)
+    currency: str = Field(default="EUR", min_length=3, max_length=5)
     items: list[DraftItemCreate] = Field(min_length=1, max_length=200)
     customer_notes: str | None = Field(default=None, max_length=2_000)
     internal_notes: str | None = Field(default=None, max_length=10_000)

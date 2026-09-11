@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocaleController extends StateNotifier<Locale> {
   LocaleController(this._preferences)
-      : super(Locale(_preferences.getString(_key) ?? 'pt'));
+      : super(Locale(_preferences.getString(_key) ?? 'es'));
 
   static const _key = 'gv_preferred_language';
   final SharedPreferences _preferences;

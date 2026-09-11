@@ -849,7 +849,7 @@ async def health_check():
 class SiteCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=200)
     description: Optional[str] = None
-    country: str = Field(default="Angola")
+    country: str = Field(default="Spain")
     province: Optional[str] = None
     municipality: Optional[str] = None
     latitude: Optional[float] = None

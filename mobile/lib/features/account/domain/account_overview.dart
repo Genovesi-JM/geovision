@@ -42,7 +42,7 @@ class AccountOverview {
       organisationName: '${organisation['name'] ?? 'GeoVision'}',
       plan: '${organisation['plan'] ?? 'trial'}',
       status: '${organisation['status'] ?? 'active'}',
-      currency: '${financial['currency'] ?? 'AOA'}',
+      currency: '${financial['currency'] ?? 'EUR'}',
       outstandingCents: (financial['outstanding_cents'] as num?)?.toInt() ?? 0,
       paidPayments: (financial['paid_payments'] as num?)?.toInt() ?? 0,
       pendingPayments: (financial['pending_payments'] as num?)?.toInt() ?? 0,
@@ -81,6 +81,6 @@ class AccountOrderSummary {
         number: '${json['number'] ?? ''}',
         status: '${json['status'] ?? 'pending'}',
         totalCents: (json['total_cents'] as num?)?.toInt() ?? 0,
-        currency: '${json['currency'] ?? 'AOA'}',
+        currency: '${json['currency'] ?? 'EUR'}',
       );
 }

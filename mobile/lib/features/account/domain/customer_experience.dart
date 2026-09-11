@@ -92,7 +92,7 @@ class CustomerExperience {
   }
 
   static const demo = CustomerExperience(
-    activeWorkspaceId: 'demo-workspace-farm',
+    activeWorkspaceId: 'demo-workspace-spain-farm',
     activeOrganizationId: 'demo-organization',
     permissions: {
       'organization:read',
@@ -117,10 +117,10 @@ class CustomerExperience {
     },
     workspaces: [
       CustomerWorkspace(
-        id: 'demo-workspace-farm',
+        id: 'demo-workspace-spain-farm',
         organizationId: 'demo-organization',
-        name: 'Kilombo Farm',
-        organizationName: 'Fazenda Kilombo Agro',
+        name: 'Finca Madrid Norte',
+        organizationName: 'GeoVision España Demo',
         role: 'owner',
         sector: 'agriculture',
         sectors: ['agriculture'],
@@ -129,8 +129,8 @@ class CustomerExperience {
       CustomerWorkspace(
         id: 'demo-workspace-infrastructure',
         organizationId: 'demo-organization',
-        name: 'Luanda Infrastructure',
-        organizationName: 'Fazenda Kilombo Agro',
+        name: 'Infraestructuras Madrid',
+        organizationName: 'GeoVision España Demo',
         role: 'manager',
         sector: 'construction_infrastructure',
         sectors: ['construction_infrastructure'],

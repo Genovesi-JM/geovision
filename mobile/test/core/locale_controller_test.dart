@@ -14,6 +14,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
     final controller = LocaleController(preferences);
+    expect(controller.state.languageCode, 'es');
     await controller.select(const Locale('es'));
     expect(controller.state.languageCode, 'es');
     expect(LocaleController(preferences).state.languageCode, 'es');

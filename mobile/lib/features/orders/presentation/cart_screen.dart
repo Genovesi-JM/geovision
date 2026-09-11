@@ -18,10 +18,10 @@ class CartScreen extends ConsumerStatefulWidget {
 }
 
 class _CartScreenState extends ConsumerState<CartScreen> {
-  String payment = 'iban_angola';
+  String payment = 'visa_mastercard';
   bool checkingOut = false;
   final addressController =
-      TextEditingController(text: 'Fazenda Boa Vista, Viana, Luanda');
+      TextEditingController(text: 'Finca de demostración, Madrid, España');
 
   @override
   void dispose() {

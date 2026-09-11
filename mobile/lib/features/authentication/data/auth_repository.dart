@@ -83,7 +83,7 @@ class AuthRepository {
         id: 'demo',
         email: 'demo@geovisionops.com',
         fullName: 'Demo Operator',
-        organisation: 'Fazenda Kilombo Agro',
+        organisation: 'GeoVision España Demo',
         customerType: 'farm',
         dashboardProfile: 'farm',
         sectors: ['agriculture'],

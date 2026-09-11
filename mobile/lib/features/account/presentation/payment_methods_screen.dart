@@ -26,12 +26,27 @@ class PaymentMethodsScreen extends StatelessWidget {
                   const TextStyle(color: GvColors.textSecondary, fontSize: 12)),
           const SizedBox(height: 14),
           const Row(children: [
-            _Logo('assets/images/payments/payment-multicaixa.png'),
             _Logo('assets/images/payments/payment-visa.png'),
             _Logo('assets/images/payments/payment-mastercard.png'),
+            _Logo('assets/images/payments/payment-multicaixa.png'),
           ]),
         ])),
         const SizedBox(height: GvSpacing.md),
+        _Method(
+            icon: Icons.credit_card,
+            title: 'Visa / Mastercard',
+            currencies: 'EUR',
+            body: copy.cards),
+        _Method(
+            icon: Icons.account_balance_outlined,
+            title: 'SEPA / IBAN',
+            currencies: 'EUR',
+            body: copy.ibanInternational),
+        _Method(
+            icon: Icons.paypal,
+            title: 'PayPal',
+            currencies: 'EUR · USD',
+            body: copy.paypal),
         _Method(
             icon: Icons.qr_code_2,
             title: 'Multicaixa Express',
@@ -42,21 +57,6 @@ class PaymentMethodsScreen extends StatelessWidget {
             title: 'IBAN Angola',
             currencies: 'AKZ / AOA',
             body: copy.ibanAngola),
-        _Method(
-            icon: Icons.credit_card,
-            title: 'Visa / Mastercard',
-            currencies: 'EUR · USD',
-            body: copy.cards),
-        _Method(
-            icon: Icons.language,
-            title: 'IBAN Internacional',
-            currencies: 'EUR · USD',
-            body: copy.ibanInternational),
-        _Method(
-            icon: Icons.paypal,
-            title: 'PayPal',
-            currencies: 'EUR · USD',
-            body: copy.paypal),
         const SizedBox(height: GvSpacing.sm),
         Container(
           padding: const EdgeInsets.all(GvSpacing.md),

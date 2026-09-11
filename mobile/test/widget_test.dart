@@ -35,7 +35,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Fazenda Kilombo Agro'), findsWidgets);
+    expect(find.text('GeoVision España Demo'), findsWidgets);
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Assets'), findsOneWidget);
     expect(find.text('Actions'), findsOneWidget);
@@ -59,8 +59,8 @@ void main() {
 
     await tester.tap(find.text('Assets').last);
     await tester.pumpAndSettle();
-    expect(find.text('Kwanza Wetland Reserve'), findsOneWidget);
-    expect(find.text('Lunda Stockpile A'), findsOneWidget);
+    expect(find.text('Reserva del Humedal de Doñana'), findsOneWidget);
+    expect(find.text('Acopio Minero A'), findsOneWidget);
   });
 
   testWidgets('legacy deep links preserve their exact target identifiers',
@@ -98,7 +98,7 @@ void main() {
     router.go('/sites/site-1');
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/assets/site-1');
-    expect(find.text('Kilombo North Farm'), findsOneWidget);
+    expect(find.text('Finca Madrid Norte'), findsOneWidget);
 
     router.go('/orders/or-1');
     await tester.pumpAndSettle();
@@ -141,18 +141,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Fazenda Kilombo Agro · Kilombo Farm'));
+    await tester.tap(find.text('GeoVision España Demo · Finca Madrid Norte'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Luanda Infrastructure'));
+    await tester.tap(find.text('Infraestructuras Madrid'));
     await tester.pumpAndSettle();
     expect(
-      find.text('Fazenda Kilombo Agro · Luanda Infrastructure'),
+      find.text('GeoVision España Demo · Infraestructuras Madrid'),
       findsOneWidget,
     );
 
     await tester.tap(find.text('Assets').last);
     await tester.pumpAndSettle();
-    expect(find.text('Luanda Ring Road — Section 4'), findsOneWidget);
-    expect(find.text('Kwanza Wetland Reserve'), findsNothing);
+    expect(find.text('Madrid M-30 — Tramo 4'), findsOneWidget);
+    expect(find.text('Reserva del Humedal de Doñana'), findsNothing);
   });
 }

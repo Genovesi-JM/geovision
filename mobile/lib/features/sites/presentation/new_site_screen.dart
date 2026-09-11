@@ -22,8 +22,8 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
   final name = TextEditingController();
   final area = TextEditingController();
   Sector sector = Sector.agriculture;
-  String country = 'Angola';
-  String countryCode = 'AO';
+  String country = 'España';
+  String countryCode = 'ES';
   SiteRegion? province;
   String? municipality;
   List<SiteCountry> countries = const [];

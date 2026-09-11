@@ -104,7 +104,7 @@ class CartController extends StateNotifier<List<CartLine>> {
   }
 
   String get _apiCurrency =>
-      switch (_ref?.read(storeCurrencyProvider) ?? StoreCurrency.akz) {
+      switch (_ref?.read(storeCurrencyProvider) ?? StoreCurrency.eur) {
         StoreCurrency.akz => 'AOA',
         StoreCurrency.eur => 'EUR',
         StoreCurrency.usd => 'USD',
