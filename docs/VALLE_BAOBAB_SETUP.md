@@ -22,12 +22,14 @@ cloud deployment or a promise of production readiness.
 
 | Check | Observation | What this does not prove |
 |---|---|---|
-| `vallebaobab.com` registry RDAP | HTTP 404 (no domain object returned) | Registrar availability, price, reservation or trademark clearance |
+| `vallebaobab.com` registry RDAP | Registered with IONOS SE on 2026-09-11 at 16:30:29 UTC; current expiry 2027-09-11 | Mailbox existence, email delivery, trademark clearance or renewal payment |
+| IONOS email setup | Authenticated mailbox details show `genovesi@vallebaobab.com`, type Correo Basic 2 GB, and success message “Ahora puede usar su nueva dirección de correo electrónico” | Successful send/receive or a completed Microsoft/Azure signup |
+| Domain DNS, checked 16:31:02 UTC | IONOS NS/MX, SPF and documented DKIM selectors published; DMARC is `p=none` | Enforced anti-spoof rejection or working application email |
 | `vallebaobab.es` registry lookup | Lookup timed out | Availability or registration status |
 | Public Copernicus STAC `/v1/collections` | HTTP 200 | Authenticated downloads or GeoVision end-to-end integration |
 | Public MITECO OGC Features `/collections` | HTTP 200 | Per-layer coverage, licensing review or GeoVision end-to-end integration |
 | `https://api.geovisionops.com/health` | HTTP 503, `x-render-routing: suspend`, body `Service Suspended` | Cause of suspension or Azure state; restoring/migrating API service remains a priority |
-| Azure signup | Free-account form was prepared for individual use; latest browser check is back at portal home, still showing the university directory and a no-subscription welcome | Eligibility approval, a new subscription or a new Valle Baobab directory |
+| Microsoft signup for the brand email | User's latest screenshot reports “You've requested too many codes today. Please try again tomorrow.” following unsuccessful human verification; further signup/code attempts are paused | A completed Microsoft account, Azure eligibility, a new subscription or a Valle Baobab directory; exact reset time is unknown |
 | Azure portal | All Directories lists only the university directory for the current personal account | A personal Valle Baobab directory; no university resources were changed |
 | Google `geovision-483710` | Maps JavaScript API already enabled; no API keys/service accounts listed; Google free trial banner says ended | Enabled Places New/Routes/Geocoding, usable billing or live GeoVision maps |
 
@@ -36,15 +38,18 @@ record. Repeat connectivity checks immediately before the release.
 
 The requested address `valle@baobab.com` cannot be provisioned without control
 of `baobab.com`; that domain currently hosts the unrelated Baobab Group. The
-user subsequently selected `genovesi@vallebaobab.com`. This still requires
-domain purchase and mailbox provisioning. No email address has been created.
+user subsequently selected `genovesi@vallebaobab.com`. The user reports IONOS
+paid and the public registry confirms domain registration. Mailbox creation
+is now confirmed by IONOS; send/receive has not yet been tested.
 
 ## Decisions and user-controlled steps still required
 
 - [ ] Confirm intended personal Azure directory/account and complete its MFA.
 - [ ] Confirm billing country/address (Spain only if factually applicable).
-- [x] Choose mailbox address: `genovesi@vallebaobab.com`; IONOS search reports the domain available, but it is not reserved or registered.
-- [ ] Approve domain registration/renewal cost and email subscription term.
+- [x] Choose mailbox address: `genovesi@vallebaobab.com`; domain registration verified.
+- [x] User completed IONOS purchase; quoted plan terms were reviewed before handoff. Actual invoice not inspected.
+- [x] IONOS confirms creation of `genovesi@vallebaobab.com`; no password was read.
+- [ ] Verify mailbox send/receive.
 - [ ] Approve Azure/API service selection and estimated recurring cost.
 - [ ] User completes new passwords, recovery and MFA registration privately.
 - [ ] Review and approve each provider's binding terms at signup.
@@ -65,21 +70,38 @@ permanently free production service.
 
 ### Domain and personal brand mailbox
 
-Prepared, but did not submit, the IONOS Spain checkout:
+Prepared the following IONOS Spain quote, then the user reported completing
+payment. The browser first showed the order thank-you URL and subsequently
+the authenticated mailbox creation page, then confirmed mailbox details;
+actual invoice not inspected. These are the historical checkout terms:
 
 - Correo Básico 1: one 2 GB mailbox, webmail and device synchronization.
 - `vallebaobab.com`: reported available and included in the selected pack.
-- Checkout contains exactly these two items; no extra domains, paid domain
+- Prepared checkout contained exactly these two items; no extra domains, paid domain
   protection, AI add-ons, archiving, or additional mailboxes selected.
-- Current total: EUR 1.50 before tax; checkout displays EUR 1.82 including
+- Quoted total: EUR 1.50 before tax; checkout displayed EUR 1.82 including
   21% VAT. Contract details say a one-month minimum, billed one month ahead,
   with automatic renewal. Annual base-rate equivalent: EUR 18 + VAT; invoice
   rounding may differ from the unrounded EUR 21.78 annual calculation.
-- The cart labels the domain included without a separate renewal surcharge.
-  Recheck final order terms and any later tariff-change notices before
-  submitting; the domain is not reserved merely by being in the cart.
-- User still needs to approve these terms/cost and complete truthful billing
-  details and payment privately. No order, domain or mailbox exists yet.
+- The quoted cart labelled the domain included without a separate renewal
+  surcharge. Retain the order confirmation and review tariff-change notices.
+- Registration and mailbox creation are now verified. Authenticated details
+  identify `genovesi@vallebaobab.com` as Correo Basic 2 GB and display the
+  successful-creation message. Send/receive remains untested; verify receipt
+  before relying on the address for provider signups.
+- Antispam is active at Medium. Two-factor authentication and forwarding are
+  not configured. Premium Antivirus, archiving and AI were not purchased.
+- No password was generated, read or entered by the assistant.
+
+Public mail DNS verified on 2026-09-11 at 16:31:02 UTC:
+
+- MX priority 10: `mx00.ionos.es`, `mx01.ionos.es`.
+- SPF: `v=spf1 include:_spf-eu.ionos.com ~all`.
+- `_dmarc` CNAME targets `dmarc.ionos.es`, which publishes `v=DMARC1; p=none;`.
+- Documented `s1-ionos` and `s2-ionos` DKIM selectors resolve to IONOS public
+  signing keys. Public keys are not credentials.
+- This is configuration evidence only, not a successful mail-delivery test.
+  Do not tighten DMARC until all legitimate senders are verified and approved.
 
 Comparison: Zoho Mail Lite 5 GB is EUR 0.90/user/month paid annually (EUR 10.80
 before local tax), but a domain must be purchased separately. Its free plan
@@ -125,10 +147,79 @@ the SMTP credential or send test messages without an authorized recipient.
   keys, appropriate field masks and quotas. Free allowances differ by SKU;
   neither a billing alert nor enabling an API is a hard spending cap.
 
-Checkout is prepared for approval, not completed. The independent Azure
-directory and a live working API remain blocking prerequisites for release.
+IONOS purchase is reported complete, and domain registration and mailbox
+creation are verified. Mail delivery verification, an independent Azure
+directory and a live working API remain prerequisites for release. Separate
+Microsoft/Azure signup is not complete. Use the new brand email for a separate
+Microsoft login only after it can receive verification mail; do not add it as
+an alias to the existing university-associated login merely to rename that login.
 
 ## First GeoVision integration tranche
+
+### Live public-provider checks — 2026-09-11
+
+These checks executed the actual repository adapters without loading application
+credentials or accessing an application database. They do not prove website or
+mobile activation, persistence, downloads, or a deployed backend. No provider
+configuration, cloud account or DNS record was changed.
+
+- **Copernicus catalogue: passed.** At 17:48:06–17:48:07 UTC, the unchanged
+  `geovision-copernicus-stac-v1.0.0` adapter made one unauthenticated request to
+  `https://stac.dataspace.copernicus.eu/v1/search`. Madrid bounds
+  `[-3.71, 40.40, -3.69, 40.42]`, 1–30 June 2025 UTC, `sentinel-2-l2a`, cloud
+  coverage at most 60%, and limit 2 returned HTTP 200 and two normalized scenes:
+  Sentinel-2C on 29 June (0.264585% cloud) and Sentinel-2A on 28 June
+  (0.404338% cloud), both with 10 m resolution and 12 normalized band names.
+  Each scene contained 43 asset descriptors; 42 indicate authentication
+  requirements. Item-level CRS/licence fields were absent/null and remained
+  null in the normalized output. No data assets were downloaded.
+- **Copernicus download follow-up: deferred.** Returned data assets use
+  `zipper.dataspace.copernicus.eu`, absent from the default download-host
+  allowlists in `backend/app/core/config.py` and
+  `backend/app/integrations/satellite/copernicus.py`. Those assets would be
+  rejected before authentication. Review endpoint trust, authentication,
+  licensing/provenance and download tests before making any scoped allowlist
+  change; do not switch off the host guard.
+- **MITECO: reachable, coastal feature retrieval not ready.** At approximately
+  17:48 UTC, the actual `MitecoOgcFeaturesProvider` queried its sole reviewed
+  collection, `costas:poem_uso_prio_biodiv_zupbd`
+  (`biodiversity_priority_zones`), with `OGC:CRS84` and `limit=1`. This is a
+  coastal biodiversity layer, not comprehensive inland environmental coverage.
+  Madrid bounds `[-3.8, 40.3, -3.5, 40.6]` returned HTTP 200, 3,235 bytes and
+  zero matches/features, with proper attribution and context-only provenance.
+  Cabo de Gata bounds `[-2.4, 36.65, -1.85, 37.0]` exceeded the default 2 MiB
+  response limit. A single diagnostic request with an 8 MiB cap also exceeded
+  that cap despite HTTP 200 and GeoJSON content type. Coastal data could not
+  be parsed; this is an oversized-response failure, not a no-data result.
+  Three live requests were made in total; no permanent limit was increased.
+  All 36 existing isolated mocked adapter tests passed. Pagination and total
+  match counts are not exposed in `GISLayerResult`; completeness reporting
+  also needs review before presenting this layer as fully integrated.
+- **AEMET: request prepared, key pending.** The official key-request form is
+  open with `genovesi@vallebaobab.com`; the user must complete the human check
+  and submit once. No AEMET key has been inspected, installed or tested. This
+  signup is independent from the paused Microsoft signup.
+- **Transactional email: compatible service identified, not provisioned.**
+  Resend Free currently lists 3,000 messages/month and a 100/day limit. Its
+  SMTP endpoint supports the application's existing STARTTLS flow on port
+  587. Account creation, terms review, sender-domain verification, scoped
+  credentials and an authorized delivery test remain pending. Use a separate
+  send-only project subdomain after confirming domain control; preserve the
+  root IONOS MX records and the personal inbox. Resend's guidance says newer
+  sending domains may use CNAME records rather than the older MX/TXT pair:
+  copy only the exact records supplied by that account's dashboard. Do not
+  enable inbound routing or invent DNS records.
+
+Copernicus scene evidence:
+
+- https://stac.dataspace.copernicus.eu/v1/collections/sentinel-2-l2a/items/S2C_MSIL2A_20250629T110641_N0511_R137_T30TVK_20250629T150216
+- https://stac.dataspace.copernicus.eu/v1/collections/sentinel-2-l2a/items/S2A_MSIL2A_20250628T105711_N0511_R094_T30TVK_20250628T150516
+
+MITECO checked endpoint:
+
+- https://gis.miteco.gob.es/geoserver/ogc/features/v1/collections/costas%3Apoem_uso_prio_biodiv_zupbd/items
+
+### Activation requirements
 
 | Capability | Preparation available | Configuration / external dependency | Acceptance evidence |
 |---|---|---|---|
@@ -204,6 +295,11 @@ Reference sources checked on 2026-09-11:
 - https://kb.porkbun.com/article/201-why-did-com-prices-go-up-and-how-high-will-they-go
 - https://resend.com/pricing
 - https://resend.com/docs/send-with-smtp
+- https://resend.com/docs/knowledge-base/how-do-i-avoid-conflicting-with-my-mx-records
+- https://opendata.aemet.es/centrodedescargas/inicio
+- https://opendata.aemet.es/centrodedescargas/altaUsuario
+- https://www.aemet.es/es/nota_legal
+- https://www.datosabiertos.miteco.gob.es/es/aviso-legal.html
 - https://learn.microsoft.com/en-us/azure/container-apps/billing
 - https://prices.azure.com/api/retail/prices
 - https://developers.google.com/maps/billing-and-pricing/pricing
