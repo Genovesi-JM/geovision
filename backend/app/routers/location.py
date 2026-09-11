@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
 
+from app.core.database import get_db
 from app.core.integration import IntegrationResult, IntegrationStatus
-from app.deps import get_current_user
+from app.core.time import utc_now
+from app.deps import get_authorization_context, get_current_user
 from app.integrations.location import create_location_provider
 from app.models import User
+from app.modules.economics.schemas import ProviderUsageCreate
+from app.modules.economics.services import record_provider_usage
+from app.modules.identity.domain import AuthorizationContext
 from app.modules.assets.location_ports import GeoCoordinate, LocationProvider
 from app.modules.assets.location_schemas import (
     CoordinateIn,
@@ -59,6 +66,40 @@ def _require_value(result: IntegrationResult):
     )
 
 
+def _record_usage(
+    db: Session,
+    *,
+    request: Request,
+    result: IntegrationResult,
+    context: AuthorizationContext,
+    actor: User,
+    service: str,
+) -> None:
+    if (
+        result.status is not IntegrationStatus.SUCCEEDED
+        or not context.active_organization_id
+    ):
+        return
+    request_id = str(getattr(request.state, "request_id", "unknown"))[:128]
+    record_provider_usage(
+        db,
+        payload=ProviderUsageCreate(
+            organization_id=context.active_organization_id,
+            workspace_id=context.active_workspace_id,
+            provider=result.provider,
+            service=service,
+            usage_type="provider_request",
+            quantity=Decimal("1"),
+            unit="request",
+            occurred_at=utc_now(),
+            idempotency_key=f"location:{request_id}:{result.operation}",
+            metadata={"operation": result.operation},
+        ),
+        actor=actor,
+    )
+    db.commit()
+
+
 @router.get("/capabilities")
 def capabilities(
     user: User = Depends(get_current_user),
@@ -80,11 +121,13 @@ def capabilities(
 
 @router.post("/places:autocomplete", response_model=PlaceAutocompleteOut)
 def autocomplete(
+    request: Request,
     body: PlaceAutocompleteIn,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
     provider: LocationProvider = Depends(get_location_provider),
 ):
-    del user
     result = provider.autocomplete(
         query=body.query.strip(),
         session_token=body.session_token,
@@ -93,6 +136,14 @@ def autocomplete(
         bias=_point(body.bias) if body.bias else None,
     )
     suggestions = _require_value(result)
+    _record_usage(
+        db,
+        request=request,
+        result=result,
+        context=context,
+        actor=user,
+        service="places_autocomplete",
+    )
     return PlaceAutocompleteOut(
         provider=result.provider,
         simulated=result.status is IntegrationStatus.SIMULATED,
@@ -109,17 +160,27 @@ def autocomplete(
 
 @router.post("/places:resolve", response_model=ResolvedPlaceOut)
 def resolve_place(
+    request: Request,
     body: PlaceResolveIn,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
     provider: LocationProvider = Depends(get_location_provider),
 ):
-    del user
     result = provider.resolve_place(
         provider_reference=body.provider_reference,
         session_token=body.session_token,
         language_code=body.language_code,
     )
     place = _require_value(result)
+    _record_usage(
+        db,
+        request=request,
+        result=result,
+        context=context,
+        actor=user,
+        service="place_details",
+    )
     return ResolvedPlaceOut(
         provider=result.provider,
         simulated=result.status is IntegrationStatus.SIMULATED,
@@ -135,17 +196,27 @@ def resolve_place(
 
 @router.post("/routes:compute", response_model=RouteEstimateOut)
 def compute_route(
+    request: Request,
     body: RouteComputeIn,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
     provider: LocationProvider = Depends(get_location_provider),
 ):
-    del user
     result = provider.compute_route(
         origin=_point(body.origin),
         destination=_point(body.destination),
         language_code=body.language_code,
     )
     route = _require_value(result)
+    _record_usage(
+        db,
+        request=request,
+        result=result,
+        context=context,
+        actor=user,
+        service="routes_compute",
+    )
     return RouteEstimateOut(
         provider=result.provider,
         simulated=result.status is IntegrationStatus.SIMULATED,
@@ -158,17 +229,27 @@ def compute_route(
 
 @router.post("/addresses:reverse", response_model=ReverseGeocodeOut)
 def reverse_geocode(
+    request: Request,
     body: ReverseGeocodeIn,
     user: User = Depends(get_current_user),
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
     provider: LocationProvider = Depends(get_location_provider),
 ):
-    del user
     result = provider.reverse_geocode(
         coordinate=_point(body.coordinate),
         language_code=body.language_code,
         region_code=body.region_code,
     )
     address = _require_value(result)
+    _record_usage(
+        db,
+        request=request,
+        result=result,
+        context=context,
+        actor=user,
+        service="geocoding_reverse",
+    )
     return ReverseGeocodeOut(
         provider=result.provider,
         simulated=result.status is IntegrationStatus.SIMULATED,

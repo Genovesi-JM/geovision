@@ -1,4 +1,4 @@
-"""Phase 37 location-provider and authenticated API tests."""
+"""Location-provider, authenticated API and private usage-ledger tests."""
 
 from __future__ import annotations
 
@@ -9,9 +9,11 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
+from app.core.integration import IntegrationResult
 from app.integrations.location.fake import DeterministicLocationProvider
 from app.integrations.location.google_maps import GoogleMapsLocationProvider
 from app.modules.assets.location_ports import GeoCoordinate
+from app.models import ProviderUsage
 from app.routers.location import get_location_provider
 
 
@@ -22,6 +24,18 @@ def _auth_headers(client) -> dict[str, str]:
     )
     assert response.status_code == 200, response.text
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
+
+
+class _MeteredDeterministicProvider(DeterministicLocationProvider):
+    provider_name = "google_maps"
+
+    def autocomplete(self, **kwargs):
+        result = super().autocomplete(**kwargs)
+        return IntegrationResult.succeeded(
+            provider=self.provider_name,
+            operation=result.operation,
+            value=result.value,
+        )
 
 
 def test_settings_fail_closed_and_redact_google_maps_server_key(monkeypatch):
@@ -263,3 +277,33 @@ def test_location_request_validation_rejects_bad_tokens_and_coordinates(client):
         json={"query": "Luanda", "session_token": "contains spaces"},
     )
     assert response.status_code == 422
+
+
+def test_successful_live_call_records_private_usage_without_location_data(
+    client, db_session
+):
+    client.app.dependency_overrides[get_location_provider] = (
+        lambda: _MeteredDeterministicProvider()
+    )
+    try:
+        response = client.post(
+            "/location/places:autocomplete",
+            headers={**_auth_headers(client), "X-Request-ID": "location-cost-001"},
+            json={
+                "query": "sensitive customer search",
+                "session_token": "session-1",
+                "language_code": "pt",
+            },
+        )
+        assert response.status_code == 200, response.text
+        usage = (
+            db_session.query(ProviderUsage)
+            .filter(ProviderUsage.service == "places_autocomplete")
+            .one()
+        )
+        assert usage.provider == "google_maps"
+        assert usage.quantity == 1
+        assert usage.idempotency_key == "location:location-cost-001:autocomplete"
+        assert "sensitive customer search" not in usage.metadata_json
+    finally:
+        client.app.dependency_overrides.pop(get_location_provider, None)

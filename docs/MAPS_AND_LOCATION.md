@@ -110,3 +110,10 @@ reach the paid provider: 60 autocomplete calls, 30 place resolutions, 20 route
 computations and 30 reverse-geocoding calls. These application limits reduce
 accidental or abusive spend, but do not replace hard quotas, alerts and budgets
 in the Google Cloud project.
+
+Every successful live Google location call is also written to the private
+provider-usage ledger against the active organization and workspace. The ledger
+records the provider, service and one request unit, but never the searched text,
+address or coordinates. Prices remain invoice-controlled data rather than
+hard-coded assumptions, allowing finance to reconcile Spain launch usage as
+Google pricing changes.
