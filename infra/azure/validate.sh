@@ -17,7 +17,7 @@ else
   exit 1
 fi
 
-PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
+GEOVISION_REQUIRE_BICEP_TESTS=1 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
   -s "${script_dir}/tests" \
   -p 'test_*.py'
 

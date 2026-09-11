@@ -1,0 +1,35 @@
+{
+  "predictedResources": [],
+  "diagnostics": [],
+  "outputs": {
+    "apiEnvironment": [],
+    "eventEnvironment": [],
+    "notificationEnvironment": [
+      {
+        "name": "NOTIFICATION_PROVIDER",
+        "value": "auto"
+      }
+    ],
+    "processingEnvironment": [
+      {
+        "name": "PROCESSING_PROVIDER",
+        "value": "none"
+      }
+    ],
+    "eventSecrets": [],
+    "processingSecrets": [],
+    "intelligenceEnvironment": [
+      {
+        "name": "SATELLITE_PROVIDER",
+        "value": "none"
+      },
+      {
+        "name": "WEATHER_PROVIDER",
+        "value": "none"
+      }
+    ],
+    "apiSecrets": [],
+    "notificationSecrets": [],
+    "intelligenceSecrets": []
+  }
+}

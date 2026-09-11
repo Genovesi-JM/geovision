@@ -24,6 +24,11 @@ receives those values directly as Container Apps environment variables because
 it does not load the Azure App Configuration SDK. Free-tier request/storage
 quotas are suitable for this catalog, not a high-volume runtime dependency.
 
+Optional first-demo provider wiring (Google location, AEMET, MITECO,
+Copernicus, SMTP and NodeODM) is described in [PROVIDER_SETUP.md](PROVIDER_SETUP.md).
+It is disabled by default and references only fixed-name secrets already in
+this stack's Key Vault; it creates no provider credentials or accounts.
+
 ## Prerequisites and secrets
 
 Use Azure CLI with permission to create the resource group, resources, and role

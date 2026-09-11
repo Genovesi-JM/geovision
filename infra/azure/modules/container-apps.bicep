@@ -1,3 +1,7 @@
+import { FirstDemoProviderConfiguration } from './provider-bindings.bicep'
+
+param providerConfiguration FirstDemoProviderConfiguration = {}
+param providerKeyVaultUri string
 param location string
 param deployApplications bool
 param deployMigrationJob bool
@@ -37,6 +41,14 @@ param workerMaxReplicas int
 param tags object
 
 var apiBaseUrl = 'https://${apiName}.${managedEnvironment.properties.defaultDomain}'
+module providerBindings './provider-bindings.bicep' = {
+  name: 'first-demo-provider-bindings'
+  params: {
+    providerConfiguration: providerConfiguration
+    keyVaultUri: providerKeyVaultUri
+    identityResourceId: identityResourceId
+  }
+}
 var workloadIdentity = {
   type: 'UserAssigned'
   userAssignedIdentities: {
@@ -208,7 +220,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
         transport: 'auto'
       }
       registries: registryConfiguration
-      secrets: secretConfiguration
+      secrets: concat(secretConfiguration, providerBindings.outputs.apiSecrets)
     }
     template: {
       containers: [
@@ -223,7 +235,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
             'serve'
             '--skip-migrations'
           ]
-          env: concat(commonEnvironment, [
+          env: concat(commonEnvironment, providerBindings.outputs.apiEnvironment, [
             {
               name: 'PORT'
               value: '8080'
@@ -301,7 +313,7 @@ resource eventWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplic
     configuration: {
       activeRevisionsMode: 'Single'
       registries: registryConfiguration
-      secrets: secretConfiguration
+      secrets: concat(secretConfiguration, providerBindings.outputs.eventSecrets)
     }
     template: {
       containers: [
@@ -315,7 +327,7 @@ resource eventWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplic
             '-m'
             'app.workers.event_worker'
           ]
-          env: commonEnvironment
+          env: concat(commonEnvironment, providerBindings.outputs.eventEnvironment)
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
@@ -414,7 +426,7 @@ resource notificationWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
     configuration: {
       activeRevisionsMode: 'Single'
       registries: registryConfiguration
-      secrets: secretConfiguration
+      secrets: concat(secretConfiguration, providerBindings.outputs.notificationSecrets)
     }
     template: {
       containers: [
@@ -428,12 +440,7 @@ resource notificationWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
             '-m'
             'app.workers.notification_worker'
           ]
-          env: concat(commonEnvironment, [
-            {
-              name: 'NOTIFICATION_PROVIDER'
-              value: 'auto'
-            }
-          ])
+          env: concat(commonEnvironment, providerBindings.outputs.notificationEnvironment)
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
@@ -473,7 +480,7 @@ resource processingWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployA
     configuration: {
       activeRevisionsMode: 'Single'
       registries: registryConfiguration
-      secrets: secretConfiguration
+      secrets: concat(secretConfiguration, providerBindings.outputs.processingSecrets)
     }
     template: {
       containers: [
@@ -487,12 +494,7 @@ resource processingWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployA
             '-m'
             'app.workers.processing_worker'
           ]
-          env: concat(commonEnvironment, [
-            {
-              name: 'PROCESSING_PROVIDER'
-              value: 'none'
-            }
-          ])
+          env: concat(commonEnvironment, providerBindings.outputs.processingEnvironment)
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
@@ -532,7 +534,7 @@ resource intelligenceWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
     configuration: {
       activeRevisionsMode: 'Single'
       registries: registryConfiguration
-      secrets: secretConfiguration
+      secrets: concat(secretConfiguration, providerBindings.outputs.intelligenceSecrets)
     }
     template: {
       containers: [
@@ -546,16 +548,7 @@ resource intelligenceWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
             '-m'
             'app.workers.intelligence_worker'
           ]
-          env: concat(commonEnvironment, [
-            {
-              name: 'SATELLITE_PROVIDER'
-              value: 'none'
-            }
-            {
-              name: 'WEATHER_PROVIDER'
-              value: 'none'
-            }
-          ])
+          env: concat(commonEnvironment, providerBindings.outputs.intelligenceEnvironment)
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'

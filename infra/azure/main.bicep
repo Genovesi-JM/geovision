@@ -1,5 +1,10 @@
 targetScope = 'subscription'
 
+import { FirstDemoProviderConfiguration } from './modules/provider-bindings.bicep'
+
+@description('Opt-in first-demo providers using existing, fixed-name secrets in this environment Key Vault. Empty preserves current behavior.')
+param providerConfiguration FirstDemoProviderConfiguration = {}
+
 @description('Azure region for the resource group and all regional resources.')
 param location string = 'westeurope'
 
@@ -115,6 +120,7 @@ module environment './environment.bicep' = {
     workerMinReplicas: workerMinReplicas
     workerMaxReplicas: workerMaxReplicas
     tags: tags
+    providerConfiguration: providerConfiguration
   }
 }
 

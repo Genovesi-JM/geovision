@@ -1,0 +1,231 @@
+{
+  "predictedResources": [],
+  "diagnostics": [],
+  "outputs": {
+    "intelligenceEnvironment": [
+      {
+        "name": "SATELLITE_PROVIDER",
+        "value": "copernicus"
+      },
+      {
+        "name": "SATELLITE_DOWNLOAD_ASSETS_ENABLED",
+        "value": "false"
+      },
+      {
+        "name": "WEATHER_PROVIDER",
+        "value": "none"
+      }
+    ],
+    "processingEnvironment": [
+      {
+        "name": "PROCESSING_PROVIDER",
+        "value": "nodeodm"
+      },
+      {
+        "name": "NODEODM_BASE_URL",
+        "secretRef": "provider-nodeodm-url"
+      },
+      {
+        "name": "NODEODM_TOKEN",
+        "secretRef": "provider-nodeodm-token"
+      },
+      {
+        "name": "PROCESSING_AUTO_CREATE_ENABLED",
+        "value": "false"
+      }
+    ],
+    "apiSecrets": [
+      {
+        "name": "provider-google-maps-key",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-google-maps-key"
+      },
+      {
+        "name": "provider-smtp-host",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-host"
+      },
+      {
+        "name": "provider-smtp-user",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-user"
+      },
+      {
+        "name": "provider-smtp-password",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-password"
+      },
+      {
+        "name": "provider-smtp-from",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-from"
+      },
+      {
+        "name": "provider-nodeodm-url",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-nodeodm-url"
+      },
+      {
+        "name": "provider-nodeodm-token",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-nodeodm-token"
+      }
+    ],
+    "apiEnvironment": [
+      {
+        "name": "LOCATION_PROVIDER",
+        "value": "google_maps"
+      },
+      {
+        "name": "GOOGLE_MAPS_SERVER_API_KEY",
+        "secretRef": "provider-google-maps-key"
+      },
+      {
+        "name": "GOOGLE_ROUTES_TRAFFIC_AWARE",
+        "value": "false"
+      },
+      {
+        "name": "SATELLITE_PROVIDER",
+        "value": "copernicus"
+      },
+      {
+        "name": "SATELLITE_DOWNLOAD_ASSETS_ENABLED",
+        "value": "false"
+      },
+      {
+        "name": "NOTIFICATION_PROVIDER",
+        "value": "smtp"
+      },
+      {
+        "name": "SMTP_HOST",
+        "secretRef": "provider-smtp-host"
+      },
+      {
+        "name": "SMTP_PORT",
+        "value": "587"
+      },
+      {
+        "name": "SMTP_USER",
+        "secretRef": "provider-smtp-user"
+      },
+      {
+        "name": "SMTP_PASSWORD",
+        "secretRef": "provider-smtp-password"
+      },
+      {
+        "name": "SMTP_FROM",
+        "secretRef": "provider-smtp-from"
+      },
+      {
+        "name": "SMTP_USE_TLS",
+        "value": "true"
+      },
+      {
+        "name": "PROCESSING_PROVIDER",
+        "value": "nodeodm"
+      },
+      {
+        "name": "NODEODM_BASE_URL",
+        "secretRef": "provider-nodeodm-url"
+      },
+      {
+        "name": "NODEODM_TOKEN",
+        "secretRef": "provider-nodeodm-token"
+      },
+      {
+        "name": "PROCESSING_AUTO_CREATE_ENABLED",
+        "value": "false"
+      }
+    ],
+    "notificationEnvironment": [
+      {
+        "name": "NOTIFICATION_PROVIDER",
+        "value": "smtp"
+      },
+      {
+        "name": "SMTP_HOST",
+        "secretRef": "provider-smtp-host"
+      },
+      {
+        "name": "SMTP_PORT",
+        "value": "587"
+      },
+      {
+        "name": "SMTP_USER",
+        "secretRef": "provider-smtp-user"
+      },
+      {
+        "name": "SMTP_PASSWORD",
+        "secretRef": "provider-smtp-password"
+      },
+      {
+        "name": "SMTP_FROM",
+        "secretRef": "provider-smtp-from"
+      },
+      {
+        "name": "SMTP_USE_TLS",
+        "value": "true"
+      }
+    ],
+    "intelligenceSecrets": [],
+    "eventSecrets": [
+      {
+        "name": "provider-nodeodm-url",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-nodeodm-url"
+      }
+    ],
+    "notificationSecrets": [
+      {
+        "name": "provider-smtp-host",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-host"
+      },
+      {
+        "name": "provider-smtp-user",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-user"
+      },
+      {
+        "name": "provider-smtp-password",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-password"
+      },
+      {
+        "name": "provider-smtp-from",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-smtp-from"
+      }
+    ],
+    "processingSecrets": [
+      {
+        "name": "provider-nodeodm-url",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-nodeodm-url"
+      },
+      {
+        "name": "provider-nodeodm-token",
+        "identity": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/fixture/providers/Microsoft.ManagedIdentity/userAssignedIdentities/fixture",
+        "keyVaultUrl": "https://kv-geovision-fixture.vault.azure.net/secrets/provider-nodeodm-token"
+      }
+    ],
+    "eventEnvironment": [
+      {
+        "name": "NOTIFICATION_PROVIDER",
+        "value": "smtp"
+      },
+      {
+        "name": "PROCESSING_PROVIDER",
+        "value": "nodeodm"
+      },
+      {
+        "name": "NODEODM_BASE_URL",
+        "secretRef": "provider-nodeodm-url"
+      },
+      {
+        "name": "PROCESSING_AUTO_CREATE_ENABLED",
+        "value": "false"
+      }
+    ]
+  }
+}

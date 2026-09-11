@@ -1,5 +1,9 @@
 targetScope = 'resourceGroup'
 
+import { FirstDemoProviderConfiguration } from './modules/provider-bindings.bicep'
+
+param providerConfiguration FirstDemoProviderConfiguration = {}
+
 param location string
 param workloadName string
 param environmentName string
@@ -208,6 +212,8 @@ module applications './modules/container-apps.bicep' = {
     databaseUrlSecretUri: keyVault.outputs.databaseUrlSecretUri
     secretKeySecretUri: keyVault.outputs.secretKeySecretUri
     encryptionKeySecretUri: keyVault.outputs.encryptionKeySecretUri
+    providerConfiguration: providerConfiguration
+    providerKeyVaultUri: keyVault.outputs.vaultUri
     storageAccountUrl: storage.outputs.blobEndpoint
     storageContainerName: storageContainerName
     serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
