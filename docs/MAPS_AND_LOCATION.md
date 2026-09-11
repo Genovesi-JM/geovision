@@ -18,6 +18,12 @@ uses the same selected provider and falls back explicitly to OpenStreetMap when
 the application is in demo mode. Individual screens no longer own hard-coded
 tile URLs.
 
+The authenticated web portal also renders its validated GeoJSON layers over a
+configured HTTPS base map. The default is OpenStreetMap with visible
+attribution. Runtime tile configuration is restricted to known provider hosts,
+required XYZ placeholders and provider zoom limits; invalid configuration fails
+closed instead of loading an arbitrary tile origin.
+
 An asset with valid coordinates also offers Google Maps and Apple Maps driving
 handoff. GeoVision constructs only allowlisted HTTPS universal links from
 validated latitude/longitude values. This works without an API key and does not

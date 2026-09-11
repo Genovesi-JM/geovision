@@ -391,6 +391,7 @@ test.describe('contextual customer portal', () => {
 
   test('puts decision KPIs before technical drilldown and renders standardized map layers', async ({ page }) => {
     const requests = await installApi(page);
+    await page.route('https://tile.openstreetmap.org/**', (route) => route.abort());
     await openPortal(page, '/dashboard.html?view=analytics');
     await expect(page.getByRole('heading', { name: 'Decision KPIs' })).toBeVisible();
     await expect(page.getByText('Operational risk')).toBeVisible();
@@ -403,6 +404,8 @@ test.describe('contextual customer portal', () => {
 
     await page.getByRole('link', { name: 'Map', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Assets (1)' })).toBeVisible();
+    await expect(page.locator('.leaflet-tile-pane img').first()).toHaveAttribute('src', /https:\/\/tile\.openstreetmap\.org\//);
+    await expect(page.locator('.leaflet-control-attribution')).toContainText('OpenStreetMap contributors');
     expect(requests.some((request) => request.path === '/portal/map-layers' && request.workspaceId === 'workspace-a')).toBeTruthy();
   });
 

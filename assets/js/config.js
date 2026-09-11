@@ -20,5 +20,12 @@
 	window.API_BASE =
 		window.API_BASE ||
 		(isProduction ? PROD_DEFAULT : LOCAL_DEFAULT);
-})();
 
+	// Public raster-tile configuration. This contains no secret: browser map
+	// credentials are always visible and must be provider-restricted.
+	window.GV_MAP_TILES = window.GV_MAP_TILES || Object.freeze({
+		provider: "openstreetmap",
+		urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+		maxZoom: 19,
+	});
+})();

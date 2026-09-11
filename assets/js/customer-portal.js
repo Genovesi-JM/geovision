@@ -109,12 +109,46 @@ const SAFE_GEOMETRIES = new Set([
   "MultiPolygon",
 ]);
 
+const BASE_MAP_PROVIDERS = Object.freeze({
+  openstreetmap: Object.freeze({
+    host: "tile.openstreetmap.org",
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19,
+  }),
+  mapbox: Object.freeze({
+    host: "api.mapbox.com",
+    attribution: "© Mapbox © OpenStreetMap",
+    maxZoom: 22,
+  }),
+});
+
 const safeId = (value) =>
   typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const asString = (value, fallback = "") =>
   typeof value === "string" && value.trim() ? value.trim() : fallback;
 const asArray = (value) => (Array.isArray(value) ? value : []);
+
+function normalizeBaseMap(raw = window.GV_MAP_TILES) {
+  if (!isRecord(raw)) return null;
+  const provider = BASE_MAP_PROVIDERS[asString(raw.provider).toLowerCase()];
+  const template = asString(raw.urlTemplate);
+  if (!provider || !template.includes("{z}") || !template.includes("{x}") || !template.includes("{y}")) return null;
+  try {
+    const candidate = new URL(template.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0"));
+    if (candidate.protocol !== "https:" || candidate.hostname !== provider.host) return null;
+  } catch (_) {
+    return null;
+  }
+  const requestedZoom = Number(raw.maxZoom);
+  return {
+    urlTemplate: template,
+    maxZoom: Number.isInteger(requestedZoom) && requestedZoom > 0
+      ? Math.min(requestedZoom, provider.maxZoom)
+      : provider.maxZoom,
+    attribution: provider.attribution,
+  };
+}
 
 function node(tag, options = {}, children = []) {
   const element = document.createElement(tag);
@@ -1331,7 +1365,13 @@ class CustomerPortal {
       this.destroyMap();
       controls.replaceChildren();
       if (!window.L) throw new Error("Map renderer unavailable");
-      this.map = window.L.map(mapElement, { zoomControl: true, attributionControl: false }).setView([-12.5, 18.5], 5);
+      this.map = window.L.map(mapElement, { zoomControl: true, attributionControl: true }).setView([-12.5, 18.5], 5);
+      const baseMap = normalizeBaseMap();
+      if (!baseMap) throw new Error("Base map configuration unavailable");
+      window.L.tileLayer(baseMap.urlTemplate, {
+        attribution: baseMap.attribution,
+        maxZoom: baseMap.maxZoom,
+      }).addTo(this.map);
       const colors = { ASSET: "#22d3ee", OBSERVATION: "#f59e0b", DEVICE: "#34d399" };
       projection.layers.forEach((layer) => {
         const leafletLayer = window.L.geoJSON(layer.collection, {
