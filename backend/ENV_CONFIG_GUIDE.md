@@ -271,6 +271,7 @@ SATELLITE_PROVIDER=none
 ERP_PROVIDER=mock
 NOTIFICATION_PROVIDER=auto
 GIS_PROVIDER=none
+LOCATION_PROVIDER=none
 CONSTRUCTION_PROVIDER=none
 ASSET_MANAGEMENT_PROVIDER=none
 MARITIME_PROVIDER=none
@@ -279,8 +280,9 @@ MARITIME_PROVIDER=none
 `OBJECT_STORAGE_PROVIDER`, `ERP_PROVIDER`, `NOTIFICATION_PROVIDER`,
 `IDENTITY_PROVIDER`, `QUEUE_PROVIDER`, `PROCESSING_PROVIDER`,
 `WEATHER_PROVIDER`, `SATELLITE_PROVIDER`, `IOT_CLOUD_PROVIDER`,
-`CONSTRUCTION_PROVIDER`, `GIS_PROVIDER`, `ASSET_MANAGEMENT_PROVIDER`, and
-`MARITIME_PROVIDER` drive provider boundaries. Queue delivery accepts
+`CONSTRUCTION_PROVIDER`, `GIS_PROVIDER`, `LOCATION_PROVIDER`,
+`ASSET_MANAGEMENT_PROVIDER`, and `MARITIME_PROVIDER` drive provider boundaries.
+Queue delivery accepts
 `database`, test-only `in_memory`, `azure_service_bus`, or the
 local-only fail-closed `null` adapter. Identity accepts `internal`,
 `transition`, or `entra_external_id`; the latter two require a complete, valid
@@ -442,6 +444,25 @@ endorsement. The adapter does not call the MITECO catalogue on the request path.
 Satellite scenes and weather observations continue to use the existing
 Copernicus and AEMET providers; do not construct duplicate clients in an
 environmental module.
+
+## Google Maps location services
+
+```dotenv
+LOCATION_PROVIDER=none
+GOOGLE_MAPS_SERVER_API_KEY=
+```
+
+`LOCATION_PROVIDER=google_maps` activates the server-side Places API New and
+Routes API adapter only when `GOOGLE_MAPS_SERVER_API_KEY` is present. The key is
+redacted from settings output and must come from the deployment secret store.
+Restrict it to the required APIs, backend egress, quotas and approved projects;
+do not reuse a browser or mobile Maps SDK key. Local tests may select
+`deterministic`, which is rejected in deployed environments.
+
+The authenticated `/location` API exposes bounded autocomplete, selected-place
+resolution and driving route estimates. Autocomplete and resolution must reuse
+one session token. Responses retain Google place IDs only as provider
+references; GeoVision coordinates and Asset UUIDs remain authoritative.
 
 ## Photogrammetry processing
 

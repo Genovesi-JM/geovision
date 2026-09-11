@@ -54,6 +54,13 @@ coordinates or operational layer model. The current external-app handoff is
 not a substitute for those APIs. Provider responses are external references
 and cached evidence, never GeoVision primary identifiers.
 
+The backend now includes an authenticated provider boundary for Places API New
+autocomplete, Place Details resolution and Routes API driving estimates. It
+uses a deterministic local provider by contract test and a Google adapter with
+mocked official HTTP responses. Live Google calls remain disabled until a
+server-only key, billing, API restrictions, quotas, EEA terms and Spain/Angola
+coverage are approved. The mobile search UI is the next consumer of this API.
+
 ## Production acceptance gate
 
 Before enabling a live provider, record the account owner, billing limits,

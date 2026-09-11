@@ -28,6 +28,7 @@ plus pilot supervision.
 | ArcGIS | Enterprise GIS layers | Future integration-registry adapter; not a mobile selector | Server-managed connection | Provider-dependent | — | Yes |
 | Demo delivery map | Order route, vehicle position and progress timeline | **Mock working** | Default in demo mode | — | Unit + iOS Simulator | No |
 | Google Maps / Apple Maps handoff | Open driving directions to a validated asset coordinate | **Working** through allowlisted universal links; no API key | No credential | — | URL contract + native launcher | No |
+| Google Places API New + Routes API | Server-side autocomplete, selected-place coordinates and driving estimates | **Adapter + authenticated API working** · live credential not activated | `LOCATION_PROVIDER=google_maps`, server-only `GOOGLE_MAPS_SERVER_API_KEY` | — | Deterministic journey + mocked official HTTP contracts | Yes (billing, restrictions, EEA terms, quota and coverage) |
 | Google Maps + logistics feed | Live delivery tiles, route and courier position | Interface prepared · Credential required | Future `GV_DELIVERY_PROVIDER=google_maps`, API key | Provider-dependent | Staging delivery | Yes (API/logistics account) |
 | Mock payment | Demo checkout | **Mock working** | `GV_PAYMENT_PROVIDER=mock` | — | Unit | No |
 | Bank transfer / IBAN | Manual confirmation | **Mock working** (instructions + pending) | `GV_PAYMENT_PROVIDER=bank_transfer` | Finance confirm | Manual | No |

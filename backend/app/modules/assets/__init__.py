@@ -13,6 +13,12 @@ definition = DomainModule(
             "app.routers.assets",
             25,
         ),
+        RouterMount(
+            "assets.location",
+            "assets",
+            "app.routers.location",
+            26,
+        ),
     ),
 )
 

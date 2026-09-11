@@ -252,6 +252,8 @@ class Settings(BaseSettings):
     aemet_api_key: Optional[str] = Field(default=None, repr=False)
     aemet_max_station_distance_km: float = Field(default=150.0, gt=0, le=1000)
     gis_provider: str = "none"
+    location_provider: str = "none"
+    google_maps_server_api_key: Optional[str] = Field(default=None, repr=False)
     miteco_ogc_features_base_url: str = (
         "https://gis.miteco.gob.es/geoserver/ogc/features/v1"
     )
@@ -469,6 +471,7 @@ class Settings(BaseSettings):
             "nodeodm_token",
             "copernicus_access_token",
             "aemet_api_key",
+            "google_maps_server_api_key",
             "autodesk_aps_client_id",
             "autodesk_aps_client_secret",
             "procore_client_id",
@@ -564,6 +567,7 @@ class Settings(BaseSettings):
         "weather_provider",
         "satellite_provider",
         "gis_provider",
+        "location_provider",
         "construction_provider",
         "asset_management_provider",
         "maritime_provider",
@@ -880,6 +884,24 @@ class Settings(BaseSettings):
         }
         if self.gis_provider not in gis_providers:
             raise ValueError("GIS_PROVIDER must be none, fake, arcgis, or miteco")
+        location_providers = {
+            "none",
+            "null",
+            "fake",
+            "deterministic",
+            "google",
+            "google_maps",
+        }
+        if self.location_provider not in location_providers:
+            raise ValueError(
+                "LOCATION_PROVIDER must be none, fake, deterministic, or google_maps"
+            )
+        if self.location_provider in {"google", "google_maps"} and not (
+            self.google_maps_server_api_key
+        ):
+            raise ValueError(
+                "Google location services require GOOGLE_MAPS_SERVER_API_KEY"
+            )
         asset_management_providers = {
             "none",
             "null",
@@ -1162,6 +1184,10 @@ class Settings(BaseSettings):
             if self.gis_provider in {"fake", "deterministic"}:
                 raise ValueError(
                     "deployed environments cannot use the fake GIS provider"
+                )
+            if self.location_provider in {"fake", "deterministic"}:
+                raise ValueError(
+                    "deployed environments cannot use the fake location provider"
                 )
             if self.asset_management_provider in {"fake", "deterministic"}:
                 raise ValueError(
@@ -1454,6 +1480,7 @@ class Settings(BaseSettings):
                 "weather": self.weather_provider,
                 "satellite": self.satellite_provider,
                 "gis": self.gis_provider,
+                "location": self.location_provider,
                 "construction": self.construction_provider,
                 "asset_management": self.asset_management_provider,
                 "maritime": self.maritime_provider,
@@ -1513,6 +1540,10 @@ class Settings(BaseSettings):
                     and self.aemet_api_key
                 ),
                 "miteco": self.gis_provider == "miteco",
+                "google_maps_location": bool(
+                    self.location_provider in {"google", "google_maps"}
+                    and self.google_maps_server_api_key
+                ),
                 "autodesk_aps": self.autodesk_aps_configuration_complete,
                 "procore": self.procore_configuration_complete,
                 "bentley_itwin": self.bentley_itwin_configuration_complete,
