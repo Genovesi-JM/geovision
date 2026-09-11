@@ -18,6 +18,11 @@ uses the same selected provider and falls back explicitly to OpenStreetMap when
 the application is in demo mode. Individual screens no longer own hard-coded
 tile URLs.
 
+An asset with valid coordinates also offers Google Maps and Apple Maps driving
+handoff. GeoVision constructs only allowlisted HTTPS universal links from
+validated latitude/longitude values. This works without an API key and does not
+give GeoVision access to the user's route or navigation history.
+
 ## Configuration and secrets
 
 Select a provider with `GV_MAP_PROVIDER`. Mapbox uses `GV_MAPBOX_TOKEN` supplied
@@ -43,10 +48,11 @@ must use explicit provider interfaces and capability flags for:
 - traffic, elevation, street imagery and offline regions;
 - customer-owned ArcGIS or other enterprise GIS layers.
 
-Google Maps Platform can be added for Places, Routes and native navigation
-without replacing GeoVision's canonical coordinates or operational layer
-model. Provider responses are external references and cached evidence, never
-GeoVision primary identifiers.
+Google Maps Platform can later be added for Places, server-calculated Routes
+and native turn-by-turn navigation without replacing GeoVision's canonical
+coordinates or operational layer model. The current external-app handoff is
+not a substitute for those APIs. Provider responses are external references
+and cached evidence, never GeoVision primary identifiers.
 
 ## Production acceptance gate
 

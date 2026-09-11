@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
+import '../../../integrations/maps/external_map_navigation.dart';
 import '../data/assets_repository.dart';
 
 class AssetMapScreen extends ConsumerWidget {
@@ -116,6 +117,36 @@ class AssetMapScreen extends ConsumerWidget {
                         fontSize: 12,
                       ),
                     ),
+                    const SizedBox(height: GvSpacing.md),
+                    Wrap(
+                      spacing: GvSpacing.sm,
+                      runSpacing: GvSpacing.sm,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _openDirections(
+                            context,
+                            const ExternalMapNavigation().googleDirections(
+                              latitude: item.latitude!,
+                              longitude: item.longitude!,
+                            ),
+                          ),
+                          icon: const Icon(Icons.directions_outlined),
+                          label: const Text('Google Maps'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () => _openDirections(
+                            context,
+                            const ExternalMapNavigation().appleDirections(
+                              latitude: item.latitude!,
+                              longitude: item.longitude!,
+                              label: item.name,
+                            ),
+                          ),
+                          icon: const Icon(Icons.map_outlined),
+                          label: const Text('Apple Maps'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -124,6 +155,16 @@ class AssetMapScreen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _openDirections(BuildContext context, Uri uri) async {
+    final opened = await const ExternalMapNavigation().open(uri);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('The map application could not be opened.')),
+      );
+    }
   }
 }
 

@@ -27,6 +27,7 @@ plus pilot supervision.
 | Mapbox | Satellite tiles on asset maps through the shared map renderer | **Adapter working** · Credential required | `GV_MAP_PROVIDER=mapbox`, `GV_MAPBOX_TOKEN` | — | Provider contract + restricted token in staging | Yes (account/token/licence) |
 | ArcGIS | Enterprise GIS layers | Future integration-registry adapter; not a mobile selector | Server-managed connection | Provider-dependent | — | Yes |
 | Demo delivery map | Order route, vehicle position and progress timeline | **Mock working** | Default in demo mode | — | Unit + iOS Simulator | No |
+| Google Maps / Apple Maps handoff | Open driving directions to a validated asset coordinate | **Working** through allowlisted universal links; no API key | No credential | — | URL contract + native launcher | No |
 | Google Maps + logistics feed | Live delivery tiles, route and courier position | Interface prepared · Credential required | Future `GV_DELIVERY_PROVIDER=google_maps`, API key | Provider-dependent | Staging delivery | Yes (API/logistics account) |
 | Mock payment | Demo checkout | **Mock working** | `GV_PAYMENT_PROVIDER=mock` | — | Unit | No |
 | Bank transfer / IBAN | Manual confirmation | **Mock working** (instructions + pending) | `GV_PAYMENT_PROVIDER=bank_transfer` | Finance confirm | Manual | No |
