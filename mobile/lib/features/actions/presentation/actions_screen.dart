@@ -35,22 +35,12 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
         ),
         data: (buckets) => Column(
           children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            Padding(
               padding: const EdgeInsets.all(GvSpacing.md),
-              child: SegmentedButton<CustomerActionBucket>(
-                showSelectedIcon: false,
-                segments: [
-                  for (final bucket in CustomerActionBucket.values)
-                    ButtonSegment(
-                      value: bucket,
-                      label: Text(
-                          '${bucket.label} (${buckets.items(bucket).length})'),
-                    ),
-                ],
-                selected: {_bucket},
-                onSelectionChanged: (selected) =>
-                    setState(() => _bucket = selected.first),
+              child: _BucketSelector(
+                selected: _bucket,
+                countFor: (bucket) => buckets.items(bucket).length,
+                onSelected: (bucket) => setState(() => _bucket = bucket),
               ),
             ),
             Expanded(
@@ -65,6 +55,52 @@ class _ActionsScreenState extends ConsumerState<ActionsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BucketSelector extends StatelessWidget {
+  const _BucketSelector({
+    required this.selected,
+    required this.countFor,
+    required this.onSelected,
+  });
+
+  final CustomerActionBucket selected;
+  final int Function(CustomerActionBucket bucket) countFor;
+  final ValueChanged<CustomerActionBucket> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const gap = GvSpacing.sm;
+        final itemWidth = (constraints.maxWidth - gap) / 2;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final bucket in CustomerActionBucket.values)
+              SizedBox(
+                width: itemWidth,
+                child: ChoiceChip(
+                  label: SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      '${bucket.label} (${countFor(bucket)})',
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  selected: selected == bucket,
+                  showCheckmark: false,
+                  onSelected: (_) => onSelected(bucket),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

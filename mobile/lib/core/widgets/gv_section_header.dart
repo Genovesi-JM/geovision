@@ -12,17 +12,25 @@ class GvSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: GvColors.textPrimary,
-              letterSpacing: 0.2,
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: GvColors.textPrimary,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
-          if (action != null) action!,
+          if (action != null) ...[
+            const SizedBox(width: 8),
+            Flexible(child: action!),
+          ],
         ],
       ),
     );

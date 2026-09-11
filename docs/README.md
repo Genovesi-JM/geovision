@@ -42,6 +42,8 @@ closed**.
    [Azure runbook](../infra/azure/README.md), and the
    [known limitations](KNOWN_LIMITATIONS.md) define deployment and remaining
    work.
+10. [Mobile visual QA](MOBILE_VISUAL_QA.md) defines the iOS and Android
+    viewport matrix, screenshot evidence, and acceptance rules for UI changes.
 
 ## Core workflow
 
