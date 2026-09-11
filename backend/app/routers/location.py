@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from decimal import Decimal
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -69,7 +70,6 @@ def _require_value(result: IntegrationResult):
 def _record_usage(
     db: Session,
     *,
-    request: Request,
     result: IntegrationResult,
     context: AuthorizationContext,
     actor: User,
@@ -80,7 +80,7 @@ def _record_usage(
         or not context.active_organization_id
     ):
         return
-    request_id = str(getattr(request.state, "request_id", "unknown"))[:128]
+    usage_id = str(uuid.uuid4())
     record_provider_usage(
         db,
         payload=ProviderUsageCreate(
@@ -92,7 +92,7 @@ def _record_usage(
             quantity=Decimal("1"),
             unit="request",
             occurred_at=utc_now(),
-            idempotency_key=f"location:{request_id}:{result.operation}",
+            idempotency_key=f"location:{usage_id}:{result.operation}",
             metadata={"operation": result.operation},
         ),
         actor=actor,
@@ -121,7 +121,6 @@ def capabilities(
 
 @router.post("/places:autocomplete", response_model=PlaceAutocompleteOut)
 def autocomplete(
-    request: Request,
     body: PlaceAutocompleteIn,
     user: User = Depends(get_current_user),
     context: AuthorizationContext = Depends(get_authorization_context),
@@ -138,7 +137,6 @@ def autocomplete(
     suggestions = _require_value(result)
     _record_usage(
         db,
-        request=request,
         result=result,
         context=context,
         actor=user,
@@ -160,7 +158,6 @@ def autocomplete(
 
 @router.post("/places:resolve", response_model=ResolvedPlaceOut)
 def resolve_place(
-    request: Request,
     body: PlaceResolveIn,
     user: User = Depends(get_current_user),
     context: AuthorizationContext = Depends(get_authorization_context),
@@ -175,7 +172,6 @@ def resolve_place(
     place = _require_value(result)
     _record_usage(
         db,
-        request=request,
         result=result,
         context=context,
         actor=user,
@@ -196,7 +192,6 @@ def resolve_place(
 
 @router.post("/routes:compute", response_model=RouteEstimateOut)
 def compute_route(
-    request: Request,
     body: RouteComputeIn,
     user: User = Depends(get_current_user),
     context: AuthorizationContext = Depends(get_authorization_context),
@@ -211,7 +206,6 @@ def compute_route(
     route = _require_value(result)
     _record_usage(
         db,
-        request=request,
         result=result,
         context=context,
         actor=user,
@@ -229,7 +223,6 @@ def compute_route(
 
 @router.post("/addresses:reverse", response_model=ReverseGeocodeOut)
 def reverse_geocode(
-    request: Request,
     body: ReverseGeocodeIn,
     user: User = Depends(get_current_user),
     context: AuthorizationContext = Depends(get_authorization_context),
@@ -244,7 +237,6 @@ def reverse_geocode(
     address = _require_value(result)
     _record_usage(
         db,
-        request=request,
         result=result,
         context=context,
         actor=user,

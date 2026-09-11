@@ -117,3 +117,5 @@ records the provider, service and one request unit, but never the searched text,
 address or coordinates. Prices remain invoice-controlled data rather than
 hard-coded assumptions, allowing finance to reconcile Spain launch usage as
 Google pricing changes.
+Each completed provider call receives a server-generated usage identifier;
+client request identifiers cannot suppress or merge billable usage records.

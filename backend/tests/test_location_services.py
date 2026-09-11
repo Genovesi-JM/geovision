@@ -296,14 +296,27 @@ def test_successful_live_call_records_private_usage_without_location_data(
             },
         )
         assert response.status_code == 200, response.text
-        usage = (
+        repeated = client.post(
+            "/location/places:autocomplete",
+            headers={**_auth_headers(client), "X-Request-ID": "location-cost-001"},
+            json={
+                "query": "sensitive customer search",
+                "session_token": "session-1",
+                "language_code": "pt",
+            },
+        )
+        assert repeated.status_code == 200, repeated.text
+        usage_rows = (
             db_session.query(ProviderUsage)
             .filter(ProviderUsage.service == "places_autocomplete")
-            .one()
+            .all()
         )
-        assert usage.provider == "google_maps"
-        assert usage.quantity == 1
-        assert usage.idempotency_key == "location:location-cost-001:autocomplete"
-        assert "sensitive customer search" not in usage.metadata_json
+        assert len(usage_rows) == 2
+        assert len({row.idempotency_key for row in usage_rows}) == 2
+        assert all(row.provider == "google_maps" for row in usage_rows)
+        assert all(row.quantity == 1 for row in usage_rows)
+        assert all(
+            "sensitive customer search" not in row.metadata_json for row in usage_rows
+        )
     finally:
         client.app.dependency_overrides.pop(get_location_provider, None)
