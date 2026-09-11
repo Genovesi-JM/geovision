@@ -67,7 +67,8 @@ not a substitute for those APIs. Provider responses are external references
 and cached evidence, never GeoVision primary identifiers.
 
 The backend now includes an authenticated provider boundary for Places API New
-autocomplete, Place Details resolution and Routes API driving estimates. It
+autocomplete, Place Details resolution, Routes API driving estimates and
+Geocoding API v4 reverse address lookup. It
 uses a deterministic local provider by contract test and a Google adapter with
 mocked official HTTP responses. Live Google calls remain disabled until a
 server-only key, billing, API restrictions, quotas, EEA terms and Spain/Angola
@@ -94,7 +95,7 @@ rollback to the demo provider. No empty or invalid credential may silently
 claim that live maps are active.
 
 GeoVision also applies per-client, per-minute API ceilings before a request can
-reach the paid provider: 60 autocomplete calls, 30 place resolutions and 20
-route computations. These application limits reduce accidental or abusive
-spend, but do not replace hard quotas, alerts and budgets in the Google Cloud
-project.
+reach the paid provider: 60 autocomplete calls, 30 place resolutions, 20 route
+computations and 30 reverse-geocoding calls. These application limits reduce
+accidental or abusive spend, but do not replace hard quotas, alerts and budgets
+in the Google Cloud project.

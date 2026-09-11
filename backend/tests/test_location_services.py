@@ -71,6 +71,23 @@ def test_google_adapter_uses_header_key_field_masks_and_normalizes_results():
                     "location": {"latitude": -8.838333, "longitude": 13.234444},
                 },
             )
+        if request.url.host == "geocode.googleapis.com":
+            return httpx.Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "placeId": "ChIJ-Luanda",
+                            "formattedAddress": "Luanda, Angola",
+                            "location": {
+                                "latitude": -8.838333,
+                                "longitude": 13.234444,
+                            },
+                            "granularity": "APPROXIMATE",
+                        }
+                    ]
+                },
+            )
         return httpx.Response(
             200,
             json={
@@ -116,8 +133,18 @@ def test_google_adapter_uses_header_key_field_masks_and_normalizes_results():
     assert route.ok
     assert route.value.distance_meters == 13200
     assert route.value.duration_seconds == 1250
-    assert len(requests) == 3
-    assert "routes.distanceMeters" in requests[-1].headers["X-Goog-FieldMask"]
+    reverse = provider.reverse_geocode(
+        coordinate=place.value.coordinate,
+        language_code="pt",
+        region_code="AO",
+    )
+    assert reverse.ok
+    assert reverse.value.formatted_address == "Luanda, Angola"
+    assert reverse.value.granularity == "APPROXIMATE"
+    assert len(requests) == 4
+    assert "routes.distanceMeters" in requests[-2].headers["X-Goog-FieldMask"]
+    assert "results.formattedAddress" in requests[-1].headers["X-Goog-FieldMask"]
+    assert requests[-1].url.params["location.latitude"] == "-8.838333"
     client.close()
 
 
@@ -189,6 +216,19 @@ def test_authenticated_location_journey_uses_one_autocomplete_session(client):
         assert route.status_code == 200, route.text
         assert route.json()["distance_meters"] > 0
         assert route.json()["simulated"] is True
+
+        reverse = client.post(
+            "/location/addresses:reverse",
+            headers=headers,
+            json={
+                "coordinate": resolved.json()["coordinate"],
+                "language_code": "pt",
+                "region_code": "AO",
+            },
+        )
+        assert reverse.status_code == 200, reverse.text
+        assert reverse.json()["formatted_address"] == "Luanda, Angola"
+        assert reverse.json()["simulated"] is True
     finally:
         client.app.dependency_overrides.pop(get_location_provider, None)
 
@@ -202,6 +242,13 @@ def test_location_request_validation_rejects_bad_tokens_and_coordinates(client):
             "origin": {"latitude": 91, "longitude": 13},
             "destination": {"latitude": 40, "longitude": -3},
         },
+    )
+    assert response.status_code == 422
+
+    response = client.post(
+        "/location/addresses:reverse",
+        headers=headers,
+        json={"coordinate": {"latitude": "NaN", "longitude": 13}},
     )
     assert response.status_code == 422
 

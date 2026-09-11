@@ -11,6 +11,7 @@ from app.modules.assets.location_ports import (
     GeoCoordinate,
     PlaceSuggestion,
     ResolvedPlace,
+    ReverseGeocodedAddress,
     RouteEstimate,
 )
 
@@ -64,6 +65,16 @@ class UnavailableLocationProvider:
     ) -> IntegrationResult[RouteEstimate]:
         del origin, destination, language_code
         return self._failure("compute_route")
+
+    def reverse_geocode(
+        self,
+        *,
+        coordinate: GeoCoordinate,
+        language_code: str,
+        region_code: str | None = None,
+    ) -> IntegrationResult[ReverseGeocodedAddress]:
+        del coordinate, language_code, region_code
+        return self._failure("reverse_geocode")
 
 
 __all__ = ["UnavailableLocationProvider"]

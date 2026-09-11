@@ -288,6 +288,7 @@ RATE_LIMIT_RULES: Dict[Tuple[str, str], Tuple[int, int]] = {
     ("POST", "/location/places:autocomplete"): (60, 60),
     ("POST", "/location/places:resolve"): (30, 60),
     ("POST", "/location/routes:compute"): (20, 60),
+    ("POST", "/location/addresses:reverse"): (30, 60),
 }
 
 

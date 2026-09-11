@@ -18,6 +18,8 @@ from app.modules.assets.location_schemas import (
     PlaceResolveIn,
     PlaceSuggestionOut,
     ResolvedPlaceOut,
+    ReverseGeocodeIn,
+    ReverseGeocodeOut,
     RouteComputeIn,
     RouteEstimateOut,
 )
@@ -70,6 +72,7 @@ def capabilities(
         "capabilities": {
             "autocomplete": configured,
             "place_resolution": configured,
+            "reverse_geocoding": configured,
             "driving_route_estimate": configured,
         },
     }
@@ -150,6 +153,32 @@ def compute_route(
         duration_seconds=route.duration_seconds,
         encoded_polyline=route.encoded_polyline,
         traffic_aware=route.traffic_aware,
+    )
+
+
+@router.post("/addresses:reverse", response_model=ReverseGeocodeOut)
+def reverse_geocode(
+    body: ReverseGeocodeIn,
+    user: User = Depends(get_current_user),
+    provider: LocationProvider = Depends(get_location_provider),
+):
+    del user
+    result = provider.reverse_geocode(
+        coordinate=_point(body.coordinate),
+        language_code=body.language_code,
+        region_code=body.region_code,
+    )
+    address = _require_value(result)
+    return ReverseGeocodeOut(
+        provider=result.provider,
+        simulated=result.status is IntegrationStatus.SIMULATED,
+        provider_reference=address.provider_reference,
+        formatted_address=address.formatted_address,
+        coordinate=CoordinateIn(
+            latitude=address.coordinate.latitude,
+            longitude=address.coordinate.longitude,
+        ),
+        granularity=address.granularity,
     )
 
 

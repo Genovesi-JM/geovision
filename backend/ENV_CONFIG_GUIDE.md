@@ -452,8 +452,9 @@ LOCATION_PROVIDER=none
 GOOGLE_MAPS_SERVER_API_KEY=
 ```
 
-`LOCATION_PROVIDER=google_maps` activates the server-side Places API New and
-Routes API adapter only when `GOOGLE_MAPS_SERVER_API_KEY` is present. The key is
+`LOCATION_PROVIDER=google_maps` activates the server-side Places API New,
+Routes API and Geocoding API v4 adapters only when
+`GOOGLE_MAPS_SERVER_API_KEY` is present. The key is
 redacted from settings output and must come from the deployment secret store.
 Restrict it to the required APIs, backend egress, quotas and approved projects;
 do not reuse a browser or mobile Maps SDK key. Local tests may select

@@ -12,6 +12,7 @@ from app.modules.assets.location_ports import (
     GeoCoordinate,
     PlaceSuggestion,
     ResolvedPlace,
+    ReverseGeocodedAddress,
     RouteEstimate,
 )
 
@@ -24,6 +25,7 @@ class GoogleMapsLocationProvider:
     configured = True
     places_base_url = "https://places.googleapis.com/v1"
     routes_url = "https://routes.googleapis.com/directions/v2:computeRoutes"
+    geocode_url = "https://geocode.googleapis.com/v4/geocode/location"
 
     def __init__(
         self,
@@ -223,6 +225,66 @@ class GoogleMapsLocationProvider:
                 provider=self.provider_name,
                 operation=operation,
                 value=estimate,
+            )
+        except httpx.TimeoutException:
+            return self._failed(operation, "provider_timeout", retryable=True)
+        except httpx.HTTPStatusError as exc:
+            return self._failed(
+                operation,
+                "provider_rate_limited"
+                if exc.response.status_code == 429
+                else "provider_http_error",
+                retryable=exc.response.status_code == 429
+                or exc.response.status_code >= 500,
+            )
+        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError):
+            return self._failed(operation, "provider_response_invalid")
+
+    def reverse_geocode(
+        self,
+        *,
+        coordinate: GeoCoordinate,
+        language_code: str,
+        region_code: str | None = None,
+    ) -> IntegrationResult[ReverseGeocodedAddress]:
+        operation = "reverse_geocode"
+        params: dict[str, str | float] = {
+            "location.latitude": coordinate.latitude,
+            "location.longitude": coordinate.longitude,
+            "languageCode": language_code,
+        }
+        if region_code:
+            params["regionCode"] = region_code
+        try:
+            response = self._client.get(
+                self.geocode_url,
+                headers=self._headers(
+                    "results.placeId,results.formattedAddress,"
+                    "results.location,results.granularity"
+                ),
+                params=params,
+            )
+            response.raise_for_status()
+            row = response.json()["results"][0]
+            place_id = str(row["placeId"])
+            address = str(row["formattedAddress"]).strip()
+            location = row.get("location") or {}
+            if not _PLACE_ID.fullmatch(place_id) or not address:
+                raise ValueError("invalid geocode result")
+            return IntegrationResult.succeeded(
+                provider=self.provider_name,
+                operation=operation,
+                value=ReverseGeocodedAddress(
+                    provider_reference=place_id,
+                    formatted_address=address,
+                    coordinate=GeoCoordinate(
+                        latitude=float(location.get("latitude", coordinate.latitude)),
+                        longitude=float(
+                            location.get("longitude", coordinate.longitude)
+                        ),
+                    ),
+                    granularity=str(row.get("granularity") or "").strip() or None,
+                ),
             )
         except httpx.TimeoutException:
             return self._failed(operation, "provider_timeout", retryable=True)

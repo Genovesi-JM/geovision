@@ -39,6 +39,14 @@ class ResolvedPlace:
 
 
 @dataclass(frozen=True, slots=True)
+class ReverseGeocodedAddress:
+    provider_reference: str
+    formatted_address: str
+    coordinate: GeoCoordinate
+    granularity: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class RouteEstimate:
     distance_meters: int
     duration_seconds: int
@@ -76,11 +84,20 @@ class LocationProvider(Protocol):
         language_code: str,
     ) -> IntegrationResult[RouteEstimate]: ...
 
+    def reverse_geocode(
+        self,
+        *,
+        coordinate: GeoCoordinate,
+        language_code: str,
+        region_code: str | None = None,
+    ) -> IntegrationResult[ReverseGeocodedAddress]: ...
+
 
 __all__ = [
     "GeoCoordinate",
     "LocationProvider",
     "PlaceSuggestion",
     "ResolvedPlace",
+    "ReverseGeocodedAddress",
     "RouteEstimate",
 ]

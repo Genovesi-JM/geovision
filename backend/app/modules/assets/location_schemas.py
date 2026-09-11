@@ -36,6 +36,14 @@ class RouteComputeIn(BaseModel):
     )
 
 
+class ReverseGeocodeIn(BaseModel):
+    coordinate: CoordinateIn
+    language_code: str = Field(
+        default="pt", pattern=r"^[A-Za-z]{2,3}(?:-[A-Za-z]{2})?$"
+    )
+    region_code: str | None = Field(default=None, pattern=r"^[A-Za-z]{2}$")
+
+
 class PlaceSuggestionOut(BaseModel):
     provider_reference: str
     primary_text: str
@@ -66,6 +74,15 @@ class RouteEstimateOut(BaseModel):
     traffic_aware: bool
 
 
+class ReverseGeocodeOut(BaseModel):
+    provider: str
+    simulated: bool
+    provider_reference: str
+    formatted_address: str
+    coordinate: CoordinateIn
+    granularity: str | None = None
+
+
 __all__ = [
     "CoordinateIn",
     "PlaceAutocompleteIn",
@@ -73,6 +90,8 @@ __all__ = [
     "PlaceResolveIn",
     "PlaceSuggestionOut",
     "ResolvedPlaceOut",
+    "ReverseGeocodeIn",
+    "ReverseGeocodeOut",
     "RouteComputeIn",
     "RouteEstimateOut",
 ]

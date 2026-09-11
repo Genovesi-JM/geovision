@@ -9,6 +9,7 @@ from app.modules.assets.location_ports import (
     GeoCoordinate,
     PlaceSuggestion,
     ResolvedPlace,
+    ReverseGeocodedAddress,
     RouteEstimate,
 )
 
@@ -102,6 +103,29 @@ class DeterministicLocationProvider:
                 distance_meters=road_distance,
                 duration_seconds=duration,
                 traffic_aware=False,
+            ),
+        )
+
+    def reverse_geocode(
+        self,
+        *,
+        coordinate: GeoCoordinate,
+        language_code: str,
+        region_code: str | None = None,
+    ) -> IntegrationResult[ReverseGeocodedAddress]:
+        del language_code, region_code
+        nearest = min(
+            _PLACES.values(),
+            key=lambda place: _haversine_meters(coordinate, place.coordinate),
+        )
+        return IntegrationResult.simulated(
+            provider=self.provider_name,
+            operation="reverse_geocode",
+            value=ReverseGeocodedAddress(
+                provider_reference=nearest.provider_reference,
+                formatted_address=nearest.formatted_address,
+                coordinate=coordinate,
+                granularity="SIMULATED_LOCALITY",
             ),
         )
 

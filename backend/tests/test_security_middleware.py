@@ -103,3 +103,4 @@ def test_paid_location_operations_have_explicit_cost_guardrails():
     assert RATE_LIMIT_RULES[("POST", "/location/places:autocomplete")] == (60, 60)
     assert RATE_LIMIT_RULES[("POST", "/location/places:resolve")] == (30, 60)
     assert RATE_LIMIT_RULES[("POST", "/location/routes:compute")] == (20, 60)
+    assert RATE_LIMIT_RULES[("POST", "/location/addresses:reverse")] == (30, 60)
