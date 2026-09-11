@@ -33,6 +33,8 @@ URL by the portal.
 When a live route response includes an encoded polyline, the portal validates,
 decodes and draws that route over the base map. Oversized, malformed or
 out-of-range geometry is ignored rather than rendered.
+The mobile asset map applies the same bounded decoder and overlays the returned
+route before fitting the camera to its validated points.
 
 The web map also includes authenticated place autocomplete. Input is debounced,
 one opaque session token is reused through the selected Place Details request,

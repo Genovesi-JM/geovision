@@ -10,18 +10,33 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../integrations/maps/external_map_navigation.dart';
+import '../../../integrations/maps/encoded_polyline.dart';
 import '../../sites/data/location_repository.dart';
 import '../../sites/domain/location_search.dart';
 import '../data/assets_repository.dart';
 
-class AssetMapScreen extends ConsumerWidget {
+class AssetMapScreen extends ConsumerStatefulWidget {
   const AssetMapScreen({super.key, required this.assetId});
 
   final String assetId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asset = ref.watch(customerAssetDetailProvider(assetId));
+  ConsumerState<AssetMapScreen> createState() => _AssetMapScreenState();
+}
+
+class _AssetMapScreenState extends ConsumerState<AssetMapScreen> {
+  final mapController = MapController();
+  List<LatLng> routePoints = const [];
+
+  @override
+  void dispose() {
+    mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = ref.watch(customerAssetDetailProvider(widget.assetId));
     final mapProvider = ref.watch(mapProviderProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Asset map')),
@@ -29,7 +44,8 @@ class AssetMapScreen extends ConsumerWidget {
         loading: () => const GvLoading(label: 'Loading asset map…'),
         error: (_, __) => GvErrorState(
           message: 'The asset map could not be loaded.',
-          onRetry: () => ref.invalidate(customerAssetDetailProvider(assetId)),
+          onRetry: () =>
+              ref.invalidate(customerAssetDetailProvider(widget.assetId)),
         ),
         data: (item) {
           if (item == null) {
@@ -60,6 +76,7 @@ class AssetMapScreen extends ConsumerWidget {
                   child: tileUrl == null
                       ? const _DemoMapSurface()
                       : FlutterMap(
+                          mapController: mapController,
                           options: MapOptions(
                             initialCenter: position,
                             initialZoom: 15,
@@ -71,6 +88,16 @@ class AssetMapScreen extends ConsumerWidget {
                               userAgentPackageName: 'com.geovision.geovision',
                               maxZoom: mapProvider.maxZoom,
                             ),
+                            if (routePoints.isNotEmpty)
+                              PolylineLayer(
+                                polylines: [
+                                  Polyline(
+                                    points: routePoints,
+                                    color: GvColors.accentCyan,
+                                    strokeWidth: 5,
+                                  ),
+                                ],
+                              ),
                             MarkerLayer(
                               markers: [
                                 Marker(
@@ -98,6 +125,7 @@ class AssetMapScreen extends ConsumerWidget {
               _RoutePlanner(
                 destinationLatitude: item.latitude!,
                 destinationLongitude: item.longitude!,
+                onEstimate: _showRoute,
               ),
               const SizedBox(height: GvSpacing.md),
               GvCard(
@@ -174,16 +202,34 @@ class AssetMapScreen extends ConsumerWidget {
       );
     }
   }
+
+  void _showRoute(RouteEstimate estimate) {
+    final decoded = decodeEncodedPolyline(estimate.encodedPolyline);
+    if (!mounted) return;
+    setState(() => routePoints = decoded);
+    if (decoded.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        mapController.fitCamera(CameraFit.coordinates(
+          coordinates: decoded,
+          padding: const EdgeInsets.all(32),
+          maxZoom: 16,
+        ));
+      });
+    }
+  }
 }
 
 class _RoutePlanner extends ConsumerStatefulWidget {
   const _RoutePlanner({
     required this.destinationLatitude,
     required this.destinationLongitude,
+    required this.onEstimate,
   });
 
   final double destinationLatitude;
   final double destinationLongitude;
+  final ValueChanged<RouteEstimate> onEstimate;
 
   @override
   ConsumerState<_RoutePlanner> createState() => _RoutePlannerState();
@@ -282,7 +328,10 @@ class _RoutePlannerState extends ConsumerState<_RoutePlanner> {
                 destinationLongitude: widget.destinationLongitude,
                 languageCode: languageCode,
               );
-      if (mounted) setState(() => estimate = result);
+      if (mounted) {
+        setState(() => estimate = result);
+        widget.onEstimate(result);
+      }
     } catch (failure) {
       if (mounted) setState(() => error = '$failure');
     } finally {
