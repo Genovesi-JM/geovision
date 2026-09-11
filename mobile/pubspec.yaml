@@ -27,7 +27,7 @@ dependencies:
   shared_preferences: ^2.2.3
 
   # Connectivity (offline-first)
-  connectivity_plus: ^6.0.3
+  connectivity_plus: ^7.3.1
 
   # Charts (KPI sparklines / trends)
   fl_chart: ^0.68.0
