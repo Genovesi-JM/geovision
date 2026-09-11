@@ -27,7 +27,7 @@ cloud deployment or a promise of production readiness.
 | Public Copernicus STAC `/v1/collections` | HTTP 200 | Authenticated downloads or GeoVision end-to-end integration |
 | Public MITECO OGC Features `/collections` | HTTP 200 | Per-layer coverage, licensing review or GeoVision end-to-end integration |
 | `https://api.geovisionops.com/health` | HTTP 503, `x-render-routing: suspend`, body `Service Suspended` | Cause of suspension or Azure state; restoring/migrating API service remains a priority |
-| Azure signup | Free-account profile form now open, individual-use option selected; not submitted | Eligibility approval, a new subscription or a new Valle Baobab directory |
+| Azure signup | Free-account form was prepared for individual use; latest browser check is back at portal home, still showing the university directory and a no-subscription welcome | Eligibility approval, a new subscription or a new Valle Baobab directory |
 | Azure portal | All Directories lists only the university directory for the current personal account | A personal Valle Baobab directory; no university resources were changed |
 | Google `geovision-483710` | Maps JavaScript API already enabled; no API keys/service accounts listed; Google free trial banner says ended | Enabled Places New/Routes/Geocoding, usable billing or live GeoVision maps |
 
@@ -43,7 +43,7 @@ domain purchase and mailbox provisioning. No email address has been created.
 
 - [ ] Confirm intended personal Azure directory/account and complete its MFA.
 - [ ] Confirm billing country/address (Spain only if factually applicable).
-- [ ] Choose mailbox address and a domain after registrar verification.
+- [x] Choose mailbox address: `genovesi@vallebaobab.com`; IONOS search reports the domain available, but it is not reserved or registered.
 - [ ] Approve domain registration/renewal cost and email subscription term.
 - [ ] Approve Azure/API service selection and estimated recurring cost.
 - [ ] User completes new passwords, recovery and MFA registration privately.
@@ -55,6 +55,78 @@ Pay-as-you-go budgets are alerts, not hard spending caps. Review provider quotas
 replica ceilings, resource SKUs, retention and shutdown procedures separately.
 Do not deploy the committed high-availability production profile merely to
 demonstrate account setup; its baseline costs need a separate review.
+
+## Lowest-cost functional pilot decision — 2026-09-11
+
+The user selected lowest practical costs, not a numeric spending limit or
+authorization to accept unspecified recurring charges. Prioritize a working
+Spain demo and retain a path to scale; do not equate trial credits with a
+permanently free production service.
+
+### Domain and personal brand mailbox
+
+Prepared, but did not submit, the IONOS Spain checkout:
+
+- Correo Básico 1: one 2 GB mailbox, webmail and device synchronization.
+- `vallebaobab.com`: reported available and included in the selected pack.
+- Checkout contains exactly these two items; no extra domains, paid domain
+  protection, AI add-ons, archiving, or additional mailboxes selected.
+- Current total: EUR 1.50 before tax; checkout displays EUR 1.82 including
+  21% VAT. Contract details say a one-month minimum, billed one month ahead,
+  with automatic renewal. Annual base-rate equivalent: EUR 18 + VAT; invoice
+  rounding may differ from the unrounded EUR 21.78 annual calculation.
+- The cart labels the domain included without a separate renewal surcharge.
+  Recheck final order terms and any later tariff-change notices before
+  submitting; the domain is not reserved merely by being in the cart.
+- User still needs to approve these terms/cost and complete truthful billing
+  details and payment privately. No order, domain or mailbox exists yet.
+
+Comparison: Zoho Mail Lite 5 GB is EUR 0.90/user/month paid annually (EUR 10.80
+before local tax), but a domain must be purchased separately. Its free plan
+is web-only and limited to selected data centres; EU eligibility was not
+confirmed. Porkbun currently lists standard .com registrations/renewals at
+USD 11.08 and anticipates about USD 11.81 from 2026-11-01. IONOS Basic 25's
+EUR 1 introductory monthly price rises to EUR 3.50 after 12 months (before
+tax), so it is not the preferred ongoing one-person plan.
+
+For GeoVision automated messages, consider Resend Free separately from the
+personal inbox: 3,000 emails/month, at most 100/day, three domains. Verified
+sender setup and account terms are still required. Its SMTP supports port
+587 with STARTTLS, matching the current application adapter. Do not expose
+the SMTP credential or send test messages without an authorized recipient.
+
+### Azure and API costs
+
+- Keep the existing static frontend; no duplicate paid website hosting.
+- Proposed demo profile: one small Container Apps Consumption API,
+  PostgreSQL B1ms/PostGIS, private Blob storage and Key Vault, using the
+  existing database-backed queue rather than Service Bus Standard.
+- Use scheduled, bounded event/notification worker jobs; these schedules and
+  this light deployment profile are NOT implemented or tested yet. API
+  scale-to-zero alone would pause API-hosted workers. This proposal does not
+  provide continuous IoT monitoring, immediate background delivery, ERP or
+  drone processing.
+- Eligible new Azure accounts get USD 200 for 30 days. Continuing beyond the
+  trial requires separately accepting pay-as-you-go. PostgreSQL's eligible
+  12-month allowance is 750 B1ms hours/month, 32 GB data and 32 GB backup.
+- Container Apps' monthly allowance is 180,000 vCPU-seconds, 360,000 GiB-seconds
+  and 2 million requests, shared at subscription scope. At 0.5 vCPU/1 GiB,
+  compute/memory allowance is only 100 aggregate active hours, not 24/7.
+- Free eligibility, region capacity and real usage remain unverified. Blob,
+  secrets, logs, traffic and any registry may add costs. Do not promise EUR 0
+  monthly without measured usage and exact service eligibility.
+- For comparison only, current West Europe Microsoft retail rates imply
+  about EUR 27.56/month for Linux App Service B1 plus PostgreSQL B1ms/32 GB
+  at 730 hours, before VAT, storage extras, logs, traffic and other services.
+  This always-on alternative needs a separate tested deployment profile.
+- Prioritize public MITECO data, AEMET OpenData and Copernicus STAC catalogue;
+  protected downloads and paid processing remain deferred. Google location
+  APIs are optional until required, and need approved billing, restricted
+  keys, appropriate field masks and quotas. Free allowances differ by SKU;
+  neither a billing alert nor enabling an API is a hard spending cap.
+
+Checkout is prepared for approval, not completed. The independent Azure
+directory and a live working API remain blocking prerequisites for release.
 
 ## First GeoVision integration tranche
 
@@ -124,3 +196,15 @@ Reference sources checked on 2026-09-11:
 - https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets
 - https://www.microsoft.com/es-es/microsoft-365/exchange/exchange-online-business-plans-and-pricing
 - https://rdap.verisign.com/com/v1/domain/vallebaobab.com
+- https://www.ionos.es/soluciones-oficina/email-hosting
+- https://www.ionos.es/soluciones-oficina/correo
+- https://www.zoho.com/mail/zohomail-pricing.html
+- https://www.zoho.com/mail/help/adminconsole/subscription.html
+- https://porkbun.com/products/domains
+- https://kb.porkbun.com/article/201-why-did-com-prices-go-up-and-how-high-will-they-go
+- https://resend.com/pricing
+- https://resend.com/docs/send-with-smtp
+- https://learn.microsoft.com/en-us/azure/container-apps/billing
+- https://prices.azure.com/api/retail/prices
+- https://developers.google.com/maps/billing-and-pricing/pricing
+- https://documentation.dataspace.copernicus.eu/Quotas.html
