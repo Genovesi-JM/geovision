@@ -59,7 +59,14 @@ autocomplete, Place Details resolution and Routes API driving estimates. It
 uses a deterministic local provider by contract test and a Google adapter with
 mocked official HTTP responses. Live Google calls remain disabled until a
 server-only key, billing, API restrictions, quotas, EEA terms and Spain/Angola
-coverage are approved. The mobile search UI is the next consumer of this API.
+coverage are approved.
+
+The site location picker consumes this boundary through the authenticated
+GeoVision API. It debounces input, reuses one autocomplete session token through
+place resolution, biases suggestions around the current point and sends the
+site country as a region hint. Selecting a suggestion moves the marker, while
+manual map taps and device GPS remain available. Demo mode uses deterministic
+Luanda and Madrid entries without an external request.
 
 ## Production acceptance gate
 

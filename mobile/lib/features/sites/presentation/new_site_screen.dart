@@ -199,7 +199,10 @@ class _NewSiteScreenState extends ConsumerState<NewSiteScreen> {
   Future<void> _pickLocation() async {
     final result = await Navigator.of(context).push<GeoPoint>(
       MaterialPageRoute(
-        builder: (_) => LocationPickerScreen(initial: location),
+        builder: (_) => LocationPickerScreen(
+          initial: location,
+          regionCode: countryCode,
+        ),
       ),
     );
     if (result != null && mounted) setState(() => location = result);
