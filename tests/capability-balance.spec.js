@@ -7,11 +7,11 @@ test.describe('B2C and B2B capability balance', () => {
     await page.goto(`${BASE}/index.html`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', {
-      name: 'Veja o que está a acontecer. Saiba quando agir.',
+      name: 'Vea lo que está pasando. Sepa cuándo actuar.',
     })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Explorar dispositivos' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Agricultura & Pecuária' }).first()).toBeVisible();
-    await expect(page.getByText('Rebanho · 184', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Agricultura y Ganadería' }).first()).toBeVisible();
+    await expect(page.getByText('Rebaño · 184', { exact: true })).toBeVisible();
   });
 
   test('hero illustration gives every sector its own operational picture', async ({ page }) => {
@@ -19,12 +19,12 @@ test.describe('B2C and B2B capability balance', () => {
     const map = page.locator('#hero-map');
 
     const sectors = [
-      ['Agricultura & Pecuária', 'agriculture', 'Humidade', 'Rebanho · 184'],
-      ['Construção & Infraestruturas', 'construction_infrastructure', 'Progresso', 'Máquina · EX-04'],
-      ['Ambiente', 'environment', 'Vegetação', 'Rio · qualidade boa'],
-      ['Mineração', 'mining', 'Volume', 'Talude norte · estável'],
-      ['Indústria, Energia & Utilities', 'industry_energy_utilities', 'Disponibilidade', 'Subestação · normal'],
-      ['Portos & Logística', 'ports_logistics', 'Ocupação', 'Berço 3 · ocupado'],
+      ['Agricultura y Ganadería', 'agriculture', 'Humedad', 'Rebaño · 184'],
+      ['Construcción e Infraestructuras', 'construction_infrastructure', 'Progreso', 'Máquina · EX-04'],
+      ['Medio ambiente', 'environment', 'Vegetación', 'Río · calidad buena'],
+      ['Minería', 'mining', 'Volumen', 'Talud norte · estable'],
+      ['Industria, Energía y Servicios Públicos', 'industry_energy_utilities', 'Disponibilidad', 'Subestación · normal'],
+      ['Puertos y Logística', 'ports_logistics', 'Ocupación', 'Muelle 3 · ocupado'],
     ];
 
     for (const [tab, sector, metric, node] of sectors) {
@@ -43,12 +43,12 @@ test.describe('B2C and B2B capability balance', () => {
     await page.goto(`${BASE}/sectors.html`, { waitUntil: 'domcontentloaded' });
 
     const expected = [
-      ['agriculture', 'agricultura-pecuaria', 'Agricultura & Pecuária'],
-      ['construction_infrastructure', 'construcao-infraestruturas', 'Construção & Infraestruturas'],
-      ['environment', 'ambiente', 'Ambiente'],
-      ['mining', 'mineracao', 'Mineração'],
-      ['industry_energy_utilities', 'industria-energia-utilities', 'Indústria, Energia & Utilities'],
-      ['ports_logistics', 'portos-logistica', 'Portos & Logística'],
+      ['agriculture', 'agricultura-pecuaria', 'Agricultura y Ganadería'],
+      ['construction_infrastructure', 'construcao-infraestruturas', 'Construcción e Infraestructuras'],
+      ['environment', 'ambiente', 'Medio ambiente'],
+      ['mining', 'mineracao', 'Minería'],
+      ['industry_energy_utilities', 'industria-energia-utilities', 'Industria, Energía y Servicios Públicos'],
+      ['ports_logistics', 'portos-logistica', 'Puertos y Logística'],
     ];
     for (const [sector, slug, label] of expected) {
       const section = page.locator(`#${slug}`);
@@ -58,13 +58,13 @@ test.describe('B2C and B2B capability balance', () => {
     }
 
     const farm = page.locator('#agricultura-pecuaria');
-    await expect(farm).toContainText('sensores, tracking, mapas e dados aéreos');
-    await expect(farm).toContainText('Animais, GPS e geofences');
+    await expect(farm).toContainText('sensores, tracking, mapas y datos aéreos');
+    await expect(farm).toContainText('Animales, GPS y geofences');
 
     const construction = page.locator('#construcao-infraestruturas');
-    await expect(construction).toContainText('sensor no terreno à visão aérea');
-    await expect(construction).toContainText('Tracking e estado de equipamentos');
-    await expect(construction).toContainText('Timeline, mapa, alertas e relatórios');
+    await expect(construction).toContainText('sensor en terreno a la visión aérea');
+    await expect(construction).toContainText('Tracking y estado de equipos');
+    await expect(construction).toContainText('Cronología, mapa, alertas e informes');
 
     for (const legacyAnchor of ['agropecuaria', 'construcao', 'infraestruturas', 'ambiental', 'industria', 'logistica']) {
       await expect(page.locator(`#${legacyAnchor}`)).toHaveCount(1);
@@ -208,16 +208,16 @@ test.describe('B2C and B2B capability balance', () => {
     await page.goto(`${BASE}/technology.html`, { waitUntil: 'domcontentloaded' });
 
     for (const text of [
-      '1 · Dispositivos & sensores',
-      '2 · GPS & tracking',
-      '3 · Inteligência aérea',
-      '4 · Plataforma & mapas',
-      '5 · IA & análise',
+      '1 · Dispositivos y sensores',
+      '2 · GPS y tracking',
+      '3 · Inteligencia aérea',
+      '4 · Plataforma y mapas',
+      '5 · IA y análisis',
     ]) {
       await expect(page.getByText(text, { exact: true }).first()).toBeVisible();
     }
     await expect(page.getByText('GV Track', { exact: true }).first()).toBeVisible();
-    await expect(page.getByText('Em desenvolvimento', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('En desarrollo', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('DJI Matrice series', { exact: true }).first()).toBeVisible();
     for (const alt of ['DJI Mavic 3 Multispectral', 'DJI Matrice 350 RTK', 'DJI Agras T40']) {
       await expect(page.getByRole('img', { name: alt, exact: true })).toBeVisible();
