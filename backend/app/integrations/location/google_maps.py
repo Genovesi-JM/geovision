@@ -33,11 +33,13 @@ class GoogleMapsLocationProvider:
         api_key: str,
         connect_timeout_seconds: float = 5.0,
         read_timeout_seconds: float = 20.0,
+        traffic_aware: bool = False,
         client: httpx.Client | None = None,
     ) -> None:
         if not api_key.strip():
             raise ValueError("Google Maps API key is required")
         self._api_key = api_key
+        self._traffic_aware = traffic_aware
         self._owns_client = client is None
         self._client = client or httpx.Client(
             timeout=httpx.Timeout(
@@ -196,7 +198,9 @@ class GoogleMapsLocationProvider:
             "origin": {"location": {"latLng": _point(origin)}},
             "destination": {"location": {"latLng": _point(destination)}},
             "travelMode": "DRIVE",
-            "routingPreference": "TRAFFIC_UNAWARE",
+            "routingPreference": (
+                "TRAFFIC_AWARE" if self._traffic_aware else "TRAFFIC_UNAWARE"
+            ),
             "computeAlternativeRoutes": False,
             "languageCode": language_code,
             "units": "METRIC",
@@ -219,7 +223,7 @@ class GoogleMapsLocationProvider:
                 distance_meters=int(route["distanceMeters"]),
                 duration_seconds=round(float(duration[:-1])),
                 encoded_polyline=(route.get("polyline") or {}).get("encodedPolyline"),
-                traffic_aware=False,
+                traffic_aware=self._traffic_aware,
             )
             return IntegrationResult.succeeded(
                 provider=self.provider_name,

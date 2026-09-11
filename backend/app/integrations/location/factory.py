@@ -30,6 +30,7 @@ def create_location_provider(
             api_key=config.google_maps_server_api_key,
             connect_timeout_seconds=config.integration_connect_timeout_seconds,
             read_timeout_seconds=config.integration_read_timeout_seconds,
+            traffic_aware=config.google_routes_traffic_aware,
         )
 
     from .unavailable import UnavailableLocationProvider

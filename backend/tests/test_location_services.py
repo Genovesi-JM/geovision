@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 from pydantic import ValidationError
@@ -104,6 +106,7 @@ def test_google_adapter_uses_header_key_field_masks_and_normalizes_results():
     client = httpx.Client(transport=httpx.MockTransport(handler))
     provider = GoogleMapsLocationProvider(
         api_key="secret-server-key",
+        traffic_aware=True,
         client=client,
     )
     bias = GeoCoordinate(latitude=-8.8, longitude=13.2)
@@ -133,6 +136,7 @@ def test_google_adapter_uses_header_key_field_masks_and_normalizes_results():
     assert route.ok
     assert route.value.distance_meters == 13200
     assert route.value.duration_seconds == 1250
+    assert route.value.traffic_aware is True
     reverse = provider.reverse_geocode(
         coordinate=place.value.coordinate,
         language_code="pt",
@@ -143,6 +147,7 @@ def test_google_adapter_uses_header_key_field_masks_and_normalizes_results():
     assert reverse.value.granularity == "APPROXIMATE"
     assert len(requests) == 4
     assert "routes.distanceMeters" in requests[-2].headers["X-Goog-FieldMask"]
+    assert json.loads(requests[-2].content)["routingPreference"] == "TRAFFIC_AWARE"
     assert "results.formattedAddress" in requests[-1].headers["X-Goog-FieldMask"]
     assert requests[-1].url.params["location.latitude"] == "-8.838333"
     client.close()

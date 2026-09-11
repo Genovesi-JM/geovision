@@ -254,6 +254,7 @@ class Settings(BaseSettings):
     gis_provider: str = "none"
     location_provider: str = "none"
     google_maps_server_api_key: Optional[str] = Field(default=None, repr=False)
+    google_routes_traffic_aware: bool = False
     miteco_ogc_features_base_url: str = (
         "https://gis.miteco.gob.es/geoserver/ogc/features/v1"
     )

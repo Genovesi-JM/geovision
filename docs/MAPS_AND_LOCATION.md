@@ -99,6 +99,12 @@ Spain and Angola coverage test, degraded/offline behavior, monitoring and
 rollback to the demo provider. No empty or invalid credential may silently
 claim that live maps are active.
 
+Driving estimates default to traffic-unaware routing. Traffic-aware routing is
+an explicit server configuration gate (`GOOGLE_ROUTES_TRAFFIC_AWARE=true`) and
+must remain off until billing, quotas and Spain/Angola traffic coverage have
+been accepted. The client always receives a `traffic_aware` flag, so it cannot
+present a non-traffic estimate as live traffic.
+
 GeoVision also applies per-client, per-minute API ceilings before a request can
 reach the paid provider: 60 autocomplete calls, 30 place resolutions, 20 route
 computations and 30 reverse-geocoding calls. These application limits reduce

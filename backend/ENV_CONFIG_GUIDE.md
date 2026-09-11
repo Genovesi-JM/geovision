@@ -450,12 +450,16 @@ environmental module.
 ```dotenv
 LOCATION_PROVIDER=none
 GOOGLE_MAPS_SERVER_API_KEY=
+GOOGLE_ROUTES_TRAFFIC_AWARE=false
 ```
 
 `LOCATION_PROVIDER=google_maps` activates the server-side Places API New,
 Routes API and Geocoding API v4 adapters only when
 `GOOGLE_MAPS_SERVER_API_KEY` is present. The key is
 redacted from settings output and must come from the deployment secret store.
+`GOOGLE_ROUTES_TRAFFIC_AWARE` remains `false` by default. Enable it only after
+route billing, traffic coverage, quotas and the launch-market acceptance test
+are approved.
 Restrict it to the required APIs, backend egress, quotas and approved projects;
 do not reuse a browser or mobile Maps SDK key. Local tests may select
 `deterministic`, which is rejected in deployed environments.
