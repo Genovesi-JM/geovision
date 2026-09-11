@@ -191,7 +191,9 @@ async function installApi(page, options = {}) {
     const request = route.request();
     const url = new URL(request.url());
     const workspaceId = request.headers()['x-workspace-id'] || 'workspace-a';
-    requests.push({ path: url.pathname, workspaceId, method: request.method() });
+    let body = null;
+    try { body = request.postDataJSON(); } catch (_) { /* no JSON body */ }
+    requests.push({ path: url.pathname, workspaceId, method: request.method(), body });
     if (options.delayExperience && url.pathname === '/portal/experience') {
       await new Promise((resolve) => setTimeout(resolve, options.delayExperience));
     }
@@ -212,6 +214,21 @@ async function installApi(page, options = {}) {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         provider: 'google_maps', simulated: false, distance_meters: 12800,
         duration_seconds: 1140, traffic_aware: false, encoded_polyline: null,
+      }) });
+    }
+    if (url.pathname === '/location/places:autocomplete') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        provider: 'google_maps', simulated: false, suggestions: [{
+          provider_reference: 'place-madrid', primary_text: 'Madrid',
+          secondary_text: 'Community of Madrid, Spain',
+        }],
+      }) });
+    }
+    if (url.pathname === '/location/places:resolve') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        provider: 'google_maps', simulated: false, provider_reference: 'place-madrid',
+        display_name: 'Madrid', formatted_address: 'Madrid, Spain',
+        coordinate: { latitude: 40.4168, longitude: -3.7038 },
       }) });
     }
     if (url.pathname === '/actions') {
@@ -420,11 +437,18 @@ test.describe('contextual customer portal', () => {
     await expect(page.getByRole('button', { name: 'Assets (1)' })).toBeVisible();
     await expect(page.locator('.leaflet-tile-pane img').first()).toHaveAttribute('src', /https:\/\/tile\.openstreetmap\.org\//);
     await expect(page.locator('.leaflet-control-attribution')).toContainText('OpenStreetMap contributors');
-    await page.locator('.leaflet-interactive').first().click();
+    await page.locator('path.leaflet-interactive').first().click();
     const directions = page.getByRole('link', { name: 'Open directions' });
     await expect(directions).toHaveAttribute('href', /https:\/\/www\.google\.com\/maps\/dir\/.*destination=-8\.84%2C13\.23/);
     await page.getByRole('button', { name: 'Estimate route' }).click();
     await expect(page.locator('.portal-map-route')).toContainText('12.8 km · 19 min');
+    await page.locator('#portal-map-search-input').fill('Madrid');
+    await page.getByRole('button', { name: /Madrid Community of Madrid/ }).click();
+    await expect(page.locator('#portal-map-search-input')).toHaveValue('Madrid, Spain');
+    const placeRequests = requests.filter((request) => request.path.startsWith('/location/places:'));
+    expect(placeRequests).toHaveLength(2);
+    expect(placeRequests[0].body.session_token).toBe(placeRequests[1].body.session_token);
+    await expect(page.locator('path.leaflet-interactive')).toHaveCount(2);
     expect(requests.some((request) => request.path === '/location/routes:compute' && request.workspaceId === 'workspace-a')).toBeTruthy();
     expect(requests.some((request) => request.path === '/portal/map-layers' && request.workspaceId === 'workspace-a')).toBeTruthy();
   });

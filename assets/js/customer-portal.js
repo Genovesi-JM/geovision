@@ -198,6 +198,37 @@ function normalizeRouteEstimate(raw) {
   };
 }
 
+function locationSessionToken() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+function normalizePlaceSuggestions(raw) {
+  if (!isRecord(raw)) return [];
+  return asArray(raw.suggestions).slice(0, 8).flatMap((item) => {
+    if (!isRecord(item)) return [];
+    const providerReference = asString(item.provider_reference);
+    const primaryText = asString(item.primary_text);
+    if (!/^[A-Za-z0-9_-]{1,256}$/.test(providerReference) || !primaryText) return [];
+    return [{
+      providerReference,
+      primaryText,
+      secondaryText: asString(item.secondary_text),
+    }];
+  });
+}
+
+function normalizeResolvedPlace(raw) {
+  if (!isRecord(raw) || !isRecord(raw.coordinate)) return null;
+  const latitude = Number(raw.coordinate.latitude);
+  const longitude = Number(raw.coordinate.longitude);
+  const formattedAddress = asString(raw.formatted_address);
+  if (!formattedAddress || !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  return { latitude, longitude, formattedAddress };
+}
+
 function routeDistance(meters) {
   return meters < 1000 ? `${meters} m` : `${(meters / 1000).toFixed(1)} km`;
 }
@@ -637,6 +668,8 @@ class CustomerPortal {
     this.authorizedKeys = new Set();
     this.loadedWorkspace = new Map();
     this.map = null;
+    this.mapSearchMarker = null;
+    this.mapSearchTimer = null;
     this.mapLayers = new Map();
     this.api = new PortalApi(apiBase, () => this.workspaceId);
   }
@@ -1395,11 +1428,108 @@ class CustomerPortal {
   }
 
   destroyMap() {
+    if (this.mapSearchTimer) clearTimeout(this.mapSearchTimer);
+    this.mapSearchTimer = null;
+    this.mapSearchMarker = null;
     if (this.map) {
       this.map.remove();
       this.map = null;
     }
     this.mapLayers.clear();
+  }
+
+  installPlaceSearch(map) {
+    const section = node("section", { className: "portal-map-search" });
+    const label = node("label", { text: "Find a place", attrs: { for: "portal-map-search-input" } });
+    const input = node("input", {
+      id: "portal-map-search-input",
+      attrs: {
+        type: "search",
+        placeholder: "Address, city or place",
+        autocomplete: "off",
+      },
+    });
+    const status = node("div", { className: "portal-map-search-status", attrs: { "aria-live": "polite" } });
+    const results = node("div", { className: "portal-map-search-results" });
+    let sessionToken = locationSessionToken();
+    let generation = 0;
+
+    const selectPlace = async (suggestion) => {
+      const currentGeneration = ++generation;
+      status.textContent = "Locating place…";
+      results.replaceChildren();
+      try {
+        const raw = await this.api.post("/location/places:resolve", {
+          provider_reference: suggestion.providerReference,
+          session_token: sessionToken,
+          language_code: document.documentElement.lang || "pt",
+        });
+        if (currentGeneration !== generation) return;
+        const place = normalizeResolvedPlace(raw);
+        if (!place) throw new Error("Invalid place response");
+        input.value = place.formattedAddress;
+        map.setView([place.latitude, place.longitude], 16);
+        if (this.mapSearchMarker) this.mapSearchMarker.remove();
+        this.mapSearchMarker = window.L.circleMarker([place.latitude, place.longitude], {
+          radius: 8,
+          color: "#ffffff",
+          weight: 3,
+          fillColor: "#0ea5e9",
+          fillOpacity: 1,
+        })
+          .addTo(map)
+          .bindPopup(node("strong", { text: place.formattedAddress }))
+          .openPopup();
+        sessionToken = locationSessionToken();
+        status.textContent = "Place shown on map.";
+      } catch (_) {
+        if (currentGeneration === generation) status.textContent = "Place search is unavailable.";
+      }
+    };
+
+    const search = async () => {
+      const query = input.value.trim();
+      const currentGeneration = ++generation;
+      if (query.length < 2) {
+        status.textContent = "";
+        results.replaceChildren();
+        return;
+      }
+      status.textContent = "Searching…";
+      try {
+        const center = map.getCenter();
+        const raw = await this.api.post("/location/places:autocomplete", {
+          query,
+          session_token: sessionToken,
+          language_code: document.documentElement.lang || "pt",
+          bias: { latitude: center.lat, longitude: center.lng },
+        });
+        if (currentGeneration !== generation || query !== input.value.trim()) return;
+        const suggestions = normalizePlaceSuggestions(raw);
+        results.replaceChildren(...suggestions.map((suggestion) => {
+          const button = node("button", { attrs: { type: "button" } });
+          button.append(
+            node("strong", { text: suggestion.primaryText }),
+            node("small", { text: suggestion.secondaryText }),
+          );
+          button.addEventListener("click", () => selectPlace(suggestion));
+          return button;
+        }));
+        status.textContent = suggestions.length ? `${suggestions.length} places found.` : "No places found.";
+      } catch (_) {
+        if (currentGeneration === generation) {
+          results.replaceChildren();
+          status.textContent = "Place search is unavailable.";
+        }
+      }
+    };
+
+    input.addEventListener("input", () => {
+      if (this.mapSearchTimer) clearTimeout(this.mapSearchTimer);
+      this.mapSearchTimer = setTimeout(search, 350);
+    });
+    section.append(label, input, status, results);
+    return section;
   }
 
   async estimateRoute(destination, label, output) {
@@ -1458,6 +1588,7 @@ class CustomerPortal {
         attribution: baseMap.attribution,
         maxZoom: baseMap.maxZoom,
       }).addTo(this.map);
+      side.appendChild(this.installPlaceSearch(this.map));
       const routeOutput = node("section", {
         className: "portal-map-route",
         attrs: { "aria-live": "polite", "aria-label": "Driving route estimate" },

@@ -540,3 +540,37 @@ body[data-portal-state="loading"] .view-panel {
   font: inherit;
   text-decoration: none;
 }
+
+.portal-map-search {
+  display: grid;
+  gap: .45rem;
+  padding: .85rem;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, .65);
+}
+
+.portal-map-search label { font-weight: 750; }
+.portal-map-search input {
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, .35);
+  border-radius: 8px;
+  padding: .65rem .7rem;
+  background: #0f172a;
+  color: #f8fafc;
+}
+.portal-map-search-status { min-height: 1.2rem; color: #94a3b8; font-size: .8rem; }
+.portal-map-search-results { display: grid; gap: .35rem; }
+.portal-map-search-results button {
+  display: grid;
+  gap: .15rem;
+  width: 100%;
+  border: 1px solid rgba(34, 211, 238, .2);
+  border-radius: 8px;
+  padding: .55rem;
+  background: rgba(8, 47, 73, .4);
+  color: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+}
+.portal-map-search-results small { color: #cbd5e1; }

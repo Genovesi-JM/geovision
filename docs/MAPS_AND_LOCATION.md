@@ -30,6 +30,11 @@ the customer presses that action; the resulting coordinates are sent to the
 authenticated GeoVision route endpoint and are not inserted into a provider
 URL by the portal.
 
+The web map also includes authenticated place autocomplete. Input is debounced,
+one opaque session token is reused through the selected Place Details request,
+and the current map centre is sent only as a result-bias hint. Provider
+references and returned coordinates are validated before the map moves.
+
 An asset with valid coordinates also offers Google Maps and Apple Maps driving
 handoff. GeoVision constructs only allowlisted HTTPS universal links from
 validated latitude/longitude values. This works without an API key and does not
