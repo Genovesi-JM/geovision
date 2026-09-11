@@ -213,7 +213,8 @@ async function installApi(page, options = {}) {
     if (url.pathname === '/location/routes:compute') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         provider: 'google_maps', simulated: false, distance_meters: 12800,
-        duration_seconds: 1140, traffic_aware: false, encoded_polyline: null,
+        duration_seconds: 1140, traffic_aware: false,
+        encoded_polyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
       }) });
     }
     if (url.pathname === '/location/places:autocomplete') {
@@ -442,13 +443,14 @@ test.describe('contextual customer portal', () => {
     await expect(directions).toHaveAttribute('href', /https:\/\/www\.google\.com\/maps\/dir\/.*destination=-8\.84%2C13\.23/);
     await page.getByRole('button', { name: 'Estimate route' }).click();
     await expect(page.locator('.portal-map-route')).toContainText('12.8 km · 19 min');
+    await expect(page.locator('.portal-route-line')).toHaveCount(1);
     await page.locator('#portal-map-search-input').fill('Madrid');
     await page.getByRole('button', { name: /Madrid Community of Madrid/ }).click();
     await expect(page.locator('#portal-map-search-input')).toHaveValue('Madrid, Spain');
     const placeRequests = requests.filter((request) => request.path.startsWith('/location/places:'));
     expect(placeRequests).toHaveLength(2);
     expect(placeRequests[0].body.session_token).toBe(placeRequests[1].body.session_token);
-    await expect(page.locator('path.leaflet-interactive')).toHaveCount(2);
+    await expect(page.locator('path.leaflet-interactive')).toHaveCount(3);
     expect(requests.some((request) => request.path === '/location/routes:compute' && request.workspaceId === 'workspace-a')).toBeTruthy();
     expect(requests.some((request) => request.path === '/portal/map-layers' && request.workspaceId === 'workspace-a')).toBeTruthy();
   });

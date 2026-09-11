@@ -30,6 +30,10 @@ the customer presses that action; the resulting coordinates are sent to the
 authenticated GeoVision route endpoint and are not inserted into a provider
 URL by the portal.
 
+When a live route response includes an encoded polyline, the portal validates,
+decodes and draws that route over the base map. Oversized, malformed or
+out-of-range geometry is ignored rather than rendered.
+
 The web map also includes authenticated place autocomplete. Input is debounced,
 one opaque session token is reused through the selected Place Details request,
 and the current map centre is sent only as a result-bias hint. Provider

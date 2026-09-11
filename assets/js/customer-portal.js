@@ -195,7 +195,39 @@ function normalizeRouteEstimate(raw) {
     durationSeconds,
     simulated: raw.simulated === true,
     trafficAware: raw.traffic_aware === true,
+    encodedPolyline: typeof raw.encoded_polyline === "string" ? raw.encoded_polyline : null,
   };
+}
+
+function decodeGooglePolyline(value) {
+  if (typeof value !== "string" || value.length < 2 || value.length > 4096) return [];
+  const points = [];
+  let index = 0;
+  let latitude = 0;
+  let longitude = 0;
+  const readDelta = () => {
+    let result = 0;
+    let shift = 0;
+    while (index < value.length && shift <= 30) {
+      const chunk = value.charCodeAt(index++) - 63;
+      if (chunk < 0 || chunk > 63) return null;
+      result |= (chunk & 0x1f) << shift;
+      if (chunk < 0x20) return (result & 1) ? ~(result >> 1) : result >> 1;
+      shift += 5;
+    }
+    return null;
+  };
+  while (index < value.length && points.length < 2048) {
+    const latitudeDelta = readDelta();
+    const longitudeDelta = readDelta();
+    if (latitudeDelta === null || longitudeDelta === null) return [];
+    latitude += latitudeDelta;
+    longitude += longitudeDelta;
+    const point = [latitude / 1e5, longitude / 1e5];
+    if (Math.abs(point[0]) > 90 || Math.abs(point[1]) > 180) return [];
+    points.push(point);
+  }
+  return index === value.length && points.length >= 2 ? points : [];
 }
 
 function locationSessionToken() {
@@ -669,6 +701,7 @@ class CustomerPortal {
     this.loadedWorkspace = new Map();
     this.map = null;
     this.mapSearchMarker = null;
+    this.mapRouteLayer = null;
     this.mapSearchTimer = null;
     this.mapLayers = new Map();
     this.api = new PortalApi(apiBase, () => this.workspaceId);
@@ -1431,6 +1464,7 @@ class CustomerPortal {
     if (this.mapSearchTimer) clearTimeout(this.mapSearchTimer);
     this.mapSearchTimer = null;
     this.mapSearchMarker = null;
+    this.mapRouteLayer = null;
     if (this.map) {
       this.map.remove();
       this.map = null;
@@ -1543,6 +1577,18 @@ class CustomerPortal {
       });
       const estimate = normalizeRouteEstimate(raw);
       if (!estimate) throw new Error("Invalid route response");
+      const routePoints = decodeGooglePolyline(estimate.encodedPolyline);
+      if (this.mapRouteLayer) this.mapRouteLayer.remove();
+      this.mapRouteLayer = null;
+      if (routePoints.length && this.map) {
+        this.mapRouteLayer = window.L.polyline(routePoints, {
+          color: "#38bdf8",
+          weight: 5,
+          opacity: .9,
+          className: "portal-route-line",
+        }).addTo(this.map);
+        this.map.fitBounds(this.mapRouteLayer.getBounds(), { padding: [32, 32], maxZoom: 16 });
+      }
       const quality = estimate.simulated
         ? "Demonstration estimate — not live navigation"
         : estimate.trafficAware
