@@ -23,24 +23,27 @@ def _run_migrations() -> None:
             check=True,
             cwd=_BACKEND_ROOT,
             timeout=migrate_timeout_s,
+            # Driver/configuration failures can embed the database URL in
+            # either stream. Never forward migration output to runtime logs.
+            capture_output=True,
         )
         print("[start] Migrations complete.", flush=True)
     except subprocess.TimeoutExpired:
         print(
             "[start] ERROR: Alembic migrations timed out. "
-            "If you are using an external database with an IP allowlist, add outbound IP ranges.",
-            file=sys.stderr,
-            flush=True,
-        )
-        raise SystemExit(1)
-    except subprocess.CalledProcessError as exc:
-        print(
-            f"[start] ERROR: Alembic upgrade failed (exit code {exc.returncode}). "
             "Refusing to start with an unverified database schema.",
             file=sys.stderr,
             flush=True,
         )
-        raise SystemExit(1) from exc
+        raise SystemExit(1) from None
+    except (subprocess.CalledProcessError, OSError):
+        print(
+            "[start] ERROR: Alembic upgrade failed. "
+            "Refusing to start with an unverified database schema.",
+            file=sys.stderr,
+            flush=True,
+        )
+        raise SystemExit(1) from None
 
     # ── Ensure critical columns exist (handles schema drift) ──
     _ensure_schema_columns()

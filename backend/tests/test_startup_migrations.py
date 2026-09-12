@@ -42,6 +42,11 @@ def test_migration_job_runs_bounded_upgrade_and_repair_without_server(monkeypatc
     monkeypatch.setattr(start, "_ensure_schema_columns", lambda: repaired.append(True))
     monkeypatch.setattr(
         start,
+        "_run_accounts_migrations",
+        lambda: repaired.append("accounts"),
+    )
+    monkeypatch.setattr(
+        start,
         "_run_compatibility_bootstrap",
         lambda: repaired.append("bootstrap"),
     )
@@ -56,10 +61,11 @@ def test_migration_job_runs_bounded_upgrade_and_repair_without_server(monkeypatc
                 "check": True,
                 "cwd": start._BACKEND_ROOT,
                 "timeout": start.settings.migrate_timeout_seconds,
+                "capture_output": True,
             },
         )
     ]
-    assert repaired == [True, "bootstrap"]
+    assert repaired == [True, "accounts", "bootstrap"]
     assert served == []
 
 
@@ -70,11 +76,12 @@ def test_default_serve_preserves_migrate_then_start_behavior(monkeypatch):
     monkeypatch.setattr(start.settings, "run_migrations_on_startup", True)
     monkeypatch.setattr(start.settings, "startup_compatibility_bootstrap", True)
     monkeypatch.setattr(start, "_run_migrations", lambda: calls.append("migrate"))
+    monkeypatch.setattr(start, "_run_accounts_migrations", lambda: calls.append("accounts"))
     monkeypatch.setattr(start, "_serve", lambda: calls.append("serve"))
 
     start.main()
 
-    assert calls == ["migrate", "serve"]
+    assert calls == ["migrate", "accounts", "serve"]
     assert start.settings.startup_compatibility_bootstrap is True
 
 
@@ -103,6 +110,11 @@ def test_api_replica_can_delegate_all_startup_schema_writes(
         start,
         "_run_migrations",
         lambda: pytest.fail("API replicas must not run migrations"),
+    )
+    monkeypatch.setattr(
+        start,
+        "_run_accounts_migrations",
+        lambda: pytest.fail("API replicas must not run accounts migrations"),
     )
     monkeypatch.setattr(start, "_serve", lambda: served.append(True))
 
