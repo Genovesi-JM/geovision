@@ -78,6 +78,11 @@ from ..modules.identity.services import (
     ResolvedIdentity,
     issue_session_access_token,
 )
+from ..modules.organizations.services import (
+    OrganizationAccessError,
+    active_internal_roles,
+    resolve_workspace_access,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -503,33 +508,43 @@ def _build_auth_response(
     expected_auth_generation: int,
     issue_refresh_token: bool,
 ) -> dict:
-    profile = _ensure_profile(db, user, commit=False)
-    # An invite recipient must join the pre-provisioned organization instead
-    # of silently receiving an unrelated starter workspace on sign-in.
-    has_workspace_membership = (
-        db.query(AccountMember)
-        .filter(
-            AccountMember.user_id == user.id,
-            AccountMember.status == "active",
+    if active_internal_roles(db, user):
+        # Staff sign-in is not customer onboarding. Keep existing explicit
+        # customer access, but never manufacture a profile, organization or
+        # workspace (or repair/rebind one) just to issue a staff session.
+        profile = db.get(UserProfile, user.id)
+        try:
+            account = resolve_workspace_access(db, user).workspace
+        except OrganizationAccessError:
+            account = None
+    else:
+        profile = _ensure_profile(db, user, commit=False)
+        # An invite recipient must join the pre-provisioned organization
+        # instead of silently receiving an unrelated starter workspace.
+        has_workspace_membership = (
+            db.query(AccountMember)
+            .filter(
+                AccountMember.user_id == user.id,
+                AccountMember.status == "active",
+            )
+            .first()
+            is not None
         )
-        .first()
-        is not None
-    )
-    has_pending_invitation = (
-        db.query(Invitation)
-        .filter(
-            Invitation.target_email == (user.email or "").strip().lower(),
-            Invitation.status == "pending",
-            Invitation.expires_at > utc_now(),
+        has_pending_invitation = (
+            db.query(Invitation)
+            .filter(
+                Invitation.target_email == (user.email or "").strip().lower(),
+                Invitation.status == "pending",
+                Invitation.expires_at > utc_now(),
+            )
+            .first()
+            is not None
         )
-        .first()
-        is not None
-    )
-    account = (
-        None
-        if has_pending_invitation and not has_workspace_membership
-        else _ensure_default_account(db, user, commit=False)
-    )
+        account = (
+            None
+            if has_pending_invitation and not has_workspace_membership
+            else _ensure_default_account(db, user, commit=False)
+        )
 
     # Bind issuance to the exact credential snapshot that was verified. This
     # remains safe even when SQLite ignores SELECT ... FOR UPDATE.
@@ -937,6 +952,9 @@ def get_current_user(
         if auth_context.active_workspace_id
         else None
     )
+    # A staff session without an explicit customer workspace has no customer
+    # classification. Do not present the legacy farm defaults as real data.
+    missing_customer_profile = None if auth_context.internal_roles else "farm"
 
     return {
         "id": user.id,
@@ -952,10 +970,10 @@ def get_current_user(
         "account_name": getattr(account, "name", "") if account else "",
         "customer_type": getattr(account, "customer_type", "farm")
         if account
-        else "farm",
+        else missing_customer_profile,
         "dashboard_profile": getattr(account, "dashboard_profile", "farm")
         if account
-        else "farm",
+        else missing_customer_profile,
         "sector_focus": (
             public_sector_focus(getattr(account, "sector_focus", "")) if account else ""
         ),

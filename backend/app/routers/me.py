@@ -68,7 +68,15 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
                     role=member.role if member else None,
                 )
             )
-        default_account_id = memberships[0].account_id
+        visible_account_ids = {account.id for account in accounts}
+        default_account_id = next(
+            (
+                membership.account_id
+                for membership in memberships
+                if membership.account_id in visible_account_ids
+            ),
+            None,
+        )
 
     return MeResponse(
         user=UserSummary(id=user.id, email=user.email, role=user.role, full_name=prof.full_name if prof else None),
