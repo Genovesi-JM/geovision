@@ -194,6 +194,20 @@
       font-size: 0.9rem;
       color: #cbd5e1;
     }
+    html[data-pilot="true"] [hidden] { display: none !important; }
+    .pilot-note { margin: 0 0 1.25rem; color: var(--text-secondary); font-size: .95rem; line-height: 1.55; }
+    .pilot-note strong { display: block; margin-bottom: .3rem; color: var(--text-primary); font-weight: 600; }
+    .pilot-status { margin: 1rem 0 0; font-size: .9rem; line-height: 1.5; color: var(--text-secondary); }
+    .pilot-status button { margin-top: .65rem; min-height: 44px; }
+    html[data-pilot="true"] .toggle-password { min-width: 60px; min-height: 40px; right: 6px; font-size: .9rem; }
+    html[data-pilot="true"] .input-wrapper input { padding-right: 4.7rem; }
+    .btn-primary:disabled { cursor: wait; opacity: .6; }
+    .feedback { line-height: 1.55; overflow-wrap: anywhere; }
+    @media (max-width: 420px) {
+      body { padding: 5.4rem .8rem 1.5rem; }
+      .shell { padding: 1.5rem 1.2rem; }
+      .title { font-size: 1.65rem; }
+    }
 
     /* Account-creation wizard */
     .wizard-step { display: none; gap: 1.1rem; grid-template-columns: 1fr; }
@@ -328,15 +342,16 @@
       </div>
     </div>
 
+    <p id="pilot-notice" class="pilot-note" hidden><strong>Entorno de pruebas · España</strong>Accede con tu cuenta GeoVision autorizada. Este entorno está separado del sitio público.</p>
     <form id="login-form" class="grid" autocomplete="on">
       <div>
         <label for="login-email" data-i18n="login.email">Email</label>
-        <input type="email" id="login-email" data-i18n-placeholder="login.emailPlaceholder" placeholder="utilizador@empresa.com" required />
+        <input type="email" id="login-email" autocomplete="username" data-i18n-placeholder="login.emailPlaceholder" placeholder="utilizador@empresa.com" required />
       </div>
       <div>
         <label for="login-password" data-i18n="login.password">Senha</label>
         <div class="input-wrapper">
-          <input type="password" id="login-password" data-i18n-placeholder="login.passwordPlaceholder" placeholder="••••••••" required />
+          <input type="password" id="login-password" autocomplete="current-password" data-i18n-placeholder="login.passwordPlaceholder" placeholder="••••••••" required />
           <button type="button" class="toggle-password" data-target="login-password" title="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
         </div>
       </div>
@@ -463,7 +478,8 @@
   <script src="assets/js/config.js?v=5"></script>
   <script src="assets/js/account-profiles.js?v=5"></script>
   <script>window.GV_CHAT_API_BASE = window.API_BASE;</script>
-  <script src="assets/js/auth.js?v=9"></script>
+  <script src="assets/js/pilot.js?v=1"></script>
+  <script src="assets/js/auth.js?v=10"></script>
   <script src="assets/js/i18n.js?v=30"></script>
   <script src="assets/js/chatbot.js?v=5"></script>
   <script src="assets/js/contacts.js?v=3"></script>

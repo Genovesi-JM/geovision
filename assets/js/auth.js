@@ -2,6 +2,7 @@
 // Production auth flows (email/password + Google OAuth). No demo fallbacks.
 
 (function () {
+  const isPilot = window.GV_RUNTIME?.mode === 'pilot';
   function apiBase() {
     return (typeof window !== 'undefined' && window.API_BASE) ? window.API_BASE : 'http://127.0.0.1:8010';
   }
@@ -30,6 +31,14 @@
   }
 
   async function readErrorMessage(res) {
+    if (isPilot) {
+      const error = new Error(res.status === 401 ? 'El email o la contraseña no son correctos.'
+        : res.status === 403 ? 'Esta cuenta no tiene acceso a este entorno de pruebas.'
+        : res.status === 429 ? 'Se han realizado demasiados intentos. Espera un minuto antes de volver a intentarlo.'
+        : 'No se ha podido confirmar el acceso. No se ha repetido tu solicitud.');
+      error.status = res.status;
+      throw error;
+    }
     const text = await res.text().catch(() => '');
     if (!text) return `Erro (${res.status})`;
     try {
@@ -48,6 +57,7 @@
   }
 
   function beginOAuth(provider) {
+    if (isPilot) return;
     const bytes = new Uint8Array(32);
     window.crypto.getRandomValues(bytes);
     const nonce = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
@@ -78,7 +88,7 @@
       window.location.href = window.GV.session.destination(profile, params.get('return'));
     }
 
-    if (googleBtn && !googleBtn.dataset.gvBound) {
+    if (!isPilot && googleBtn && !googleBtn.dataset.gvBound) {
       googleBtn.addEventListener('click', () => {
         beginOAuth('google');
       });
@@ -86,14 +96,14 @@
     }
 
     const microsoftBtn = document.getElementById('microsoft-btn');
-    if (microsoftBtn && !microsoftBtn.dataset.gvBound) {
+    if (!isPilot && microsoftBtn && !microsoftBtn.dataset.gvBound) {
       microsoftBtn.addEventListener('click', () => {
         beginOAuth('microsoft');
       });
       microsoftBtn.dataset.gvBound = '1';
     }
 
-    if (forgotLink && !forgotLink.dataset.gvBound) {
+    if (!isPilot && forgotLink && !forgotLink.dataset.gvBound) {
       forgotLink.addEventListener('click', async (e) => {
         e.preventDefault();
         hide(errorBox);
@@ -165,7 +175,7 @@
       if (validateWizardStep(wizardStep) && wizardStep < WIZ_TOTAL) showWizardStep(wizardStep + 1);
     }
 
-    if (toggleCreate && createForm && !toggleCreate.dataset.gvBound) {
+    if (!isPilot && toggleCreate && createForm && !toggleCreate.dataset.gvBound) {
       toggleCreate.addEventListener('click', () => {
         const isOpen = createForm.style.display !== 'none';
         createForm.style.display = isOpen ? 'none' : 'grid';
@@ -194,7 +204,7 @@
       createCancel.dataset.gvBound = '1';
     }
 
-    if (createForm && !createForm.dataset.gvHandler) {
+    if (!isPilot && createForm && !createForm.dataset.gvHandler) {
       createForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         // Enter / submit before the last step just advances the wizard.
@@ -236,17 +246,19 @@
     if (!form.dataset.gvHandler) {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isPilot && !window.GV_PILOT_UI?.isReady()) return;
         hide(errorBox);
         hide(successBox);
 
         const email = (emailInput?.value || '').trim().toLowerCase();
-        const password = (passwordInput?.value || '').trim();
+        const password = passwordInput?.value || '';
         if (!email || !password) {
-          show(errorBox, 'Por favor preencha todos os campos.');
+          show(errorBox, isPilot ? 'Introduce tu email y tu contraseña.' : 'Por favor preencha todos os campos.');
           return;
         }
 
         if (submitBtn) submitBtn.disabled = true;
+        let verifyingSession = false;
         try {
           const res = await fetch(`${apiBase()}/auth/login`, {
             method: 'POST',
@@ -258,13 +270,18 @@
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(() => ({}));
+          verifyingSession = true;
           const profile = await persistSession(data, email);
-          setToast('Login bem-sucedido.', 'success');
+          setToast(isPilot ? 'Sesión iniciada.' : 'Login bem-sucedido.', 'success');
           redirectAfterAuth(profile);
         } catch (err) {
-          show(errorBox, err && err.message ? err.message : 'Erro no login.');
+          if (isPilot) {
+            const credentialError = !verifyingSession && (err?.status === 401 || err?.status === 403 || err?.status === 429);
+            show(errorBox, credentialError ? (err.status === 401 ? 'El email o la contraseña no son correctos.' : err.status === 403 ? 'Esta cuenta no tiene acceso a este entorno de pruebas.' : 'Se han realizado demasiados intentos. Espera un minuto antes de volver a intentarlo.') : 'No se ha podido confirmar el acceso. No se ha repetido tu solicitud. Comprueba el servicio antes de volver a intentarlo.');
+            if (!credentialError) window.GV_PILOT_UI?.unavailable();
+          } else show(errorBox, err && err.message ? err.message : 'Erro no login.');
         } finally {
-          if (submitBtn) submitBtn.disabled = false;
+          if (submitBtn) submitBtn.disabled = isPilot && !window.GV_PILOT_UI?.isReady();
         }
       });
       form.dataset.gvHandler = '1';

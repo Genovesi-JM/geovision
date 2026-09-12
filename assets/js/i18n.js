@@ -1927,7 +1927,7 @@ Object.assign(translations, {
 // ============ i18n ENGINE ============
 class I18n {
   constructor() {
-    this.currentLang = localStorage.getItem('gv_lang') || 'es'; // Spain-first launch default
+    this.currentLang = window.GV_RUNTIME?.mode === 'pilot' ? 'es' : (localStorage.getItem('gv_lang') || 'es'); // Spain-first launch default
     this.translations = translations;
     this.supportedLangs = ['pt', 'en', 'es'];
   }
@@ -1943,8 +1943,9 @@ class I18n {
 
   setLanguage(lang) {
     if (!this.supportedLangs.includes(lang)) return;
+    if (window.GV_RUNTIME?.mode === 'pilot' && lang !== 'es') return;
     this.currentLang = lang;
-    localStorage.setItem('gv_lang', lang);
+    if (window.GV_RUNTIME?.mode !== 'pilot') localStorage.setItem('gv_lang', lang);
     this.updatePage();
     this.updateLangButtons();
     window.dispatchEvent(new CustomEvent('gv:languagechange', { detail: { lang } }));

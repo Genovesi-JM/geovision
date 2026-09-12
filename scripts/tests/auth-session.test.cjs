@@ -14,7 +14,7 @@ test('login and OAuth load the shared session helper before their auth code', ()
   const login = fs.readFileSync(path.join(root, 'login.html'), 'utf8');
   const callback = fs.readFileSync(path.join(root, 'auth-callback.html'), 'utf8');
   assert.ok(login.indexOf('assets/js/session.js?v=2') > 0);
-  assert.ok(login.indexOf('assets/js/session.js?v=2') < login.indexOf('assets/js/auth.js?v=9'));
+  assert.ok(login.indexOf('assets/js/session.js?v=2') < login.indexOf('assets/js/auth.js?v=10'));
   assert.ok(callback.indexOf('assets/js/config.js') < callback.indexOf('assets/js/session.js?v=2'));
   assert.ok(callback.indexOf('assets/js/session.js?v=2') < callback.indexOf('(async function(){'));
 });
