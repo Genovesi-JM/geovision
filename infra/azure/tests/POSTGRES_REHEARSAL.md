@@ -110,7 +110,7 @@ Azure privileges/extensions, external services and existing-data restore/import
 remain unverified as listed above; this successful local rehearsal does not
 declare a complete production migration.
 
-## Special-character regression gate — awaiting rebuilt image
+## Special-character regression gate — rebuilt image passed, 2026-09-12
 
 The historical successful image rehearsal above used only a URL-safe password
 and therefore did not test percent-encoded DSNs. A later Azure migration exposed
@@ -119,6 +119,40 @@ now tests `%`, spaces, `!`, `@`, `:` and `/` through both DSNs and adds offline
 round-trip encoding and error-redaction assertions. The migration environment
 fixes and startup-log hardening are maintained separately from this harness.
 
-The rebuilt image must pass the full disposable PostgreSQL rehearsal before
-this additional gate is marked successful. No new-image, Azure migration or
-production-readiness success is claimed by the harness update itself.
+The rebuilt local tag `geovision-backend:azure-pilot-20260912-r2` was first
+checked against the release owner's exact immutable image ID and linux/amd64
+architecture. The complete rehearsal then ran against the immutable ID, not
+the mutable tag, and completed with **exit code 0** at approximately 19:46 UTC:
+
+`sha256:e552de137e293e92da8c613195ab610ad79197041118793316ed044c495a9794`
+
+The independently pinned, already-local PostgreSQL/PostGIS image was:
+
+`sha256:94146ac37bc61e2322f88016056c5920729cb8c64c8542ed590af8fc2abdac07`
+
+The application image includes the Alembic interpolation correction `c4a0d57`
+and migration diagnostic redaction `cfe10c8`; this run used the strengthened
+harness committed as `17db784`.
+
+- Source-only package, UID10001 and `pip check`: passed.
+- Fresh PostGIS on the run-labelled internal network and tmpfs, without host
+  mounts, published ports, external image pulls or cloud access: passed.
+- Primary and separate accounts migrations, **twice with the same fresh
+  URL-special password**: passed; synthetic account preserved; no administrator
+  created without supplied administrator credentials.
+- Accounts schema readiness and both email uniqueness constraints: passed.
+- Unversioned legacy fixture rejected while its original synthetic row remained
+  unchanged: passed.
+- Strict staging HTTP readiness checked each database head independently:
+  200 -> sanitized 503 -> 200; liveness remained 200: passed.
+- Read-only, non-root API startup and graceful shutdown with exit code 0: passed.
+- Label-checked disposable container/network cleanup: passed. An independent
+  post-run listing found no remaining containers or networks carrying the
+  rehearsal label. Existing user resources were not targeted.
+- All nine offline harness/manifest safety regressions: passed again.
+
+The older successful image and upload record above remain historical evidence,
+not the current special-character test target. This new record proves the
+isolated local migration/runtime regression gate only. It does not claim an
+Azure migration, private-network connectivity, managed-service permissions,
+provider integrations, production clinical/business readiness or a public release.
