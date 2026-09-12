@@ -25,8 +25,8 @@ param deployConfigurationValues = false
 param apiExternalIngress = false
 // Validated source-only image, pushed to this pilot's own registry.
 // Repeat the disposable PostgreSQL rehearsal before changing this digest.
-param imageTag = 'pilot-20260912'
-param imageDigest = 'sha256:948228508fcc65459680f30de97288b241b4b24ff538d8c09a853f7b1536de55'
+param imageTag = 'pilot-20260912-r2'
+param imageDigest = 'sha256:e552de137e293e92da8c613195ab610ad79197041118793316ed044c495a9794'
 param frontendBaseUrl = 'https://geovisionops.com'
 param corsOrigins = 'https://geovisionops.com,https://www.geovisionops.com'
 param apiMinReplicas = 0
