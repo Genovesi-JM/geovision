@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import unittest
 from unittest.mock import patch
-from urllib.parse import urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 from verify_postgres_container import LABEL, Rehearsal
 
@@ -62,6 +62,37 @@ class RehearsalSafetyTests(unittest.TestCase):
             self.assertNotIn(prohibited, args)
         for private_value in rehearsal.private_values:
             self.assertNotIn(private_value, " ".join(args))
+
+    def test_special_character_password_is_encoded_once_for_both_databases(self):
+        rehearsal = Rehearsal("local-api", "local-postgres")
+        raw_password = rehearsal.pg_env["POSTGRES_PASSWORD"]
+        for character in "% !@:/":
+            self.assertIn(character, raw_password)
+        encoded_password = quote(raw_password, safe="")
+        self.assertNotEqual(encoded_password, raw_password)
+        for setting, database in (("DATABASE_URL", "geovision"), ("ACCOUNTS_DATABASE_URL", "geovision_accounts")):
+            with self.subTest(setting=setting):
+                url = rehearsal.env[setting]
+                parsed = urlsplit(url)
+                self.assertEqual(url, "postgresql://fixture:" + encoded_password + "@db:5432/" + database)
+                self.assertEqual(unquote(parsed.password), raw_password)
+                self.assertEqual((parsed.username, parsed.hostname, parsed.port), ("fixture", "db", 5432))
+                self.assertEqual((parsed.path, parsed.query, parsed.fragment), ("/" + database, "", ""))
+                self.assertNotIn(raw_password, url)
+
+    def test_failure_redacts_raw_encoded_and_configparser_password_forms(self):
+        rehearsal = Rehearsal("local-api", "local-postgres")
+        raw_password = rehearsal.pg_env["POSTGRES_PASSWORD"]
+        encoded_password = quote(raw_password, safe="")
+        escaped_password = encoded_password.replace("%", "%%")
+        result = SimpleNamespace(returncode=1, stdout=raw_password + " " + encoded_password,
+                                 stderr=escaped_password)
+        with patch("verify_postgres_container.subprocess.run", return_value=result):
+            with self.assertRaises(RuntimeError) as raised:
+                rehearsal.docker(["synthetic-failure"])
+        for value in (raw_password, encoded_password, escaped_password):
+            self.assertNotIn(value, str(raised.exception))
+        self.assertIn("[throwaway-value-redacted]", str(raised.exception))
 
     def test_cleanup_does_not_remove_a_label_mismatch(self):
         rehearsal = Rehearsal("local-api", "local-postgres")

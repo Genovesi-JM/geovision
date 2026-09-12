@@ -18,6 +18,13 @@ Only resources created by this run are removed, after checking the run label.
 Runtime and migration containers use the non-root image with a read-only root
 filesystem; only temporary runtime directories are writable.
 
+Every new PostgreSQL fixture password contains a fresh random prefix followed
+by `% ! @ : /`, including spaces. The server receives the raw throwaway password;
+both primary and accounts DSNs percent-encode it exactly once. This exercises
+the Alembic/ConfigParser percent-interpolation boundary rather than relying on
+URL-safe passwords. Failure output redacts raw, percent-encoded and
+ConfigParser-escaped variants. No existing credentials are read or substituted.
+
 The source-only `backend/.dockerignore` allowlist names **415 exact files**: runtime Python code,
 both Alembic chains/configurations and runtime requirements/startup files.
 There are no directory or wildcard inclusion exceptions: Docker ignores trailing
@@ -102,3 +109,16 @@ and no application/business-flow code was changed in this packaging task.
 Azure privileges/extensions, external services and existing-data restore/import
 remain unverified as listed above; this successful local rehearsal does not
 declare a complete production migration.
+
+## Special-character regression gate — awaiting rebuilt image
+
+The historical successful image rehearsal above used only a URL-safe password
+and therefore did not test percent-encoded DSNs. A later Azure migration exposed
+an Alembic ConfigParser failure before SQL execution. The strengthened harness
+now tests `%`, spaces, `!`, `@`, `:` and `/` through both DSNs and adds offline
+round-trip encoding and error-redaction assertions. The migration environment
+fixes and startup-log hardening are maintained separately from this harness.
+
+The rebuilt image must pass the full disposable PostgreSQL rehearsal before
+this additional gate is marked successful. No new-image, Azure migration or
+production-readiness success is claimed by the harness update itself.

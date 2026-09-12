@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 import uuid
+from urllib.parse import quote
 
 
 LABEL = "com.geovision.isolated-pilot-test"
@@ -31,12 +32,15 @@ class Rehearsal:
         self.api = self.network + "-api"
         self.containers = []
         self.network_created = False
-        password = secrets.token_urlsafe(32)
-        self.private_values = [password]
+        # Exercise real DSN escaping and Alembic ConfigParser interpolation:
+        # token_urlsafe alone never exposed failures caused by percent escapes.
+        password = secrets.token_urlsafe(32) + "% ! @ : /"
+        encoded_password = quote(password, safe="")
+        self.private_values = [password, encoded_password, encoded_password.replace("%", "%%")]
         self.env = {
             "ENV": "staging", "PORT": "8010",
-            "DATABASE_URL": "postgresql://fixture:" + password + "@db:5432/geovision",
-            "ACCOUNTS_DATABASE_URL": "postgresql://fixture:" + password + "@db:5432/geovision_accounts",
+            "DATABASE_URL": "postgresql://fixture:" + encoded_password + "@db:5432/geovision",
+            "ACCOUNTS_DATABASE_URL": "postgresql://fixture:" + encoded_password + "@db:5432/geovision_accounts",
             "SECRET_KEY": secrets.token_urlsafe(48),
             "ENCRYPTION_KEY": base64.urlsafe_b64encode(secrets.token_bytes(32)).decode(),
             "FRONTEND_BASE": "https://frontend.example.invalid",
