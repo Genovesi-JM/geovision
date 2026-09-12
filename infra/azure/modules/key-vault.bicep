@@ -91,7 +91,11 @@ resource encryptionKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 output id string = keyVault.id
 output name string = keyVault.name
 output vaultUri string = keyVault.properties.vaultUri
-output databaseUrlSecretUri string = '${keyVault.properties.vaultUri}secrets/${databaseUrlSecret.name}'
-output accountsDatabaseUrlSecretUri string = '${keyVault.properties.vaultUri}secrets/${accountsDatabaseUrlSecret.name}'
+// Database credential rotation is release-coordinated. Pin the version returned
+// after the secret update instead of relying on Container Apps' versionless
+// refresh window. These read-only URI properties do not expose secret values;
+// subsequent rotations require another reviewed runtime/job deployment.
+output databaseUrlSecretUri string = databaseUrlSecret.properties.secretUriWithVersion
+output accountsDatabaseUrlSecretUri string = accountsDatabaseUrlSecret.properties.secretUriWithVersion
 output secretKeySecretUri string = '${keyVault.properties.vaultUri}secrets/${secretKeySecret.name}'
 output encryptionKeySecretUri string = '${keyVault.properties.vaultUri}secrets/${encryptionKeySecret.name}'
