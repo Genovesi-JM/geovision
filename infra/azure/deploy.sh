@@ -4,10 +4,30 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
 template_file="${script_dir}/main.bicep"
-parameters_file="${AZURE_PARAMETERS_FILE:-${script_dir}/dev.bicepparam}"
-location="${AZURE_LOCATION:-westeurope}"
-resource_group="${AZURE_RESOURCE_GROUP:-rg-geovision-dev-weu}"
-deployment_prefix="${AZURE_DEPLOYMENT_PREFIX:-geovision-dev}"
+selected_profile="${AZURE_DEPLOYMENT_PROFILE:-standard}"
+case "${selected_profile}" in
+  standard) default_profile_name=dev ;;
+  pilot) default_profile_name=pilot ;;
+  *) echo 'AZURE_DEPLOYMENT_PROFILE must be standard or pilot.' >&2; exit 2 ;;
+esac
+parameters_file="${AZURE_PARAMETERS_FILE:-${script_dir}/${default_profile_name}.bicepparam}"
+# Selecting the checked-in pilot file must not silently override its group
+# with this helper's historical development-group default.
+if [[ "$(basename "${parameters_file}")" == 'pilot.bicepparam' ]]; then
+  selected_profile=pilot
+  default_profile_name=pilot
+fi
+default_location=westeurope
+if [[ "${selected_profile}" == pilot ]]; then
+  default_location=spaincentral
+fi
+location="${AZURE_LOCATION:-${default_location}}"
+resource_group_location="${AZURE_RESOURCE_GROUP_LOCATION:-${location}}"
+if [[ "${selected_profile}" == pilot ]]; then
+  resource_group_location="${AZURE_RESOURCE_GROUP_LOCATION:-westeurope}"
+fi
+resource_group="${AZURE_RESOURCE_GROUP:-rg-geovision-${default_profile_name}-weu}"
+deployment_prefix="${AZURE_DEPLOYMENT_PREFIX:-geovision-${default_profile_name}}"
 image_tag="${GEOVISION_IMAGE_TAG:-$(git -C "${repo_root}" rev-parse --short HEAD)}"
 image_digest="${GEOVISION_IMAGE_DIGEST:-}"
 register_providers="${AZURE_REGISTER_PROVIDERS:-false}"
@@ -52,9 +72,11 @@ providers=(
   Microsoft.ManagedIdentity
   Microsoft.Network
   Microsoft.OperationalInsights
-  Microsoft.ServiceBus
   Microsoft.Storage
 )
+if [[ "${selected_profile}" != pilot ]]; then
+  providers+=(Microsoft.ServiceBus)
+fi
 
 register_required_providers() {
   local provider
@@ -100,6 +122,7 @@ validate_image_digest
 deployment_parameters=(
   "${parameters_file}"
   "location=${location}"
+  "resourceGroupLocation=${resource_group_location}"
   "resourceGroupName=${resource_group}"
   "imageTag=${image_tag}"
 )
@@ -150,6 +173,12 @@ verify_image_digest_in_registry() {
 smoke_test() {
   local deployment_name="$1"
   local api_url
+  local public_ingress
+  public_ingress="$(deployment_output "${deployment_name}" publicIngressEnabled)"
+  if [[ "${public_ingress}" == 'false' || "${public_ingress}" == 'False' ]]; then
+    echo 'Internal pilot deployed; release validation is pending authenticated in-network /health and /ready checks.' >&2
+    return 1
+  fi
   api_url="$(deployment_output "${deployment_name}" apiUrl)"
   curl --fail --show-error --silent --retry 12 --retry-delay 5 \
     "${api_url}/health" >/dev/null

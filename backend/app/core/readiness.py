@@ -49,3 +49,15 @@ def assert_database_ready(
 
     if deployed_heads != expected_migration_heads(config_path):
         raise RuntimeError("database schema is not at the packaged migration head")
+
+
+def assert_accounts_database_ready(engine: Engine | None) -> None:
+    """Deployed readiness covers the independently versioned accounts store."""
+
+    if engine is None or engine.dialect.name != "postgresql":
+        raise RuntimeError("deployed accounts database must use PostgreSQL")
+    assert_database_ready(
+        engine,
+        require_current_schema=True,
+        config_path=_BACKEND_ROOT / "accounts_alembic.ini",
+    )

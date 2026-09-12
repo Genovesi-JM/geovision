@@ -1,6 +1,7 @@
 param location string
 param serverName string
 param databaseName string
+param accountsDatabaseName string = 'geovision_accounts'
 param administratorLogin string
 @secure()
 param administratorPassword string
@@ -65,6 +66,17 @@ resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-0
 // Azure requires extensions to be allowlisted before CREATE EXTENSION can run.
 // The one-shot GeoVision Alembic migration then idempotently executes
 // CREATE EXTENSION postgis and creates the spatial projection/index.
+// Separate logical database on the same service; migration ownership remains
+// the one-shot release job, never schema writes on API startup.
+resource accountsDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-01' = {
+  parent: postgres
+  name: accountsDatabaseName
+  properties: {
+    charset: 'UTF8'
+    collation: 'en_US.utf8'
+  }
+}
+
 resource extensionAllowlist 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
   parent: postgres
   name: 'azure.extensions'

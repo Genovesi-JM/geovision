@@ -2,6 +2,7 @@ param location string
 param keyVaultName string
 param postgresHost string
 param postgresDatabaseName string
+param accountsDatabaseName string = 'geovision_accounts'
 param postgresAdministratorLogin string
 @secure()
 param postgresAdministratorPassword string
@@ -13,6 +14,7 @@ param enablePurgeProtection bool
 param tags object
 
 var databaseUrl = 'postgresql+psycopg2://${uriComponent(postgresAdministratorLogin)}:${uriComponent(postgresAdministratorPassword)}@${postgresHost}:5432/${uriComponent(postgresDatabaseName)}?sslmode=require'
+var accountsDatabaseUrl = 'postgresql+psycopg2://${uriComponent(postgresAdministratorLogin)}:${uriComponent(postgresAdministratorPassword)}@${postgresHost}:5432/${uriComponent(accountsDatabaseName)}?sslmode=require'
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
@@ -52,6 +54,16 @@ resource databaseUrlSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
+resource accountsDatabaseUrlSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'accounts-database-url'
+  properties: {
+    attributes: { enabled: true }
+    contentType: 'GeoVision ACCOUNTS_DATABASE_URL'
+    value: accountsDatabaseUrl
+  }
+}
+
 resource secretKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'secret-key'
@@ -80,5 +92,6 @@ output id string = keyVault.id
 output name string = keyVault.name
 output vaultUri string = keyVault.properties.vaultUri
 output databaseUrlSecretUri string = '${keyVault.properties.vaultUri}secrets/${databaseUrlSecret.name}'
+output accountsDatabaseUrlSecretUri string = '${keyVault.properties.vaultUri}secrets/${accountsDatabaseUrlSecret.name}'
 output secretKeySecretUri string = '${keyVault.properties.vaultUri}secrets/${secretKeySecret.name}'
 output encryptionKeySecretUri string = '${keyVault.properties.vaultUri}secrets/${encryptionKeySecret.name}'

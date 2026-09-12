@@ -2,6 +2,8 @@ param location string
 param logAnalyticsWorkspaceName string
 param applicationInsightsName string
 param tags object
+@description('Apply a 0.1 GB/day pilot ingestion soft cap. Not a hard billing limit.')
+param pilotLogCap bool = false
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logAnalyticsWorkspaceName
@@ -9,6 +11,9 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   tags: tags
   properties: {
     retentionInDays: 30
+    workspaceCapping: {
+      dailyQuotaGb: pilotLogCap ? json('0.1') : -1
+    }
     sku: {
       name: 'PerGB2018'
     }

@@ -1,12 +1,22 @@
 targetScope = 'subscription'
 
 import { FirstDemoProviderConfiguration } from './modules/provider-bindings.bicep'
+import { WorkerSelection } from './modules/workload-profile.bicep'
+
+@allowed(['standard', 'pilot'])
+@description('Pilot is a separate cost profile using the existing durable database event queue. Production always retains its resilient profile.')
+param deploymentProfile string = 'standard'
+@description('Independent worker opt-ins. Defaults preserve standard deployments; pilot keeps only the event worker. Production workers cannot be disabled here.')
+param workers WorkerSelection = {}
 
 @description('Opt-in first-demo providers using existing, fixed-name secrets in this environment Key Vault. Empty preserves current behavior.')
 param providerConfiguration FirstDemoProviderConfiguration = {}
 
-@description('Azure region for the resource group and all regional resources.')
+@description('Azure region for all regional workload resources.')
 param location string = 'westeurope'
+
+@description('Resource-group metadata region. Preserve an existing group location even when the workload region changes before its first deployment.')
+param resourceGroupLocation string = location
 
 @description('Resource group that owns this isolated GeoVision environment.')
 param resourceGroupName string = 'rg-geovision-dev-weu'
@@ -29,6 +39,12 @@ param deployApplications bool = false
 
 @description('Deploy or update only the manual migration job. Set independently so schema migration can finish before runtime apps receive a new image.')
 param deployMigrationJob bool = deployApplications
+
+@description('Publish non-secret runtime settings only after the deployment operator has separately approved App Configuration data-write access.')
+param deployConfigurationValues bool = deployApplications
+
+@description('Explicit API exposure gate. A fresh pilot stays internal until release approval; existing standard/production defaults remain public.')
+param apiExternalIngress bool = deploymentProfile == 'pilot' && environmentName != 'prod' ? false : true
 
 @description('Tag of the geovision-backend image in the provisioned Azure Container Registry.')
 param imageTag string = 'dev'
@@ -67,7 +83,7 @@ param containerAppsSubnetPrefix string = '10.40.0.0/23'
 param postgresSubnetPrefix string = '10.40.2.0/28'
 
 @description('Minimum API replicas. Production keeps two warm replicas for availability.')
-@minValue(1)
+@minValue(0)
 param apiMinReplicas int = environmentName == 'prod' ? 2 : 1
 
 @description('Maximum API replicas available to the HTTP concurrency scaler.')
@@ -92,7 +108,7 @@ param tags object = {
 
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2024-11-01' = {
   name: resourceGroupName
-  location: location
+  location: resourceGroupLocation
   tags: tags
 }
 
@@ -103,8 +119,12 @@ module environment './environment.bicep' = {
     location: location
     workloadName: workloadName
     environmentName: environmentName
+    deploymentProfile: deploymentProfile
+    workers: workers
     deployApplications: deployApplications
     deployMigrationJob: deployMigrationJob
+    deployConfigurationValues: deployConfigurationValues
+    apiExternalIngress: apiExternalIngress
     imageTag: imageTag
     imageDigest: imageDigest
     frontendBaseUrl: frontendBaseUrl
@@ -130,6 +150,7 @@ output acrLoginServer string = environment.outputs.acrLoginServer
 output backendImage string = environment.outputs.backendImage
 output apiName string = environment.outputs.apiName
 output apiUrl string = environment.outputs.apiUrl
+output publicIngressEnabled bool = environment.outputs.publicIngressEnabled
 output migrationJobName string = environment.outputs.migrationJobName
 output eventWorkerName string = environment.outputs.eventWorkerName
 output erpWorkerName string = environment.outputs.erpWorkerName
@@ -140,4 +161,7 @@ output keyVaultName string = environment.outputs.keyVaultName
 output appConfigurationEndpoint string = environment.outputs.appConfigurationEndpoint
 output storageAccountName string = environment.outputs.storageAccountName
 output serviceBusNamespace string = environment.outputs.serviceBusNamespace
+output accountsDatabaseName string = environment.outputs.accountsDatabaseName
+output queueProvider string = environment.outputs.queueProvider
+output pilotEnabled bool = environment.outputs.pilotEnabled
 output postgresServerName string = environment.outputs.postgresServerName

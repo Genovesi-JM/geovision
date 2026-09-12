@@ -1,14 +1,19 @@
 targetScope = 'resourceGroup'
 
 import { FirstDemoProviderConfiguration } from './modules/provider-bindings.bicep'
+import { WorkerSelection } from './modules/workload-profile.bicep'
 
 param providerConfiguration FirstDemoProviderConfiguration = {}
+param deploymentProfile string = 'standard'
+param workers WorkerSelection = {}
 
 param location string
 param workloadName string
 param environmentName string
 param deployApplications bool
 param deployMigrationJob bool
+param deployConfigurationValues bool = deployApplications
+param apiExternalIngress bool = true
 param imageTag string
 param imageDigest string
 param frontendBaseUrl string
@@ -28,10 +33,23 @@ param workerMinReplicas int
 param workerMaxReplicas int
 param tags object
 
+module profile './modules/workload-profile.bicep' = {
+  name: 'workload-profile'
+  params: {
+    deploymentProfile: deploymentProfile
+    environmentName: environmentName
+    workers: workers
+    apiMinReplicas: apiMinReplicas
+    apiMaxReplicas: apiMaxReplicas
+  }
+}
+
+var pilot = deploymentProfile == 'pilot' && environmentName != 'prod'
+var resourceEnvironmentName = pilot ? 'pilot' : environmentName
 var compactWorkloadName = replace(toLower(workloadName), '-', '')
 var uniqueSuffix = take(uniqueString(subscription().subscriptionId, resourceGroup().id), 7)
-var compactToken = '${compactWorkloadName}${environmentName}${uniqueSuffix}'
-var nameToken = '${toLower(workloadName)}-${environmentName}-${uniqueSuffix}'
+var compactToken = '${compactWorkloadName}${resourceEnvironmentName}${uniqueSuffix}'
+var nameToken = '${toLower(workloadName)}-${resourceEnvironmentName}-${uniqueSuffix}'
 
 var names = {
   acr: take(compactToken, 50)
@@ -55,6 +73,7 @@ var names = {
 
 var postgresAdministratorLogin = 'geovisionadmin'
 var postgresDatabaseName = 'geovision'
+var accountsDatabaseName = 'geovision_accounts'
 var storageContainerName = 'geovision-datasets'
 var serviceBusTopicName = 'geovision-events'
 var serviceBusSubscriptionName = 'geovision-workers'
@@ -90,6 +109,7 @@ module monitoring './modules/monitoring.bicep' = {
     location: location
     logAnalyticsWorkspaceName: names.logAnalytics
     applicationInsightsName: 'appi-${nameToken}'
+    pilotLogCap: pilot
     tags: tags
   }
 }
@@ -114,7 +134,7 @@ module storage './modules/storage.bicep' = {
   }
 }
 
-module serviceBus './modules/service-bus.bicep' = {
+module serviceBus './modules/service-bus.bicep' = if (!pilot) {
   name: 'service-bus'
   params: {
     location: location
@@ -131,6 +151,7 @@ module postgres './modules/postgres.bicep' = {
     location: location
     serverName: names.postgres
     databaseName: postgresDatabaseName
+    accountsDatabaseName: accountsDatabaseName
     administratorLogin: postgresAdministratorLogin
     administratorPassword: postgresAdministratorPassword
     environmentName: environmentName
@@ -147,6 +168,7 @@ module keyVault './modules/key-vault.bicep' = {
     keyVaultName: names.keyVault
     postgresHost: postgres.outputs.fullyQualifiedDomainName
     postgresDatabaseName: postgresDatabaseName
+    accountsDatabaseName: accountsDatabaseName
     postgresAdministratorLogin: postgresAdministratorLogin
     postgresAdministratorPassword: postgresAdministratorPassword
     secretKey: secretKey
@@ -161,11 +183,13 @@ module appConfiguration './modules/app-configuration.bicep' = {
   params: {
     location: location
     storeName: names.appConfiguration
-    skuName: environmentName == 'dev' ? 'free' : 'standard'
-    environmentName: environmentName
+    skuName: profile.outputs.appConfigurationSku
+    deployValues: deployConfigurationValues
+    environmentName: profile.outputs.runtimeEnvironment
+    queueProvider: profile.outputs.queueProvider
     storageAccountUrl: storage.outputs.blobEndpoint
     storageContainerName: storageContainerName
-    serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
+    serviceBusFullyQualifiedNamespace: pilot ? '' : serviceBus!.outputs.fullyQualifiedNamespace
     serviceBusTopicName: serviceBusTopicName
     serviceBusSubscriptionName: serviceBusSubscriptionName
     applicationInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
@@ -181,6 +205,7 @@ module access './modules/rbac.bicep' = {
     storageAccountName: names.storage
     keyVaultName: names.keyVault
     serviceBusNamespaceName: names.serviceBus
+    serviceBusEnabled: !pilot
     appConfigurationName: names.appConfiguration
   }
   dependsOn: [
@@ -198,7 +223,14 @@ module applications './modules/container-apps.bicep' = {
     location: location
     deployApplications: deployApplications
     deployMigrationJob: deployMigrationJob
-    environmentName: environmentName
+    apiExternalIngress: apiExternalIngress
+    environmentName: profile.outputs.runtimeEnvironment
+    queueProvider: profile.outputs.queueProvider
+    eventWorkerEnabled: profile.outputs.eventEnabled
+    erpWorkerEnabled: profile.outputs.erpEnabled
+    notificationWorkerEnabled: profile.outputs.notificationEnabled
+    processingWorkerEnabled: profile.outputs.processingEnabled
+    intelligenceWorkerEnabled: profile.outputs.intelligenceEnabled
     managedEnvironmentName: names.containerEnvironment
     infrastructureSubnetId: network.outputs.containerAppsSubnetId
     logAnalyticsCustomerId: monitoring.outputs.logAnalyticsCustomerId
@@ -210,13 +242,14 @@ module applications './modules/container-apps.bicep' = {
     registryServer: registry.outputs.loginServer
     backendImage: backendImage
     databaseUrlSecretUri: keyVault.outputs.databaseUrlSecretUri
+    accountsDatabaseUrlSecretUri: keyVault.outputs.accountsDatabaseUrlSecretUri
     secretKeySecretUri: keyVault.outputs.secretKeySecretUri
     encryptionKeySecretUri: keyVault.outputs.encryptionKeySecretUri
     providerConfiguration: providerConfiguration
     providerKeyVaultUri: keyVault.outputs.vaultUri
     storageAccountUrl: storage.outputs.blobEndpoint
     storageContainerName: storageContainerName
-    serviceBusFullyQualifiedNamespace: serviceBus.outputs.fullyQualifiedNamespace
+    serviceBusFullyQualifiedNamespace: pilot ? '' : serviceBus!.outputs.fullyQualifiedNamespace
     serviceBusTopicName: serviceBusTopicName
     serviceBusSubscriptionName: serviceBusSubscriptionName
     frontendBaseUrl: frontendBaseUrl
@@ -228,8 +261,8 @@ module applications './modules/container-apps.bicep' = {
     notificationWorkerName: names.notificationWorker
     processingWorkerName: names.processingWorker
     migrationJobName: names.migrationJob
-    apiMinReplicas: apiMinReplicas
-    apiMaxReplicas: apiMaxReplicas
+    apiMinReplicas: profile.outputs.apiMinReplicas
+    apiMaxReplicas: profile.outputs.apiMaxReplicas
     workerMinReplicas: workerMinReplicas
     workerMaxReplicas: workerMaxReplicas
     tags: tags
@@ -244,14 +277,18 @@ output acrLoginServer string = registry.outputs.loginServer
 output backendImage string = backendImage
 output apiName string = names.api
 output apiUrl string = applications.outputs.apiUrl
+output publicIngressEnabled bool = deployApplications && apiExternalIngress
 output migrationJobName string = names.migrationJob
-output eventWorkerName string = names.eventWorker
-output erpWorkerName string = names.erpWorker
-output notificationWorkerName string = names.notificationWorker
-output processingWorkerName string = names.processingWorker
-output intelligenceWorkerName string = names.intelligenceWorker
+output eventWorkerName string = profile.outputs.eventEnabled ? names.eventWorker : ''
+output erpWorkerName string = profile.outputs.erpEnabled ? names.erpWorker : ''
+output notificationWorkerName string = profile.outputs.notificationEnabled ? names.notificationWorker : ''
+output processingWorkerName string = profile.outputs.processingEnabled ? names.processingWorker : ''
+output intelligenceWorkerName string = profile.outputs.intelligenceEnabled ? names.intelligenceWorker : ''
 output keyVaultName string = names.keyVault
 output appConfigurationEndpoint string = appConfiguration.outputs.endpoint
 output storageAccountName string = names.storage
-output serviceBusNamespace string = names.serviceBus
+output serviceBusNamespace string = pilot ? '' : names.serviceBus
+output accountsDatabaseName string = accountsDatabaseName
+output queueProvider string = profile.outputs.queueProvider
+output pilotEnabled bool = profile.outputs.pilotEnabled
 output postgresServerName string = names.postgres

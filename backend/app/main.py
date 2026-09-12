@@ -11,7 +11,7 @@ from .bootstrap import register_application_routes
 from .core import database
 from .core.config import settings
 from .core.observability import configure_observability, get_logger, log_event
-from .core.readiness import assert_database_ready
+from .core.readiness import assert_accounts_database_ready, assert_database_ready
 from .middleware import (
     HTTPSRedirectMiddleware,
     RateLimitMiddleware,
@@ -109,6 +109,10 @@ def create_application() -> FastAPI:
                 database.engine,
                 require_current_schema=settings.readiness_require_current_schema,
             )
+            if settings.is_deployed and settings.readiness_require_current_schema:
+                from .accounts.database import accounts_engine
+
+                assert_accounts_database_ready(accounts_engine)
         except Exception as exc:
             raise HTTPException(status_code=503, detail="service unavailable") from exc
         return {"status": "ready"}

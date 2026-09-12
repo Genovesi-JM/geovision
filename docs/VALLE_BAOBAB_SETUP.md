@@ -1,7 +1,40 @@
 # Valle Baobab — account and integration setup record
 
-Last checked: 2026-09-11. This records verified preparation, not a completed
+Last checked: 2026-09-12. This records verified preparation, not a completed
 cloud deployment or a promise of production readiness.
+
+## Azure activation and approved pilot — 2026-09-12
+
+- The owner completed signup and MFA using `genovesi@vallebaobab.com` in their
+  own **Default Directory**, domain `genovesivallebaobab.onmicrosoft.com`.
+  This is independent from the previously observed university directory.
+- Portal verification recorded **Azure subscription 1: Active**, Owner access,
+  USD 200 trial credit and displayed cost **0.00**, with no resources at that
+  check. These are account-activation observations, not a deployed API or
+  evidence that all services are permanently free.
+- Azure CLI authentication subsequently succeeded with explicit user approval.
+  The owner approved an aggregate **EUR 100–250/month pilot for GeoVision, Kaya
+  and Kasa together**, migrating existing code rather than FlutterFlow drafts.
+  This is not a separate EUR 250 allowance for each project.
+- An isolated GeoVision profile is now implemented in
+  `infra/azure/pilot.bicepparam`; see `infra/azure/PILOT.md` for its exact resource
+  and permission manifest and remaining validation gates. It retains deployed
+  validation (`ENV=staging`), a real durable database event queue, one event
+  worker, a scale-to-zero API and an isolated logical accounts database. It
+  excludes Service Bus and four unready workers by default. No custom scheduler
+  or provider activation is included.
+- This local change neither deployed resources nor read/generated provider
+  secrets. Cloud provisioning, current aggregate cost, source-data inventory,
+  backup/restore/import, migration success and public cutover must be recorded
+  separately. The 11 September signup observations below are historical and
+  have been superseded by this verified activation.
+- Offline verification on 12 September: root Bicep compilation and **35 tests
+  passed**, including evaluated pilot/standard/production policies, worker and
+  secret scoping, actual disposable SQLite accounts migration/re-run, preserved
+  legacy-table rejection, PostgreSQL DDL generation and safe startup/readiness
+  checks. Shell syntax, Python source parsing and whitespace validation passed.
+  No existing database or PostgreSQL server was contacted; a fresh PostgreSQL
+  execution and source-data restore/import remain external release gates.
 
 ## Ownership and scope
 
@@ -18,7 +51,7 @@ cloud deployment or a promise of production readiness.
 - A custom domain or Microsoft 365 mailbox is not required to start Azure.
   Paid email and domain purchases remain separate decisions.
 
-## Verified external observations
+## Historical external observations — 2026-09-11
 
 | Check | Observation | What this does not prove |
 |---|---|---|
@@ -44,13 +77,13 @@ is now confirmed by IONOS; send/receive has not yet been tested.
 
 ## Decisions and user-controlled steps still required
 
-- [ ] Confirm intended personal Azure directory/account and complete its MFA.
+- [x] Confirm intended personal Azure directory/account and complete its MFA (verified 12 September).
 - [ ] Confirm billing country/address (Spain only if factually applicable).
 - [x] Choose mailbox address: `genovesi@vallebaobab.com`; domain registration verified.
 - [x] User completed IONOS purchase; quoted plan terms were reviewed before handoff. Actual invoice not inspected.
 - [x] IONOS confirms creation of `genovesi@vallebaobab.com`; no password was read.
 - [ ] Verify mailbox send/receive.
-- [ ] Approve Azure/API service selection and estimated recurring cost.
+- [x] Approve aggregate Azure pilot budget: EUR 100–250/month across all three projects; exact resource and provider changes still require scoped review.
 - [ ] User completes new passwords, recovery and MFA registration privately.
 - [ ] Review and approve each provider's binding terms at signup.
 - [ ] Approve any new application identity, federation or role assignment with
@@ -123,11 +156,12 @@ the SMTP credential or send test messages without an authorized recipient.
 - Proposed demo profile: one small Container Apps Consumption API,
   PostgreSQL B1ms/PostGIS, private Blob storage and Key Vault, using the
   existing database-backed queue rather than Service Bus Standard.
-- Use scheduled, bounded event/notification worker jobs; these schedules and
-  this light deployment profile are NOT implemented or tested yet. API
-  scale-to-zero alone would pause API-hosted workers. This proposal does not
-  provide continuous IoT monitoring, immediate background delivery, ERP or
-  drone processing.
+- The original proposal used scheduled bounded workers. The 12 September
+  implementation deliberately keeps one existing always-on event worker, with
+  its durable database queue, rather than introducing an untested scheduler.
+  API scale-to-zero therefore does not stop event processing. The profile does
+  not provide continuous IoT watchdog supervision, live ERP, email delivery or
+  drone processing by default; see `infra/azure/PILOT.md`.
 - Eligible new Azure accounts get USD 200 for 30 days. Continuing beyond the
   trial requires separately accepting pay-as-you-go. PostgreSQL's eligible
   12-month allowance is 750 B1ms hours/month, 32 GB data and 32 GB backup.
@@ -148,11 +182,10 @@ the SMTP credential or send test messages without an authorized recipient.
   neither a billing alert nor enabling an API is a hard spending cap.
 
 IONOS purchase is reported complete, and domain registration and mailbox
-creation are verified. Mail delivery verification, an independent Azure
-directory and a live working API remain prerequisites for release. Separate
-Microsoft/Azure signup is not complete. Use the new brand email for a separate
-Microsoft login only after it can receive verification mail; do not add it as
-an alias to the existing university-associated login merely to rename that login.
+creation are verified. Independent Azure signup and MFA were completed on
+12 September as recorded above. Mail delivery verification and a live working
+API remain separate release gates. No university-associated login or resource
+was repurposed for the brand.
 
 ## First GeoVision integration tranche
 

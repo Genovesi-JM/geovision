@@ -4,8 +4,16 @@ param providerConfiguration FirstDemoProviderConfiguration = {}
 param providerKeyVaultUri string
 param location string
 param deployApplications bool
+param apiExternalIngress bool = true
 param deployMigrationJob bool
 param environmentName string
+@allowed(['database', 'azure_service_bus'])
+param queueProvider string = 'azure_service_bus'
+param eventWorkerEnabled bool = true
+param erpWorkerEnabled bool = true
+param notificationWorkerEnabled bool = true
+param processingWorkerEnabled bool = true
+param intelligenceWorkerEnabled bool = true
 param managedEnvironmentName string
 param infrastructureSubnetId string
 param logAnalyticsCustomerId string
@@ -18,6 +26,7 @@ param identityClientId string
 param registryServer string
 param backendImage string
 param databaseUrlSecretUri string
+param accountsDatabaseUrlSecretUri string
 param secretKeySecretUri string
 param encryptionKeySecretUri string
 param storageAccountUrl string
@@ -77,6 +86,18 @@ var secretConfiguration = [
     keyVaultUrl: encryptionKeySecretUri
     name: 'encryption-key'
   }
+]
+// The compatibility directory is used only by API routes and the migration
+// job; other workers do not receive its URL in process configuration.
+var accountsSecretConfiguration = [
+  {
+    identity: identityResourceId
+    keyVaultUrl: accountsDatabaseUrlSecretUri
+    name: 'accounts-database-url'
+  }
+]
+var accountsEnvironment = [
+  { name: 'ACCOUNTS_DATABASE_URL', secretRef: 'accounts-database-url' }
 ]
 var commonEnvironment = [
   {
@@ -141,7 +162,7 @@ var commonEnvironment = [
   }
   {
     name: 'QUEUE_PROVIDER'
-    value: 'azure_service_bus'
+    value: queueProvider
   }
   {
     name: 'SERVICE_BUS_FULLY_QUALIFIED_NAMESPACE'
@@ -209,7 +230,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
       activeRevisionsMode: 'Single'
       ingress: {
         allowInsecure: false
-        external: true
+        external: apiExternalIngress
         targetPort: 8080
         traffic: [
           {
@@ -220,7 +241,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
         transport: 'auto'
       }
       registries: registryConfiguration
-      secrets: concat(secretConfiguration, providerBindings.outputs.apiSecrets)
+      secrets: concat(secretConfiguration, accountsSecretConfiguration, providerBindings.outputs.apiSecrets)
     }
     template: {
       containers: [
@@ -235,7 +256,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
             'serve'
             '--skip-migrations'
           ]
-          env: concat(commonEnvironment, providerBindings.outputs.apiEnvironment, [
+          env: concat(commonEnvironment, accountsEnvironment, providerBindings.outputs.apiEnvironment, [
             {
               name: 'PORT'
               value: '8080'
@@ -300,7 +321,7 @@ resource api 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) 
   }
 }
 
-resource eventWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) {
+resource eventWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications && eventWorkerEnabled) {
   name: eventWorkerName
   location: location
   tags: union(tags, {
@@ -354,7 +375,7 @@ resource eventWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplic
   }
 }
 
-resource erpWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) {
+resource erpWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications && erpWorkerEnabled) {
   name: erpWorkerName
   location: location
   tags: union(tags, {
@@ -413,7 +434,7 @@ resource erpWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplicat
   }
 }
 
-resource notificationWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) {
+resource notificationWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications && notificationWorkerEnabled) {
   name: notificationWorkerName
   location: location
   tags: union(tags, {
@@ -467,7 +488,7 @@ resource notificationWorker 'Microsoft.App/containerApps@2024-03-01' = if (deplo
   }
 }
 
-resource processingWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) {
+resource processingWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications && processingWorkerEnabled) {
   name: processingWorkerName
   location: location
   tags: union(tags, {
@@ -521,7 +542,7 @@ resource processingWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployA
   }
 }
 
-resource intelligenceWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications) {
+resource intelligenceWorker 'Microsoft.App/containerApps@2024-03-01' = if (deployApplications && intelligenceWorkerEnabled) {
   name: intelligenceWorkerName
   location: location
   tags: union(tags, {
@@ -593,7 +614,7 @@ resource migrationJob 'Microsoft.App/jobs@2024-03-01' = if (deployMigrationJob) 
       registries: registryConfiguration
       replicaRetryLimit: 0
       replicaTimeout: 1800
-      secrets: secretConfiguration
+      secrets: concat(secretConfiguration, accountsSecretConfiguration)
       triggerType: 'Manual'
     }
     template: {
@@ -608,7 +629,7 @@ resource migrationJob 'Microsoft.App/jobs@2024-03-01' = if (deployMigrationJob) 
             'start.py'
             'migrate'
           ]
-          env: commonEnvironment
+          env: concat(commonEnvironment, accountsEnvironment)
           resources: {
             cpu: json('0.5')
             memory: '1Gi'

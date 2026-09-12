@@ -6,6 +6,8 @@ param storeName string
 ])
 param skuName string
 param environmentName string
+@allowed(['database', 'azure_service_bus'])
+param queueProvider string = 'azure_service_bus'
 param storageAccountUrl string
 param storageContainerName string
 param serviceBusFullyQualifiedNamespace string
@@ -13,6 +15,7 @@ param serviceBusTopicName string
 param serviceBusSubscriptionName string
 param applicationInsightsConnectionString string
 param tags object
+param deployValues bool = true
 
 var runtimeSettings = [
   {
@@ -45,7 +48,7 @@ var runtimeSettings = [
   }
   {
     name: 'QUEUE_PROVIDER'
-    value: 'azure_service_bus'
+    value: queueProvider
   }
   {
     name: 'SERVICE_BUS_FULLY_QUALIFIED_NAMESPACE'
@@ -68,16 +71,20 @@ resource store 'Microsoft.AppConfiguration/configurationStores@2024-05-01' = {
   sku: {
     name: skuName
   }
-  properties: {
+  properties: union({
     disableLocalAuth: true
-    enablePurgeProtection: false
     publicNetworkAccess: 'Enabled'
+    dataPlaneProxy: {
+      authenticationMode: 'Pass-through'
+    }
+  }, skuName == 'standard' ? {
+    enablePurgeProtection: false
     softDeleteRetentionInDays: 7
-  }
+  } : {})
 }
 
 resource keyValues 'Microsoft.AppConfiguration/configurationStores/keyValues@2024-05-01' = [
-  for setting in runtimeSettings: {
+  for setting in runtimeSettings: if (deployValues) {
     parent: store
     name: setting.name
     properties: {

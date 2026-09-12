@@ -1,4 +1,6 @@
-FROM python:3.12-slim AS wheels
+# Official Python manifest inspected for the 2026-09-12 pilot build. Update only
+# through a reviewed rebuild and repeat the disposable PostgreSQL rehearsal.
+FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS wheels
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -8,7 +10,7 @@ COPY requirements.deploy.txt ./
 RUN python -m pip wheel --wheel-dir /wheels --requirement requirements.deploy.txt
 
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim@sha256:78387bc3881b8273120a12ebe6c1ab22b018ccc2c9adf565ae1ac9b536e184ea AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

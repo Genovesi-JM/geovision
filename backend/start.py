@@ -1,4 +1,5 @@
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -55,6 +56,43 @@ def _serve() -> None:
     uvicorn.run("app.main:app", host="0.0.0.0", port=port)
 
 
+def _run_accounts_migrations() -> None:
+    """Version the separate directory database without displaying its URL."""
+
+    from sqlalchemy.engine import make_url
+
+    primary = make_url(settings.database_url)
+    accounts = make_url(settings.accounts_database_url)
+
+    def database_identity(url):
+        return (url.get_backend_name(), url.host, url.port or 5432, url.database)
+
+    if database_identity(primary) == database_identity(accounts):
+        raise SystemExit("Accounts database must be separate from the primary database.")
+    if settings.is_deployed and accounts.get_backend_name() != "postgresql":
+        raise SystemExit("Deployed accounts persistence requires PostgreSQL.")
+    try:
+        subprocess.run(
+            [
+                sys.executable, "-m", "alembic", "-c", "accounts_alembic.ini",
+                "upgrade", "head",
+            ],
+            check=True,
+            cwd=_BACKEND_ROOT,
+            timeout=settings.migrate_timeout_seconds,
+            env={**os.environ, "ACCOUNTS_DATABASE_URL": settings.accounts_database_url},
+            # Driver errors can contain a host or user; only emit a safe status.
+            capture_output=True,
+        )
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as exc:
+        print(
+            "[start] Accounts migration failed; runtime rollout is stopped.",
+            file=sys.stderr, flush=True,
+        )
+        raise SystemExit(1) from exc
+    print("[start] Accounts migrations complete.", flush=True)
+
+
 def _run_compatibility_bootstrap() -> None:
     """Prepare legacy/reference data once in the migration-job process."""
 
@@ -89,12 +127,14 @@ def main(argv: Sequence[str] = ()) -> None:
     args = _arguments(argv)
     if args.command == "migrate":
         _run_migrations()
+        _run_accounts_migrations()
         _run_compatibility_bootstrap()
         return
 
     run_migrations = settings.run_migrations_on_startup and not args.skip_migrations
     if run_migrations:
         _run_migrations()
+        _run_accounts_migrations()
     else:
         # Legacy schema repair and seed operations are also database writes.
         # Disable them for horizontally scaled API replicas when migration

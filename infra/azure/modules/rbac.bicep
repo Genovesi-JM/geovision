@@ -3,6 +3,7 @@ param registryName string
 param storageAccountName string
 param keyVaultName string
 param serviceBusNamespaceName string
+param serviceBusEnabled bool = true
 param appConfigurationName string
 
 var acrPullRoleId = subscriptionResourceId(
@@ -80,7 +81,7 @@ resource keyVaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
 }
 
-resource serviceBusSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource serviceBusSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (serviceBusEnabled) {
   name: guid(serviceBus.id, principalId, serviceBusSenderRoleId)
   scope: serviceBus
   properties: {
@@ -90,7 +91,7 @@ resource serviceBusSender 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
-resource serviceBusReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource serviceBusReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (serviceBusEnabled) {
   name: guid(serviceBus.id, principalId, serviceBusReceiverRoleId)
   scope: serviceBus
   properties: {
