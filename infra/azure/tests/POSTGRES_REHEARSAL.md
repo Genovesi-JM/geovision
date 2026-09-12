@@ -156,3 +156,31 @@ not the current special-character test target. This new record proves the
 isolated local migration/runtime regression gate only. It does not claim an
 Azure migration, private-network connectivity, managed-service permissions,
 provider integrations, production clinical/business readiness or a public release.
+
+## Staff-session and synthetic-report release — 2026-09-12
+
+The final source-only `geovision-backend:azure-pilot-20260912-r3` image passed
+the complete disposable rehearsal with exit 0, including both migrations twice,
+URL-special throwaway passwords, row preservation, accounts constraints,
+legacy-table rejection, independent head-readiness 200/503/200 cycles, non-root
+read-only startup and graceful shutdown:
+
+`sha256:37e0280a688c9ae8915c4adec00c83b9ff2895f28c11a0a18d986f0f4dc1de00`
+
+The nine offline harness/manifest safety regressions passed again. Independent
+post-run checks found no remaining rehearsal-labelled containers or networks.
+An earlier `a438f84b...` variant was interrupted before application migrations
+and cleaned up after a report-pagination adjustment; it is not this release.
+
+Additional standalone tests in the final immutable runtime passed: 15 staff
+authentication/onboarding tests and 12 synthetic report tests. These use isolated
+SQLite fixtures, exact read-only test-file mounts and no network or host dotenv.
+The report QA PDF was rendered and visually checked after the pagination fix.
+Frontend evidence is separate: 20 offline session tests, five mocked-browser
+login tests and three mocked responsive tests (1280/390/360px) passed. These do
+not prove authenticated Azure access, real customer flows or native devices.
+
+The release owner pushed this exact image to the project's private ACR tag
+`geovision-backend:pilot-20260912-r3`; Docker returned the same registry digest.
+Private image-only deployment and live HTTP/browser evidence are tracked
+separately and are not claimed by this rehearsal record.
