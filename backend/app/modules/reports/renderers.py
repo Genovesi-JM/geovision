@@ -35,6 +35,7 @@ def render_report_pdf(
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
     from reportlab.platypus import (
+        CondPageBreak,
         PageBreak,
         Paragraph,
         SimpleDocTemplate,
@@ -230,7 +231,7 @@ def render_report_pdf(
         for item in limitations:
             story.append(Paragraph(f"&#8226; {_text(item)}", styles["BodyText"]))
 
-    story.append(PageBreak())
+    story.append(CondPageBreak(70 * mm))
     story.append(Paragraph("Demonstration source provenance" if synthetic else "Evidence provenance", styles["SectionTitle"]))
     story.append(
         Table(
