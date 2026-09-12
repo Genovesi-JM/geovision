@@ -49,7 +49,9 @@ param workerMinReplicas int
 param workerMaxReplicas int
 param tags object
 
-var apiBaseUrl = 'https://${apiName}.${managedEnvironment.properties.defaultDomain}'
+// Internal ACA ingress has a distinct hostname, as verified on the Kasa pilot.
+var apiHostLabel = apiExternalIngress ? apiName : '${apiName}.internal'
+var apiBaseUrl = 'https://${apiHostLabel}.${managedEnvironment.properties.defaultDomain}'
 module providerBindings './provider-bindings.bicep' = {
   name: 'first-demo-provider-bindings'
   params: {

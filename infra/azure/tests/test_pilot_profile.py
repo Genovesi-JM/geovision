@@ -122,6 +122,8 @@ class PilotProfileTests(unittest.TestCase):
         self.assertIn("param apiExternalIngress bool = deploymentProfile == 'pilot' && environmentName != 'prod' ? false : true", main)
         self.assertIn("external: apiExternalIngress", apps)
         self.assertNotIn("external: true", apps)
+        self.assertIn("var apiHostLabel = apiExternalIngress ? apiName : '${apiName}.internal'", apps)
+        self.assertIn("var apiBaseUrl = 'https://${apiHostLabel}.${managedEnvironment.properties.defaultDomain}'", apps)
 
     def test_checked_in_pilot_parameters_compile_with_only_invented_secret_inputs(self):
         environment = {
