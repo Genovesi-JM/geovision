@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.modules.reports.domain import ReportError, ReportQALevel
+from app.modules.reports.domain import ReportError, ReportQALevel, report_contains_synthetic
 from app.modules.reports.schemas import NarrativeEnvelope
 
 
@@ -79,6 +79,9 @@ def classify_qa(
     if critical:
         level = ReportQALevel.SPECIALIST_REVIEW
         reasons.append("validated_critical_observation")
+    elif report_contains_synthetic(context):
+        level = ReportQALevel.HUMAN_REVIEW
+        reasons.append("synthetic_demonstration_requires_review")
     elif narrative_provider != "deterministic":
         level = ReportQALevel.HUMAN_REVIEW
         reasons.append("external_narrative_provider")
@@ -96,6 +99,8 @@ def classify_qa(
     else:
         level = ReportQALevel.AUTO_APPROVED
         reasons.append("deterministic_validated_low_risk_context")
+    if report_contains_synthetic(context) and "synthetic_demonstration_requires_review" not in reasons:
+        reasons.append("synthetic_demonstration_requires_review")
     return level, {
         "schema_version": "geovision.report-qa.v1",
         "level": level.value,

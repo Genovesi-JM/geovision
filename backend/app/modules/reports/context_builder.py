@@ -25,7 +25,11 @@ from app.models import (
     KpiValue,
     Observation,
 )
-from app.modules.reports.domain import ReportError
+from app.modules.reports.domain import (
+    ReportError,
+    SYNTHETIC_REPORT_NOTICE,
+    has_synthetic_marker,
+)
 from app.modules.reports.ports import ReportContextRegistry, report_context_registry
 
 
@@ -176,6 +180,10 @@ class ReportContextBuilder:
         current_kpis: list[dict[str, Any]] = []
         seen_keys: set[str] = set()
         eligible_dataset_ids: set[str] = set()
+        synthetic_asset = has_synthetic_marker(_json_object(asset.metadata_json))
+        synthetic_kpi_ids: list[str] = []
+        synthetic_observation_ids: list[str] = []
+        synthetic_dataset_ids: list[str] = []
         evidence_ids: set[str] = set()
         timestamps: list[datetime] = []
         for row, definition in kpi_rows:
@@ -186,6 +194,8 @@ class ReportContextBuilder:
                 exclusions["kpi_values"] += 1
                 continue
             evidence_id = f"kpi:{row.id}"
+            if has_synthetic_marker(_json_object(row.provenance_json)):
+                synthetic_kpi_ids.append(row.id)
             item = {
                 "evidence_id": evidence_id,
                 "id": row.id,
@@ -250,6 +260,10 @@ class ReportContextBuilder:
                 exclusions["observations"] += 1
                 continue
             evidence_id = f"observation:{row.id}"
+            if has_synthetic_marker(_json_object(row.provenance_json)) or has_synthetic_marker(
+                _json_object(row.metadata_json)
+            ):
+                synthetic_observation_ids.append(row.id)
             observations.append(
                 {
                     "evidence_id": evidence_id,
@@ -330,6 +344,11 @@ class ReportContextBuilder:
                 .all()
             )
             for row in dataset_rows:
+                synthetic_dataset = has_synthetic_marker(
+                    _json_object(row.metadata_json)
+                ) or has_synthetic_marker(_json_object(row.provenance_json))
+                if synthetic_dataset:
+                    synthetic_dataset_ids.append(row.id)
                 datasets.append(
                     {
                         "id": row.id,
@@ -345,6 +364,7 @@ class ReportContextBuilder:
                         "resolution": row.resolution,
                         "resolution_unit": row.resolution_unit,
                         "provenance": _json_object(row.provenance_json),
+                        **({"synthetic": True} if synthetic_dataset else {}),
                     }
                 )
             file_rows = (
@@ -456,6 +476,20 @@ class ReportContextBuilder:
                 },
             }
         )
+        if synthetic_asset or synthetic_dataset_ids or synthetic_kpi_ids or synthetic_observation_ids:
+            context["data_classification"] = {
+                "schema_version": "geovision.report-data-classification.v1",
+                "synthetic": True,
+                "mode": "synthetic" if synthetic_asset else "contains_synthetic",
+                "notice": SYNTHETIC_REPORT_NOTICE,
+                "asset_marked_synthetic": synthetic_asset,
+                "synthetic_dataset_ids": sorted(synthetic_dataset_ids),
+                "synthetic_kpi_ids": sorted(synthetic_kpi_ids),
+                "synthetic_observation_ids": sorted(synthetic_observation_ids),
+            }
+            context["limitations"] = list(dict.fromkeys([
+                SYNTHETIC_REPORT_NOTICE, *context.get("limitations", [])
+            ]))
         canonical_json = json.dumps(
             context,
             ensure_ascii=False,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from app.modules.reports.domain import SYNTHETIC_REPORT_NOTICE, report_contains_synthetic
 
 
 class DeterministicNarrativeProvider:
@@ -15,6 +16,33 @@ class DeterministicNarrativeProvider:
         kpis = context.get("kpis") or []
         observations = context.get("observations") or []
         actions = context.get("actions") or []
+        if report_contains_synthetic(context):
+            return {
+                "schema_version": "geovision.report-narrative.v1",
+                "executive_summary": SYNTHETIC_REPORT_NOTICE,
+                "sections": [
+                    {
+                        "heading": "Demonstration scenario",
+                        "paragraphs": [
+                            "The displayed values and findings belong to a synthetic or mixed demonstration scenario. "
+                            "They do not establish real conditions at the asset location."
+                        ],
+                    },
+                    {
+                        "heading": "Simulated follow up",
+                        "paragraphs": [
+                            "Any listed actions demonstrate the workflow only; they are not instructions for field operations."
+                        ],
+                    },
+                ],
+                "evidence_ids": [
+                    str(item["evidence_id"])
+                    for group in (kpis, observations, actions)
+                    for item in group
+                    if isinstance(item, Mapping) and item.get("evidence_id")
+                ],
+                "limitations": [SYNTHETIC_REPORT_NOTICE],
+            }
         if kpis or observations:
             summary = (
                 "This report presents validated asset intelligence and its supporting evidence. "
@@ -61,4 +89,10 @@ class DeterministicNarrativeProvider:
         }
 
 
-__all__ = ["DeterministicNarrativeProvider"]
+class SyntheticNarrativeProvider(DeterministicNarrativeProvider):
+    """Dedicated immutable version for the explicitly synthetic narrative."""
+
+    model_version = "geovision-synthetic-v1.0.0"
+
+
+__all__ = ["DeterministicNarrativeProvider", "SyntheticNarrativeProvider"]

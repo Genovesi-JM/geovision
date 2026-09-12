@@ -4,6 +4,33 @@ from __future__ import annotations
 
 from enum import Enum
 import re
+from collections.abc import Mapping
+from typing import Any
+
+
+SYNTHETIC_REPORT_NOTICE = (
+    "SYNTHETIC DEMONSTRATION ONLY - not real measurements, validated findings, "
+    "or operational advice. Do not use this report for real-world decisions."
+)
+
+
+def has_synthetic_marker(value: Any) -> bool:
+    """Honor explicit metadata, never infer synthetic status from a name."""
+
+    if not isinstance(value, Mapping):
+        return False
+    if value.get("synthetic") is True or value.get("data_mode") == "synthetic":
+        return True
+    return any(
+        isinstance(value.get(key), Mapping)
+        and value[key].get("synthetic") is True
+        for key in ("demo_seed", "agriculture_analysis", "data_classification")
+    )
+
+
+def report_contains_synthetic(context: Mapping[str, Any]) -> bool:
+    classification = context.get("data_classification")
+    return isinstance(classification, Mapping) and classification.get("synthetic") is True
 
 
 class ReportStatus(str, Enum):

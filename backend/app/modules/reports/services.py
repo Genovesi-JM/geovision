@@ -33,9 +33,13 @@ from app.modules.reports.domain import (
     ReportError,
     ReportQALevel,
     ReportStatus,
+    report_contains_synthetic,
     require_report_transition,
 )
-from app.modules.reports.narrative import DeterministicNarrativeProvider
+from app.modules.reports.narrative import (
+    DeterministicNarrativeProvider,
+    SyntheticNarrativeProvider,
+)
 from app.modules.reports.ports import NarrativeProvider
 from app.modules.reports.qa import classify_qa, validate_narrative
 from app.modules.reports.renderers import render_report_pdf
@@ -219,6 +223,8 @@ def _build_provenance(
         "narrative_schema_version": narrative_schema_version,
         "sources": sources,
     }
+    if report_contains_synthetic(context):
+        provenance["data_classification"] = dict(context["data_classification"])
     issues = _provenance_issues(provenance)
     provenance["complete"] = not issues
     provenance["issues"] = issues
@@ -580,10 +586,11 @@ def generate_report(
         return existing, False
 
     requested_provider = narrative_provider or DeterministicNarrativeProvider()
+    synthetic = report_contains_synthetic(built.context)
     narrative, actual_provider, fallback_used, fallback_reason = _run_narrative(
         context=built.context,
         evidence_ids=built.evidence_ids,
-        provider=requested_provider,
+        provider=SyntheticNarrativeProvider() if synthetic else requested_provider,
     )
     qa_level, qa_result = classify_qa(
         built.context,
@@ -598,6 +605,9 @@ def generate_report(
             "context_sha256": built.sha256,
         }
     )
+    if synthetic:
+        qa_result["synthetic"] = True
+        qa_result["external_narrative_skipped"] = requested_provider.provider_name != "deterministic"
     provenance = _build_provenance(
         asset=asset,
         acquisition=acquisition,
