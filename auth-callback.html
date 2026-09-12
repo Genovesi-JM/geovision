@@ -20,6 +20,7 @@
   </div>
 
   <script src="assets/js/config.js?v=5"></script>
+  <script src="assets/js/session.js?v=2"></script>
   <script>
     (async function(){
       function getParams() {
@@ -29,13 +30,12 @@
         const p = new URLSearchParams(raw);
         return {
           token: p.get('token'),
-          refresh_token: p.get('refresh_token') || '',
           provider: p.get('provider') || '',
           browser_nonce: p.get('browser_nonce') || '',
-          redirect: p.get('redirect') || '/dashboard.html',
+          redirect: p.get('redirect') || '',
         };
       }
-      const { token, refresh_token, provider, browser_nonce, redirect } = getParams();
+      const { token, provider, browser_nonce, redirect } = getParams();
       // Clear fragments and obsolete query credentials immediately.
       if (window.location.hash || window.location.search) {
         try { history.replaceState(null, '', window.location.pathname); } catch(_){}
@@ -62,34 +62,8 @@
 
       let profile;
       try {
-        const response = await fetch(`${window.API_BASE}/auth/me`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${token}` },
-          cache: 'no-store',
-          redirect: 'error',
-        });
-        if (!response.ok) throw new Error('invalid callback token');
-        profile = await response.json();
-        if (!profile || !profile.id || !profile.email || !profile.role) {
-          throw new Error('invalid callback profile');
-        }
-
-        localStorage.setItem('gv_token', token);
-        if (refresh_token) localStorage.setItem('gv_refresh_token', refresh_token);
-        else localStorage.removeItem('gv_refresh_token');
-        localStorage.setItem('gv_user', JSON.stringify({
-          id: profile.id,
-          email: profile.email,
-          name: profile.name || profile.full_name || '',
-          role: profile.role,
-        }));
-        localStorage.setItem('gv_email', profile.email);
-        localStorage.setItem('gv_role', profile.role);
-        if (profile.name || profile.full_name) {
-          localStorage.setItem('gv_name', profile.name || profile.full_name);
-        }
-        if (profile.account_id) localStorage.setItem('gv_account_id', profile.account_id);
-        if (profile.account_name) localStorage.setItem('gv_account_name', profile.account_name);
+        profile = await window.GV.session.verify(token);
+        window.GV.session.persist(token, profile);
         localStorage.setItem('gv_toast', JSON.stringify({ msg: 'Sesión iniciada correctamente', type: 'success', ts: Date.now() }));
       } catch (e) {
         document.getElementById('msg').textContent = 'No se pudo validar la sesión. Vuelva al inicio de sesión.';
@@ -97,17 +71,9 @@
         return;
       }
 
-      const allowedRedirects = {
-        '/admin.html': 'admin.html',
-        '/dashboard.html': 'dashboard.html',
-        '/onboarding.html': 'onboarding.html',
-      };
-      const pendingInvitation = sessionStorage.getItem('gv_pending_invitation');
-      if (pendingInvitation) {
-        window.location.replace(new URL(`onboarding.html#invitation=${encodeURIComponent(pendingInvitation)}`, window.location.href).href);
-        return;
-      }
-      const targetPage = allowedRedirects[redirect] || 'dashboard.html';
+      // OAuth's legacy redirect may reflect user.role rather than an assigned
+      // internal role. The verified profile determines the staff landing page.
+      const targetPage = window.GV.session.destination(profile, window.GV.session.isInternal(profile) ? '' : redirect);
       window.location.replace(new URL(targetPage, window.location.href).href);
     })();
   </script>

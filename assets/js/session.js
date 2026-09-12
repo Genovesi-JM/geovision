@@ -7,6 +7,110 @@
 (function () {
   'use strict';
 
+  const IDENTITY_KEYS = ['gv_token', 'gv_refresh_token', 'gv_user', 'gv_email', 'gv_name', 'gv_role'];
+  const CONTEXT_KEYS = ['gv_account_id', 'gv_account_name', 'gv_workspace_id', 'gv_organization_id', 'gv_active_sector'];
+  const INTERNAL_ROLES = new Set([
+    'GV_SUPER_ADMIN', 'GV_OPERATIONS', 'GV_ANALYST', 'GV_SUPPORT',
+    'GV_FINANCE', 'GV_INVENTORY', 'GV_SALES',
+  ]);
+
+  function clearContext() {
+    CONTEXT_KEYS.forEach(key => localStorage.removeItem(key));
+    sessionStorage.removeItem('gv_portal_return');
+  }
+
+  function clearSession() {
+    IDENTITY_KEYS.forEach(key => localStorage.removeItem(key));
+    clearContext();
+    localStorage.removeItem('gv_toast');
+  }
+
+  function isInternal(profile) {
+    const roles = profile?.authorization_context?.internal_roles;
+    return Array.isArray(roles) && roles.some(role => INTERNAL_ROLES.has(role));
+  }
+
+  function dashboardUrl(profile) {
+    // This chooses a landing page, never grants access. Each portal still
+    // obtains its capabilities and permissions independently from the server.
+    return isInternal(profile) ? 'admin.html' : 'dashboard.html';
+  }
+
+  function safeReturn(value) {
+    if (typeof value !== 'string' || /[\\\u0000-\u0020\u007f]/.test(value)) return '';
+    // Only known application pages; no schemes, network paths, or URL-parser
+    // ambiguities. Keep queries/fragments for legitimate portal deep links.
+    return /^\/?(?:admin|dashboard|contractor|onboarding|loja)\.html(?:[?#].*)?$/.test(value) ? value : '';
+  }
+
+  function destination(profile, returnTo) {
+    const invitation = sessionStorage.getItem('gv_pending_invitation');
+    if (invitation) return `onboarding.html#invitation=${encodeURIComponent(invitation)}`;
+    return safeReturn(returnTo) || dashboardUrl(profile);
+  }
+
+  async function verify(token, expectedUser) {
+    if (typeof token !== 'string' || !token.trim()) throw new Error('Token não recebido do servidor.');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10000);
+    try {
+      const base = window.API_BASE || 'http://127.0.0.1:8010';
+      const response = await fetch(`${String(base).replace(/\/$/, '')}/auth/me`, {
+        method: 'GET', headers: { Authorization: `Bearer ${token}` },
+        credentials: 'omit', cache: 'no-store', redirect: 'error', signal: controller.signal,
+      });
+      if (!response.ok) {
+        const error = new Error('Não foi possível validar a sessão. Inicie sessão novamente.');
+        error.status = response.status;
+        throw error;
+      }
+      const profile = await response.json();
+      if (!profile || typeof profile.id !== 'string' || !profile.id
+          || typeof profile.email !== 'string' || !profile.email
+          || typeof profile.role !== 'string' || !profile.role
+          || (expectedUser?.id && profile.id !== expectedUser.id)
+          || (expectedUser?.email && profile.email.toLowerCase() !== String(expectedUser.email).toLowerCase())
+          || (profile.authorization_context?.user_id && profile.authorization_context.user_id !== profile.id)) {
+        throw new Error('Perfil de sessão inválido. Inicie sessão novamente.');
+      }
+      return profile;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function persist(token, profile, options = {}) {
+    const sameUser = (() => {
+      try { return JSON.parse(localStorage.getItem('gv_user') || 'null')?.id === profile.id; }
+      catch (_) { return false; }
+    })();
+    // A new sign-in replaces the previous user's complete workspace context.
+    // Public-page refreshes retain an explicitly selected customer workspace.
+    const replaceContext = options.replaceContext !== false || !sameUser || profile.account === null;
+    if (replaceContext) clearContext();
+    IDENTITY_KEYS.forEach(key => localStorage.removeItem(key));
+    const user = { id: profile.id, email: profile.email, role: profile.role, name: profile.name || profile.full_name || '' };
+    localStorage.setItem('gv_user', JSON.stringify(user));
+    localStorage.setItem('gv_email', user.email);
+    localStorage.setItem('gv_role', user.role);
+    if (user.name) localStorage.setItem('gv_name', user.name);
+    if (replaceContext && profile.account !== null) {
+      const accountId = profile.account?.id || profile.account_id;
+      const accountName = profile.account?.name || profile.account_name;
+      if (accountId) {
+        localStorage.setItem('gv_account_id', String(accountId));
+        localStorage.setItem('gv_workspace_id', String(accountId));
+        if (accountName) localStorage.setItem('gv_account_name', String(accountName));
+        if (profile.company_id) localStorage.setItem('gv_organization_id', String(profile.company_id));
+      }
+    }
+    // Browser sessions never persist refresh tokens, including OAuth returns.
+    localStorage.setItem('gv_token', token);
+  }
+
+  window.GV = window.GV || {};
+  window.GV.session = { verify, persist, clear: clearSession, destination, dashboardUrl, isInternal };
+
   // Inject session dropdown CSS
   const css = document.createElement('style');
   css.textContent = `
@@ -87,15 +191,6 @@
   `;
   document.head.appendChild(css);
 
-  function getSession() {
-    const token = localStorage.getItem('gv_token');
-    if (!token) return null;
-    const name = localStorage.getItem('gv_name') || '';
-    const email = localStorage.getItem('gv_email') || '';
-    const role = localStorage.getItem('gv_role') || 'cliente';
-    return { token, name, email, role };
-  }
-
   function getInitials(name, email) {
     if (name && name.trim()) {
       const parts = name.trim().split(/\s+/);
@@ -107,25 +202,33 @@
     return 'U';
   }
 
-  function getDashboardUrl(role) {
-    return role === 'admin' ? 'admin.html' : 'dashboard.html';
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   }
 
-  function initSession() {
-    const session = getSession();
+  let requestId = 0;
+  async function initSession() {
+    const currentRequest = ++requestId;
+    const token = localStorage.getItem('gv_token');
     const portalLink = document.querySelector('.navbar-nav .btn-nav[href="login.html"]');
-    if (!portalLink) return;
-
-    if (!session) {
-      // No session — keep Portal link as-is (guest mode)
+    if (!portalLink || !token) return;
+    let session;
+    try {
+      session = await verify(token);
+    } catch (error) {
+      // A network outage leaves the login link usable without displaying an
+      // unverified cached identity. Never erase a newer login in another tab.
+      if (localStorage.getItem('gv_token') === token && [401, 403].includes(error.status)) clearSession();
       return;
     }
+    if (currentRequest !== requestId || localStorage.getItem('gv_token') !== token) return;
+    persist(token, session, { replaceContext: false });
 
     // ---- Logged-in state ----
-    const initials = getInitials(session.name, session.email);
-    const displayName = session.name || session.email || 'Utilizador';
-    const dashUrl = getDashboardUrl(session.role);
-    const roleLabel = session.role === 'admin' ? 'Administrador' : 'Cliente';
+    const initials = escapeHtml(getInitials(session.name, session.email));
+    const displayName = session.name || session.full_name || session.email || 'Utilizador';
+    const dashUrl = dashboardUrl(session);
+    const roleLabel = isInternal(session) ? 'Equipa GeoVision' : 'Cliente';
 
     // Create user menu container
     const userMenu = document.createElement('div');
@@ -133,14 +236,14 @@
     userMenu.innerHTML = `
       <button class="gv-session-btn" aria-label="Menu de utilizador" aria-expanded="false">
         <span class="gv-session-avatar">${initials}</span>
-        <span class="gv-session-name">${displayName.split(' ')[0]}</span>
+        <span class="gv-session-name">${escapeHtml(displayName.split(' ')[0])}</span>
         <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M1 1l4 4 4-4"/></svg>
       </button>
       <div class="gv-session-dropdown">
         <div class="gv-session-info">
           <div class="gv-session-avatar-lg">${initials}</div>
           <div>
-            <div class="gv-session-user-name">${displayName}</div>
+            <div class="gv-session-user-name">${escapeHtml(displayName)}</div>
             <div class="gv-session-user-role">${roleLabel}</div>
           </div>
         </div>
@@ -182,8 +285,8 @@
 
     // Logout
     userMenu.querySelector('#gv-logout-btn').addEventListener('click', () => {
-      ['gv_token', 'gv_refresh_token', 'gv_user', 'gv_email', 'gv_name',
-       'gv_role', 'gv_account_id', 'gv_account_name', 'gv_toast'].forEach(k => localStorage.removeItem(k));
+      clearSession();
+      sessionStorage.removeItem('gv_pending_invitation');
       window.location.href = 'index.html';
     });
 
@@ -194,7 +297,7 @@
 
     // If on login.html, redirect to dashboard
     if (window.location.pathname.endsWith('login.html') || window.location.pathname.endsWith('login')) {
-      window.location.replace(dashUrl);
+      window.location.replace(destination(session, new URLSearchParams(window.location.search).get('return')));
     }
   }
 

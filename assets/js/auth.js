@@ -40,28 +40,11 @@
     }
   }
 
-  function persistSession(data, fallbackEmail) {
+  async function persistSession(data, fallbackEmail) {
     const token = data && (data.access_token || data.token);
-    if (!token) throw new Error('Token não recebido do servidor.');
-
-    localStorage.setItem('gv_token', token);
-    // Browser sessions intentionally use the short-lived access token only;
-    // mobile/native clients keep rotating refresh tokens in secure storage.
-    localStorage.removeItem('gv_refresh_token');
-    if (data && data.user) {
-      localStorage.setItem('gv_user', JSON.stringify(data.user));
-      if (data.user.email) localStorage.setItem('gv_email', String(data.user.email));
-      if (data.user.role) localStorage.setItem('gv_role', String(data.user.role));
-      if (data.user.name) localStorage.setItem('gv_name', String(data.user.name));
-    } else if (fallbackEmail) {
-      localStorage.setItem('gv_user', JSON.stringify({ email: fallbackEmail }));
-      localStorage.setItem('gv_email', String(fallbackEmail));
-    }
-
-    try {
-      if (data && data.account && data.account.id) localStorage.setItem('gv_account_id', String(data.account.id));
-      if (data && data.account && data.account.name) localStorage.setItem('gv_account_name', String(data.account.name));
-    } catch (_) {}
+    const profile = await window.GV.session.verify(token, data?.user || { email: fallbackEmail });
+    window.GV.session.persist(token, profile);
+    return profile;
   }
 
   function beginOAuth(provider) {
@@ -90,26 +73,9 @@
     const createCancel = document.getElementById('create-cancel');
     const createSubmit = document.getElementById('create-submit');
 
-    function redirectAfterAuth(role) {
-      const r = String(role || '').toLowerCase();
-      const pendingInvitation = sessionStorage.getItem('gv_pending_invitation');
-      if (pendingInvitation) {
-        window.location.href = `onboarding.html#invitation=${encodeURIComponent(pendingInvitation)}`;
-        return;
-      }
+    function redirectAfterAuth(profile) {
       const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get('return');
-      // Strict validation: only allow relative paths starting with a
-      // single slash and no protocol/scheme prefix (blocks //, javascript:,
-      // data:, vbscript:, etc.)
-      if (returnTo
-          && returnTo.startsWith('/')
-          && !returnTo.startsWith('//')
-          && !/^[a-z]+:/i.test(returnTo)) {
-        window.location.href = returnTo;
-        return;
-      }
-      window.location.href = (r === 'admin') ? 'admin.html' : 'dashboard.html';
+      window.location.href = window.GV.session.destination(profile, params.get('return'));
     }
 
     if (googleBtn && !googleBtn.dataset.gvBound) {
@@ -254,10 +220,10 @@
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(() => ({}));
-          persistSession(data, email);
+          const profile = await persistSession(data, email);
           setToast('Conta criada com sucesso.', 'success');
           if (intent === 'view_invitation') window.location.href = 'onboarding.html';
-          else redirectAfterAuth((data.user && data.user.role) || 'cliente');
+          else redirectAfterAuth(profile);
         } catch (err) {
           show(errorBox, err && err.message ? err.message : 'Erro ao criar conta.');
         } finally {
@@ -292,9 +258,9 @@
           });
           if (!res.ok) throw new Error(await readErrorMessage(res));
           const data = await res.json().catch(() => ({}));
-          persistSession(data, email);
+          const profile = await persistSession(data, email);
           setToast('Login bem-sucedido.', 'success');
-          redirectAfterAuth((data.user && data.user.role) || 'cliente');
+          redirectAfterAuth(profile);
         } catch (err) {
           show(errorBox, err && err.message ? err.message : 'Erro no login.');
         } finally {

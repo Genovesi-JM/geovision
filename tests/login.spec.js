@@ -132,8 +132,18 @@ test.describe('Login smoke + a11y', () => {
         body: JSON.stringify({
           access_token: 'web-access-token',
           refresh_token: 'must-not-be-persisted',
-          user: { email: 'web@example.test', role: 'cliente', name: 'Web User' },
+          user: { id: 'web-user', email: 'web@example.test', role: 'cliente', name: 'Web User' },
           account: { id: 'web-account', name: 'Web Account' },
+        }),
+      });
+    });
+    await page.route('**/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({
+          id: 'web-user', email: 'web@example.test', role: 'cliente', name: 'Web User',
+          account: { id: 'web-account', name: 'Web Account' },
+          authorization_context: { user_id: 'web-user', internal_roles: [] },
         }),
       });
     });
@@ -151,6 +161,37 @@ test.describe('Login smoke + a11y', () => {
     expect(clientHeader).toBe('web');
     expect(await page.evaluate(() => localStorage.getItem('gv_token'))).toBe('web-access-token');
     expect(await page.evaluate(() => localStorage.getItem('gv_refresh_token'))).toBeNull();
+  });
+
+  test('verified internal staff replace stale customer context and land in operations', async ({ page }) => {
+    await page.route('**/auth/login', route => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({
+        access_token: 'staff-access-token', user: { id: 'staff-user', email: 'staff@example.test', role: 'cliente', name: '' }, account: null,
+      }),
+    }));
+    await page.route('**/auth/me', route => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify({
+        id: 'staff-user', email: 'staff@example.test', role: 'cliente', name: '', account: null,
+        account_id: '', account_name: '', company_id: '',
+        authorization_context: { user_id: 'staff-user', internal_roles: ['GV_OPERATIONS'], permissions: ['operations:access'] },
+      }),
+    }));
+    await page.route('**/admin.html', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Operations</title>' }));
+    await page.goto(`${BASE}/login.html`, { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => {
+      for (const key of ['gv_name', 'gv_role', 'gv_account_id', 'gv_account_name', 'gv_workspace_id', 'gv_organization_id', 'gv_active_sector']) localStorage.setItem(key, 'previous-customer');
+      localStorage.setItem('gv_refresh_token', 'previous-refresh');
+      localStorage.setItem('gv_user', JSON.stringify({ id: 'previous-customer' }));
+    });
+    await page.fill('#login-email', 'staff@example.test');
+    await page.fill('#login-password', 'synthetic-browser-test');
+    await page.locator('#login-submit').click();
+    await page.waitForURL(/\/admin\.html$/);
+    const context = await page.evaluate(() => ({
+      token: localStorage.getItem('gv_token'), role: localStorage.getItem('gv_role'),
+      stale: ['gv_name', 'gv_account_id', 'gv_account_name', 'gv_workspace_id', 'gv_organization_id', 'gv_active_sector', 'gv_refresh_token'].map(key => localStorage.getItem(key)),
+    }));
+    expect(context).toEqual({ token: 'staff-access-token', role: 'cliente', stale: Array(7).fill(null) });
   });
 
   test('OAuth callback rejects query credentials and external redirects', async ({ page }) => {
