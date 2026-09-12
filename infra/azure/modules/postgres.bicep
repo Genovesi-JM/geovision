@@ -61,6 +61,7 @@ resource database 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2024-08-0
     charset: 'UTF8'
     collation: 'en_US.utf8'
   }
+  dependsOn: [extensionAllowlist]
 }
 
 // Azure requires extensions to be allowlisted before CREATE EXTENSION can run.
@@ -75,6 +76,7 @@ resource accountsDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2
     charset: 'UTF8'
     collation: 'en_US.utf8'
   }
+  dependsOn: [database]
 }
 
 resource extensionAllowlist 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {
@@ -84,6 +86,9 @@ resource extensionAllowlist 'Microsoft.DBforPostgreSQL/flexibleServers/configura
     source: 'user-override'
     value: 'POSTGIS'
   }
+  // Azure rejected a parallel parameter write with ServerIsBusy. Serialize
+  // all server child writes: TLS, extensions, primary DB, accounts DB.
+  dependsOn: [requireTls]
 }
 
 resource requireTls 'Microsoft.DBforPostgreSQL/flexibleServers/configurations@2024-08-01' = {

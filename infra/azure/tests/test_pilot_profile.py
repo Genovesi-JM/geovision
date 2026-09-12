@@ -125,6 +125,18 @@ class PilotProfileTests(unittest.TestCase):
         self.assertIn("var apiHostLabel = apiExternalIngress ? apiName : '${apiName}.internal'", apps)
         self.assertIn("var apiBaseUrl = 'https://${apiHostLabel}.${managedEnvironment.properties.defaultDomain}'", apps)
 
+    def test_postgres_child_writes_are_serialized(self):
+        result = subprocess.run([CLI, "build", str(AZURE_ROOT / "modules/postgres.bicep"), "--stdout"], capture_output=True, text=True, timeout=40)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        resources = json.loads(result.stdout)["resources"]
+        by_name = {item["name"]: item for item in resources}
+        accounts = next(item for name, item in by_name.items() if "accountsDatabaseName" in name)
+        primary = next(item for name, item in by_name.items() if "databaseName" in name)
+        extensions = next(item for name, item in by_name.items() if "azure.extensions" in name)
+        self.assertTrue(any("require_secure_transport" in dependency for dependency in extensions["dependsOn"]))
+        self.assertTrue(any("azure.extensions" in dependency for dependency in primary["dependsOn"]))
+        self.assertTrue(any("databaseName" in dependency for dependency in accounts["dependsOn"]))
+
     def test_checked_in_pilot_parameters_compile_with_only_invented_secret_inputs(self):
         environment = {
             "PATH": os.environ.get("PATH", ""),
