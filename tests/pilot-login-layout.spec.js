@@ -2,6 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const ROOT = path.resolve(__dirname, '..');
 const ORIGIN = 'https://pilot.example.test';
 const unavailable = ['google-btn', 'microsoft-btn', 'forgot-link', 'forgot-email-link', 'toggle-create', 'create-form', 'forgot-email-overlay'];
@@ -33,7 +34,10 @@ async function mockPage(page, options = {}) {
     const file = path.resolve(ROOT, relative);
     if (!file.startsWith(ROOT + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return route.abort();
     const types = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html', '.svg': 'image/svg+xml', '.png': 'image/png' };
-    return route.fulfill({ contentType: types[path.extname(file)] || 'application/octet-stream', body: fs.readFileSync(file) });
+    const body = fs.readFileSync(file);
+    const hashes = path.extname(file) === '.html' ? Array.from(body.toString().matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi), match => match[1].trim() ? "'sha256-" + crypto.createHash('sha256').update(match[1]).digest('base64') + "'" : '').filter(Boolean) : [];
+    return route.fulfill({ contentType: types[path.extname(file)] || 'application/octet-stream', body,
+      headers: { 'Content-Security-Policy': "default-src 'none'; script-src 'self' " + hashes.join(' ') + "; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" } });
   });
   await page.goto(ORIGIN + '/login.html', { waitUntil: 'networkidle' });
   return { requests, posted };
@@ -100,4 +104,16 @@ test('public mode preserves existing controls and language preference', async ({
   await expect(page.locator('#pilot-notice')).toBeHidden();
   await expect(page.locator('#pilot-service-status')).toHaveCount(0);
   expect(requests).toEqual([]);
+});
+
+test('theme and password controls work under hosted script restrictions', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockPage(page);
+  await page.getByRole('button', { name: 'Mostrar contraseña', exact: true }).click();
+  await expect(page.locator('#login-password')).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Ocultar contraseña', exact: true }).click();
+  await expect(page.locator('#login-password')).toHaveAttribute('type', 'password');
+  await page.getByRole('button', { name: 'Activar modo claro', exact: true }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.screenshot({ path: info.outputPath('pilot-login-light-390.png'), fullPage: true, animations: 'disabled' });
 });

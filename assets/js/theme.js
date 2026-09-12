@@ -16,6 +16,14 @@
     if (saved === 'light') {
       document.documentElement.setAttribute('data-theme', 'light');
     }
+    document.querySelectorAll('.theme-toggle').forEach(function (button) {
+      const inline = button.getAttribute('onclick');
+      if (inline && inline.trim() !== 'toggleTheme()') return;
+      button.removeAttribute('onclick');
+      if (button.dataset.gvThemeToggle === 'ready') return;
+      button.dataset.gvThemeToggle = 'ready';
+      button.addEventListener('click', toggleTheme);
+    });
     updateIcons();
   }
 
@@ -37,8 +45,9 @@
     const isLight = document.documentElement.getAttribute('data-theme') === 'light';
     document.querySelectorAll('.theme-toggle').forEach(function (btn) {
       btn.innerHTML = isLight ? SVG_MOON : SVG_SUN;
-      btn.setAttribute('aria-label', isLight ? 'Ativar modo escuro' : 'Ativar modo claro');
-      btn.setAttribute('title',      isLight ? 'Modo Escuro' : 'Modo Claro');
+      const spanish = window.GV_RUNTIME?.mode === 'pilot';
+      btn.setAttribute('aria-label', spanish ? (isLight ? 'Activar modo oscuro' : 'Activar modo claro') : (isLight ? 'Ativar modo escuro' : 'Ativar modo claro'));
+      btn.setAttribute('title', spanish ? (isLight ? 'Modo oscuro' : 'Modo claro') : (isLight ? 'Modo Escuro' : 'Modo Claro'));
     });
   }
 
