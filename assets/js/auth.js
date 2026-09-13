@@ -33,7 +33,7 @@
   async function readErrorMessage(res) {
     if (isPilot) {
       const error = new Error(res.status === 401 ? 'El email o la contraseña no son correctos.'
-        : res.status === 403 ? 'Esta cuenta no tiene acceso a este entorno de pruebas.'
+        : res.status === 403 ? 'La protección del entorno ha rechazado la solicitud. No se ha podido verificar tu acceso.'
         : res.status === 429 ? 'Se han realizado demasiados intentos. Espera un minuto antes de volver a intentarlo.'
         : 'No se ha podido confirmar el acceso. No se ha repetido tu solicitud.');
       error.status = res.status;
@@ -276,9 +276,10 @@
           redirectAfterAuth(profile);
         } catch (err) {
           if (isPilot) {
-            const credentialError = !verifyingSession && (err?.status === 401 || err?.status === 403 || err?.status === 429);
-            show(errorBox, credentialError ? (err.status === 401 ? 'El email o la contraseña no son correctos.' : err.status === 403 ? 'Esta cuenta no tiene acceso a este entorno de pruebas.' : 'Se han realizado demasiados intentos. Espera un minuto antes de volver a intentarlo.') : 'No se ha podido confirmar el acceso. No se ha repetido tu solicitud. Comprueba el servicio antes de volver a intentarlo.');
-            if (!credentialError) window.GV_PILOT_UI?.unavailable();
+            const credentialError = !verifyingSession && (err?.status === 401 || err?.status === 429);
+            const accessBlocked = !verifyingSession && err?.status === 403;
+            show(errorBox, accessBlocked ? 'La protección del entorno ha rechazado la solicitud. No se ha podido verificar tu acceso.' : credentialError ? (err.status === 401 ? 'El email o la contraseña no son correctos.' : 'Se han realizado demasiados intentos. Espera un minuto antes de volver a intentarlo.') : 'No se ha podido confirmar el acceso. No se ha repetido tu solicitud. Comprueba el servicio antes de volver a intentarlo.');
+            if (!credentialError) window.GV_PILOT_UI?.unavailable(accessBlocked ? 'access_blocked' : undefined);
           } else show(errorBox, err && err.message ? err.message : 'Erro no login.');
         } finally {
           if (submitBtn) submitBtn.disabled = isPilot && !window.GV_PILOT_UI?.isReady();

@@ -46,7 +46,7 @@ GET_ROUTES = (
     r"/datasets(?:/[A-Za-z0-9-]+)?/?", r"/reports(?:/[A-Za-z0-9-]+(?:/download)?)?/?",
 )
 POST_ROUTES = (
-    r"/auth/(login|logout)", r"/organizations/?", r"/assets/?", r"/datasets/?",
+    r"/_access-check", r"/auth/(login|logout)", r"/organizations/?", r"/assets/?", r"/datasets/?",
     r"/datasets/[A-Za-z0-9-]+/(upload|finalize)",
     r"/assets/[A-Za-z0-9-]+/agriculture/evaluate",
     r"/assets/[A-Za-z0-9-]+/reports/?",
@@ -233,6 +233,10 @@ def runtime_script():
     options.credentials = 'same-origin';
     options.redirect = 'error';
     options.cache = 'no-store';
+    // Preserve origin-only Referer for cookie-authenticated POST compatibility.
+    // Send only our origin on these same-origin API calls, never a page path
+    // or query. Keep the document's no-referrer policy for all other requests.
+    options.referrerPolicy = 'strict-origin';
     return nativeFetch(input, options);
   };
 }());
@@ -335,6 +339,14 @@ class Gateway:
                 media_type = headers.get("content-type", "").split(";", 1)[0].strip().lower()
                 require(media_type in ("application/json", "multipart/form-data"), 415)
             api_path = urlsplit(target).path
+            if api_path == "/_access-check":
+                # Exercise the real Microsoft/browser POST boundary before
+                # credentials are submitted. No upstream call or login attempt.
+                require(not query and app_auth is None, 400)
+                require(headers.get("x-geovision-client") == "web", 403)
+                body = await asyncio.wait_for(self.read_body(request), timeout=15)
+                require(body == b"{}", 400)
+                return JSONResponse({"status": "accepted"}), False
             if api_path == "/auth/login":
                 require(headers.get("x-geovision-client") == "web", 403)
             if request.method == "POST" and api_path in ("/auth/login", "/auth/logout"):

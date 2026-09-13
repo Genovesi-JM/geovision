@@ -270,6 +270,23 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.post(path, headers={"x-geovision-client": "mobile"})).status_code, 403)
         self.assertEqual(self.calls, [])
 
+    async def test_access_check_needs_identity_origin_and_empty_body_without_upstream(self):
+        response = await self.post('/_access-check')
+        self.assertEqual((response.status_code, response.json()), (200, {"status": "accepted"}))
+        self.assertEqual(list(self.app.auth_attempts), [])
+        self.assertEqual(self.calls, [])
+        self.assertEqual((await self.post('/_access-check', authenticated=False)).status_code, 401)
+        for origin in ('null', 'https://evil.invalid'):
+            self.assertEqual((await self.post('/_access-check', headers={'origin': origin})).status_code, 403)
+        self.assertEqual((await self.post('/_access-check', headers={'x-ms-client-principal': identity(oid='other')})).status_code, 403)
+        self.assertEqual((await self.post('/_access-check', headers={'x-geovision-client': 'mobile'})).status_code, 403)
+        self.assertEqual((await self.post('/_access-check', headers={'x-geovision-authorization': 'Bearer synthetic'})).status_code, 400)
+        self.assertEqual((await self.post('/_access-check?unexpected=1')).status_code, 400)
+        self.assertEqual((await self.post('/_access-check', content=b'{"password":"synthetic"}')).status_code, 400)
+        self.assertEqual((await self.request(gateway.API_PREFIX + '/_access-check')).status_code, 403)
+        self.assertEqual(self.calls, [])
+        self.assertEqual(list(self.app.auth_attempts), [])
+
     async def test_login_body_forwarded_once_without_credentials_in_logs(self):
         payload = b'{"email":"synthetic@example.invalid","password":"SYNTHETIC_NOT_REAL"}'
         with mock.patch("logging.Logger._log") as emitted:
@@ -428,17 +445,21 @@ vm.runInNewContext(script, {window, document, Request, Headers, URL, Promise, Ty
   assert.equal(calls[0][1].headers.get('X-GeoVision-Authorization'), 'Bearer synthetic');
   assert.equal(calls[0][1].credentials, 'same-origin');
   assert.equal(calls[0][1].redirect, 'error');
+  assert.equal(calls[0][1].referrerPolicy, 'strict-origin');
   const req = new Request(origin + '/_pilot/api/assets', {method:'POST', headers:{Authorization:'Bearer request'}, body:'{}', credentials:'omit'});
   await window.fetch(req);
   assert.equal(calls[1][0], req);
   assert.equal(calls[1][1].headers.get('X-GeoVision-Authorization'), 'Bearer request');
   assert.equal(calls[1][1].credentials, 'same-origin');
+  assert.equal(calls[1][1].referrerPolicy, 'strict-origin');
   const external = {headers:{Authorization:'Bearer external'}, credentials:'omit'};
   await window.fetch('https://other.invalid/_pilot/api/me', external);
   assert.equal(calls[2][1], external);
+  assert.equal(calls[2][1].referrerPolicy, undefined);
   const nonApi = {credentials:'omit'};
   await window.fetch(origin + '/_pilot/api-malicious/me', nonApi);
   assert.equal(calls[3][1], nonApi);
+  assert.equal(calls[3][1].referrerPolicy, undefined);
   await assert.rejects(window.fetch(origin + '/_pilot/api/me', {headers:{Authorization:'Bearer one','X-GeoVision-Authorization':'Bearer two'}}));
   assert.equal(calls.length, 4);
   assert.equal(window.API_BASE, origin + '/_pilot/api');

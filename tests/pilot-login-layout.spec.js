@@ -5,11 +5,14 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const ROOT = path.resolve(__dirname, '..');
 const ORIGIN = 'https://pilot.example.test';
+const runtimeScript = fs.readFileSync(path.join(ROOT, 'infra/azure/online_gateway/gateway.py'), 'utf8').match(/def runtime_script\(\):\s+return r"""([\s\S]*?)"""/)[1];
 const unavailable = ['google-btn', 'microsoft-btn', 'forgot-link', 'forgot-email-link', 'toggle-create', 'create-form', 'forgot-email-overlay'];
 
 async function mockPage(page, options = {}) {
   const requests = [];
   const posted = [];
+  const postHeaders = [];
+  if (options.pilot !== false) await page.addInitScript(runtimeScript);
   await page.addInitScript(({ origin, pilot }) => {
     window.API_BASE = origin + '/_pilot/api';
     if (pilot) window.GV_RUNTIME = Object.freeze({ mode: 'pilot', locale: 'es' });
@@ -21,7 +24,12 @@ async function mockPage(page, options = {}) {
     if (url.origin !== ORIGIN) return route.abort();
     if (url.pathname.startsWith('/_pilot/api')) {
       requests.push({ method: request.method(), path: url.pathname });
+      if (request.method() === 'POST') postHeaders.push(await request.allHeaders());
       if (url.pathname.endsWith('/ready')) return route.fulfill({ status: options.readyStatus || 200, contentType: 'application/json', body: '{"status":"ready"}' });
+      if (url.pathname.endsWith('/_access-check')) {
+        expect(request.postData()).toBe('{}');
+        return route.fulfill({ status: options.accessStatus || 200, contentType: 'application/json', body: JSON.stringify({ status: options.accessBody || 'accepted' }) });
+      }
       if (url.pathname.endsWith('/auth/login')) {
         posted.push(request.postDataJSON());
         return route.fulfill({ status: options.loginStatus || 503, contentType: options.htmlError ? 'text/html' : 'application/json', body: options.htmlError ? '<h1>PRIVATE_TECHNICAL_DETAIL</h1>' : '{"detail":"PRIVATE_TECHNICAL_DETAIL"}' });
@@ -37,10 +45,10 @@ async function mockPage(page, options = {}) {
     const body = fs.readFileSync(file);
     const hashes = path.extname(file) === '.html' ? Array.from(body.toString().matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi), match => match[1].trim() ? "'sha256-" + crypto.createHash('sha256').update(match[1]).digest('base64') + "'" : '').filter(Boolean) : [];
     return route.fulfill({ contentType: types[path.extname(file)] || 'application/octet-stream', body,
-      headers: { 'Content-Security-Policy': "default-src 'none'; script-src 'self' " + hashes.join(' ') + "; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" } });
+      headers: { 'Referrer-Policy': 'no-referrer', 'Content-Security-Policy': "default-src 'none'; script-src 'self' " + hashes.join(' ') + "; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" } });
   });
   await page.goto(ORIGIN + '/login.html', { waitUntil: 'networkidle' });
-  return { requests, posted };
+  return { requests, posted, postHeaders };
 }
 
 for (const width of [360, 390, 1280]) {
@@ -56,7 +64,7 @@ for (const width of [360, 390, 1280]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(width);
     await page.screenshot({ path: info.outputPath(`pilot-login-${width}.png`), fullPage: true, animations: 'disabled' });
-    expect(requests).toEqual([{ method: 'GET', path: '/_pilot/api/ready' }]);
+    expect(requests).toEqual([{ method: 'GET', path: '/_pilot/api/ready' }, { method: 'POST', path: '/_pilot/api/_access-check' }]);
   });
 }
 
@@ -81,7 +89,7 @@ test('gateway failure is translated, blocks repeated submit and preserves passwo
   await expect(page.locator('#error-box')).not.toContainText('PRIVATE_TECHNICAL_DETAIL');
   await expect(page.locator('#login-submit')).toBeDisabled();
   await page.locator('#login-form').evaluate(form => form.dispatchEvent(new Event('submit', { cancelable: true })));
-  expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
+  expect(requests.filter(request => request.path.endsWith('/auth/login'))).toHaveLength(1);
   expect(posted[0].password).toBe(' synthetic-offline-only ');
   await page.fill('#login-password', '');
   await page.screenshot({ path: info.outputPath('pilot-service-error-390.png'), fullPage: true, animations: 'disabled' });
@@ -95,7 +103,39 @@ test('invalid credentials remain distinct from service failure', async ({ page }
   await page.locator('#login-submit').click();
   await expect(page.locator('#error-box')).toHaveText('El email o la contraseña no son correctos.');
   await expect(page.locator('#login-submit')).toBeEnabled();
-  expect(requests.filter(request => request.method === 'POST')).toHaveLength(1);
+  expect(requests.filter(request => request.path.endsWith('/auth/login'))).toHaveLength(1);
+});
+
+test('blocked connection stops before credentials and does not blame the account', async ({ page }, info) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { requests, posted } = await mockPage(page, { accessStatus: 403 });
+  await expect(page.locator('#pilot-service-status')).toContainText('La protección del entorno no ha autorizado la conexión');
+  await expect(page.locator('#login-submit')).toBeDisabled();
+  await page.locator('#login-form').evaluate(form => form.dispatchEvent(new Event('submit', { cancelable: true })));
+  expect(posted).toEqual([]);
+  expect(requests).toEqual([{ method: 'GET', path: '/_pilot/api/ready' }, { method: 'POST', path: '/_pilot/api/_access-check' }]);
+  await page.screenshot({ path: info.outputPath('pilot-access-blocked-390.png'), fullPage: true, animations: 'disabled' });
+});
+
+test('blocked login is not presented as an account denial and stops repeated submission', async ({ page }) => {
+  const { postHeaders } = await mockPage(page, { loginStatus: 403 });
+  await expect(page.locator('#login-submit')).toBeEnabled();
+  await page.fill('#login-email', 'synthetic@example.test');
+  await page.fill('#login-password', 'synthetic-offline-only');
+  await page.locator('#login-submit').click();
+  await expect(page.locator('#error-box')).toHaveText('La protección del entorno ha rechazado la solicitud. No se ha podido verificar tu acceso.');
+  await expect(page.locator('#login-submit')).toBeDisabled();
+  expect(postHeaders).toHaveLength(2);
+  for (const headers of postHeaders) {
+    expect(headers['x-geovision-client']).toBe('web');
+  }
+});
+
+test('connection check must return the exact success marker', async ({ page }) => {
+  const { posted } = await mockPage(page, { accessBody: 'unknown' });
+  await expect(page.locator('#login-submit')).toBeDisabled();
+  await expect(page.locator('#pilot-service-status')).toContainText('El servicio no está disponible');
+  expect(posted).toEqual([]);
 });
 
 test('public mode preserves existing controls and language preference', async ({ page }) => {
