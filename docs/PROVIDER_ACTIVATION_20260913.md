@@ -1,5 +1,11 @@
 # Provider activation — 13 September 2026
 
+**Follow-up:** AEMET was subsequently activated and verified from the protected
+Azure panel. Both API and web are now on revisions ending `--0000004`.
+See [AEMET activation evidence](AEMET_ACTIVATION_20260913.md) for current images,
+secret handling and real station-observation proof. The earlier AEMET/key and
+revision statements below describe the preceding catalogue phase.
+
 Scope: existing GeoVision Azure private pilot, then Kasa and Kaya. “All APIs”
 means the reviewed product capabilities, not buying every competing provider.
 This phase creates no vendor accounts, contracts, secret-reader grants, DNS
