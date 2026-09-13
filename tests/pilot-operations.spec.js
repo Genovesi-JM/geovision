@@ -71,6 +71,7 @@ for (const width of [390, 1280]) {
     await expect(page.getByText(/Observación AEMET verificada · 6 variables/)).toBeVisible();
     expect(seen.filter(item => item.method === 'POST')).toHaveLength(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo({ top: 0, behavior: 'instant' }); });
     await page.screenshot({ path: info.outputPath(`provider-catalogue-${width}.png`), fullPage: true });
   });
 }
