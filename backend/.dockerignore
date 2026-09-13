@@ -263,6 +263,7 @@
 !app/modules/operations/mobile_schemas.py
 !app/modules/operations/mobile_services.py
 !app/modules/operations/ports.py
+!app/modules/operations/provider_readiness.py
 !app/modules/operations/schemas.py
 !app/modules/operations/services.py
 !app/modules/orders/__init__.py

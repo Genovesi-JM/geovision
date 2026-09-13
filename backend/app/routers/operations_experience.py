@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
@@ -22,9 +22,46 @@ from app.modules.operations.experience_services import (
     operations_queues,
 )
 from app.modules.operations.services import contractor_for_user
+from app.modules.operations.experience_services import internal_actor_contract
+from app.modules.operations.provider_readiness import provider_inventory, public_provider_check
+from app.core.config import settings
 
 
 router = APIRouter(prefix="/operations", tags=["operations-experience"])
+
+
+def _require_integration_admin(db: Session, actor: User) -> None:
+    _, _, capabilities = internal_actor_contract(db, actor)
+    if "integrations" not in capabilities:
+        raise HTTPException(status_code=403, detail="Integration administrator required")
+
+
+@router.get("/providers")
+def integration_provider_inventory(actor: InternalActor, db: Session = Depends(get_db)):
+    _require_integration_admin(db, actor)
+    return provider_inventory(settings)
+
+
+@router.post("/providers/{provider}/check")
+async def check_public_integration(provider: str, request: Request, actor: InternalActor,
+                                   db: Session = Depends(get_db)):
+    _require_integration_admin(db, actor)
+    if request.query_params:
+        raise HTTPException(status_code=400, detail="This check accepts no configuration or customer data")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > 2:
+            raise HTTPException(status_code=400, detail="This check accepts no configuration or customer data")
+        body.extend(chunk)
+    if body not in (b"", b"{}"):
+        raise HTTPException(status_code=400, detail="This check accepts no configuration or customer data")
+    if provider not in {"copernicus", "miteco"}:
+        raise HTTPException(status_code=404, detail="Public provider check not available")
+    from starlette.concurrency import run_in_threadpool
+    try:
+        return await run_in_threadpool(public_provider_check, provider, settings)
+    except ValueError:
+        raise HTTPException(status_code=409, detail="Check unavailable; verify provider selection and wait 30 seconds between checks") from None
 
 
 @router.get("/experience", response_model=OperationsExperienceOut)

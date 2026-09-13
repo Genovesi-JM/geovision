@@ -171,13 +171,42 @@ async function transitionReport(item, action) {
 }
 async function renderReports(force) { const queues = await queueData(force); const rows = queueRows("reports", queues.reports_qa); replace(elements.view, sectionHeading("Calidad de informes", PILOT ? "Consulta la revisión y el estado de los informes. Aprobar y publicar todavía no está habilitado en este piloto." : "Los revisores autorizados pueden aprobar y publicar informes mediante el ciclo controlado."), rows.length ? card(null, table(["Informe","Estado","Nivel de calidad","Revisión","Actualizado","Acción"], rows, { label: "Informes pendientes de revisión de calidad" })) : emptyState("Sin informes pendientes", "La cola de revisión está despejada.")); }
 async function renderIntegrations(force, finance = false) {
-  const [queues, usage] = await Promise.all([
+  const [queues, usage, providers] = await Promise.all([
     queueData(force),
     finance ? API.get("/internal/economics/location-usage/summary?days=30") : Promise.resolve(null),
+    finance ? Promise.resolve(null) : API.get("/operations/providers"),
   ]);
   const rows = queueRows("integrations", queues.integrations);
   const title = finance ? "Sincronización financiera" : "Entrega de integraciones";
   const content = [sectionHeading(title, "Los diagnósticos muestran el estado sin exponer credenciales de proveedores.")];
+  if (!finance) {
+    if (!isRecord(providers) || !Array.isArray(providers.items)) throw new Error("El catálogo de integraciones no está disponible");
+    const labels = { not_implemented: "Adaptador pendiente", requires_configuration: "Falta configuración", not_selected: "Disponible, sin seleccionar", configured_unverified: "Configurado; falta validación" };
+    const providerRows = providers.items.map((item) => {
+      const result = node("p", { text: "Sin comprobación en esta sesión", attrs: { "aria-live": "polite" } });
+      const action = node("div", {}, [node("p", { text: optionalString(item.next_step) })]);
+      if (item.public_check_available === true && ["copernicus", "miteco"].includes(item.key)) {
+        const check = button("Comprobar fuente pública", { variant: "secondary", onClick: async () => {
+          check.disabled = true; result.textContent = "Consultando la fuente pública en España…";
+          try {
+            const response = await API.post(`/operations/providers/${item.key}/check`, {});
+            if (!isRecord(response) || response.provider !== item.key || !["response_verified", "reachable_no_data", "failed"].includes(response.status)) throw new Error("Comprobación no válida");
+            result.textContent = response.status === "response_verified"
+              ? `Respuesta verificada · ${finiteNumber(response.records)} registros · ${formatDate(response.checked_at)}. Solo contexto; no valida KPIs ni descargas.`
+              : response.status === "reachable_no_data" ? `Fuente accesible sin datos en la zona de prueba · ${formatDate(response.checked_at)}. No demuestra cobertura.`
+              : "No se ha podido verificar la fuente. No se ha repetido la solicitud.";
+          } catch (_) { result.textContent = "No se ha podido verificar la fuente. No se ha repetido la solicitud."; }
+          finally { check.disabled = false; }
+        } });
+        action.append(check, result);
+      }
+      return [node("div", {}, [node("strong", { text: optionalString(item.label, "Proveedor") }), node("p", { text: optionalString(item.family) })]), labels[item.state] || "Estado no confirmado", action];
+    });
+    content.push(card("APIs y proveedores", node("div", { className: "card-body" }, [
+      node("p", { text: "Una clave guardada no prueba que una integración funcione. Las opciones alternativas requieren selección, permisos y pruebas propias. Las comprobaciones públicas no envían datos de clientes ni activan pagos." }),
+      table(["Proveedor / área", "Preparación", "Siguiente paso / comprobación"], providerRows, { label: "Preparación real de APIs y proveedores" }),
+    ])));
+  }
   if (finance) {
     if (!isRecord(usage) || !Array.isArray(usage.items)) throw new Error("El resumen de uso de ubicación no es válido");
     const usageRows = usage.items.map((item) => [

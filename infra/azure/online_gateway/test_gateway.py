@@ -27,6 +27,14 @@ def identity(oid=gateway.EXPECTED_OID, tenant=gateway.EXPECTED_TENANT, provider=
 
 
 class GatewayTests(unittest.IsolatedAsyncioTestCase):
+    def test_only_public_provider_checks_are_routed(self):
+        self.assertTrue(gateway.permitted("GET", "/operations/providers"))
+        for provider in ("miteco", "copernicus"):
+            self.assertTrue(gateway.permitted("POST", f"/operations/providers/{provider}/check"))
+            self.assertFalse(gateway.permitted("GET", f"/operations/providers/{provider}/check"))
+        for provider in ("stripe", "smtp", "azure_iot_hub", "../miteco", "%6diteco"):
+            self.assertFalse(gateway.permitted("POST", f"/operations/providers/{provider}/check"))
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix="gv-gateway-offline-")
         self.addCleanup(self.tmp.cleanup)

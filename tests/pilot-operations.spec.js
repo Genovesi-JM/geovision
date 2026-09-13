@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 const ORIGIN = 'https://pilot.example.test';
-const NAV = [['dashboard', 'Resumen', 'dashboard'], ['jobs', 'Tareas', 'jobs'], ['missions', 'Misiones', 'missions'], ['processing', 'Procesamiento', 'processing'], ['reports_qa', 'Calidad de informes', 'reports-qa']];
+const NAV = [['dashboard', 'Resumen', 'dashboard'], ['jobs', 'Tareas', 'jobs'], ['missions', 'Misiones', 'missions'], ['processing', 'Procesamiento', 'processing'], ['reports_qa', 'Calidad de informes', 'reports-qa'], ['integrations', 'Integraciones', 'integrations']];
 const stamp = '2026-09-13T00:00:00Z';
 
 async function setup(page, { pilot = true, failure = null, view = 'jobs' } = {}) {
@@ -32,6 +32,13 @@ async function setup(page, { pilot = true, failure = null, view = 'jobs' } = {})
       else if (target === '/operations/jobs') body = [{ id: 'job-1', job_number: 'PRUEBA-001', title: 'Inspección de prueba · España', state: 'READY', priority: 'NORMAL', scheduled_start: stamp }];
       else if (target === '/missions/internal') body = [{ id: 'mission-1', title: 'Misión de prueba', state: 'DRAFT' }];
       else if (target === '/operations/queues') body = { processing: [{ id: 'process-1', status: 'FAILED', retries_remaining: 1 }], reports_qa: [{ id: 'report-1', title: 'Informe de prueba', status: 'REVIEW_REQUIRED' }, { id: 'report-2', title: 'Revisión aprobada', status: 'APPROVED' }], integrations: [] };
+      else if (target === '/operations/providers') body = { items: [
+        { key: 'copernicus', label: 'Copernicus Data Space', family: 'Satélite', state: 'configured_unverified', next_step: 'Catálogo público; descarga pendiente.', public_check_available: true },
+        { key: 'miteco', label: 'MITECO', family: 'Medio ambiente', state: 'configured_unverified', next_step: 'Colección ambiental de España.', public_check_available: true },
+        { key: 'arcgis', label: 'ArcGIS', family: 'GIS del cliente', state: 'not_implemented', next_step: 'Adaptador pendiente.', public_check_available: false },
+      ] };
+      else if (target === '/operations/providers/miteco/check') body = { provider: 'miteco', status: 'reachable_no_data', records: 0, checked_at: stamp };
+      else if (target === '/operations/providers/copernicus/check') return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
       else return route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     }
@@ -44,6 +51,24 @@ async function setup(page, { pilot = true, failure = null, view = 'jobs' } = {})
   });
   await page.goto(ORIGIN + '/admin.html?view=' + view);
   return seen;
+}
+
+for (const width of [390, 1280]) {
+  test(`provider catalogue is honest and fits ${width}px`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height: 844 });
+    const seen = await setup(page, { view: 'integrations' });
+    await expect(page.getByRole('heading', { name: 'APIs y proveedores' })).toBeVisible();
+    await expect(page.getByText('Configurado; falta validación')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: 'Comprobar fuente pública' })).toHaveCount(2);
+    expect(seen.every(item => item.method === 'GET')).toBe(true);
+    await page.getByRole('button', { name: 'Comprobar fuente pública' }).nth(1).click();
+    await expect(page.getByText(/Fuente accesible sin datos/)).toBeVisible();
+    await page.getByRole('button', { name: 'Comprobar fuente pública' }).nth(0).click();
+    await expect(page.getByText('No se ha podido verificar la fuente. No se ha repetido la solicitud.', { exact: true })).toBeVisible();
+    expect(seen.filter(item => item.method === 'POST')).toHaveLength(2);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await page.screenshot({ path: info.outputPath(`provider-catalogue-${width}.png`), fullPage: true });
+  });
 }
 
 for (const width of [360, 390, 1280]) {
