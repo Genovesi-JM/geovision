@@ -28,6 +28,8 @@ const MISSION_TRANSITIONS = Object.freeze({
   NEEDS_REFLIGHT: ["PLANNED", "CANCELLED"], COMPLETED: [], CANCELLED: [], FAILED: [],
 });
 const API = new OperationsApi();
+const PILOT = window.GV_RUNTIME?.mode === "pilot";
+function readOnlyAction() { return node("span", { text: "Solo consulta", attrs: { title: "Esta acción todavía no está habilitada en el piloto." } }); }
 const state = {
   experience: null, capabilities: new Set(), permissions: new Set(), visibleKeys: [], current: "",
   dashboard: null, queues: null, jobs: null, contractors: null, orders: null, missions: null, companies: null, workflowJob: null,
@@ -68,7 +70,14 @@ function showDenied(error) {
   document.body.dataset.operationsState = "denied"; elements.loading.hidden = true; elements.app.hidden = true; elements.denied.hidden = false;
   elements.deniedMessage.textContent = error instanceof ApiError && error.status === 401
     ? "Tu sesión ha caducado. Inicia sesión de nuevo para solicitar acceso verificado."
-    : "Tu cuenta no tiene permiso para utilizar este espacio.";
+    : error instanceof ApiError && error.status === 403 ? "Tu cuenta no tiene permiso para utilizar este espacio."
+    : "No se ha podido confirmar el acceso. Puede ser un problema de conexión o una sesión caducada; no hemos repetido la solicitud.";
+  if (PILOT && !(error instanceof ApiError && error.status === 403)) {
+    elements.denied.querySelector("h1").textContent = "No se ha podido confirmar el acceso";
+    elements.denied.querySelector(".eyebrow").textContent = "Verificación pendiente";
+    const actions = elements.denied.querySelector(".button-row");
+    if (!document.getElementById("pilot-revalidate")) actions.prepend(node("a", { id: "pilot-revalidate", className: "button button-primary", text: "Volver a validar acceso Microsoft", href: "/.auth/login/aad?post_login_redirect_uri=%2Flogin.html%3Freturn%3D%2Fadmin.html" }));
+  }
 }
 
 function groupNavigation() {
@@ -118,7 +127,7 @@ async function renderDashboard(force) {
       card("Requiere atención", node("div", { className: "card-body" }, attention.length ? node("ul", { className: "detail-list" }, attention.map(([key, value]) => node("li", {}, [node("span", { text: sentence(key) }), node("strong", { text: finiteNumber(value).toLocaleString() })]))) : emptyState("Colas despejadas", "No hay elementos fallidos, bloqueados o pendientes de revisión.")), "one-third"),
       card("Cambios operativos recientes", node("div", { className: "card-body" }, recentList(dashboard.recent)), "two-thirds"),
       health ? card("Estado del sistema", node("div", { className: "card-body" }, [pill(health.status), node("ul", { className: "detail-list" }, [["Eventos no entregados",health.event_dead_letters],["Notificaciones no entregadas",health.notification_dead_letters],["Integraciones no entregadas",health.integration_dead_letters],["Fallos de procesamiento",health.processing_failures]].map(([label,value]) => node("li", {}, [node("span", { text: label }), node("strong", { text: finiteNumber(value).toLocaleString() })])))])) : null,
-      state.permissions.has("platform:admin") ? card("Herramientas anteriores", node("div", { className: "card-body" }, [node("p", { text: "Las herramientas anteriores se conservan temporalmente solo para funciones que todavía no han migrado." }), node("a", { className: "button button-secondary", text: "Abrir herramientas anteriores", href: "admin-legacy.html", attrs: { "data-compatibility": "platform-admin" } })])) : null,
+      !PILOT && state.permissions.has("platform:admin") ? card("Herramientas anteriores", node("div", { className: "card-body" }, [node("p", { text: "Las herramientas anteriores se conservan temporalmente solo para funciones que todavía no han migrado." }), node("a", { className: "button button-secondary", text: "Abrir herramientas anteriores", href: "admin-legacy.html", attrs: { "data-compatibility": "platform-admin" } })])) : null,
     ])
   );
 }
@@ -128,26 +137,30 @@ function queueRows(kind, items) {
   if (kind === "jobs") return rows.map((item) => [node("strong", { text: optionalString(item.job_number, "Tarea") }), optionalString(item.title, "Tarea sin título"), pill(item.state), sentence(item.priority), sentence(item.assignee_type), formatDate(item.scheduled_start)]);
   if (kind === "processing") return rows.map((item) => {
     const actions = node("div", { className: "table-actions" });
-    if (finiteNumber(item.retries_remaining) > 0 && ["FAILED","RETRY_WAIT","NEEDS_REVIEW"].includes(optionalString(item.status).toUpperCase())) actions.appendChild(button("Reintentar", { variant: "primary", onClick: () => retryProcessing(item) }));
+    if (PILOT) actions.appendChild(readOnlyAction());
+    else if (finiteNumber(item.retries_remaining) > 0 && ["FAILED","RETRY_WAIT","NEEDS_REVIEW"].includes(optionalString(item.status).toUpperCase())) actions.appendChild(button("Reintentar", { variant: "primary", onClick: () => retryProcessing(item) }));
     return [pill(item.status), sentence(item.stage, "Sin iniciar"), `${finiteNumber(item.retry_count)} / ${finiteNumber(item.max_retries)}`, node("span", { className: item.error_message ? "error-detail" : "", text: optionalString(item.error_message, "—") }), formatDate(item.next_poll_at), actions];
   });
   if (kind === "reports") return rows.map((item) => {
     const actions = node("div", { className: "table-actions" });
     const status = optionalString(item.status).toUpperCase();
-    if (status === "REVIEW_REQUIRED" && state.permissions.has("report:review")) actions.appendChild(button("Aprobar", { variant: "primary", onClick: () => transitionReport(item, "approve") }));
-    if (status === "APPROVED" && state.permissions.has("report:publish")) actions.appendChild(button("Publicar", { variant: "primary", onClick: () => transitionReport(item, "publish") }));
+    if (PILOT) actions.appendChild(readOnlyAction());
+    else if (status === "REVIEW_REQUIRED" && state.permissions.has("report:review")) actions.appendChild(button("Aprobar", { variant: "primary", onClick: () => transitionReport(item, "approve") }));
+    if (!PILOT && status === "APPROVED" && state.permissions.has("report:publish")) actions.appendChild(button("Publicar", { variant: "primary", onClick: () => transitionReport(item, "publish") }));
     return [optionalString(item.title, "Informe"), pill(item.status), sentence(item.qa_level), finiteNumber(item.revision).toLocaleString(), formatDate(item.updated_at), actions];
   });
   return rows.map((item) => [optionalString(item.provider, "Proveedor"), sentence(item.resource_type), pill(item.status), `${finiteNumber(item.attempts)} / ${finiteNumber(item.max_attempts)}`, node("span", { className: item.error_message ? "error-detail" : "", text: optionalString(item.error_message, "—") }), formatDate(item.next_attempt_at)]);
 }
 
 async function retryProcessing(item) {
+  if (PILOT) return;
   setStatus(elements.status, "Reintentando el procesamiento…");
   try { await API.post(`/processing/jobs/${encodePath(item.id)}/retry`, {}); state.queues = null; state.dashboard = null; await renderCurrent(true); setStatus(elements.status, "Reintento de procesamiento en cola.", "success"); }
   catch (error) { setStatus(elements.status, visibleError(error), "error"); }
 }
 async function renderProcessing(force) { const queues = await queueData(force); const rows = queueRows("processing", queues.processing); replace(elements.view, sectionHeading("Cola de procesamiento", "Los fallos muestran diagnósticos seguros, reintentos restantes y el próximo intento."), rows.length ? card(null, table(["Estado","Etapa","Reintentos","Fallo","Próxima consulta","Acción"], rows, { label: "Cola de procesamiento" })) : emptyState("Sin trabajos de procesamiento", "No hay trabajos activos o fallidos en esta cola.")); }
 async function transitionReport(item, action) {
+  if (PILOT) return;
   const permission = action === "approve" ? "report:review" : "report:publish";
   if (!state.permissions.has(permission)) return;
   setStatus(elements.status, `${sentence(action)} report…`);
@@ -156,7 +169,7 @@ async function transitionReport(item, action) {
     state.queues = null; state.dashboard = null; await renderCurrent(true); setStatus(elements.status, action === "approve" ? "Informe aprobado." : "Informe publicado.", "success");
   } catch (error) { setStatus(elements.status, visibleError(error), "error"); }
 }
-async function renderReports(force) { const queues = await queueData(force); const rows = queueRows("reports", queues.reports_qa); replace(elements.view, sectionHeading("Calidad de informes", "Los revisores autorizados pueden aprobar y publicar informes mediante el ciclo controlado."), rows.length ? card(null, table(["Informe","Estado","Nivel de calidad","Revisión","Actualizado","Acción"], rows, { label: "Informes pendientes de revisión de calidad" })) : emptyState("Sin informes pendientes", "La cola de revisión está despejada.")); }
+async function renderReports(force) { const queues = await queueData(force); const rows = queueRows("reports", queues.reports_qa); replace(elements.view, sectionHeading("Calidad de informes", PILOT ? "Consulta la revisión y el estado de los informes. Aprobar y publicar todavía no está habilitado en este piloto." : "Los revisores autorizados pueden aprobar y publicar informes mediante el ciclo controlado."), rows.length ? card(null, table(["Informe","Estado","Nivel de calidad","Revisión","Actualizado","Acción"], rows, { label: "Informes pendientes de revisión de calidad" })) : emptyState("Sin informes pendientes", "La cola de revisión está despejada.")); }
 async function renderIntegrations(force, finance = false) {
   const [queues, usage] = await Promise.all([
     queueData(force),
@@ -192,11 +205,12 @@ async function loadJobs(force = false) { if (!state.jobs || force) state.jobs = 
 async function loadContractors(force = false) { if (!can("contractors")) return []; if (!state.contractors || force) state.contractors = collection(await API.get("/operations/contractors?limit=200")); return state.contractors; }
 async function renderJobs(force) {
   const jobs = await loadJobs(force);
-  const rows = jobs.map((job) => [node("strong", { text: optionalString(job.job_number, "Tarea") }), optionalString(job.title, "Tarea sin título"), pill(job.state), sentence(job.priority), job.assigned_contractor_id ? "Colaborador" : job.assigned_user_id ? "Personal interno" : "Sin asignar", formatDate(job.scheduled_start), node("div", { className: "table-actions" }, button("Gestionar", { variant: "primary", onClick: () => openWorkflow(job) }))]);
-  replace(elements.view, sectionHeading("Tareas de ejecución", "Asigna recursos, programa el trabajo y registra cambios de estado con control de versiones."), rows.length ? card(null, table(["Tarea","Título","Estado","Prioridad","Responsable","Horario","Acción"], rows, { label: "Tareas de ejecución" })) : emptyState("Sin tareas", "Todavía no se han creado tareas de ejecución."));
+  const rows = jobs.map((job) => [node("strong", { text: optionalString(job.job_number, "Tarea") }), optionalString(job.title, "Tarea sin título"), pill(job.state), sentence(job.priority), job.assigned_contractor_id ? "Colaborador" : job.assigned_user_id ? "Personal interno" : "Sin asignar", formatDate(job.scheduled_start), PILOT ? readOnlyAction() : node("div", { className: "table-actions" }, button("Gestionar", { variant: "primary", onClick: () => openWorkflow(job) }))]);
+  replace(elements.view, sectionHeading("Tareas de ejecución", PILOT ? "Consulta responsables, horarios y estados. La gestión de tareas todavía no está habilitada en este piloto." : "Asigna recursos, programa el trabajo y registra cambios de estado con control de versiones."), rows.length ? card(null, table(["Tarea","Título","Estado","Prioridad","Responsable","Horario","Acción"], rows, { label: "Tareas de ejecución" })) : emptyState("Sin tareas", "Todavía no se han creado tareas de ejecución."));
 }
 
 async function openWorkflow(job) {
+  if (PILOT) return;
   state.workflowJob = job;
   document.getElementById("workflow-job-id").value = optionalString(job.id); document.getElementById("workflow-version").value = String(finiteNumber(job.lifecycle_version, 1));
   document.getElementById("workflow-state").value = ""; document.getElementById("workflow-state").disabled = false; document.getElementById("workflow-start").value = toLocalInput(job.scheduled_start); document.getElementById("workflow-end").value = toLocalInput(job.scheduled_end); document.getElementById("workflow-cost").value = ""; document.getElementById("workflow-location").value = ""; document.getElementById("workflow-reason").value = "";
@@ -215,7 +229,7 @@ async function openWorkflow(job) {
 }
 
 async function saveWorkflow(event) {
-  event.preventDefault(); if (event.submitter?.value === "cancel") { elements.dialog.close(); return; }
+  event.preventDefault(); if (PILOT) return; if (event.submitter?.value === "cancel") { elements.dialog.close(); return; }
   const id = encodePath(document.getElementById("workflow-job-id").value); let version = finiteNumber(document.getElementById("workflow-version").value, 1); const job = state.workflowJob;
   if (!isRecord(job) || safeId(job.id) !== decodeURIComponent(id)) return;
   const contractorId = optionalString(document.getElementById("workflow-contractor").value); const nextState = optionalString(document.getElementById("workflow-state").value);
@@ -255,6 +269,7 @@ async function renderMissions(force) {
   replace(elements.view, sectionHeading("Misiones", "Avanza el trabajo de adquisición con un motivo auditable."), rows.length ? card(null, table(["Misión","Título","Tipo","Estado","Programada","Actualizada","Acción"], rows, { label: "Misiones internas" })) : emptyState("Sin misiones", "No hay misiones planificadas actualmente."));
 }
 function missionActions(item) {
+  if (PILOT) return readOnlyAction();
   const transitions = MISSION_TRANSITIONS[optionalString(item.state).toUpperCase()] || [];
   if (!transitions.length) return node("span", { text: "Ciclo completado" });
   const label = optionalString(item.acquisition_number, "mission");
@@ -263,6 +278,7 @@ function missionActions(item) {
   return node("div", { className: "table-actions lifecycle-action" }, [select, reason, button("Aplicar", { variant: "primary", onClick: () => transitionMission(item, select.value, reason.value) })]);
 }
 async function transitionMission(item, nextState, reason) {
+  if (PILOT) return;
   if (!(MISSION_TRANSITIONS[optionalString(item.state).toUpperCase()] || []).includes(nextState)) { setStatus(elements.status, "Elige un estado válido para la misión.", "error"); return; }
   setStatus(elements.status, `Cambiando la misión a ${sentence(nextState).toLowerCase()}…`);
   try {
@@ -301,6 +317,8 @@ async function renderCurrent(force = false) {
 }
 
 async function init() {
+  document.getElementById("operations-pilot-notice").hidden = !PILOT;
+  if (PILOT) elements.denied.querySelector('a[href="dashboard.html"]').hidden = true;
   installLogout(document.getElementById("operations-logout"), document.getElementById("denied-logout"));
   elements.menu.addEventListener("click", () => { const open = elements.sidebar.dataset.open !== "true"; elements.sidebar.dataset.open = String(open); elements.scrim.hidden = !open; elements.menu.setAttribute("aria-expanded", String(open)); elements.menu.setAttribute("aria-label", open ? "Cerrar navegación" : "Abrir navegación"); });
   elements.scrim.addEventListener("click", closeSidebar); elements.refresh.addEventListener("click", () => renderCurrent(true)); elements.workflow.addEventListener("submit", saveWorkflow);

@@ -35,7 +35,10 @@
     text.setAttribute('aria-live', 'polite');
     const check = document.createElement('button');
     check.type = 'button'; check.className = 'btn-ghost'; check.textContent = 'Comprobar servicio'; check.hidden = true;
-    status.append(text, check); form.after(status);
+    const revalidate = document.createElement('a');
+    revalidate.href = '/.auth/login/aad?post_login_redirect_uri=%2Flogin.html%3Freturn%3D%2Fadmin.html';
+    revalidate.className = 'link'; revalidate.textContent = 'Volver a validar acceso Microsoft'; revalidate.hidden = true;
+    status.append(text, check, revalidate); form.after(status);
     let ready = false;
     let checking = false;
     function unavailable() {
@@ -43,10 +46,11 @@
       submit.disabled = true;
       text.textContent = 'El servicio no está disponible. Puedes comprobar su estado sin enviar tu contraseña.';
       check.hidden = false;
+      revalidate.hidden = false;
     }
     async function checkService() {
       if (checking) return;
-      checking = true; ready = false; submit.disabled = true; check.hidden = true;
+      checking = true; ready = false; submit.disabled = true; check.hidden = true; revalidate.hidden = true;
       text.textContent = 'Comprobando el servicio…';
       const controller = new AbortController();
       const warmup = setTimeout(() => { text.textContent = 'Preparando el servicio de pruebas. El primer acceso puede tardar un momento…'; }, 5000);

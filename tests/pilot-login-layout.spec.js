@@ -64,6 +64,7 @@ test('unavailable service blocks login without sending credentials', async ({ pa
   const { requests } = await mockPage(page, { readyStatus: 503 });
   await expect(page.locator('#login-submit')).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Comprobar servicio' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Volver a validar acceso Microsoft' })).toHaveAttribute('href', '/.auth/login/aad?post_login_redirect_uri=%2Flogin.html%3Freturn%3D%2Fadmin.html');
   await page.locator('#login-form').evaluate(form => form.dispatchEvent(new Event('submit', { cancelable: true })));
   expect(requests.filter(request => request.method === 'POST')).toEqual([]);
   expect(requests.filter(request => request.path.endsWith('/ready'))).toHaveLength(1);

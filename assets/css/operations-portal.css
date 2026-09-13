@@ -11,3 +11,15 @@
 @media(max-width:54rem){.operations-sidebar{transform:translateX(-102%);transition:transform .2s ease;box-shadow:var(--shadow)}.operations-sidebar[data-open="true"]{transform:translateX(0)}.operations-main{margin-left:0}.menu-button{display:inline-grid;place-items:center}.content-card.half,.content-card.two-thirds,.content-card.one-third{grid-column:span 12}.contractor-header{flex-wrap:wrap;padding-block:.8rem}.contractor-menu-button{display:inline-grid;place-items:center}.contractor-nav{order:4;width:100%;display:none;align-items:stretch;flex-direction:column;padding-top:.5rem}.contractor-nav[data-open="true"]{display:flex}.contractor-nav .nav-link{width:100%}.contractor-account{margin-left:0}.contractor-account>span{display:none}.detail-grid{grid-template-columns:1fr}}
 @media(max-width:40rem){.operations-topbar{align-items:flex-start}.topbar-actions .button{width:2.7rem;padding:0;font-size:0}.topbar-actions .button::after{content:"↪";font-size:1.1rem}.kpi-grid,.job-grid,.form-grid{grid-template-columns:1fr}.field-wide{grid-column:auto}.section-heading,.contractor-heading{align-items:flex-start;flex-direction:column}.section-heading .button,.contractor-heading .button{width:100%}.button-row{flex-wrap:wrap}.button-row .button{flex:1 1 10rem}.data-table{min-width:36rem}.dialog-actions .button{flex:1}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+#operations-pilot-notice{line-height:1.5}
+@media(max-width:40rem){
+  .pilot-records{display:block;min-width:0!important;width:100%}
+  .pilot-records thead{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+  .pilot-records tbody{display:block;width:100%}
+  .pilot-records tbody tr{display:block;padding:.65rem 0;border-bottom:1px solid var(--border)}
+  .pilot-records tbody tr:last-child{border-bottom:0}
+  .pilot-records tbody td{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:.8rem;padding:.45rem 1rem;border:0;overflow-wrap:anywhere;font-size:.9rem}
+  .pilot-records td::before{content:attr(data-label);color:var(--muted);font-weight:600}
+  .pilot-records td>*{min-width:0;max-width:100%}
+  .pilot-records .status-pill{justify-self:start}
+}

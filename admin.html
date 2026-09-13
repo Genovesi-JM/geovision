@@ -6,7 +6,7 @@
   <meta name="description" content="Espacio interno de operaciones de GeoVision.">
   <meta name="robots" content="noindex,nofollow">
   <title>Operaciones — GeoVision</title>
-  <link rel="stylesheet" href="assets/css/operations-portal.css?v=1">
+  <link rel="stylesheet" href="assets/css/operations-portal.css?v=2">
   <script src="assets/js/config.js?v=5"></script>
 </head>
 <body data-operations-state="loading">
@@ -30,6 +30,7 @@
         <div class="title-group"><p class="eyebrow">Espacio interno</p><h1 id="operations-view-title">Resumen</h1></div>
         <div class="topbar-actions"><button class="icon-button" id="operations-refresh" type="button" aria-label="Actualizar vista" title="Actualizar vista"><span aria-hidden="true">↻</span></button><button class="button button-secondary" id="operations-logout" type="button">Cerrar sesión</button></div>
       </header>
+      <p class="global-status" id="operations-pilot-notice" hidden>Entorno de pruebas · Consulta de operaciones. La asignación de tareas, los cambios de estado y la publicación de informes aún no están habilitados aquí.</p>
       <p class="global-status" id="operations-status" role="status" aria-live="polite"></p>
       <section class="view-surface" id="operations-view" aria-busy="false"></section>
     </main>
@@ -51,6 +52,6 @@
       <div class="dialog-actions"><button class="button button-secondary" value="cancel" type="submit">Cancelar</button><button class="button button-primary" id="workflow-save" value="default" type="submit">Guardar cambios</button></div>
     </form>
   </dialog>
-  <script type="module" src="assets/js/admin-ops.js?v=4"></script>
+  <script type="module" src="assets/js/admin-ops.js?v=5"></script>
 </body>
 </html>

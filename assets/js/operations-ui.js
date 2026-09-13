@@ -47,7 +47,7 @@ export function clearSession() {
 
 export function signOut(destination = "index.html") {
   clearSession();
-  window.location.assign(destination);
+  window.location.assign(window.GV_RUNTIME?.mode === "pilot" ? "/.auth/logout" : destination);
 }
 
 function extractError(payload, fallback) {
@@ -77,7 +77,13 @@ export class OperationsApi {
       headers.set("Content-Type", "application/json");
       body = JSON.stringify(body);
     }
-    const response = await fetch(`${this.baseUrl}${path}`, { ...options, headers, body, credentials: "omit" });
+    let response;
+    try {
+      response = await fetch(`${this.baseUrl}${path}`, { ...options, headers, body, credentials: "omit" });
+    } catch (error) {
+      if (window.GV_RUNTIME?.mode === "pilot") throw new ApiError(0, "No se ha podido confirmar la conexión. Comprueba tu conexión o vuelve a validar el acceso Microsoft.", "pilot_connection_unconfirmed");
+      throw error;
+    }
     let payload = null;
     if (response.status !== 204) {
       const raw = await response.text();
@@ -217,14 +223,15 @@ export function card(title, body, className = "") {
 }
 
 export function table(headers, rows, options = {}) {
-  const tableElement = node("table", { className: `data-table ${options.compact ? "compact" : ""}`.trim() });
+  const pilot = window.GV_RUNTIME?.mode === "pilot";
+  const tableElement = node("table", { className: `data-table ${options.compact ? "compact" : ""} ${pilot ? "pilot-records" : ""}`.trim(), attrs: { role: "table" } });
   const headRow = node("tr");
   headers.forEach((header) => headRow.appendChild(node("th", { text: header, attrs: { scope: "col" } })));
   tableElement.appendChild(node("thead", {}, headRow));
   const body = node("tbody");
   rows.forEach((cells) => {
-    const row = node("tr");
-    cells.forEach((cell) => row.appendChild(node("td", {}, cell)));
+    const row = node("tr", { attrs: { role: "row" } });
+    cells.forEach((cell, index) => row.appendChild(node("td", { attrs: { role: "cell" }, dataset: pilot ? { label: headers[index] || "Dato" } : undefined }, cell)));
     body.appendChild(row);
   });
   tableElement.appendChild(body);
