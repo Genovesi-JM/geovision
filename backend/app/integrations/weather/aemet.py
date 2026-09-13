@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from math import asin, cos, radians, sin, sqrt
+from math import asin, cos, isfinite, radians, sin, sqrt
+import re
 import time
 from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
@@ -48,7 +49,7 @@ def _number(value: Any) -> float | None:
         parsed = float(value)
     except (TypeError, ValueError):
         return None
-    return parsed if parsed == parsed else None
+    return parsed if isfinite(parsed) else None
 
 
 def _utc_naive(value: Any) -> datetime | None:
@@ -73,7 +74,7 @@ def _distance_km(lat_a: float, lon_a: float, lat_b: float, lon_b: float) -> floa
 
 
 class AemetOpenDataProvider:
-    adapter_version = "geovision-aemet-opendata-v1.0.0"
+    adapter_version = "geovision-aemet-opendata-v1.1.0"
     provider_name = "aemet"
 
     def __init__(
@@ -88,8 +89,18 @@ class AemetOpenDataProvider:
         retry_max_seconds: float = 8.0,
         client: httpx.Client | None = None,
         sleeper: Callable[[float], None] = time.sleep,
+        station_id: str | None = None,
+        max_response_bytes: int = 16 * 1024 * 1024,
     ) -> None:
         self.base_url = base_url.rstrip("/")
+        if not self._trusted_url(self.base_url) or urlsplit(self.base_url).path != "/opendata":
+            raise ValueError("AEMET requires its official HTTPS origin")
+        if station_id is not None and not re.fullmatch(r"[A-Z0-9]{1,8}", station_id):
+            raise ValueError("Invalid AEMET station identifier")
+        if not 1024 <= max_response_bytes <= 16 * 1024 * 1024:
+            raise ValueError("Invalid AEMET response limit")
+        self.station_id = station_id
+        self.max_response_bytes = max_response_bytes
         self.api_key = api_key
         self.retry_attempts = retry_attempts
         self.retry_initial_seconds = retry_initial_seconds
@@ -103,8 +114,24 @@ class AemetOpenDataProvider:
                 pool=connect_timeout_seconds,
             ),
             follow_redirects=False,
-            headers={"Accept": "application/json", "api_key": api_key},
+            trust_env=False,
+            headers={"Accept": "application/json", "Accept-Encoding": "identity"},
         )
+
+    @staticmethod
+    def _trusted_url(url: str, *, data: bool = False) -> bool:
+        if "\\" in url or any(ord(c) <= 32 or ord(c) == 127 for c in url):
+            return False
+        try:
+            parsed = urlsplit(url)
+            return bool(
+                parsed.scheme == "https" and parsed.hostname == "opendata.aemet.es"
+                and parsed.port in (None, 443) and not parsed.username and not parsed.password
+                and "?" not in url and "#" not in url
+                and (not data or re.fullmatch(r"/opendata/sh/[A-Za-z0-9_-]+", parsed.path))
+            )
+        except ValueError:
+            return False
 
     @staticmethod
     def _request(value: WeatherRequest | Mapping[str, Any]) -> WeatherRequest:
@@ -118,15 +145,38 @@ class AemetOpenDataProvider:
             max_distance_km=float(value.get("max_distance_km", 150.0)),
         )
 
-    def _get(self, url: str) -> tuple[httpx.Response | None, int, Exception | None]:
+    def _get(self, url: str, *, authenticated: bool = True) -> tuple[httpx.Response | None, int, Exception | None]:
+        if not self._trusted_url(url, data=not authenticated):
+            raise ValueError("AEMET returned an untrusted endpoint")
         last_response: httpx.Response | None = None
         last_error: Exception | None = None
         for attempt in range(1, self.retry_attempts + 1):
             try:
-                last_response = self.client.get(
-                    url,
-                    headers={"Accept": "application/json", "api_key": self.api_key},
-                )
+                request = self.client.build_request("GET", url, headers={
+                    "Accept": "application/json", "Accept-Encoding": "identity",
+                })
+                for header in ("api_key", "Authorization", "Proxy-Authorization", "Cookie"):
+                    request.headers.pop(header, None)
+                if authenticated:
+                    request.headers["api_key"] = self.api_key
+                response = self.client.send(request, stream=True, follow_redirects=False, auth=None)
+                try:
+                    if response.headers.get("Content-Encoding", "identity").lower() not in ("", "identity"):
+                        raise ValueError("AEMET encoded responses are not accepted")
+                    size = response.headers.get("Content-Length")
+                    if size is not None and (not size.isdigit() or int(size) > self.max_response_bytes):
+                        raise ValueError("AEMET response exceeds its limit")
+                    body = bytearray()
+                    started = time.monotonic()
+                    chunks = (response.content,) if response.is_stream_consumed else response.iter_raw()
+                    for chunk in chunks:
+                        if time.monotonic() - started > 45 or len(body) + len(chunk) > self.max_response_bytes:
+                            raise ValueError("AEMET response exceeds its limit")
+                        body.extend(chunk)
+                    last_response = httpx.Response(response.status_code, headers=response.headers,
+                                                   content=bytes(body), request=request)
+                finally:
+                    response.close()
                 if last_response.status_code < 500 and last_response.status_code != 429:
                     return last_response, attempt, None
             except httpx.HTTPError as exc:
@@ -183,10 +233,12 @@ class AemetOpenDataProvider:
             normalized = self._request(request)
             if not (-90 <= normalized.latitude <= 90 and -180 <= normalized.longitude <= 180):
                 raise ValueError("weather coordinates are outside EPSG:4326")
-            if normalized.max_distance_km <= 0:
+            if not isfinite(normalized.max_distance_km) or normalized.max_distance_km <= 0:
                 raise ValueError("weather maximum station distance must be positive")
             response, attempts, error = self._get(
-                f"{self.base_url}/api/observacion/convencional/todas"
+                f"{self.base_url}/api/observacion/convencional/" + (
+                    f"datos/estacion/{self.station_id}" if self.station_id else "todas"
+                )
             )
             if response is None or response.status_code != 200:
                 return self._failure(
@@ -199,16 +251,9 @@ class AemetOpenDataProvider:
             if not isinstance(envelope, Mapping) or int(envelope.get("estado", 0)) != 200:
                 raise ValueError("AEMET returned an invalid response envelope")
             data_url = str(envelope.get("datos") or "")
-            parsed_base = urlsplit(self.base_url)
-            parsed_data = urlsplit(data_url)
-            if (
-                parsed_data.scheme.lower() != "https"
-                or parsed_data.hostname != parsed_base.hostname
-                or parsed_data.username
-                or parsed_data.password
-            ):
+            if not self._trusted_url(data_url, data=True):
                 raise ValueError("AEMET returned a data URL outside its trusted host")
-            data_response, data_attempts, data_error = self._get(data_url)
+            data_response, data_attempts, data_error = self._get(data_url, authenticated=False)
             attempts += data_attempts
             if data_response is None or data_response.status_code != 200:
                 return self._failure(
@@ -229,6 +274,10 @@ class AemetOpenDataProvider:
                 observed_at = _utc_naive(raw.get("fint"))
                 station = str(raw.get("idema") or "").strip()
                 if latitude is None or longitude is None or observed_at is None or not station:
+                    continue
+                if not (-90 <= latitude <= 90 and -180 <= longitude <= 180):
+                    continue
+                if self.station_id is not None and station != self.station_id:
                     continue
                 if normalized.starts_at and observed_at < normalized.starts_at:
                     continue
@@ -274,7 +323,7 @@ class AemetOpenDataProvider:
                 provenance={
                     "provider": "AEMET OpenData",
                     "adapter_version": self.adapter_version,
-                    "product": "observacion_convencional_todas",
+                    "product": "observacion_convencional_estacion" if self.station_id else "observacion_convencional_todas",
                     "station_altitude_m": _number(raw.get("alt")),
                     "source_updated_at": raw.get("fint"),
                 },

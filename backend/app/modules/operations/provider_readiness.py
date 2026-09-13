@@ -2,7 +2,7 @@
 
 Configuration is not connectivity. This projection never resolves vault
 references, returns settings/credentials, or calls a provider while listing.
-Only the two fixed public-data checks below perform network I/O on request.
+Only explicit fixed checks perform network I/O. AEMET alone uses a server secret.
 """
 from __future__ import annotations
 
@@ -94,6 +94,7 @@ def provider_inventory(config: Any) -> dict:
             "state": state, "verification": "not_checked",
             "next_step": spec.requirement,
             "public_check_available": spec.key in {"miteco", "copernicus"} and selected is True,
+            "credentialed_check_available": spec.key == "aemet" and available and selected is True,
         })
     return {"generated_at": datetime.now(timezone.utc).isoformat(), "items": items,
             "notice": "Configuración no significa conexión validada. Los proveedores alternativos no deben activarse todos a la vez.",
@@ -198,4 +199,55 @@ Results expose only counts/source metadata, never raw vendor errors or bodies.
         output["error_code"] = "public_provider_check_failed"
     finally:
         _PUBLIC_CHECK_LOCK.release()
+    return output
+
+
+def aemet_observation_check(config: Any) -> dict:
+    """One fixed Madrid station check. Secret stays server-side; no DB writes."""
+    from app.integrations.weather.aemet import AemetOpenDataProvider
+
+    if config.weather_provider not in {"aemet", "aemet_opendata"} or not config.aemet_api_key:
+        raise ValueError("aemet_not_configured")
+    if config.aemet_base_url != "https://opendata.aemet.es/opendata":
+        raise ValueError("aemet_official_origin_required")
+    if not _PUBLIC_CHECK_LOCK.acquire(blocking=False):
+        raise ValueError("public_check_busy")
+    start = time.monotonic()
+    if start - _LAST_CHECK.get("aemet", float("-inf")) < MIN_CHECK_INTERVAL_SECONDS:
+        _PUBLIC_CHECK_LOCK.release()
+        raise ValueError("public_check_cooldown")
+    _LAST_CHECK["aemet"] = start
+    now = datetime.now(timezone.utc)
+    output = {"provider": "aemet", "checked_at": now.isoformat(), "status": "failed",
+              "records": None, "context_only": True, "observed_at": None, "metric_count": None,
+              "scope": "Observación reciente de una estación de prueba en Madrid; no es una previsión ni valida KPIs.",
+              "source": "https://opendata.aemet.es", "error_code": None}
+    adapter = None
+    try:
+        adapter = AemetOpenDataProvider(base_url=config.aemet_base_url, api_key=config.aemet_api_key,
+            station_id="3195", max_response_bytes=2 * 1024 * 1024, retry_attempts=1,
+            connect_timeout_seconds=5, read_timeout_seconds=15)
+        result = adapter.observations({"latitude": 40.42, "longitude": -3.70,
+            "starts_at": (now - timedelta(hours=48)).replace(tzinfo=None),
+            "ends_at": now.replace(tzinfo=None), "max_distance_km": 100})
+        if result.ok and result.value:
+            snapshot = result.value[0]
+            output.update(status="response_verified", records=len(result.value),
+                          observed_at=snapshot.observed_at.isoformat() + "Z", metric_count=len(snapshot.metrics))
+        else:
+            code = result.failure.code if result.failure else ""
+            output["error_code"] = {"provider_http_401": "aemet_credentials_rejected",
+                "provider_http_403": "aemet_credentials_rejected", "provider_http_429": "aemet_rate_limited",
+                "no_station_in_range": "aemet_no_recent_observation"}.get(code, "aemet_observation_check_failed")
+    except Exception:
+        output["error_code"] = "aemet_observation_check_failed"
+    finally:
+        try:
+            if adapter is not None:
+                adapter.client.close()
+        except Exception:
+            output.update(status="failed", records=None, observed_at=None, metric_count=None,
+                          error_code="aemet_observation_check_failed")
+        finally:
+            _PUBLIC_CHECK_LOCK.release()
     return output

@@ -23,7 +23,7 @@ from app.modules.operations.experience_services import (
 )
 from app.modules.operations.services import contractor_for_user
 from app.modules.operations.experience_services import internal_actor_contract
-from app.modules.operations.provider_readiness import provider_inventory, public_provider_check
+from app.modules.operations.provider_readiness import provider_inventory, public_provider_check, aemet_observation_check
 from app.core.config import settings
 
 
@@ -55,10 +55,12 @@ async def check_public_integration(provider: str, request: Request, actor: Inter
         body.extend(chunk)
     if body not in (b"", b"{}"):
         raise HTTPException(status_code=400, detail="This check accepts no configuration or customer data")
-    if provider not in {"copernicus", "miteco"}:
+    if provider not in {"copernicus", "miteco", "aemet"}:
         raise HTTPException(status_code=404, detail="Public provider check not available")
     from starlette.concurrency import run_in_threadpool
     try:
+        if provider == "aemet":
+            return await run_in_threadpool(aemet_observation_check, settings)
         return await run_in_threadpool(public_provider_check, provider, settings)
     except ValueError:
         raise HTTPException(status_code=409, detail="Check unavailable; verify provider selection and wait 30 seconds between checks") from None

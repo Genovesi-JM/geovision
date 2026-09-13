@@ -46,7 +46,7 @@ GET_ROUTES = (
     r"/datasets(?:/[A-Za-z0-9-]+)?/?", r"/reports(?:/[A-Za-z0-9-]+(?:/download)?)?/?",
 )
 POST_ROUTES = (
-    r"/operations/providers/(copernicus|miteco)/check",
+    r"/operations/providers/(copernicus|miteco|aemet)/check",
     r"/_access-check", r"/auth/(login|logout)", r"/organizations/?", r"/assets/?", r"/datasets/?",
     r"/datasets/[A-Za-z0-9-]+/(upload|finalize)",
     r"/assets/[A-Za-z0-9-]+/agriculture/evaluate",

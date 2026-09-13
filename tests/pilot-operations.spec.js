@@ -35,9 +35,11 @@ async function setup(page, { pilot = true, failure = null, view = 'jobs' } = {})
       else if (target === '/operations/providers') body = { items: [
         { key: 'copernicus', label: 'Copernicus Data Space', family: 'Satélite', state: 'configured_unverified', next_step: 'Catálogo público; descarga pendiente.', public_check_available: true },
         { key: 'miteco', label: 'MITECO', family: 'Medio ambiente', state: 'configured_unverified', next_step: 'Colección ambiental de España.', public_check_available: true },
+        { key: 'aemet', label: 'AEMET OpenData', family: 'Meteorología', state: 'configured_unverified', next_step: 'Clave solo en servidor.', public_check_available: false, credentialed_check_available: true },
         { key: 'arcgis', label: 'ArcGIS', family: 'GIS del cliente', state: 'not_implemented', next_step: 'Adaptador pendiente.', public_check_available: false },
       ] };
       else if (target === '/operations/providers/miteco/check') body = { provider: 'miteco', status: 'reachable_no_data', records: 0, checked_at: stamp };
+      else if (target === '/operations/providers/aemet/check') body = { provider: 'aemet', status: 'response_verified', records: 1, metric_count: 6, observed_at: stamp, checked_at: stamp };
       else if (target === '/operations/providers/copernicus/check') return route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
       else return route.fulfill({ status: 404, contentType: 'application/json', body: '{}' });
       return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
@@ -58,14 +60,16 @@ for (const width of [390, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     const seen = await setup(page, { view: 'integrations' });
     await expect(page.getByRole('heading', { name: 'APIs y proveedores' })).toBeVisible();
-    await expect(page.getByText('Configurado; falta validación')).toHaveCount(2);
+    await expect(page.getByText('Configurado; falta validación')).toHaveCount(3);
     await expect(page.getByRole('button', { name: 'Comprobar fuente pública' })).toHaveCount(2);
     expect(seen.every(item => item.method === 'GET')).toBe(true);
     await page.getByRole('button', { name: 'Comprobar fuente pública' }).nth(1).click();
     await expect(page.getByText(/Fuente accesible sin datos/)).toBeVisible();
     await page.getByRole('button', { name: 'Comprobar fuente pública' }).nth(0).click();
     await expect(page.getByText('No se ha podido verificar la fuente. No se ha repetido la solicitud.', { exact: true })).toBeVisible();
-    expect(seen.filter(item => item.method === 'POST')).toHaveLength(2);
+    await page.getByRole('button', { name: 'Comprobar observación AEMET' }).click();
+    await expect(page.getByText(/Observación AEMET verificada · 6 variables/)).toBeVisible();
+    expect(seen.filter(item => item.method === 'POST')).toHaveLength(3);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     await page.screenshot({ path: info.outputPath(`provider-catalogue-${width}.png`), fullPage: true });
   });

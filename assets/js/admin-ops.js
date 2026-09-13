@@ -185,13 +185,16 @@ async function renderIntegrations(force, finance = false) {
     const providerRows = providers.items.map((item) => {
       const result = node("p", { text: "Sin comprobación en esta sesión", attrs: { "aria-live": "polite" } });
       const action = node("div", {}, [node("p", { text: optionalString(item.next_step) })]);
-      if (item.public_check_available === true && ["copernicus", "miteco"].includes(item.key)) {
-        const check = button("Comprobar fuente pública", { variant: "secondary", onClick: async () => {
-          check.disabled = true; result.textContent = "Consultando la fuente pública en España…";
+      const aemetCheck = item.key === "aemet" && item.credentialed_check_available === true;
+      if (aemetCheck || (item.public_check_available === true && ["copernicus", "miteco"].includes(item.key))) {
+        const check = button(aemetCheck ? "Comprobar observación AEMET" : "Comprobar fuente pública", { variant: "secondary", onClick: async () => {
+          check.disabled = true; result.textContent = aemetCheck ? "Consultando AEMET desde el servidor…" : "Consultando la fuente pública en España…";
           try {
             const response = await API.post(`/operations/providers/${item.key}/check`, {});
             if (!isRecord(response) || response.provider !== item.key || !["response_verified", "reachable_no_data", "failed"].includes(response.status)) throw new Error("Comprobación no válida");
-            result.textContent = response.status === "response_verified"
+            result.textContent = aemetCheck && response.status === "response_verified"
+              ? `Observación AEMET verificada · ${finiteNumber(response.metric_count)} variables · ${formatDate(response.observed_at)}. Estación de prueba en Madrid; no es una previsión ni valida KPIs.`
+              : response.status === "response_verified"
               ? `Respuesta verificada · ${finiteNumber(response.records)} registros · ${formatDate(response.checked_at)}. Solo contexto; no valida KPIs ni descargas.`
               : response.status === "reachable_no_data" ? `Fuente accesible sin datos en la zona de prueba · ${formatDate(response.checked_at)}. No demuestra cobertura.`
               : "No se ha podido verificar la fuente. No se ha repetido la solicitud.";
@@ -203,7 +206,7 @@ async function renderIntegrations(force, finance = false) {
       return [node("div", {}, [node("strong", { text: optionalString(item.label, "Proveedor") }), node("p", { text: optionalString(item.family) })]), labels[item.state] || "Estado no confirmado", action];
     });
     content.push(card("APIs y proveedores", node("div", { className: "card-body" }, [
-      node("p", { text: "Una clave guardada no prueba que una integración funcione. Las opciones alternativas requieren selección, permisos y pruebas propias. Las comprobaciones públicas no envían datos de clientes ni activan pagos." }),
+      node("p", { text: "Una clave guardada no prueba que una integración funcione. Las opciones alternativas requieren selección, permisos y pruebas propias. Las comprobaciones no envían datos de clientes ni activan pagos. AEMET utiliza su clave solo en el servidor." }),
       table(["Proveedor / área", "Preparación", "Siguiente paso / comprobación"], providerRows, { label: "Preparación real de APIs y proveedores" }),
     ])));
   }
