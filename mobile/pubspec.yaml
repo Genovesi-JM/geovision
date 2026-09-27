@@ -14,7 +14,7 @@ dependencies:
     sdk: flutter
 
   # State management + DI
-  flutter_riverpod: ^2.5.1
+  flutter_riverpod: ^3.4.3
 
   # Routing
   go_router: ^14.2.0
