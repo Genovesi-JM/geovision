@@ -30,7 +30,7 @@ dependencies:
   connectivity_plus: ^6.0.3
 
   # Charts (KPI sparklines / trends)
-  fl_chart: ^0.68.0
+  fl_chart: ^1.2.0
 
   # Utilities
   intl: ^0.20.2
