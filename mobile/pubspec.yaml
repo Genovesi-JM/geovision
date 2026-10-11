@@ -20,11 +20,11 @@ dependencies:
   go_router: ^14.2.0
 
   # Networking
-  dio: ^5.4.3+1
+  dio: ^5.11.1
 
   # Secure + local storage
-  flutter_secure_storage: ^9.2.2
-  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^11.2.0
+  shared_preferences: ^2.5.6
 
   # Connectivity (offline-first)
   connectivity_plus: ^6.0.3
@@ -35,12 +35,12 @@ dependencies:
   # Utilities
   intl: ^0.20.2
   equatable: ^2.0.5
-  geolocator: ^14.0.2
-  flutter_map: ^8.3.1
+  geolocator: ^14.1.1
+  flutter_map: ^8.3.2
   latlong2: ^0.10.1
   country_state_city: ^0.1.6
-  url_launcher: ^6.3.1
-  image_picker: ^1.1.2
+  url_launcher: ^6.3.3
+  image_picker: ^1.2.4
 
 dev_dependencies:
   flutter_test:
