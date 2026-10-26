@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
 import '../domain/product.dart';
+import '../domain/commerce.dart';
 import '../../account/data/customer_experience_repository.dart';
 
 class CartController extends StateNotifier<List<CartLine>> {
@@ -148,3 +149,11 @@ final cartTotalProvider = Provider<int>(
   (ref) =>
       ref.watch(cartProvider).fold(0, (sum, line) => sum + line.totalCents),
 );
+
+final checkoutCartProvider = FutureProvider<RemoteCart?>((ref) async {
+  ref.watch(cartProvider);
+  final sync = ref.watch(cartSyncProvider);
+  ref.watch(storeCurrencyProvider);
+  if (sync.isLoading || sync.hasError) return null;
+  return ref.watch(ordersRepositoryProvider).loadCart();
+});

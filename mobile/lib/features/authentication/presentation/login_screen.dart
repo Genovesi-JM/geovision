@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
@@ -161,14 +162,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: GvSpacing.lg),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ref.read(authControllerProvider.notifier).enterDemo();
-                      context.go('/home');
-                    },
-                    icon: const Icon(Icons.play_circle_outline),
-                    label: Text(l10n.continueDemo),
-                  ),
+                  if (ref.watch(appConfigProvider).demoMode)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        ref.read(authControllerProvider.notifier).enterDemo();
+                        context.go('/home');
+                      },
+                      icon: const Icon(Icons.play_circle_outline),
+                      label: Text(l10n.continueDemo),
+                    ),
                 ],
               ),
             ),
@@ -178,36 +180,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _showForgot(BuildContext context) {
+  Future<void> _showForgot(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     final emailCtl = TextEditingController(text: _email.text);
-    showDialog<void>(
+    bool sending = false;
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.resetPassword),
-        content: TextField(
-          controller: emailCtl,
-          decoration: InputDecoration(hintText: l10n.email),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-          FilledButton(
-            onPressed: () async {
-              await ref
-                  .read(authRepositoryProvider)
-                  .forgotPassword(emailCtl.text);
-              if (ctx.mounted) Navigator.pop(ctx);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(l10n.resetLinkSent)),
-                );
-              }
-            },
-            child: Text(l10n.send),
-          ),
-        ],
-      ),
+      builder: (ctx) => StatefulBuilder(
+          builder: (ctx, update) => AlertDialog(
+                title: Text(l10n.resetPassword),
+                content: TextField(
+                  controller: emailCtl,
+                  decoration: InputDecoration(hintText: l10n.email),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(l10n.cancel)),
+                  FilledButton(
+                    onPressed: sending
+                        ? null
+                        : () async {
+                            if (emailCtl.text.trim().isEmpty) return;
+                            update(() => sending = true);
+                            final result = await ref
+                                .read(authRepositoryProvider)
+                                .forgotPassword(emailCtl.text);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(result.when(
+                                  ok: (_) => Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'es'
+                                      ? 'Si la cuenta existe, recibirás instrucciones para restablecer la contraseña.'
+                                      : 'If the account exists, you will receive reset instructions.',
+                                  err: (failure) => failure.message,
+                                ))),
+                              );
+                            }
+                          },
+                    child: Text(l10n.send),
+                  ),
+                ],
+              )),
     );
+    // The route transition may still read the controller until the next frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => emailCtl.dispose());
   }
 }

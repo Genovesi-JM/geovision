@@ -198,6 +198,7 @@ async function installApi(page, options = {}) {
       await new Promise((resolve) => setTimeout(resolve, options.delayExperience));
     }
     if (url.pathname === '/portal/experience') {
+      if (options.hangExperience) return; // Keep the request pending until the client aborts it.
       if (options.experienceStatus) {
         return route.fulfill({ status: options.experienceStatus, body: '{}' });
       }
@@ -346,6 +347,19 @@ test.describe('contextual customer portal', () => {
     await expect(page.getByRole('link', { name: 'Map', exact: true })).toBeHidden();
     await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeHidden();
     await expect(page.getByRole('link', { name: 'Assets', exact: true })).toBeVisible();
+  });
+
+  test('offers recovery instead of an endless spinner when the API stops responding', async ({ page }) => {
+    await page.clock.install();
+    await installApi(page, { hangExperience: true });
+    const pending = page.waitForRequest(`${API_ORIGIN}/portal/experience`);
+    await page.goto(`${BASE}/dashboard.html`, { waitUntil: 'domcontentloaded' });
+    await pending;
+    await page.clock.fastForward(30001);
+    await expect(page.locator('body')).toHaveAttribute('data-portal-state', 'error');
+    await expect(page.getByRole('heading', { name: 'Customer portal unavailable' })).toBeVisible();
+    await expect(page.locator('.sidebar-link:visible')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
   });
 
   test('shows no contextual modules when the experience contract cannot be validated', async ({ page }) => {

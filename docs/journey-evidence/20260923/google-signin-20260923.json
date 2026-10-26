@@ -1,0 +1,10 @@
+{
+  "checked_at": "2026-09-23T00:30:50.096Z",
+  "completed_account_login": false,
+  "provider_host": "accounts.google.com",
+  "title": "Sign in - Google Accounts",
+  "visible_text": "Sign in with Google\nSign in\n\nto continue to geovisionops.com\n\nEmail or phone\n\nForgot email?\n\nNext\nCreate account",
+  "provider_rejected": false,
+  "saved_callback": "https://api.geovisionops.com/auth/google/callback",
+  "configuration_reopened_and_confirmed": true
+}

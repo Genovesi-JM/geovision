@@ -1,9 +1,12 @@
+import '../../account/data/customer_experience_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../app/providers.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_section_header.dart';
@@ -90,18 +93,30 @@ class AlertDetailScreen extends ConsumerWidget {
                     child: Text(a.evidence.join(', '),
                         style: const TextStyle(color: GvColors.textSecondary))),
               ],
+              Text(journeyText(context,
+                'Confirmar lectura registra la recepción. No resuelve el problema ni envía comandos.',
+                'Acknowledgement records receipt. It does not resolve the issue or send device commands.',
+                pt: 'Confirmar leitura regista a receção. Não resolve o problema nem envia comandos.')),
               const SizedBox(height: GvSpacing.xl),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: a.acknowledged
+                      onPressed: a.resolved || a.acknowledged || (!ref.watch(appConfigProvider).demoMode &&
+                              (a.source != 'iot' || ref.watch(customerExperienceProvider).valueOrNull?.hasPermission('workspace:contribute') != true))
                           ? null
                           : () async {
-                              await ref
-                                  .read(alertsRepositoryProvider)
-                                  .acknowledge(a.id);
-                              ref.invalidate(alertsProvider);
+                              try {
+                                await ref.read(alertsRepositoryProvider).acknowledge(a.id);
+                                ref.invalidate(alertsProvider);
+                              } catch (_) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(journeyText(context,
+                                  'No se confirmó la lectura. Comprueba conexión y permisos y actualiza el estado.',
+                                  'Acknowledgement was not confirmed. Check connection and access, then refresh the status.',
+                                  pt: 'A leitura não foi confirmada. Verifique a ligação e as permissões e atualize o estado.'))));
+                                }
+                              }
                             },
                       icon: const Icon(Icons.check),
                       label: Text(a.acknowledged
@@ -112,7 +127,12 @@ class AlertDetailScreen extends ConsumerWidget {
                   const SizedBox(width: GvSpacing.md),
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () => context.go('/work/new'),
+                      onPressed: () => context.go(Uri(
+                          path: '/work/new',
+                          queryParameters: {
+                            if (a.siteId != null) 'asset_id': a.siteId!,
+                            'description': copy.title(a)
+                          }).toString()),
                       icon: const Icon(Icons.build_outlined),
                       label: Text(text.requestIntervention),
                     ),

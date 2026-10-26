@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../data/notifications_repository.dart';
+import '../../reports/presentation/report_actions.dart';
 
 class NotificationContextScreen extends ConsumerWidget {
   const NotificationContextScreen({
@@ -70,6 +71,8 @@ class NotificationContextScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            if (targetType.toUpperCase() == 'REPORT')
+              ReportActions(reportId: targetId),
             if (item.facts.isNotEmpty) ...[
               const SizedBox(height: GvSpacing.md),
               GvCard(

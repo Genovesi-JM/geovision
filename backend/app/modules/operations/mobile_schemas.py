@@ -107,6 +107,15 @@ class MobileServiceResultOut(BaseModel):
     published_at: datetime
 
 
+class MobileAttachmentOut(BaseModel):
+    id: str
+    dataset_id: str
+    filename: str
+    size_bytes: int
+    mime_type: str
+    sha256_hash: str
+
+
 class MobileServiceRequestOut(BaseModel):
     id: str
     organization_id: str | None = None
@@ -122,6 +131,7 @@ class MobileServiceRequestOut(BaseModel):
     status: str
     progress_percent: int
     attachments: list[str] = Field(default_factory=list)
+    attachment_files: list[MobileAttachmentOut] = Field(default_factory=list)
     assigned_team: str | None = None
     lifecycle_version: int = Field(ge=1)
     created_at: datetime

@@ -59,8 +59,9 @@ class AppConfig {
       demoMode: demo,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 20),
-      mapProvider:
-          const String.fromEnvironment('GV_MAP_PROVIDER', defaultValue: 'demo'),
+      mapProvider: const String.fromEnvironment('GV_MAP_PROVIDER').isEmpty
+          ? (demo ? 'demo' : 'openstreetmap')
+          : const String.fromEnvironment('GV_MAP_PROVIDER'),
       paymentProvider: const String.fromEnvironment('GV_PAYMENT_PROVIDER',
           defaultValue: 'mock'),
       pushProvider: const String.fromEnvironment('GV_PUSH_PROVIDER',

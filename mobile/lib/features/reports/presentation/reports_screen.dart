@@ -8,6 +8,7 @@ import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../../../l10n/app_localizations.dart';
 import '../data/reports_repository.dart';
+import 'report_actions.dart';
 
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key, this.assetId});
@@ -53,7 +54,9 @@ class ReportsScreen extends ConsumerWidget {
                       context: context,
                       backgroundColor: GvColors.surface,
                       builder: (_) => _ReportSheet(
-                          title: r.title, size: _size(r.sizeBytes)),
+                          reportId: r.id,
+                          title: r.title,
+                          size: _size(r.sizeBytes)),
                     ),
                     child: Row(
                       children: [
@@ -88,7 +91,9 @@ class ReportsScreen extends ConsumerWidget {
 }
 
 class _ReportSheet extends StatelessWidget {
-  const _ReportSheet({required this.title, required this.size});
+  const _ReportSheet(
+      {required this.reportId, required this.title, required this.size});
+  final String reportId;
   final String title;
   final String size;
   @override
@@ -106,26 +111,7 @@ class _ReportSheet extends StatelessWidget {
           Text('PDF · $size',
               style: const TextStyle(color: GvColors.textMuted)),
           const SizedBox(height: GvSpacing.lg),
-          const Text(
-              'Secure documents open via a short-lived signed URL. Private storage URLs are never exposed permanently.',
-              style: TextStyle(color: GvColors.textSecondary, fontSize: 13)),
-          const SizedBox(height: GvSpacing.lg),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Demo: requesting signed URL…')),
-              );
-            },
-            icon: const Icon(Icons.open_in_new),
-            label: const Text('Open securely'),
-          ),
-          const SizedBox(height: GvSpacing.sm),
-          OutlinedButton.icon(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.download_outlined),
-            label: const Text('Download'),
-          ),
+          ReportActions(reportId: reportId),
         ],
       ),
     );

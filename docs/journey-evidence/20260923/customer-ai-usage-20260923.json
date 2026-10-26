@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-09-23T00:32:03.211282+00:00",
+  "checks": {
+    "synthetic_customer_ai_usage": {
+      "record_count": 3,
+      "calls": [
+        {
+          "provider": "openai",
+          "service": "chat_completions",
+          "quantity": "638.000000",
+          "unit": "token",
+          "model": "gpt-4o-mini-2024-07-18"
+        },
+        {
+          "provider": "openai",
+          "service": "chat_completions",
+          "quantity": "934.000000",
+          "unit": "token",
+          "model": "gpt-4o-mini-2024-07-18"
+        },
+        {
+          "provider": "openai",
+          "service": "chat_completions",
+          "quantity": "934.000000",
+          "unit": "token",
+          "model": "gpt-4o-mini-2024-07-18"
+        }
+      ]
+    }
+  },
+  "status": "verified",
+  "runtime_revision": "geovision-pilot-hcwka3w-event-wo--0000001"
+}

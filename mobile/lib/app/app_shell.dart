@@ -33,7 +33,26 @@ class AppShell extends ConsumerWidget {
           : FloatingActionButton.small(
               heroTag: 'gaia-assistant',
               tooltip: 'GAIA',
-              onPressed: () => context.push('/assistant'),
+              onPressed: () {
+                final uri = GoRouterState.of(context).uri;
+                final parts = uri.pathSegments;
+                final asset = uri.queryParameters['asset_id'] ??
+                    (parts.length > 1 &&
+                            parts.first == 'assets' &&
+                            parts[1] != 'new'
+                        ? parts[1]
+                        : null);
+                context.push(Uri(path: '/assistant', queryParameters: {
+                  'from': uri.path,
+                  if (asset != null) 'site': asset,
+                  if (parts.length > 2 &&
+                      parts[0] == 'services' &&
+                      parts[1] == 'product')
+                    'product': parts[2],
+                  if (parts.length > 1 && parts[0] == 'devices')
+                    'device': parts[1],
+                }).toString());
+              },
               child: const Icon(Icons.auto_awesome),
             ),
       bottomNavigationBar: BottomNavigationBar(

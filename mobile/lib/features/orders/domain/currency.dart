@@ -61,18 +61,26 @@ abstract final class StoreMoney {
       .map((currency) => formatUsdCents(usdCents, currency))
       .toList();
 
-  static int productCents(GvProduct product, StoreCurrency target) =>
-      switch (target) {
-        StoreCurrency.usd => product.priceCents,
-        StoreCurrency.eur =>
-          product.priceEurCents ?? convertUsdCents(product.priceCents, target),
-        StoreCurrency.akz =>
-          product.priceAkzCents ?? convertUsdCents(product.priceCents, target),
-      };
+  /// Only explicit prices are purchasable. Reference FX is never a fallback.
+  static int? productCents(GvProduct product, StoreCurrency target) {
+    if (target == StoreCurrency.eur && product.priceEurCents != null) {
+      return product.priceEurCents;
+    }
+    if (target == StoreCurrency.akz && product.priceAkzCents != null) {
+      return product.priceAkzCents;
+    }
+    final source = product.currency.toUpperCase();
+    final matches = source == target.code ||
+        (target == StoreCurrency.akz && source == 'AOA');
+    return product.priceAvailable && matches && product.priceCents >= 0
+        ? product.priceCents
+        : null;
+  }
 
-  static String formatProduct(GvProduct product, StoreCurrency target) {
+  static String formatProduct(GvProduct product, StoreCurrency target,
+      {String unavailable = 'Price on request'}) {
     final cents = productCents(product, target);
-    return formatCents(cents, target);
+    return cents == null ? unavailable : formatCents(cents, target);
   }
 
   static String formatOrder(int cents, String currency) =>

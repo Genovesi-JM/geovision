@@ -4,6 +4,32 @@ Accurate states: **Interface prepared** · **Mock working** · **Credential requ
 · **Sandbox working** · **Production not activated**. A placeholder is never
 reported as complete.
 
+Latest live check: [23 September 2026 activation record](docs/PROVIDER_ACTIVATION_20260923.md).
+GAIA now uses a verified real model in the private Azure pilot; the hourly
+weather/satellite worker has completed manual and scheduled runs. The queue was
+empty, so customer acquisition-to-KPI/report flows remain unverified.
+
+Hosting cutover: [23 September 2026 Azure migration](docs/AZURE_CUTOVER_20260923.md).
+The public website and `https://api.geovisionops.com` now use Azure with managed
+TLS and the existing Azure data, as explicitly approved by the user. Google
+OAuth credentials are configured on the canonical API; full account login is
+still unverified. This hosting change does not activate the gated providers below.
+
+Customer-flow follow-up: [23 September 2026 journey verification](docs/CUSTOMER_JOURNEY_20260923.md).
+Email/password registration and login, the customer dashboard/map, Azure file
+upload/download, and the signed-in GAIA widget have now been exercised against
+Azure with synthetic data. The Google callback mismatch was corrected; Google
+now opens its sign-in page, while consent and account return remain unverified.
+
+FlutterFlow follow-up: the [16-call starter](infra/flutterflow/README.md) is now
+imported in the owner's accessible project, with dynamic request bodies and
+multipart upload binding. Health returned 200 and deliberately invalid login
+returned 401 in the editor; screen wiring and successful authenticated FlutterFlow
+journeys remain pending. [Azure transactional email](infra/azure/email/README.md)
+now has a verified sending domain and SMTP configured in the canonical API.
+Authentication passed from the running container; no message has been sent and
+the independent notification delivery worker is not yet activated.
+
 ## DJI drones and automated missions
 
 | Capability | Current state | Production requirement |
@@ -37,7 +63,7 @@ plus pilot supervision.
 | Multicaixa (Angola) | Local payments | Interface prepared | — | Yes | Sandbox | Yes |
 | GeoVision commerce API | Catalogue, price lists, cart, checkout and owned order history | **Backend contract working** · production not activated | `GV_API_BASE_URL`, `GV_DEMO_MODE=false` | Payment-provider dependent | FastAPI contract + Flutter mapping | No for local/staging |
 | GeoVision demo commerce | Seeds, inputs, equipment, sensors and services | **Mock working** | `GV_DEMO_MODE=true` | — | Unit + iOS Simulator | No |
-| GAIA assistant | Short explanations of the customer's current sites, areas, KPIs, alerts, devices, work and store products | **Context-aware contract working** with tenant-visible app data and concise demo fallback · production model credential required | Backend `OPENAI_API_KEY`, `OPENAI_MODEL` | — | Flutter context + backend area-resolution test | Yes (production API key and AI governance) |
+| GAIA assistant | Short explanations of the customer's current sites, areas, KPIs, alerts, devices, work and store products | **Live model and authenticated Azure web widget verified with synthetic customer/site context** · wider customer scenarios remain unverified | Backend `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-4o-mini` | — | Real UI response plus scoped OpenAI usage records; no demo fallback | Customer rollout and AI governance |
 | GeoVision support channels | WhatsApp, Instagram and support email from the public website | **Working** through native external links | Maintained website contact records | — | iOS/Android native build | No |
 | Website payment methods | Multicaixa Express, Angola IBAN, Visa/Mastercard, international IBAN and PayPal presentation | **Working in mobile UI and checkout selection** · live providers gated | Backend/provider-specific | Provider-dependent | Flutter tests + native builds | Yes for live processing |
 | ERPNext | Sales, purchasing, inventory, warehouse, invoices and reconciliation | **Adapter + durable outbox working in mock mode** · staging credentials required | `ERP_PROVIDER=erpnext`, `ERPNEXT_BASE_URL`, restricted API credentials | Inbound webhook after staging schema approval | Mock adapter + backend contract | Yes (hosting, credentials, fiscal validation) |
@@ -45,14 +71,15 @@ plus pilot supervision.
 | Azure Event Grid | BlobCreated to dataset-ingestion bridge | **Authenticated adapter working** · live subscription not activated | Event Grid enable flag, custom delivery secret, storage account/container | BlobCreated + validation handshake | Contract + duplicate-ingestion tests | Yes (subscription/RBAC) |
 | NodeODM / OpenDroneMap | Automated orthomosaic, elevation, point-cloud, mesh and supported index processing | **Adapter + durable worker + deterministic fake working** · live processor not activated | `PROCESSING_PROVIDER=nodeodm`, `NODEODM_BASE_URL`, optional server-side token | Polling through official task API | Fake end-to-end pipeline + mocked official HTTP contract | Yes (capacity/network/licence/quality review) |
 | PIX4D / Autodesk Reality Capture / Bentley Reality Modeling | Future photogrammetry engines | Interface scaffold only; fails explicitly when selected | Future provider-specific configuration | Provider-dependent | Not available until adapter implementation | Yes (account/purchase/integration approval) |
-| Copernicus Data Space / Sentinel-2 | Asset-scoped satellite scene discovery and optional imagery ingestion | **STAC adapter + durable acquisition worker + deterministic fake working** · live catalogue/download not activated | `SATELLITE_PROVIDER=copernicus`, STAC URL, optional server-side token and download allowlist | Scheduled polling | Fake service tests + mocked official STAC contract | Yes (quota/licence/coverage/quality review) |
-| AEMET OpenData | Spain weather observations near an asset | **Two-hop adapter + normalized observation storage + deterministic fake working** · live key not activated | `WEATHER_PROVIDER=aemet`, `AEMET_API_KEY`, base URL and distance limit | Scheduled polling | Fake service tests + mocked official OpenData contract | Yes (key/quota/station coverage review) |
+| Copernicus Data Space / Sentinel-2 | Asset-scoped satellite scene discovery and optional imagery ingestion | **Live catalogue verified; hourly worker active** · downloads disabled; customer acquisition flow unverified | `SATELLITE_PROVIDER=copernicus`, STAC URL, optional server-side token and download allowlist | Hourly scheduled polling | Two real catalogue records; successful empty-queue worker executions | Quota/licence/coverage/quality review before customer rollout |
+| AEMET OpenData | Spain weather observations near an asset | **Live key and observation verified; hourly worker active** · customer acquisition flow unverified | `WEATHER_PROVIDER=aemet`, `AEMET_API_KEY`, base URL and distance limit | Hourly scheduled polling | One real recent station observation with 12 metrics; successful empty-queue worker executions | Quota/station coverage review before customer rollout |
 | Azure Maps Weather | Future weather provider | Interface scaffold only; fails explicitly when selected | Future Azure Maps credential configuration | Provider-dependent | Not available until adapter implementation | Yes (account/purchase/integration approval) |
 | APNs | iOS push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=apns` | — | Mock stream | Yes (Apple keys) |
 | FCM | Android push | Interface prepared (mock emits) | `GV_PUSH_PROVIDER=fcm` | — | Mock stream | Yes (Firebase) |
 | IoT multi-provider bridge | API, MQTT, webhooks, BLE provisioning, LoRaWAN and Modbus gateways | Contract + mock outcomes working · backend adapter prepared | `GV_IOT_PROVIDER=mock|backend` | Backend bridge | Unit outcome matrix | Yes (vendor credentials/hardware) |
 | DJI / DroneDeploy | Drone acquisition and media import | Interface planned (backend-side) | — | Vendor | — | Yes |
-| Google / Microsoft / Apple sign-in | OAuth | Backend routes exist; mobile prepared | — | Redirect | Sandbox | Yes (client IDs) |
+| Google sign-in | OAuth | **Azure callback saved and Google sign-in page verified** · full account login unverified | Server-only `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `/auth/google/callback` | Deterministic tests + real Google redirect acceptance | Actual account consent/login verification |
+| Microsoft / Apple sign-in | OAuth | Backend routes exist; mobile prepared | — | Redirect | Sandbox | Yes (client IDs) |
 
 ### Adding a real provider
 1. Implement the interface (e.g. `MapProvider`, `PaymentProvider`, `PushProvider`, `IotProvider`).

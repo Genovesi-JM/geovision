@@ -46,6 +46,10 @@ test.describe('Login smoke + a11y', () => {
     await page.fill('#create-password-confirm', 'profile-check-123');
     await page.locator('#wizard-next').click();
 
+    await expect(page.locator('#create-intent')).toBeVisible();
+    await page.locator('#create-intent').selectOption('monitor_asset');
+    await expect(page.locator('#create-password')).toHaveValue('profile-check-123');
+    await expect(page.locator('#create-password-confirm')).toHaveValue('profile-check-123');
     await expect(page.locator('#create-intent option')).toHaveCount(4);
     await expect(page.locator('#create-intent')).toContainText('Pedir um serviço');
     await expect(page.locator('#create-intent')).toContainText('Monitorizar um ativo');

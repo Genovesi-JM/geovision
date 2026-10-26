@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
@@ -27,7 +28,7 @@ extension on _AssetSection {
         _AssetSection.actions => 'Actions',
         _AssetSection.monitoring => 'Monitoring',
         _AssetSection.reports => 'Reports',
-        _AssetSection.history => 'History',
+        _AssetSection.history => 'Record',
         _AssetSection.services => 'Services',
       };
 }
@@ -48,7 +49,9 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
   Widget build(BuildContext context) {
     final asset = ref.watch(customerAssetDetailProvider(widget.assetId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Asset detail')),
+      appBar: AppBar(
+          title: Text(journeyText(context, 'Detalle del activo', 'Asset detail',
+              pt: 'Detalhes do ativo'))),
       body: asset.when(
         loading: () => const GvLoading(label: 'Loading asset…'),
         error: (_, __) => GvErrorState(
@@ -92,15 +95,63 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                   children: [
                     for (final section in sections)
                       ChoiceChip(
-                        label: Text(section.label),
+                        label: Text(journeyText(
+                            context,
+                            const [
+                              'Resumen',
+                              'Mapa',
+                              'Acciones',
+                              'Monitorización',
+                              'Informes',
+                              'Ficha',
+                              'Servicios'
+                            ][section.index],
+                            section.label,
+                            pt: const [
+                              'Resumo',
+                              'Mapa',
+                              'Ações',
+                              'Monitorização',
+                              'Relatórios',
+                              'Ficha',
+                              'Serviços'
+                            ][section.index])),
                         selected: selected == section,
-                        onSelected: (_) => setState(() => _selected = section),
+                        onSelected: (_) {
+                          final path = switch (section) {
+                            _AssetSection.map => '/assets/${item.id}/map',
+                            _AssetSection.actions =>
+                              '/actions?asset_id=${item.id}',
+                            _AssetSection.monitoring =>
+                              '/devices?asset_id=${item.id}',
+                            _AssetSection.reports =>
+                              '/reports?asset_id=${item.id}',
+                            _AssetSection.services =>
+                              '/services?asset_id=${item.id}',
+                            _ => null,
+                          };
+                          if (path != null) {
+                            context.push(path);
+                          } else {
+                            setState(() => _selected = section);
+                          }
+                        },
                       ),
                   ],
                 ),
               ),
               const SizedBox(height: GvSpacing.md),
               _SectionContent(asset: item, section: selected),
+              if (capabilities?.hasCapability('services') == true)
+                FilledButton.icon(
+                    onPressed: () =>
+                        context.push('/work/new?asset_id=${item.id}'),
+                    icon: const Icon(Icons.home_repair_service_outlined),
+                    label: Text(journeyText(
+                        context,
+                        'Solicitar servicio para este activo',
+                        'Request service for this asset',
+                        pt: 'Pedir serviço para este ativo'))),
             ],
           );
         },
@@ -168,7 +219,7 @@ class _SectionContent extends StatelessWidget {
             title: 'Monitoring',
             body: 'Review connected GeoVision devices and current readings.',
             button: 'Open monitoring',
-            onPressed: () => context.push('/devices'),
+            onPressed: () => context.push('/devices?asset_id=${asset.id}'),
           ),
         _AssetSection.reports => _DestinationCard(
             icon: Icons.description_outlined,
@@ -183,9 +234,10 @@ class _SectionContent extends StatelessWidget {
             title: 'GeoVision services',
             body: 'Choose a service or request work for this existing asset.',
             button: 'Explore services',
-            onPressed: () => context.push('/services'),
+            onPressed: () => context.push('/services?asset_id=${asset.id}'),
             secondaryButton: 'Request work',
-            onSecondaryPressed: () => context.push('/work/new'),
+            onSecondaryPressed: () =>
+                context.push('/work/new?asset_id=${asset.id}'),
           ),
       };
 }
@@ -240,7 +292,7 @@ class _History extends StatelessWidget {
               Text('Last updated ${updated.toLocal()}'),
             if (asset.metadata.isEmpty)
               const Text(
-                'No additional history is available yet.',
+                'No additional asset details are available yet.',
                 style: TextStyle(color: GvColors.textSecondary),
               )
             else

@@ -1,0 +1,67 @@
+{
+  "api": {
+    "external": false,
+    "image": "geovisionpilothcwka3w.azurecr.io/geovision-backend@sha256:b3b74c015f0b1a64bb4e1269f029e2c5d019cb08bf5d09f6687a22c0c3e83383",
+    "latest": "geovision-pilot-hcwka3w-api--0000005",
+    "ready": "geovision-pilot-hcwka3w-api--0000005",
+    "scale": {
+      "cooldownPeriod": 300,
+      "maxReplicas": 2,
+      "minReplicas": 0,
+      "pollingInterval": 30,
+      "rules": [
+        {
+          "http": {
+            "metadata": {
+              "concurrentRequests": "50"
+            }
+          },
+          "name": "http-concurrency"
+        }
+      ]
+    },
+    "secretNames": [
+      "database-url",
+      "secret-key",
+      "encryption-key",
+      "accounts-database-url",
+      "provider-aemet-key",
+      "provider-openai-key"
+    ],
+    "state": "Succeeded"
+  },
+  "job": {
+    "configuration": {
+      "retries": 0,
+      "schedule": {
+        "cronExpression": "17 * * * *",
+        "parallelism": 1,
+        "replicaCompletionCount": 1
+      },
+      "timeout": 300,
+      "trigger": "Schedule"
+    },
+    "image": "geovisionpilothcwka3w.azurecr.io/geovision-backend@sha256:b3b74c015f0b1a64bb4e1269f029e2c5d019cb08bf5d09f6687a22c0c3e83383",
+    "name": "geovision-pilot-intelligence",
+    "resources": {
+      "cpu": 0.25,
+      "ephemeralStorage": "",
+      "memory": "0.5Gi"
+    },
+    "state": "Succeeded"
+  },
+  "executions": [
+    {
+      "end": "2026-09-22T23:17:29+00:00",
+      "name": "geovision-pilot-intelligence-29835317",
+      "start": "2026-09-22T23:17:00+00:00",
+      "status": "Succeeded"
+    },
+    {
+      "end": "2026-09-22T23:17:29+00:00",
+      "name": "geovision-pilot-intelligence-8jc9uja",
+      "start": "2026-09-22T23:16:53+00:00",
+      "status": "Succeeded"
+    }
+  ]
+}

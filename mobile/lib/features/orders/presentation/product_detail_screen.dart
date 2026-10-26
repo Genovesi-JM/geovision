@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../data/orders_repository.dart';
 import '../domain/currency.dart';
@@ -12,8 +13,9 @@ import 'product_image.dart';
 import 'store_copy.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
-  const ProductDetailScreen({required this.productId, super.key});
+  const ProductDetailScreen({required this.productId, this.assetId, super.key});
   final String productId;
+  final String? assetId;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final catalogue = ref.watch(catalogueProvider);
@@ -37,7 +39,7 @@ class ProductDetailScreen extends ConsumerWidget {
           if (product == null) {
             return Center(child: Text(copy.notFound));
           }
-          return _ProductBody(product: product);
+          return _ProductBody(product: product, assetId: assetId);
         },
       ),
     );
@@ -45,12 +47,16 @@ class ProductDetailScreen extends ConsumerWidget {
 }
 
 class _ProductBody extends ConsumerWidget {
-  const _ProductBody({required this.product});
+  const _ProductBody({required this.product, this.assetId});
   final GvProduct product;
+  final String? assetId;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final copy = StoreCopy.of(context);
     final language = Localizations.localeOf(context).languageCode;
+    final currency = ref.watch(storeCurrencyProvider);
+    final enquiry = product.requiresEnquiry ||
+        StoreMoney.productCents(product, currency) == null;
     return ListView(padding: const EdgeInsets.all(GvSpacing.lg), children: [
       SizedBox(
         height: 230,
@@ -65,10 +71,17 @@ class _ProductBody extends ConsumerWidget {
             child: Text(product.localizedName(language),
                 style: const TextStyle(
                     fontSize: 23, fontWeight: FontWeight.w800))),
-        Chip(label: Text(copy.inStock))
+        if (!enquiry && product.stockStatus == 'in_stock')
+          Chip(label: Text(copy.inStock))
       ]),
+      if (product.stockStatus == 'unknown') Text(copy.availabilityUnknown),
       const SizedBox(height: 8),
-      Text(StoreMoney.formatProduct(product, ref.watch(storeCurrencyProvider)),
+      Text(
+          product.priceModel.toUpperCase() == 'QUOTE'
+              ? journeyText(context, 'Precio a consultar', 'Price on request',
+                  pt: 'Preço sob consulta')
+              : StoreMoney.formatProduct(product, currency,
+                  unavailable: copy.priceOnRequest),
           style: const TextStyle(
               fontSize: 21,
               color: GvColors.accentCyan,
@@ -77,16 +90,18 @@ class _ProductBody extends ConsumerWidget {
         Text('${copy.per} ${product.unit}',
             style: const TextStyle(color: GvColors.textMuted)),
       const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 6,
-        children: StoreCurrency.values
-            .map((currency) => Chip(
-                  label: Text(
-                      '${currency.code}  ${StoreMoney.formatProduct(product, currency)}'),
-                ))
-            .toList(),
-      ),
+      if (enquiry || product.indicativePrice)
+        Text(journeyText(
+            context,
+            'Precio orientativo. Confirmaremos el alcance y el presupuesto antes de contratar.',
+            'Indicative price. Scope and quote will be confirmed before you commit.',
+            pt: 'Preço indicativo. O âmbito e o orçamento serão confirmados antes da contratação.')),
+      if (product.category == 'subscription')
+        Text(journeyText(
+            context,
+            'Monitorización recurrente: instalación, frecuencia y cuota se acordarán en el presupuesto.',
+            'Recurring monitoring: installation, frequency and fees will be agreed in the quote.',
+            pt: 'Monitorização recorrente: instalação, frequência e mensalidade serão acordadas no orçamento.')),
       const SizedBox(height: 18),
       Text(product.localizedDescription(language),
           style: const TextStyle(color: GvColors.textSecondary, height: 1.5)),
@@ -106,17 +121,6 @@ class _ProductBody extends ConsumerWidget {
             )),
         const SizedBox(height: 16),
       ],
-      Wrap(spacing: 8, runSpacing: 8, children: [
-        Chip(
-            avatar: const Icon(Icons.verified, size: 16),
-            label: Text(copy.verifiedQuality)),
-        Chip(
-            avatar: const Icon(Icons.local_shipping, size: 16),
-            label: Text(copy.trackedDelivery)),
-        Chip(
-            avatar: const Icon(Icons.support_agent, size: 16),
-            label: Text(copy.support))
-      ]),
       if (product.category == 'equipment' ||
           product.category == 'hardware') ...[
         const SizedBox(height: 18),
@@ -129,11 +133,23 @@ class _ProductBody extends ConsumerWidget {
       const SizedBox(height: 28),
       FilledButton.icon(
           onPressed: () {
-            ref.read(cartProvider.notifier).add(product);
-            context.push('/services/cart');
+            if (enquiry) {
+              context.push(Uri(path: '/work/new', queryParameters: {
+                if (assetId != null) 'asset_id': assetId!,
+                'description': product.localizedName(language),
+                if (product.category == 'subscription') 'type': 'deviceInstall',
+              }).toString());
+            } else {
+              ref.read(cartProvider.notifier).add(product);
+              context.push('/services/cart');
+            }
           },
-          icon: const Icon(Icons.add_shopping_cart),
-          label: Text(copy.addToCart)),
+          icon: Icon(
+              enquiry ? Icons.request_quote_outlined : Icons.add_shopping_cart),
+          label: Text(enquiry
+              ? journeyText(context, 'Solicitar presupuesto', 'Request a quote',
+                  pt: 'Pedir orçamento')
+              : copy.addToCart)),
     ]);
   }
 }

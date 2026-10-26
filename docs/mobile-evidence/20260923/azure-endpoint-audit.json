@@ -1,0 +1,151 @@
+{
+  "at": "2026-09-23T02:13:58.364724+00:00",
+  "checks": [
+    {
+      "path": "/auth/login",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "access_token",
+        "token_type",
+        "refresh_token",
+        "user",
+        "account"
+      ]
+    },
+    {
+      "path": "/mobile/experience",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "active_workspace_id",
+        "active_organization_id",
+        "permissions",
+        "capabilities",
+        "workspaces"
+      ]
+    },
+    {
+      "path": "/mobile/home",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "workspace_id",
+        "organization_name",
+        "workspace_name",
+        "attention",
+        "priority_items",
+        "latest_result",
+        "updated_at"
+      ]
+    },
+    {
+      "path": "/mobile/sites",
+      "status": 200,
+      "type": "list",
+      "count": 0
+    },
+    {
+      "path": "/assets",
+      "status": 200,
+      "type": "list",
+      "count": 1
+    },
+    {
+      "path": "/mobile/account/overview",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "organisation",
+        "financial",
+        "activity",
+        "recent_orders",
+        "last_updated_at"
+      ]
+    },
+    {
+      "path": "/mobile/devices",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "items"
+      ]
+    },
+    {
+      "path": "/kpi/alerts",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "alerts",
+        "total",
+        "critical_count",
+        "warning_count",
+        "availability"
+      ]
+    },
+    {
+      "path": "/mobile/actions",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "critical",
+        "attention",
+        "scheduled",
+        "completed"
+      ]
+    },
+    {
+      "path": "/mobile/service-requests",
+      "status": 200,
+      "type": "list",
+      "count": 0
+    },
+    {
+      "path": "/reports?status=PUBLISHED",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "items",
+        "total"
+      ]
+    },
+    {
+      "path": "/orders",
+      "status": 200,
+      "type": "list",
+      "count": 0
+    },
+    {
+      "path": "/shop/products",
+      "status": 200,
+      "type": "list",
+      "count": 40
+    },
+    {
+      "path": "/notifications",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "items",
+        "total",
+        "unread"
+      ]
+    },
+    {
+      "path": "/notification-preferences",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "items"
+      ]
+    },
+    {
+      "path": "/auth/logout",
+      "status": 200,
+      "type": "dict",
+      "keys": [
+        "message"
+      ]
+    }
+  ]
+}

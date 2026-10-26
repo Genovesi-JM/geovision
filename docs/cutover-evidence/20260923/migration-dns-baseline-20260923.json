@@ -1,0 +1,42 @@
+{
+  "checked_at": "2026-09-22T23:55:02.669632+00:00",
+  "user_decision": "Proceed with existing Azure data",
+  "old_dns": {
+    "geovisionops.com A": [
+      "geovisionops.com.\t12807\tIN\tA\t185.199.110.153",
+      "geovisionops.com.\t12807\tIN\tA\t185.199.109.153",
+      "geovisionops.com.\t12807\tIN\tA\t185.199.108.153",
+      "geovisionops.com.\t12807\tIN\tA\t185.199.111.153"
+    ],
+    "www.geovisionops.com CNAME": [
+      "www.geovisionops.com.\t12807\tIN\tCNAME\tgenovesi-jm.github.io."
+    ],
+    "api.geovisionops.com CNAME": [
+      "api.geovisionops.com.\t12577\tIN\tCNAME\tgeovision-backend-db2f.onrender.com."
+    ],
+    "geovisionops.com MX": [
+      "geovisionops.com.\t14400\tIN\tMX\t10 alt3.aspmx.l.google.com.",
+      "geovisionops.com.\t14400\tIN\tMX\t5 alt1.aspmx.l.google.com.",
+      "geovisionops.com.\t14400\tIN\tMX\t5 alt2.aspmx.l.google.com.",
+      "geovisionops.com.\t14400\tIN\tMX\t10 alt4.aspmx.l.google.com.",
+      "geovisionops.com.\t14400\tIN\tMX\t1 aspmx.l.google.com."
+    ],
+    "geovisionops.com TXT": [
+      "geovisionops.com.\t14400\tIN\tTXT\t\"MS=ms16014334\""
+    ],
+    "health.geovisionops.com A": [
+      "health.geovisionops.com. 14400\tIN\tA\t46.101.150.184"
+    ]
+  },
+  "intended_targets": {
+    "apex_A": "68.221.208.37",
+    "www_CNAME": "geovision-public-web.nicepebble-b3698140.spaincentral.azurecontainerapps.io",
+    "api_CNAME": "geovision-api.nicepebble-b3698140.spaincentral.azurecontainerapps.io"
+  },
+  "preserve": [
+    "mail DNS",
+    "health subdomain",
+    "Render database export",
+    "private Azure pilot"
+  ]
+}

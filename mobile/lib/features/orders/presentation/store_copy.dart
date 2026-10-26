@@ -19,7 +19,14 @@ class StoreCopy {
   String get title => pick('Catálogo GeoVision', 'GeoVision Catalogue',
       'Catálogo GeoVision', 'Catalogue GeoVision');
   String get cart => pick('Carrinho', 'Cart', 'Carrito', 'Panier');
-  String get shop => pick('Catálogo', 'Catalogue', 'Catálogo', 'Catalogue');
+  String get shop => pick('Loja', 'Shop', 'Tienda', 'Boutique');
+  String get priceOnRequest => pick('Preço sob consulta', 'Price on request',
+      'Precio a consultar', 'Prix sur demande');
+  String get availabilityUnknown => pick(
+      'Disponibilidade por confirmar',
+      'Availability to confirm',
+      'Disponibilidad por confirmar',
+      'Disponibilité à confirmer');
   String get orders => pick('Pedidos', 'Orders', 'Pedidos', 'Commandes');
   String get all => pick('Todos', 'All', 'Todos', 'Tous');
   String get hardware => pick('Sensores e hardware', 'Sensors & hardware',
@@ -33,15 +40,15 @@ class StoreCopy {
       'Ninguna solución coincide con los filtros seleccionados.',
       'Aucune solution ne correspond aux filtres sélectionnés.');
   String get hero => pick(
-      'Soluções que pode contratar agora',
-      'Solutions you can order now',
-      'Soluciones que puede contratar ahora',
-      'Solutions disponibles dès maintenant');
+      'Encontre a solução adequada',
+      'Find the right solution',
+      'Encuentra la solución adecuada',
+      'Trouvez la bonne solution');
   String get heroBody => pick(
-      'Serviços validados, kits de monitorização e pequenos componentes ligados à GeoVision.',
-      'Validated services, monitoring kits and small components connected to GeoVision.',
-      'Servicios validados, kits de monitorización y pequeños componentes conectados a GeoVision.',
-      'Services validés, kits de suivi et petits composants connectés à GeoVision.');
+      'Confirme o âmbito, a compatibilidade e a disponibilidade para o seu local.',
+      'Confirm scope, compatibility and availability for your location.',
+      'Confirma el alcance, la compatibilidad y la disponibilidad para tu ubicación.',
+      'Confirmez le périmètre, la compatibilité et la disponibilité pour votre site.');
   String get inStock =>
       pick('Disponível', 'Available', 'Disponible', 'Disponible');
   String added(String name) => pick(

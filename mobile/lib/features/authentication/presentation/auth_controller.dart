@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../core/errors/result.dart';
 import '../data/auth_repository.dart';
+import '../../reports/data/report_files.dart';
 import '../domain/auth_session.dart';
 import '../domain/registration_request.dart';
 
@@ -44,10 +45,17 @@ class AuthController extends StateNotifier<AuthSession> {
     return result;
   }
 
+  Future<void> _clearReports() async {
+    try {
+      await ReportFiles().clear();
+    } catch (_) {/* OS may already have removed its cache. */}
+  }
+
   void enterDemo() => state = _repo.enterDemo();
 
   Future<void> logout() async {
     await _repo.logout();
+    await _clearReports();
     state = AuthSession.unauthenticated;
   }
 
@@ -55,7 +63,10 @@ class AuthController extends StateNotifier<AuthSession> {
   /// and the app returns to the unauthenticated state.
   Future<Result<void>> deleteAccount({String? password}) async {
     final r = await _repo.deleteAccount(password: password);
-    if (r is Ok<void>) state = AuthSession.unauthenticated;
+    if (r is Ok<void>) {
+      await _clearReports();
+      state = AuthSession.unauthenticated;
+    }
     return r;
   }
 }

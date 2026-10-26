@@ -30,8 +30,8 @@ class AlertsRepository {
     }
     if (await _connectivity.isOnline) {
       try {
-        final res = await _api.raw.get('/kpi/alerts');
-        final raw = (res.data['alerts'] as List);
+        final res = await _api.raw.get('/iot/alerts');
+        final raw = res.data as List;
         final list = raw
             .map((e) => GvAlert.fromJson((e as Map).cast<String, dynamic>()))
             .toList();
@@ -58,16 +58,14 @@ class AlertsRepository {
         value: list, syncedAt: cached.syncedAt, fromCache: true);
   }
 
-  /// Optimistic local acknowledge; backend call is best-effort in real mode.
+  /// Acknowledgement records receipt only; it does not resolve the alert.
   Future<void> acknowledge(String id) async {
-    final env = await getAlerts();
-    final a = env.value.firstWhere((e) => e.id == id);
-    _localState[id] = a.copyWith(acknowledged: true);
     if (!_config.demoMode) {
-      try {
-        await _api.raw.post('/kpi/alerts/$id/acknowledge');
-      } catch (_) {/* queued/best-effort */}
+      await _api.raw.post('/iot/alerts/$id/acknowledge');
+      return;
     }
+    final a = _localState[id] ?? DemoData.alerts().where((a) => a.id == id).firstOrNull;
+    if (a != null) _localState[id] = a.copyWith(acknowledged: true);
   }
 }
 

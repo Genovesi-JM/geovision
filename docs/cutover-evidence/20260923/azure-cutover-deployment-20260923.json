@@ -1,0 +1,62 @@
+[
+  {
+    "domains": [
+      {
+        "bindingType": "SniEnabled",
+        "certificateId": "/subscriptions/50874a30-a81d-4c8a-aac7-13564bd1641d/resourceGroups/rg-geovision-pilot-weu/providers/Microsoft.App/managedEnvironments/cae-geovision-pilot-hcwka3w/managedCertificates/mc-cae-geovision--geovisionops-com-9395",
+        "name": "geovisionops.com"
+      },
+      {
+        "bindingType": "SniEnabled",
+        "certificateId": "/subscriptions/50874a30-a81d-4c8a-aac7-13564bd1641d/resourceGroups/rg-geovision-pilot-weu/providers/Microsoft.App/managedEnvironments/cae-geovision-pilot-hcwka3w/managedCertificates/mc-cae-geovision--www-geovisionops-1544",
+        "name": "www.geovisionops.com"
+      }
+    ],
+    "external": true,
+    "fqdn": "geovision-public-web.nicepebble-b3698140.spaincentral.azurecontainerapps.io",
+    "image": "geovisionpilothcwka3w.azurecr.io/geovision-public-web@sha256:3db68f84637d368ecb9dc98ee5e175ea82458a696f495fa7fd7f3d3d3db614ab",
+    "latestRevision": "geovision-public-web--j461ti2",
+    "name": "geovision-public-web",
+    "readyRevision": "geovision-public-web--j461ti2",
+    "scale": {
+      "cooldownPeriod": 300,
+      "maxReplicas": 1,
+      "minReplicas": 0,
+      "pollingInterval": 30,
+      "rules": null
+    },
+    "state": "Succeeded"
+  },
+  {
+    "domains": [
+      {
+        "bindingType": "SniEnabled",
+        "certificateId": "/subscriptions/50874a30-a81d-4c8a-aac7-13564bd1641d/resourceGroups/rg-geovision-pilot-weu/providers/Microsoft.App/managedEnvironments/cae-geovision-pilot-hcwka3w/managedCertificates/mc-cae-geovision--api-geovisionops-1909",
+        "name": "api.geovisionops.com"
+      }
+    ],
+    "external": true,
+    "fqdn": "geovision-api.nicepebble-b3698140.spaincentral.azurecontainerapps.io",
+    "image": "geovisionpilothcwka3w.azurecr.io/geovision-backend@sha256:b3b74c015f0b1a64bb4e1269f029e2c5d019cb08bf5d09f6687a22c0c3e83383",
+    "latestRevision": "geovision-api--0000001",
+    "name": "geovision-api",
+    "readyRevision": "geovision-api--0000001",
+    "scale": {
+      "cooldownPeriod": 300,
+      "maxReplicas": 1,
+      "minReplicas": 0,
+      "pollingInterval": 30,
+      "rules": [
+        {
+          "http": {
+            "metadata": {
+              "concurrentRequests": "50"
+            }
+          },
+          "name": "http-concurrency"
+        }
+      ]
+    },
+    "state": "Succeeded"
+  }
+]

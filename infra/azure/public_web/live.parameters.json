@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "imageDigest": {
+      "value": "sha256:4619e029e008ed2ed6ab3d2e5602ab8c91d39bb7e9420e77eb5ac94f4bb301dd"
+    },
+    "customDomains": {
+      "value": [
+        {
+          "bindingType": "SniEnabled",
+          "certificateId": "/subscriptions/50874a30-a81d-4c8a-aac7-13564bd1641d/resourceGroups/rg-geovision-pilot-weu/providers/Microsoft.App/managedEnvironments/cae-geovision-pilot-hcwka3w/managedCertificates/mc-cae-geovision--geovisionops-com-9395",
+          "name": "geovisionops.com"
+        },
+        {
+          "bindingType": "SniEnabled",
+          "certificateId": "/subscriptions/50874a30-a81d-4c8a-aac7-13564bd1641d/resourceGroups/rg-geovision-pilot-weu/providers/Microsoft.App/managedEnvironments/cae-geovision-pilot-hcwka3w/managedCertificates/mc-cae-geovision--www-geovisionops-1544",
+          "name": "www.geovisionops.com"
+        }
+      ]
+    }
+  }
+}

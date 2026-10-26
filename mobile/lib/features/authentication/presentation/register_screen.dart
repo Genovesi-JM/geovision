@@ -297,7 +297,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _loading = false);
     result.when(
       ok: (_) => context.go(widget.returnTo ??
-          (_intent == 'view_invitation' ? '/invitation/accept' : '/home')),
+          switch (_intent) {
+            'view_invitation' => '/invitation/accept',
+            'request_service' => '/work/new',
+            'monitor_asset' => '/assets?setup=monitoring',
+            'buy_product' => '/services/shop',
+            _ => '/home',
+          }),
       err: (failure) => setState(() => _error = failure.message),
     );
   }

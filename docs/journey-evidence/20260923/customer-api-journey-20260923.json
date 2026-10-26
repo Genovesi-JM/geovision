@@ -1,0 +1,88 @@
+{
+  "checked_at": "2026-09-23T00:22:56.750515+00:00",
+  "synthetic": true,
+  "checks": [
+    {
+      "name": "Email/password sign-in",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Workspace authorization",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Customer capabilities",
+      "passed": true,
+      "capabilities": [
+        "overview",
+        "assets",
+        "actions",
+        "services",
+        "analytics",
+        "reports",
+        "catalog",
+        "orders",
+        "billing",
+        "team",
+        "settings"
+      ]
+    },
+    {
+      "name": "Create georeferenced site through customer API",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "name": "Customer map layers",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Created site appears on map",
+      "passed": true
+    },
+    {
+      "name": "Create dataset",
+      "passed": true,
+      "status": 201
+    },
+    {
+      "name": "Upload synthetic CSV to Azure Blob",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Azure storage and content hash",
+      "passed": true,
+      "storage_provider": "azure_blob",
+      "bytes": 53
+    },
+    {
+      "name": "Request authorized file download",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Downloaded bytes match uploaded data",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Customer cannot access staff administration",
+      "passed": true,
+      "status": 403
+    },
+    {
+      "name": "Authenticated GAIA response",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "GAIA uses the supplied synthetic site context",
+      "passed": true,
+      "reply": "The site name is QA Azure Journey \u2014 Synthetic Site, and all data are synthetic test data, not real observations."
+    }
+  ]
+}

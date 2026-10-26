@@ -24,6 +24,8 @@ enum IotOutcome {
   credentialsRequired,
   unsupported,
   rejected,
+  invalidInput,
+  notFound,
   timeout,
   error,
 }
@@ -57,11 +59,13 @@ class DeviceCommand {
     required this.name,
     this.arguments = const {},
     this.requiresExplicitConfirmation = true,
+    this.reason = '',
   });
   final String deviceId;
   final String name;
   final Map<String, Object?> arguments;
   final bool requiresExplicitConfirmation;
+  final String reason;
 }
 
 class DeviceReading {
@@ -69,5 +73,5 @@ class DeviceReading {
       {required this.deviceId, required this.label, required this.at});
   final String deviceId;
   final String label;
-  final DateTime at;
+  final DateTime? at;
 }

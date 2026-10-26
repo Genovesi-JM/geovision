@@ -19,6 +19,8 @@ from app.models import (
     Action,
     Asset,
     Company,
+    Dataset,
+    DatasetFile,
     IotDevice,
     MobileServiceRequest,
     Order,
@@ -587,12 +589,62 @@ def _resolve_service_request_replay(
     return existing, True
 
 
+EVIDENCE_PREFIX = "dataset-file:"
+EVIDENCE_MAX_BYTES = 10 * 1024 * 1024
+EVIDENCE_MIME_TYPES = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+    ".pdf": "application/pdf", ".csv": "text/csv",
+}
+
+
+def service_request_attachment_files(
+    db: Session, *, organization_id: str | None, workspace_id: str | None,
+    asset_id: str | None, references: list[str],
+) -> list[DatasetFile]:
+    """Resolve only confirmed evidence within the exact canonical asset scope."""
+    from pathlib import PurePath
+
+    if not organization_id or not workspace_id or not asset_id:
+        return []
+    ids = [value[len(EVIDENCE_PREFIX):] for value in references
+           if value.startswith(EVIDENCE_PREFIX)]
+    if not ids:
+        return []
+    rows = db.query(DatasetFile).join(Dataset).filter(
+        DatasetFile.id.in_(ids), DatasetFile.status == "uploaded",
+        DatasetFile.deleted_at.is_(None), DatasetFile.confirmed_at.is_not(None),
+        Dataset.company_id == organization_id, Dataset.workspace_id == workspace_id,
+        Dataset.asset_id == asset_id, Dataset.status != "archived",
+    ).all()
+    by_id = {row.id: row for row in rows
+             if row.storage_key and row.sha256_hash
+             and 0 < row.file_size <= EVIDENCE_MAX_BYTES
+             and PurePath(row.filename).suffix.lower() in EVIDENCE_MIME_TYPES}
+    return [by_id[file_id] for file_id in ids if file_id in by_id]
+
+
+def validate_service_request_attachments(
+    db: Session, *, asset: Asset, references: list[str],
+) -> None:
+    files = service_request_attachment_files(
+        db, organization_id=asset.organization_id, workspace_id=asset.workspace_id,
+        asset_id=asset.id, references=references,
+    )
+    if (len(set(references)) != len(references) or len(files) != len(references)
+            or sum(file.file_size for file in files) > 25 * 1024 * 1024):
+        raise MobileExperienceError(
+            "invalid_attachment",
+            "Attachments must be completed uploads for this asset (10 MB per file, 25 MB total)",
+        )
+
+
 def create_mobile_service_request(
     db: Session,
     *,
     actor: User,
     context: AuthorizationContext,
-    site_id: str,
+    site_id: str | None = None,
+    asset_id: str | None = None,
     request_type: str,
     urgency: str,
     description: str,
@@ -606,13 +658,15 @@ def create_mobile_service_request(
         context,
         permission="workspace:contribute",
     )
+    if bool(site_id) == bool(asset_id):
+        raise MobileExperienceError("invalid_request", "Specify one asset or site")
     normalized_key = idempotency_key.strip() if idempotency_key else None
     if idempotency_key is not None and not normalized_key:
         raise MobileExperienceError(
             "idempotency_conflict", "Idempotency key cannot be blank"
         )
     digest = _service_request_digest(
-        site_id=site_id,
+        site_id=f"asset:{asset_id}" if asset_id else site_id,
         request_type=request_type,
         urgency=urgency,
         description=description,
@@ -632,32 +686,33 @@ def create_mobile_service_request(
     # Resolve the mutable Site only for a genuinely new request. A committed
     # keyed request remains replayable after the legacy Site is renamed,
     # archived, or deleted and its foreign key is set to NULL.
-    site = get_mobile_site(
-        db,
-        context=context,
-        site_id=site_id,
-        permission="workspace:contribute",
-    )
-
-    asset = synchronize_legacy_site(
-        db,
-        site,
-        actor_user_id=actor.id,
-        workspace_id=workspace.id,
-    )
+    site = None
+    if asset_id:
+        asset = db.get(Asset, asset_id)
+        if asset is None:
+            raise MobileExperienceError("asset_not_found", "Asset was not found")
+    else:
+        site = get_mobile_site(
+            db, context=context, site_id=site_id,
+            permission="workspace:contribute",
+        )
+        asset = synchronize_legacy_site(
+            db, site, actor_user_id=actor.id, workspace_id=workspace.id,
+        )
     if (
         asset.organization_id != organization.id
         or asset.workspace_id != workspace.id
         or asset.status == "archived"
     ):
         raise MobileExperienceError("asset_not_found", "Asset was not found")
+    validate_service_request_attachments(db, asset=asset, references=attachments)
     item = MobileServiceRequest(
         user_id=actor.id,
         organization_id=organization.id,
         workspace_id=workspace.id,
         asset_id=asset.id,
-        site_id=site.id,
-        site_name=site.name,
+        site_id=site.id if site else None,
+        site_name=asset.name,
         request_type=request_type,
         urgency=urgency,
         description=description,
@@ -699,7 +754,7 @@ def create_mobile_service_request(
         event_type="service_request.created",
         resource_type="service_request",
         resource_id=item.id,
-        title=f"Pedido de serviço recebido: {site.name}",
+        title=f"Pedido de serviço recebido: {asset.name}",
         payload={
             "asset_id": asset.id,
             "workspace_id": workspace.id,

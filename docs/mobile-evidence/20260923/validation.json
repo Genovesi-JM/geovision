@@ -1,0 +1,49 @@
+{
+  "unit_tests": {
+    "passed": 90,
+    "skipped": 2,
+    "failed": 0
+  },
+  "focused_live_regressions": {
+    "passed": 4,
+    "failed": 0
+  },
+  "analyze": "No issues found",
+  "azure_endpoint_checks": {
+    "passed": 16,
+    "status": 200
+  },
+  "native_acceptance": {
+    "platform": "iPhone 15 simulator, iOS 17.5",
+    "passed": 1,
+    "journey": [
+      "health",
+      "login",
+      "workspace",
+      "home",
+      "canonical asset from server",
+      "logout",
+      "login",
+      "logout"
+    ],
+    "token_storage": "isolated mock; native Keychain not covered",
+    "earlier_attempt": "login timeout; reason not established"
+  },
+  "profile": "mobile/config/azure-live.json",
+  "source_ios_podfile_lock": "pre-existing user modification preserved",
+  "not_verified": [
+    "physical device",
+    "native persistent token restoration",
+    "Android native build",
+    "native dataset upload",
+    "payment provider",
+    "push delivery",
+    "hardware control"
+  ],
+  "normal_app": {
+    "entrypoint": "lib/main.dart",
+    "build": "iOS simulator debug",
+    "launch": "success; signed out",
+    "qa_credentials_embedded": false
+  }
+}

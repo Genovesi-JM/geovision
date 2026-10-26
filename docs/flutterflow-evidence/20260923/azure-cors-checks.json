@@ -1,0 +1,23 @@
+{
+  "revision": "geovision-api--ffcors0923",
+  "checks": {
+    "flutterflow": {
+      "status": 200,
+      "allow_origin": "https://app.flutterflow.io"
+    },
+    "website": {
+      "status": 200,
+      "allow_origin": "https://geovisionops.com"
+    },
+    "foreign": {
+      "status": 400,
+      "allow_origin": null
+    },
+    "/ready": {
+      "status": 200
+    },
+    "/auth/me": {
+      "status": 401
+    }
+  }
+}

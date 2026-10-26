@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
 import '../data/work_repository.dart';
+import 'evidence_tile.dart';
 
 class ServiceRequestDetailScreen extends ConsumerWidget {
   const ServiceRequestDetailScreen({super.key, required this.requestId});
@@ -17,7 +19,10 @@ class ServiceRequestDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final request = ref.watch(serviceRequestDetailProvider(requestId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Service result')),
+      appBar: AppBar(
+          title: Text(journeyText(
+              context, 'Solicitud de servicio', 'Service request',
+              pt: 'Pedido de serviço'))),
       body: request.when(
         loading: () => const GvLoading(label: 'Loading service result…'),
         error: (_, __) => GvErrorState(
@@ -35,6 +40,18 @@ class ServiceRequestDetailScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(GvSpacing.lg),
             children: [
+              if (item.pendingSync)
+                Text(journeyText(
+                    context,
+                    'Guardada en este dispositivo. GeoVision todavía no ha recibido esta solicitud.',
+                    'Saved on this device. GeoVision has not received this request yet.',
+                    pt: 'Guardado neste dispositivo. A GeoVision ainda não recebeu este pedido.')),
+              if (!item.pendingSync && item.status == 'submitted')
+                Text(journeyText(
+                    context,
+                    'Solicitud recibida. Confirmaremos el alcance, el presupuesto y la fecha antes de iniciar el trabajo.',
+                    'Request received. Scope, quote and scheduling will be confirmed before work starts.',
+                    pt: 'Pedido recebido. O âmbito, o orçamento e o agendamento serão confirmados antes do início do trabalho.')),
               GvCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,30 +81,42 @@ class ServiceRequestDetailScreen extends ConsumerWidget {
               ),
               if (item.attachments.isNotEmpty) ...[
                 const SizedBox(height: GvSpacing.md),
-                const Text('Delivered files',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                const SizedBox(height: GvSpacing.sm),
-                for (final attachment in item.attachments)
-                  ListTile(
-                    leading: const Icon(Icons.attach_file),
-                    title: Text(attachment),
-                  ),
+                Text(
+                    journeyText(context, 'Archivos adjuntos', 'Attachments',
+                        pt: 'Anexos'),
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
+                for (final file in item.attachmentFiles)
+                  EvidenceTile(
+                      requestId: item.id,
+                      file: file,
+                      pending: item.pendingSync),
+                if (item.attachmentFiles.length < item.attachments.length)
+                  Text(journeyText(
+                      context,
+                      'Algunos adjuntos antiguos o eliminados ya no están disponibles.',
+                      'Some older or removed attachments are no longer available.',
+                      pt: 'Alguns anexos antigos ou removidos já não estão disponíveis.')),
               ],
               if (item.resultReportId case final reportId?) ...[
                 const SizedBox(height: GvSpacing.md),
                 FilledButton.icon(
                   onPressed: () => context.push('/reports/$reportId'),
                   icon: const Icon(Icons.description_outlined),
-                  label: const Text('Open published report'),
+                  label: Text(journeyText(context, 'Abrir informe publicado',
+                      'Open published report',
+                      pt: 'Abrir relatório publicado')),
                 ),
               ],
-              if (item.resultAssetId case final assetId?) ...[
+              if (item.siteId.isNotEmpty || item.resultAssetId != null) ...[
                 const SizedBox(height: GvSpacing.sm),
                 OutlinedButton.icon(
-                  onPressed: () => context.push('/assets/$assetId'),
+                  onPressed: () => context
+                      .push('/assets/${item.resultAssetId ?? item.siteId}'),
                   icon: const Icon(Icons.landscape_outlined),
-                  label: const Text('Open existing asset'),
+                  label: Text(journeyText(
+                      context, 'Abrir activo', 'Open existing asset',
+                      pt: 'Abrir ativo existente')),
                 ),
               ],
             ],

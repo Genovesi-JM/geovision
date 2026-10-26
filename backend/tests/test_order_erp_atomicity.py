@@ -89,7 +89,10 @@ def test_checkout_routes_commit_one_erp_handoff(
     client,
     db_session,
     path_template: str,
+    monkeypatch,
 ):
+    from app.config import settings
+    monkeypatch.setattr(settings, "bank_transfer_angola_enabled", True)
     cart_id = f"erp-checkout-{uuid.uuid4().hex}"
     _add_cart_item(client, cart_id)
     headers = _login_headers(client, "teste@clientes.com")

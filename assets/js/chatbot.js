@@ -91,21 +91,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function fetchDashboardContext() {
+  async function fetchDashboardContext(headers) {
     // Try to get structured context from backend for better chatbot responses
     try {
-      const token = localStorage.getItem("gv_token");
-      if (!token) return null;
-      
       const activeSector = localStorage.getItem("gv_active_sector") || "";
-      const url = `${CHAT_API_BASE}/kpi/context${activeSector ? '?sector=' + activeSector : ''}`;
+      const url = `${CHAT_API_BASE}/kpi/context${activeSector ? '?sector=' + encodeURIComponent(activeSector) : ''}`;
       
       const res = await fetch(url, {
         method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+        headers,
+        signal: AbortSignal.timeout(5000),
       });
       
       if (!res.ok) return null;
@@ -176,6 +171,16 @@ document.addEventListener("DOMContentLoaded", () => {
     /* Check for navigation intent first */
     if (tryNavigate(text)) return;
 
+    const token = localStorage.getItem("gv_token");
+    if (!token) {
+      history.push({ role: "assistant", content: "Inicie sessão no Portal para falar com a GAIA sobre os seus locais e dados." });
+      renderMessages();
+      return;
+    }
+    const workspaceId = localStorage.getItem("gv_workspace_id") || localStorage.getItem("gv_account_id");
+    const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    if (workspaceId) headers["X-Workspace-ID"] = workspaceId;
+
     history.push({ role: "assistant", content: "A pensar..." });
     renderMessages();
 
@@ -197,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const { page_text, page_title } = collectPageContext();
     
     // Try to get structured dashboard context
-    const dashboardContext = await fetchDashboardContext();
+    const dashboardContext = await fetchDashboardContext(headers);
     
     // Build enhanced context for the AI
     let enhancedContext = page_text;
@@ -220,7 +225,8 @@ ${page_text}
     try {
       const res = await fetch(`${CHAT_API_BASE}/ai/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
+        signal: AbortSignal.timeout(60000),
         body: JSON.stringify({
           messages: history.map((m) => ({ role: m.role, content: m.content })),
           page: path,

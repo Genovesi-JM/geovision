@@ -1,0 +1,343 @@
+{
+  "checked_at": "2026-09-22T23:05:22.303626+00:00",
+  "checks": {
+    "copernicus": {
+      "provider": "copernicus",
+      "checked_at": "2026-09-22T23:05:23.376052+00:00",
+      "status": "response_verified",
+      "records": 2,
+      "context_only": true,
+      "scope": "Consulta p\u00fablica limitada en Espa\u00f1a; no valida descargas, sensores ni KPIs.",
+      "source": "https://stac.dataspace.copernicus.eu/v1",
+      "error_code": null
+    },
+    "miteco": {
+      "provider": "miteco",
+      "checked_at": "2026-09-22T23:05:25.351253+00:00",
+      "status": "reachable_no_data",
+      "records": 0,
+      "context_only": true,
+      "scope": "Consulta p\u00fablica limitada en Espa\u00f1a; no valida descargas, sensores ni KPIs.",
+      "source": "https://gis.miteco.gob.es/geoserver/ogc/features/v1",
+      "error_code": null
+    },
+    "aemet": {
+      "provider": "aemet",
+      "checked_at": "2026-09-22T23:05:25.496958+00:00",
+      "status": "response_verified",
+      "records": 1,
+      "context_only": true,
+      "observed_at": "2026-09-22T22:00:00Z",
+      "metric_count": 12,
+      "scope": "Observaci\u00f3n reciente de una estaci\u00f3n de prueba en Madrid; no es una previsi\u00f3n ni valida KPIs.",
+      "source": "https://opendata.aemet.es",
+      "error_code": null
+    },
+    "azure_blob": {
+      "status": "verified",
+      "test_object": "activation-checks/20260923/b1fce604091b4c2b9ea171fc88cac72b.txt",
+      "container_private": true,
+      "write_read_verified": true,
+      "signed_url_created": true,
+      "signed_download_verified": true,
+      "test_object_cleanup_verified": true
+    },
+    "postgresql": {
+      "status": "verified",
+      "schema_versions": [
+        "phase34_sector_taxonomy_v1"
+      ],
+      "read_only": true
+    }
+  },
+  "providers": [
+    {
+      "key": "copernicus",
+      "implementation": "implemented",
+      "selected": true,
+      "configuration_present": true,
+      "state": "configured_unverified"
+    },
+    {
+      "key": "miteco",
+      "implementation": "implemented",
+      "selected": true,
+      "configuration_present": true,
+      "state": "configured_unverified"
+    },
+    {
+      "key": "aemet",
+      "implementation": "implemented",
+      "selected": true,
+      "configuration_present": true,
+      "state": "configured_unverified"
+    },
+    {
+      "key": "google_maps",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "nodeodm",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "smtp",
+      "implementation": "implemented",
+      "selected": true,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_notification_hubs",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "entra_external_id",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "google_oauth",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "microsoft_oauth",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_blob",
+      "implementation": "implemented",
+      "selected": true,
+      "configuration_present": true,
+      "state": "configured_unverified"
+    },
+    {
+      "key": "s3",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_service_bus",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_event_grid",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_iot_hub",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "mqtt",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_app_configuration",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": true,
+      "state": "configured_unverified"
+    },
+    {
+      "key": "erpnext",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "odoo",
+      "implementation": "implemented",
+      "selected": false,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "stripe",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "paypal",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "multicaixa",
+      "implementation": "implemented",
+      "selected": null,
+      "configuration_present": false,
+      "state": "requires_configuration"
+    },
+    {
+      "key": "azure_maps_weather",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "arcgis",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "autodesk_aps",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "procore",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "bentley_itwin",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "trimble",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "seequent",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "mine_enterprise",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "sap_eam",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "ibm_maximo",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "dynamics_365",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "customer_cmms",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "marinetraffic",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "kpler",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "puertos_del_estado",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "pix4d",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "autodesk_processing",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "bentley_processing",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    },
+    {
+      "key": "external_narrative",
+      "implementation": "scaffold",
+      "selected": false,
+      "configuration_present": false,
+      "state": "not_implemented"
+    }
+  ],
+  "runtime_revision": "geovision-pilot-hcwka3w-api--0000004"
+}

@@ -206,7 +206,9 @@ def test_cart_warning_rejects_noncanonical_account_sector(
         service.check_sector_mismatch(product["id"], account_sector)
 
 
-def test_cart_currency_checkout_and_owned_order_contract(client):
+def test_cart_currency_checkout_and_owned_order_contract(client, monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "bank_transfer_angola_enabled", True)
     headers = _customer_headers(client)
     product = client.get("/shop/products").json()[0]
     cart_id = "mobile_contract_cart"
@@ -305,17 +307,41 @@ def test_authenticated_checkout_never_downgrades_workspace_denial_to_guest(clien
 
 
 def test_payment_methods_only_advertise_real_settlement(client):
-    """Without gateway credentials, only IBAN/bank transfer should be enabled."""
+    """No method may be advertised until its real settlement path is activated."""
     data = client.get("/shop/payment-methods").json()
     by_method = {m["method"]: m for m in data["methods"]}
-    # IBAN always settles (manual confirmation, no gateway).
+    # Manual bank details have not been verified/activated.
     assert (
-        by_method["iban_angola"]["enabled"] is True
-        and by_method["iban_angola"]["settles"] is True
+        by_method["iban_angola"]["enabled"] is False
+        and by_method["iban_angola"]["settles"] is False
     )
-    assert by_method["iban_international"]["enabled"] is True
+    assert by_method["iban_international"]["enabled"] is False
     # Gateways are disabled until their credentials are configured (else they mock).
     assert by_method["visa_mastercard"]["enabled"] is False
     assert by_method["multicaixa_express"]["enabled"] is False
     assert by_method["paypal"]["enabled"] is False
     assert data["any_gateway_live"] is False
+
+
+def test_disabled_payment_rejected_before_creating_order(client, db_session):
+    from app.models import Order
+    before = db_session.query(Order).count()
+    response = client.post("/shop/checkout/unavailable-payment", json={
+        "currency": "EUR", "payment_method": "iban_international",
+        "billing_info": {"name": "Test", "email": "test@example.com", "country": "ES"},
+    })
+    assert response.status_code == 409
+    assert db_session.query(Order).count() == before
+
+
+def test_payment_availability_distinguishes_sandbox_and_explicit_bank_activation(client, monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "bank_transfer_international_enabled", True)
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_synthetic")
+    monkeypatch.setattr(settings, "paypal_client_id", "synthetic")
+    monkeypatch.setattr(settings, "paypal_secret", "synthetic")
+    monkeypatch.setattr(settings, "paypal_mode", "sandbox")
+    methods = {m["method"]: m for m in client.get("/shop/payment-methods").json()["methods"]}
+    assert methods["iban_international"]["settles"] is True
+    assert methods["visa_mastercard"]["settles"] is False
+    assert methods["paypal"]["settles"] is False

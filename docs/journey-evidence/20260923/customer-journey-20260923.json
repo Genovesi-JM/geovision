@@ -1,0 +1,112 @@
+{
+  "checked_at": "2026-09-23T00:34:33.938Z",
+  "routing": "Isolated test browser resolves canonical GeoVision names directly to Azure; TLS verification enabled",
+  "checks": [
+    {
+      "name": "www sign-in is canonicalized to the OAuth callback origin",
+      "passed": true
+    },
+    {
+      "name": "Authenticated customer dashboard loads",
+      "passed": true
+    },
+    {
+      "name": "Customer site renders on the web map",
+      "passed": true
+    },
+    {
+      "name": "Signed-in GAIA widget receives a real API response",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "name": "Customer logout clears the browser session",
+      "passed": true
+    },
+    {
+      "name": "Customer can sign back in after logout",
+      "passed": true
+    }
+  ],
+  "api_responses": [
+    {
+      "path": "/contacts/",
+      "status": 200
+    },
+    {
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "path": "/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/contacts/",
+      "status": 200
+    },
+    {
+      "path": "/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/portal/experience",
+      "status": 200
+    },
+    {
+      "path": "/notifications/unread-count",
+      "status": 200
+    },
+    {
+      "path": "/portal/assets/summary",
+      "status": 200
+    },
+    {
+      "path": "/portal/map-layers",
+      "status": 200
+    },
+    {
+      "path": "/portal/assets/summary",
+      "status": 200
+    },
+    {
+      "path": "/kpi/context",
+      "status": 200
+    },
+    {
+      "path": "/ai/chat",
+      "status": 200
+    },
+    {
+      "path": "/contacts/",
+      "status": 200
+    },
+    {
+      "path": "/auth/login",
+      "status": 200
+    },
+    {
+      "path": "/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/contacts/",
+      "status": 200
+    },
+    {
+      "path": "/auth/me",
+      "status": 200
+    },
+    {
+      "path": "/portal/experience",
+      "status": 200
+    }
+  ],
+  "gaia_ui_reply": "O nome do site QA mostrado nesta página é \"QA Azure Journey — Synthetic Site\".",
+  "portal_text": "Panel /\nAssets\nPT\nEN\nES\n0\nG\ngeovision-qa-e30244a0a4\nOPERATIONS\nAssets\n\nExplore every asset in this workspace and its operational context.\n\nAsset hierarchy\nQA Azure Journey — Synthetic Site\nSITE\nAsset summary\nQA Azure Journey — Synthetic Site\n\nAGRICULTURE · SITE · Synthetic test point, Madrid\n\nUNKNOWN\nDecision KPIs\nOpen actions\n0\nThis asset\nOpen actions\n0\nCritical observations\n0\nWarnings\n0\nChild assets\n0\nTechnical drilldown (0 technical metrics)",
+  "account": {
+    "user_id": "751decf8-5369-4a76-a242-93424075d46a",
+    "workspace_id": "8802a555-6b52-5f63-99dc-b9b4375e44bd",
+    "synthetic": true
+  }
+}

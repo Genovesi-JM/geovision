@@ -1,0 +1,25 @@
+{
+  "checked_at": "2026-09-22T23:17:24.438041+00:00",
+  "checks": {
+    "gaia": {
+      "status": "model_response_verified",
+      "model": "gpt-4o-mini",
+      "used_demo_fallback": false,
+      "total_tokens": 547,
+      "scope": "existing backend GAIA adapter; synthetic prompt; no customer data"
+    },
+    "aemet_preserved": {
+      "provider": "aemet",
+      "checked_at": "2026-09-22T23:17:28.908932+00:00",
+      "status": "response_verified",
+      "records": 1,
+      "context_only": true,
+      "observed_at": "2026-09-22T22:00:00Z",
+      "metric_count": 12,
+      "scope": "Observaci\u00f3n reciente de una estaci\u00f3n de prueba en Madrid; no es una previsi\u00f3n ni valida KPIs.",
+      "source": "https://opendata.aemet.es",
+      "error_code": null
+    }
+  },
+  "runtime_revision": "geovision-pilot-hcwka3w-api--0000005"
+}

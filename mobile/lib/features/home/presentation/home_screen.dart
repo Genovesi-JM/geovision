@@ -1,3 +1,4 @@
+import '../../../core/localization/journey_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,10 +21,11 @@ class HomeScreen extends ConsumerWidget {
     final summary = ref.watch(homeSummaryProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Home'),
+        title: Text(journeyText(context, 'Inicio', 'Home', pt: 'Início')),
         actions: [
           IconButton(
-            tooltip: 'Notifications',
+            tooltip: journeyText(context, 'Notificaciones', 'Notifications',
+                pt: 'Notificações'),
             onPressed: () => context.push('/notifications'),
             icon: const Icon(Icons.notifications_outlined),
           ),
@@ -32,10 +34,14 @@ class HomeScreen extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async => ref.refresh(homeSummaryProvider.future),
         child: summary.when(
-          loading: () =>
-              const GvLoading(label: 'Loading what needs attention…'),
+          loading: () => GvLoading(
+              label: journeyText(context, 'Cargando las prioridades…',
+                  'Loading what needs attention…',
+                  pt: 'A carregar as prioridades…')),
           error: (_, __) => GvErrorState(
-            message: 'Your operational summary could not be loaded.',
+            message: journeyText(context, 'No se pudo cargar el resumen.',
+                'Your operational summary could not be loaded.',
+                pt: 'Não foi possível carregar o resumo da operação.'),
             onRetry: () => ref.invalidate(homeSummaryProvider),
           ),
           data: (data) => _HomeContent(data: data),
@@ -75,24 +81,34 @@ class _HomeContent extends ConsumerWidget {
             child: Row(children: [
               _AttentionCount(
                   value: data.attention.critical,
-                  label: 'Critical',
+                  label: journeyText(context, 'Crítico', 'Critical',
+                      pt: 'Crítico'),
                   color: GvColors.critical),
               _AttentionCount(
                   value: data.attention.attention,
-                  label: 'Attention',
+                  label: journeyText(context, 'Atención', 'Attention',
+                      pt: 'Atenção'),
                   color: GvColors.high),
               _AttentionCount(
                   value: data.attention.scheduled,
-                  label: 'Scheduled',
+                  label: journeyText(context, 'Programado', 'Scheduled',
+                      pt: 'Agendado'),
                   color: GvColors.medium),
             ]),
           ),
         ),
         const SizedBox(height: GvSpacing.lg),
-        const GvSectionHeader(title: 'What needs your attention now?'),
+        GvSectionHeader(
+            title: journeyText(context, '¿Qué necesita tu atención?',
+                'What needs your attention now?',
+                pt: 'O que precisa da sua atenção agora?')),
         if (data.priorityItems.isEmpty)
-          const GvEmpty(
-            message: 'Nothing needs your attention right now.',
+          GvEmpty(
+            message: journeyText(
+                context,
+                'No hay acciones pendientes en este momento.',
+                'Nothing needs your attention right now.',
+                pt: 'Não há ações pendentes neste momento.'),
             icon: Icons.task_alt,
           )
         else
@@ -102,7 +118,9 @@ class _HomeContent extends ConsumerWidget {
               )),
         if (data.latestResult case final result?) ...[
           const SizedBox(height: GvSpacing.md),
-          const GvSectionHeader(title: 'Latest result'),
+          GvSectionHeader(
+              title: journeyText(context, 'Último resultado', 'Latest result',
+                  pt: 'Último resultado')),
           GvCard(
             onTap: result.appPath == null
                 ? null
@@ -128,7 +146,9 @@ class _HomeContent extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: GvSpacing.lg),
-        const GvSectionHeader(title: 'Continue'),
+        GvSectionHeader(
+            title:
+                journeyText(context, 'Continuar', 'Continue', pt: 'Continuar')),
         Wrap(
           spacing: GvSpacing.sm,
           runSpacing: GvSpacing.sm,
@@ -136,19 +156,22 @@ class _HomeContent extends ConsumerWidget {
             if (capabilities?.hasCapability('assets') == true)
               ActionChip(
                 avatar: const Icon(Icons.landscape_outlined, size: 18),
-                label: const Text('Assets'),
+                label: Text(
+                    journeyText(context, 'Activos', 'Assets', pt: 'Ativos')),
                 onPressed: () => context.go('/assets'),
               ),
             if (capabilities?.hasCapability('actions') == true)
               ActionChip(
                 avatar: const Icon(Icons.task_alt_outlined, size: 18),
-                label: const Text('Actions'),
+                label: Text(
+                    journeyText(context, 'Acciones', 'Actions', pt: 'Ações')),
                 onPressed: () => context.go('/actions'),
               ),
             if (capabilities?.hasCapability('services') == true)
               ActionChip(
                 avatar: const Icon(Icons.design_services_outlined, size: 18),
-                label: const Text('Services'),
+                label: Text(journeyText(context, 'Servicios', 'Services',
+                    pt: 'Serviços')),
                 onPressed: () => context.go('/services'),
               ),
           ],

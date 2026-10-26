@@ -46,6 +46,7 @@ from app.iot.schemas import (
 from app.iot import kits as kit_catalog
 from app.iot.security import (
     hash_secret,
+    parse_utc,
     new_secret,
     protect_secret,
     secret_matches,
@@ -88,7 +89,6 @@ from app.sector_taxonomy import normalize_public_sector
 from app.modules.audit.services import record_audit_event
 from app.modules.organizations.services import (
     OrganizationAccessError,
-    authorize_organization,
     get_user_company_id,
 )
 from app.modules.organizations.domain import permission_granted
@@ -185,8 +185,8 @@ def _device_payload(db: Session, device: IotDevice) -> dict:
     readings = latest_readings(db, device)
     battery = device.battery_percent
     if battery is None:
-        battery = next((r["value"] for r in readings if r["channel"] == "battery"), 0)
-    signal = next((r["value"] for r in readings if r["channel"] == "signal"), 0)
+        battery = next((r["value"] for r in readings if r["channel"] == "battery"), None)
+    signal = next((r["value"] for r in readings if r["channel"] == "signal"), None)
     # Location: prefer live GPS readings, fall back to the site's coordinates.
     lat = device.last_latitude
     lon = device.last_longitude
@@ -233,10 +233,10 @@ def _device_payload(db: Session, device: IotDevice) -> dict:
         "asset_id": device.asset_id,
         "core_asset_id": device.core_asset_id,
         "status": device.status,
-        "battery_percent": int(float(battery or 0)),
+        "battery_percent": int(float(battery)) if battery is not None else None,
         "health_status": device.health_status,
         "connectivity_status": device.connectivity_status,
-        "signal_percent": int(float(signal or 0)),
+        "signal_percent": int(float(signal)) if signal is not None else None,
         "last_reading_at": last.isoformat() if last else None,
         "last_reading_label": label,
         "provider_id": device.provider_device_id,
@@ -856,13 +856,26 @@ def mobile_devices(
     return {"items": [_device_payload(db, row) for row in rows]}
 
 
+def _require_control_view(db: Session, context: AuthorizationContext, device: IotDevice) -> None:
+    from app.modules.assets.services import get_asset, AssetAccessError
+    if not device.core_asset_id:
+        raise HTTPException(status_code=404, detail="Device asset unavailable")
+    try:
+        get_asset(db, context=context, asset_id=device.core_asset_id)
+    except AssetAccessError:
+        raise HTTPException(status_code=404, detail="Device unavailable in this workspace")
+
+
 @router.get("/devices/{device_id}")
 def get_device(
     device_id: str,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    context: AuthorizationContext = Depends(get_authorization_context),
 ):
-    return _device_payload(db, device_for_company(db, device_id, _company_id(user, db)))
+    device = device_for_company(db, device_id, _company_id(user, db))
+    _require_control_view(db, context, device)
+    return _device_payload(db, device)
 
 
 def _assignment_payload(row: DeviceAssignment) -> dict:
@@ -1334,44 +1347,47 @@ def create_alert_rule(
 
 
 @router.get("/alerts")
-def list_alerts(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    company_id = _company_id(user, db)
-    rows = (
-        db.query(IotAlert)
-        .filter(IotAlert.company_id == company_id)
-        .order_by(IotAlert.opened_at.desc())
-        .limit(500)
-        .all()
-    )
-    return [
-        {
-            "id": r.id,
-            "device_id": r.device_id,
-            "channel": r.channel,
-            "value": r.value,
-            "severity": r.severity,
-            "message": r.message,
-            "status": r.status,
-            "opened_at": r.opened_at.isoformat() + "Z",
-            "acknowledged_at": r.acknowledged_at.isoformat() + "Z"
-            if r.acknowledged_at
-            else None,
-            "assigned_to": r.assigned_to,
-            "resolved_at": r.resolved_at.isoformat() + "Z" if r.resolved_at else None,
-            "closed_at": r.closed_at.isoformat() + "Z" if r.closed_at else None,
-        }
-        for r in rows
-    ]
+def list_alerts(user: User = Depends(get_current_user), db: Session = Depends(get_db),
+                context: AuthorizationContext = Depends(get_authorization_context)):
+    if not context.active_workspace_id or not permission_granted(context.permissions, "asset:read"):
+        raise HTTPException(status_code=403, detail="Workspace alert access denied")
+    rows = (db.query(IotAlert, IotDevice, Asset)
+        .join(IotDevice, IotAlert.device_id == IotDevice.id)
+        .join(Asset, IotDevice.core_asset_id == Asset.id)
+        .filter(IotAlert.company_id == context.active_organization_id,
+                Asset.organization_id == context.active_organization_id,
+                Asset.workspace_id == context.active_workspace_id,
+                Asset.status != "archived")
+        .order_by(IotAlert.opened_at.desc()).limit(500).all())
+    return [{
+        "id": r.id, "device_id": d.id, "site_id": a.id, "location": a.name,
+        "source": "iot", "sector": a.sector, "title": r.message,
+        "description": f"{d.name} · {r.channel}", "channel": r.channel,
+        "value": r.value, "severity": r.severity, "message": r.message,
+        "status": r.status, "created_at": r.opened_at.isoformat() + "Z",
+        "opened_at": r.opened_at.isoformat() + "Z",
+        "acknowledged": r.acknowledged_at is not None,
+        "resolved": r.status in {"resolved", "closed"},
+        "acknowledged_at": r.acknowledged_at.isoformat() + "Z" if r.acknowledged_at else None,
+        "assigned_to": r.assigned_to,
+        "resolved_at": r.resolved_at.isoformat() + "Z" if r.resolved_at else None,
+        "closed_at": r.closed_at.isoformat() + "Z" if r.closed_at else None,
+    } for r, d, a in rows]
 
 
 @router.post("/alerts/{alert_id}/acknowledge")
 def acknowledge_alert(
-    alert_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    alert_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db),
+    context: AuthorizationContext = Depends(get_authorization_context)
 ):
     company_id = _company_id(user, db)
     row = db.get(IotAlert, alert_id)
     if not row or row.company_id != company_id:
         raise HTTPException(status_code=404, detail="Alert not found")
+    device = device_for_company(db, row.device_id, company_id)
+    _require_control_view(db, context, device)
+    if not permission_granted(context.permissions, "workspace:contribute"):
+        raise HTTPException(status_code=403, detail="Alert acknowledgement permission required")
     if row.status not in {"triggered", "notified"}:
         raise HTTPException(
             status_code=409, detail="Alert cannot be acknowledged in its current state"
@@ -1671,25 +1687,25 @@ def dismiss_recommendation(
     return {"id": row.id, "status": row.status}
 
 
-def _can_command(db: Session, user: User, company_id: str) -> bool:
-    try:
-        authorize_organization(db, user, company_id, "workspace:operate")
-    except OrganizationAccessError:
-        return False
-    return True
-
-
 @router.post("/devices/{device_id}/commands", status_code=202)
 def create_command(
     device_id: str,
     payload: CommandCreate,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    context: AuthorizationContext = Depends(get_authorization_context),
 ):
     company_id = _company_id(user, db)
     device = device_for_company(db, device_id, company_id)
-    if not _can_command(db, user, company_id):
-        raise HTTPException(status_code=403, detail="Operator permission required")
+    # The selected workspace must own the device's canonical asset as well
+    # as granting operation permission. Company membership alone is not enough.
+    from app.modules.assets.services import get_asset, AssetAccessError
+    if not device.core_asset_id:
+        raise HTTPException(status_code=409, detail="Assign this device to a workspace asset before control")
+    try:
+        get_asset(db, context=context, asset_id=device.core_asset_id, permission="workspace:operate")
+    except AssetAccessError:
+        raise HTTPException(status_code=403, detail="Device operation is not allowed in this workspace")
     if not payload.confirmed:
         raise HTTPException(status_code=409, detail="Explicit confirmation is required")
     capabilities = set(json_value(device.capabilities_json, []))
@@ -1702,10 +1718,17 @@ def create_command(
             raise HTTPException(
                 status_code=409, detail="Remote output control is disabled"
             )
-        latest = {r["channel"]: r["value"] for r in latest_readings(db, device)}
-        if latest.get("safety_ok") is not True:
+        safety = next((r for r in latest_readings(db, device) if r["channel"] == "safety_ok"), None)
+        fresh = False
+        if safety and safety.get("at"):
+            try:
+                age = (utc_now() - parse_utc(safety["at"])).total_seconds()
+                fresh = 0 <= age <= min(60, settings.iot_message_max_age_seconds)
+            except (ValueError, TypeError):
+                pass
+        if not safety or safety.get("value") is not True or not fresh:
             raise HTTPException(
-                status_code=409, detail="Local safety interlock is not confirmed"
+                status_code=409, detail="A fresh local safety interlock reading is required (within 60 seconds)"
             )
     command = IotCommand(
         company_id=company_id,
@@ -1781,8 +1804,10 @@ def command_history(
     device_id: str,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    context: AuthorizationContext = Depends(get_authorization_context),
 ):
     device = device_for_company(db, device_id, _company_id(user, db))
+    _require_control_view(db, context, device)
     rows = (
         db.query(IotCommand)
         .filter(IotCommand.device_id == device.id)

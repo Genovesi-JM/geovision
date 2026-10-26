@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
@@ -13,7 +14,8 @@ import '../../../integrations/iot/iot_provider.dart';
 import '../../../l10n/app_localizations.dart';
 
 class DevicesScreen extends ConsumerWidget {
-  const DevicesScreen({super.key});
+  const DevicesScreen({super.key, this.assetId});
+  final String? assetId;
 
   Color _statusColor(String s) {
     switch (s) {
@@ -44,7 +46,8 @@ class DevicesScreen extends ConsumerWidget {
       'unsupported' => text.deviceUnsupported,
       'error' => text.deviceError,
       'demo' => text.deviceDemo,
-      _ => status,
+      _ => journeyText(context, 'Estado desconocido', 'Status unknown',
+          pt: 'Estado desconhecido'),
     };
   }
 
@@ -78,146 +81,200 @@ class DevicesScreen extends ConsumerWidget {
       body: async.when(
         loading: () => const GvLoading(),
         error: (e, _) => GvErrorState(message: '$e'),
-        data: (devices) => ListView.separated(
-          padding: const EdgeInsets.all(GvSpacing.lg),
-          itemCount: devices.length + 1,
-          separatorBuilder: (_, __) => const SizedBox(height: GvSpacing.sm),
-          itemBuilder: (c, i) {
-            if (i == 0) {
-              final text = AppLocalizations.of(context);
-              return GvCard(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(GvSpacing.md),
-                      decoration: BoxDecoration(
-                        color: GvColors.accentGreen.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(GvSpacing.radiusMd),
-                      ),
-                      child: const Icon(Icons.add_link,
-                          color: GvColors.accentGreen),
-                    ),
-                    const SizedBox(width: GvSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(text.deviceStartTitle,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 15)),
-                          const SizedBox(height: 4),
-                          Text(text.deviceStartBody,
-                              style: const TextStyle(
-                                  color: GvColors.textSecondary,
-                                  fontSize: 12,
-                                  height: 1.4)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-            final d = devices[i - 1];
-            return GvCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        data: (allDevices) {
+          final devices = assetId == null
+              ? allDevices
+              : allDevices.where((d) => d.assetId == assetId).toList();
+          return ListView.separated(
+            padding: const EdgeInsets.all(GvSpacing.lg),
+            itemCount: devices.length + 1,
+            separatorBuilder: (_, __) => const SizedBox(height: GvSpacing.sm),
+            itemBuilder: (c, i) {
+              if (i == 0) {
+                final text = AppLocalizations.of(context);
+                return GvCard(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(_typeIcon(d.type), color: _statusColor(d.status)),
+                      Container(
+                        padding: const EdgeInsets.all(GvSpacing.md),
+                        decoration: BoxDecoration(
+                          color: GvColors.accentGreen.withValues(alpha: 0.14),
+                          borderRadius:
+                              BorderRadius.circular(GvSpacing.radiusMd),
+                        ),
+                        child: const Icon(Icons.add_link,
+                            color: GvColors.accentGreen),
+                      ),
                       const SizedBox(width: GvSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(d.name,
+                            if (devices.isEmpty)
+                              TextButton(
+                                  onPressed: () => context.push(Uri(
+                                          path: '/work/new',
+                                          queryParameters: {
+                                            if (assetId != null)
+                                              'asset_id': assetId!,
+                                            'type': 'deviceInstall'
+                                          }).toString()),
+                                  child: Text(journeyText(
+                                      context,
+                                      'Solicitar instalación',
+                                      'Request installation',
+                                      pt: 'Pedir instalação'))),
+                            Text(
+                                devices.isEmpty
+                                    ? journeyText(
+                                        context,
+                                        'Sin dispositivos conectados',
+                                        'No connected devices',
+                                        pt: 'Sem dispositivos ligados')
+                                    : text.deviceStartTitle,
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.w700)),
-                            Text(d.siteName,
+                                    fontWeight: FontWeight.w800, fontSize: 15)),
+                            const SizedBox(height: 4),
+                            Text(
+                                assetId != null
+                                    ? journeyText(
+                                        context,
+                                        'Solo se muestran dispositivos vinculados a este activo.',
+                                        'Only devices linked to this asset are shown.',
+                                        pt:
+                                            'Só são apresentados dispositivos associados a este ativo.')
+                                    : text.deviceStartBody,
                                 style: const TextStyle(
-                                    color: GvColors.textMuted, fontSize: 12)),
+                                    color: GvColors.textSecondary,
+                                    fontSize: 12,
+                                    height: 1.4)),
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _statusColor(d.status).withValues(alpha: 0.16),
-                          borderRadius:
-                              BorderRadius.circular(GvSpacing.radiusPill),
+                    ],
+                  ),
+                );
+              }
+              final d = devices[i - 1];
+              return GvCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(_typeIcon(d.type), color: _statusColor(d.status)),
+                        const SizedBox(width: GvSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(d.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                              Text(d.siteName,
+                                  style: const TextStyle(
+                                      color: GvColors.textMuted, fontSize: 12)),
+                            ],
+                          ),
                         ),
-                        child: Text(_statusLabel(context, d.status),
-                            style: TextStyle(
-                                color: _statusColor(d.status),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: GvSpacing.md),
-                  Row(
-                    children: [
-                      _Metric(
-                          icon: Icons.battery_full,
-                          label: '${d.batteryPercent}%'),
-                      _Metric(
-                          icon: Icons.signal_cellular_alt,
-                          label: '${d.signalPercent}%'),
-                      if (d.lastReadingAt != null)
-                        _Metric(
-                            icon: Icons.schedule,
-                            label: DateFormat.Hm()
-                                .format(d.lastReadingAt!.toLocal())),
-                    ],
-                  ),
-                  if (d.lastReadingLabel != null) ...[
-                    const SizedBox(height: GvSpacing.sm),
-                    Text(d.lastReadingLabel!,
-                        style: const TextStyle(
-                            color: GvColors.accentSky, fontSize: 12)),
-                  ],
-                  if (d.integrationMessage != null) ...[
-                    const SizedBox(height: GvSpacing.sm),
-                    Text(d.integrationMessage!,
-                        style: const TextStyle(
-                            color: GvColors.textMuted, fontSize: 11)),
-                  ],
-                  const SizedBox(height: GvSpacing.sm),
-                  Wrap(spacing: 6, runSpacing: 6, children: [
-                    Chip(
-                        avatar: const Icon(Icons.hub_outlined, size: 14),
-                        label: Text(d.transport.toUpperCase())),
-                    ...d.capabilities.take(3).map((capability) => Chip(
-                        label: Text(capability),
-                        visualDensity: VisualDensity.compact)),
-                  ]),
-                  const SizedBox(height: GvSpacing.sm),
-                  Row(children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _diagnose(context, ref, d.id),
-                        icon: const Icon(Icons.health_and_safety_outlined),
-                        label: Text(AppLocalizations.of(context).diagnose),
-                      ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color:
+                                _statusColor(d.status).withValues(alpha: 0.16),
+                            borderRadius:
+                                BorderRadius.circular(GvSpacing.radiusPill),
+                          ),
+                          child: Text(_statusLabel(context, d.status),
+                              style: TextStyle(
+                                  color: _statusColor(d.status),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ],
                     ),
-                    if (d.status == 'pairing' ||
-                        d.status == 'credentials_required') ...[
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        tooltip: AppLocalizations.of(context).configure,
-                        onPressed: () => _configure(context, ref, d),
-                        icon: const Icon(Icons.settings_input_antenna),
-                      ),
+                    const SizedBox(height: GvSpacing.md),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        _Metric(
+                            icon: Icons.battery_full,
+                            label: d.batteryPercent == null
+                                ? journeyText(context, 'Batería: sin datos',
+                                    'Battery: unavailable',
+                                    pt: 'Bateria: sem dados')
+                                : '${d.batteryPercent}%'),
+                        _Metric(
+                            icon: Icons.signal_cellular_alt,
+                            label: d.signalPercent == null
+                                ? journeyText(context, 'Señal: sin datos',
+                                    'Signal: unavailable',
+                                    pt: 'Sinal: sem dados')
+                                : '${d.signalPercent}%'),
+                        if (d.lastReadingAt != null)
+                          _Metric(
+                              icon: Icons.schedule,
+                              label: DateFormat.yMd()
+                                  .add_Hm()
+                                  .format(d.lastReadingAt!.toLocal())),
+                      ],
+                    ),
+                    if (d.lastReadingLabel != null) ...[
+                      const SizedBox(height: GvSpacing.sm),
+                      Text(d.lastReadingLabel!,
+                          style: const TextStyle(
+                              color: GvColors.accentSky, fontSize: 12)),
                     ],
-                  ]),
-                ],
-              ),
-            );
-          },
-        ),
+                    if (d.integrationMessage != null) ...[
+                      const SizedBox(height: GvSpacing.sm),
+                      Text(d.integrationMessage!,
+                          style: const TextStyle(
+                              color: GvColors.textMuted, fontSize: 11)),
+                    ],
+                    const SizedBox(height: GvSpacing.sm),
+                    Wrap(spacing: 6, runSpacing: 6, children: [
+                      Chip(
+                          avatar: const Icon(Icons.hub_outlined, size: 14),
+                          label: Text(d.transport.toUpperCase())),
+                      ...d.capabilities.take(3).map((capability) => Chip(
+                          label: Text(capability),
+                          visualDensity: VisualDensity.compact)),
+                    ]),
+                    const SizedBox(height: GvSpacing.sm),
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/devices/${d.id}'),
+                      icon: const Icon(Icons.tune),
+                      label: Text(journeyText(context, 'Controles e historial',
+                          'Controls and history',
+                          pt: 'Controlos e histórico')),
+                    ),
+                    Row(children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _diagnose(context, ref, d.id),
+                          icon: const Icon(Icons.health_and_safety_outlined),
+                          label: Text(AppLocalizations.of(context).diagnose),
+                        ),
+                      ),
+                      if (d.status == 'pairing' ||
+                          d.status == 'credentials_required') ...[
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          tooltip: AppLocalizations.of(context).configure,
+                          onPressed: () => _configure(context, ref, d),
+                          icon: const Icon(Icons.settings_input_antenna),
+                        ),
+                      ],
+                    ]),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }

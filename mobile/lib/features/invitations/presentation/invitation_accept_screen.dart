@@ -1,3 +1,4 @@
+import '../../../core/localization/journey_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -82,7 +83,11 @@ class _InvitationAcceptScreenState
         );
         if (path == null) {
           setState(() {
-            _error = 'This invitation destination is not supported.';
+            _error = journeyText(
+                context,
+                'El destino de esta invitación no está disponible.',
+                'This invitation destination is not supported.',
+                pt: 'O destino deste convite não está disponível.');
             _loading = false;
           });
           return;
@@ -124,7 +129,9 @@ class _InvitationAcceptScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: GvColors.bgDarker,
-      appBar: AppBar(title: const Text('Invitation')),
+      appBar: AppBar(
+          title: Text(
+              journeyText(context, 'Invitación', 'Invitation', pt: 'Convite'))),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -135,13 +142,20 @@ class _InvitationAcceptScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('Join existing work',
-                        style: TextStyle(
+                    Text(
+                        journeyText(context, 'Acceder al trabajo existente',
+                            'Join existing work',
+                            pt: 'Aceder ao trabalho existente'),
+                        style: const TextStyle(
                             fontSize: 24, fontWeight: FontWeight.w800)),
                     const SizedBox(height: GvSpacing.xs),
-                    const Text(
-                      'Sign in with the invited email. GeoVision will open the existing asset or result without creating another copy.',
-                      style: TextStyle(color: GvColors.textSecondary),
+                    Text(
+                      journeyText(
+                          context,
+                          'Usa el correo que recibió la invitación para abrir el activo o resultado existente.',
+                          'Sign in with the invited email to open the existing asset or result.',
+                          pt: 'Entre com o email que recebeu o convite para abrir o ativo ou resultado existente.'),
+                      style: const TextStyle(color: GvColors.textSecondary),
                     ),
                     const SizedBox(height: GvSpacing.lg),
                     TextField(
@@ -149,9 +163,11 @@ class _InvitationAcceptScreenState
                       obscureText: true,
                       autocorrect: false,
                       enableSuggestions: false,
-                      decoration: const InputDecoration(
-                        labelText: 'Secure invitation code',
-                        prefixIcon: Icon(Icons.key_outlined),
+                      decoration: InputDecoration(
+                        labelText: journeyText(context, 'Código de invitación',
+                            'Secure invitation code',
+                            pt: 'Código seguro do convite'),
+                        prefixIcon: const Icon(Icons.key_outlined),
                       ),
                       onSubmitted: (_) => _loadPreview(),
                     ),
@@ -180,13 +196,17 @@ class _InvitationAcceptScreenState
                                 dimension: 18,
                                 child:
                                     CircularProgressIndicator(strokeWidth: 2))
-                            : const Text('View invitation'),
+                            : Text(journeyText(
+                                context, 'Ver invitación', 'View invitation',
+                                pt: 'Ver convite')),
                       )
                     else
                       FilledButton.icon(
                         onPressed: _loading ? null : _accept,
                         icon: const Icon(Icons.check_circle_outline),
-                        label: const Text('Accept and open'),
+                        label: Text(journeyText(
+                            context, 'Aceptar y abrir', 'Accept and open',
+                            pt: 'Aceitar e abrir')),
                       ),
                   ],
                 ),

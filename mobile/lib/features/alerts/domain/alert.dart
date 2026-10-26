@@ -8,6 +8,7 @@ class GvAlert {
     required this.title,
     required this.description,
     this.siteId,
+    this.source = 'unknown',
     this.location,
     required this.createdAt,
     this.acknowledged = false,
@@ -19,6 +20,7 @@ class GvAlert {
   });
 
   final String id;
+  final String source;
   final String severity; // information|low|medium|high|critical
   final String sector;
   final String title;
@@ -35,6 +37,7 @@ class GvAlert {
 
   GvAlert copyWith({bool? acknowledged, bool? resolved}) => GvAlert(
         id: id,
+        source: source,
         severity: severity,
         sector: sector,
         title: title,
@@ -52,6 +55,7 @@ class GvAlert {
 
   factory GvAlert.fromJson(Map<String, dynamic> j) => GvAlert(
         id: j['id'].toString(),
+        source: (j['source'] ?? 'unknown').toString(),
         severity: (j['severity'] ?? 'information').toString(),
         sector: canonicalSectorId((j['sector'] ?? 'agriculture').toString()),
         title: (j['title'] ?? '').toString(),
@@ -71,6 +75,7 @@ class GvAlert {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'source': source,
         'severity': severity,
         'sector': sector,
         'title': title,

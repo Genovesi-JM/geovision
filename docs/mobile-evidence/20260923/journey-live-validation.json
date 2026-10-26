@@ -1,0 +1,13 @@
+{
+  "health": 200,
+  "canonical_asset_request": 201,
+  "idempotent_replay": 200,
+  "same_request": true,
+  "canonical_asset_preserved": true,
+  "legacy_site_required": false,
+  "live_payment_methods": [],
+  "unavailable_checkout": 409,
+  "catalog_price_model_present": true,
+  "published_reports": 0,
+  "synthetic_request_id": "5d5d8711-5336-4d37-b1aa-fd1fa7021122"
+}

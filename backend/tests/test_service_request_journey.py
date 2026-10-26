@@ -158,7 +158,7 @@ def test_service_request_has_one_durable_tenant_safe_journey(
         "type": "drone_inspection",
         "urgency": "high",
         "description": "Inspect crop stress and deliver a verified report.",
-        "attachments": ["customer-upload:brief-1"],
+        "attachments": [],
     }
     key = f"service-journey-{suffix}"
     created = client.post(
@@ -1445,3 +1445,136 @@ def test_phase33_contractor_surface_is_job_scoped_and_redacted(
         client.get("/operations/assignments", headers=contractor_headers).status_code
         == 403
     )
+
+
+def test_canonical_only_asset_request_preserves_scope_and_idempotency(client, db_session):
+    owner = _user(db_session, "canonical-request")
+    organization_id, workspace_id = _organization(client, owner, "Canonical-only request")
+    headers = _headers(owner, workspace_id)
+    asset_response = client.post("/assets", headers=headers, json={
+        "sector": "AGRICULTURE", "asset_type": "FARM", "name": "Canonical Madrid field",
+        "geometry": {"type": "Point", "coordinates": [-3.7, 40.4]}, "metadata": {},
+    })
+    assert asset_response.status_code == 201, asset_response.text
+    asset = asset_response.json()
+    body = {"asset_id": asset["id"], "site_name": "untrusted label", "type": "inspection",
+            "urgency": "normal", "description": "Synthetic canonical-only request", "attachments": []}
+    keyed = {**headers, "Idempotency-Key": "canonical-" + uuid.uuid4().hex}
+    created = client.post("/mobile/service-requests", headers=keyed, json=body)
+    assert created.status_code == 201, created.text
+    row = db_session.get(MobileServiceRequest, created.json()["id"])
+    assert row.site_id is None
+    assert row.asset_id == asset["id"]
+    assert row.site_name == "Canonical Madrid field"
+    assert row.workspace_id == workspace_id
+    repeat = client.post("/mobile/service-requests", headers=keyed, json=body)
+    assert repeat.status_code == 200
+    assert repeat.json()["id"] == row.id
+    conflict = client.post("/mobile/service-requests", headers=keyed, json={**body, "description": "changed"})
+    assert conflict.status_code == 409
+    both = client.post("/mobile/service-requests", headers=headers, json={**body, "site_id": "legacy-id"})
+    assert both.status_code == 400
+    neither = client.post("/mobile/service-requests", headers=headers, json={k:v for k,v in body.items() if k != "asset_id"})
+    assert neither.status_code == 400
+    other = _user(db_session, "other-canonical-request")
+    _, other_workspace = _organization(client, other, "Other canonical request")
+    foreign = client.post("/mobile/service-requests", headers=_headers(other, other_workspace), json=body)
+    assert foreign.status_code == 404
+    asset_row = db_session.get(Asset, asset["id"])
+    asset_row.status = "archived"
+    db_session.commit()
+    archived = client.post("/mobile/service-requests", headers=headers, json=body)
+    assert archived.status_code == 404
+    assert client.post("/mobile/service-requests", headers=keyed, json=body).status_code == 200
+
+
+@pytest.fixture
+def evidence_context(client, db_session, monkeypatch, tmp_path):
+    from app.routers.mobile import _attachment_storage
+    storage = StorageService(LocalObjectStorageProvider(
+        root=tmp_path / "evidence", public_base_url="http://testserver",
+        signing_secret="synthetic-evidence-storage-secret",
+    ))
+    monkeypatch.setitem(client.app.dependency_overrides, dataset_storage_dependency, lambda: storage)
+    monkeypatch.setitem(client.app.dependency_overrides, _attachment_storage, lambda: storage)
+    owner = _user(db_session, "evidence-owner")
+    _, workspace = _organization(client, owner, "Evidence test")
+    headers = _headers(owner, workspace)
+    asset = client.post("/assets", headers=headers, json={
+        "name": "Evidence test asset", "sector": "AGRICULTURE", "asset_type": "FARM",
+        "geometry": {"type": "Point", "coordinates": [-3.7, 40.4]},
+    })
+    assert asset.status_code == 201, asset.text
+    dataset = client.post("/datasets/", headers=headers, json={
+        "asset_id": asset.json()["id"], "name": "Synthetic evidence", "dataset_type": "SERVICE_EVIDENCE",
+    })
+    assert dataset.status_code == 201, dataset.text
+    content = b"label,value\nsynthetic,1\n"
+    upload = client.post(f"/datasets/{dataset.json()['id']}/upload", headers=headers,
+                         files={"file": ("evidence.csv", content, "text/csv")})
+    assert upload.status_code == 200, upload.text
+    file = upload.json()
+    body = {"asset_id": asset.json()["id"], "site_name": "Evidence test asset", "type": "inspection",
+            "description": "Synthetic attachment test", "attachments": [f"dataset-file:{file['id']}"]}
+    return {"headers": headers, "body": body, "file": file, "dataset_id": dataset.json()["id"],
+            "content": content, "storage": storage}
+
+
+def test_real_evidence_roundtrip_and_deleted_file_replay(client, db_session, evidence_context):
+    env = evidence_context
+    headers = {**env["headers"], "Idempotency-Key": "evidence-" + uuid.uuid4().hex}
+    response = client.post("/mobile/service-requests", headers=headers, json=env["body"])
+    assert response.status_code == 201, response.text
+    row = response.json()
+    assert row["attachment_files"][0]["id"] == env["file"]["id"]
+    assert row["attachment_files"][0]["filename"] == "evidence.csv"
+    assert row["attachment_files"][0]["sha256_hash"] == env["file"]["sha256_hash"]
+    path = f"/mobile/service-requests/{row['id']}/attachments/{env['file']['id']}"
+    download = client.get(path, headers=headers)
+    assert download.status_code == 200, download.text
+    assert download.content == env["content"]
+    assert download.headers["cache-control"] == "private, no-store"
+    assert client.get(path).status_code == 401
+    stranger = _user(db_session, "evidence-stranger")
+    _, workspace = _organization(client, stranger, "Evidence stranger")
+    assert client.get(path, headers=_headers(stranger, workspace)).status_code == 404
+    assert client.post("/mobile/service-requests", headers=_headers(stranger, workspace), json=env["body"]).status_code == 404
+    removed = client.delete(f"/datasets/{env['dataset_id']}/files/{env['file']['id']}", headers=headers)
+    assert removed.status_code == 200
+    assert client.get(path, headers=headers).status_code == 404
+    replay = client.post("/mobile/service-requests", headers=headers, json=env["body"])
+    assert replay.status_code == 200
+    assert replay.json()["id"] == row["id"]
+    assert replay.json()["attachment_files"] == []
+    assert client.post("/mobile/service-requests", headers=env["headers"], json=env["body"]).status_code == 400
+
+
+def test_evidence_rejects_fabricated_incomplete_and_wrong_asset_files(client, db_session, evidence_context):
+    from app.models import DatasetFile
+    env = evidence_context
+    for refs in [["evidence_1.jpg"], ["dataset-file:missing"], env["body"]["attachments"] * 2]:
+        response = client.post("/mobile/service-requests", headers=env["headers"], json={**env["body"], "attachments": refs})
+        assert response.status_code == 400
+    file = db_session.get(DatasetFile, env["file"]["id"])
+    file.status = "pending_upload"
+    db_session.commit()
+    assert client.post("/mobile/service-requests", headers=env["headers"], json=env["body"]).status_code == 400
+    file.status = "uploaded"
+    db_session.commit()
+    other = client.post("/assets", headers=env["headers"], json={
+        "name": "Different asset", "sector": "AGRICULTURE", "asset_type": "FARM",
+        "geometry": {"type": "Point", "coordinates": [-3.6, 40.4]},
+    }).json()
+    response = client.post("/mobile/service-requests", headers=env["headers"], json={**env["body"], "asset_id": other["id"]})
+    assert response.status_code == 400
+
+
+def test_evidence_download_checks_stored_bytes_and_request_membership(client, evidence_context):
+    env = evidence_context
+    created = client.post("/mobile/service-requests", headers=env["headers"], json=env["body"])
+    assert created.status_code == 201, created.text
+    path = f"/mobile/service-requests/{created.json()['id']}/attachments/"
+    assert client.get(path + "not-attached", headers=env["headers"]).status_code == 404
+    env["storage"].provider.path_for(env["file"]["storage_key"]).write_bytes(b"tampered")
+    response = client.get(path + env["file"]["id"], headers=env["headers"])
+    assert response.status_code == 503

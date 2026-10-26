@@ -3,6 +3,8 @@ import '../../../l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
+import '../data/payment_availability.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../authentication/presentation/auth_controller.dart';
@@ -20,8 +22,7 @@ class CartScreen extends ConsumerStatefulWidget {
 class _CartScreenState extends ConsumerState<CartScreen> {
   String payment = 'visa_mastercard';
   bool checkingOut = false;
-  final addressController =
-      TextEditingController(text: 'Finca de demostración, Madrid, España');
+  final addressController = TextEditingController();
 
   @override
   void dispose() {
@@ -37,24 +38,35 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final copy = StoreCopy.of(context);
     final language = Localizations.localeOf(context).languageCode;
     final sync = ref.watch(cartSyncProvider);
-    final paymentOptions = currency == StoreCurrency.akz
-        ? {
-            'iban_angola': copy.bankTransfer,
-            'multicaixa_express': 'Multicaixa Express',
-          }
-        : {
-            'visa_mastercard': 'Visa / Mastercard',
-            'iban_international': copy.internationalIban,
-            'paypal': 'PayPal',
-          };
+    final demo = ref.watch(ordersRepositoryProvider).isDemo;
+    final remote = ref.watch(checkoutCartProvider);
+    final confirmedTotal = remote.valueOrNull?.total;
+    final totalReady = demo ||
+        (!remote.isLoading && !remote.hasError && confirmedTotal != null);
+    final availability = ref.watch(availablePaymentsProvider);
+    final available = availability.valueOrNull ?? const <String>[];
+    final paymentOptions = Map<String, String>.fromEntries(paymentLabels.entries
+        .where((e) =>
+            available.contains(e.key) &&
+            (currency == StoreCurrency.akz
+                ? const ['iban_angola', 'multicaixa_express'].contains(e.key)
+                : const ['visa_mastercard', 'iban_international', 'paypal']
+                    .contains(e.key))));
     if (!paymentOptions.containsKey(payment)) {
-      payment = paymentOptions.keys.first;
+      payment = paymentOptions.keys.firstOrNull ?? '';
     }
-    int totalFor(StoreCurrency target) => lines.fold(
-        0,
-        (sum, line) =>
-            sum +
-            StoreMoney.productCents(line.product, target) * line.quantity);
+    int? totalFor(StoreCurrency target) {
+      var total = 0;
+      for (final line in lines) {
+        final price = StoreMoney.productCents(line.product, target);
+        if (price == null) return null;
+        total += price * line.quantity;
+      }
+      return total;
+    }
+
+    final displayTotal =
+        demo ? totalFor(currency) : confirmedTotal ?? totalFor(currency);
     return Scaffold(
         appBar: AppBar(title: Text(copy.cart)),
         body: ListView(padding: const EdgeInsets.all(GvSpacing.lg), children: [
@@ -102,7 +114,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         Text(line.product.localizedName(language),
                             style:
                                 const TextStyle(fontWeight: FontWeight.w700)),
-                        Text(StoreMoney.formatProduct(line.product, currency),
+                        Text(
+                            StoreMoney.formatProduct(line.product, currency,
+                                unavailable: copy.priceOnRequest),
                             style: const TextStyle(color: GvColors.textMuted))
                       ])),
                   IconButton(
@@ -126,6 +140,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             GvCard(
                 child: TextField(
               controller: addressController,
+              onChanged: (_) => setState(() {}),
               minLines: 2,
               maxLines: 3,
               textInputAction: TextInputAction.done,
@@ -140,41 +155,72 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             Text(copy.payment,
                 style:
                     const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-            DropdownButtonFormField<String>(
-              initialValue: payment,
-              decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.payments_outlined)),
-              items: paymentOptions.entries
-                  .map((option) => DropdownMenuItem(
-                      value: option.key, child: Text(option.value)))
-                  .toList(),
-              onChanged: (value) => setState(() => payment = value!),
-            ),
+            if (availability.isLoading) const LinearProgressIndicator(),
+            if (availability.hasError)
+              TextButton(
+                  onPressed: () => ref.invalidate(availablePaymentsProvider),
+                  child: Text(journeyText(
+                      context,
+                      'No se pudo comprobar los pagos. Reintentar',
+                      'Could not check payments. Retry',
+                      pt: 'Não foi possível verificar os pagamentos. Tentar novamente'))),
+            if (!availability.isLoading &&
+                !availability.hasError &&
+                paymentOptions.isEmpty)
+              Text(journeyText(
+                  context,
+                  'El pago en la app aún no está disponible. No se creará un pedido ni se cobrará ningún importe.',
+                  'In-app payment is not available yet. No order or charge will be created.',
+                  pt: 'O pagamento na app ainda não está disponível. Não será criada uma encomenda nem cobrado qualquer valor.')),
+            if (paymentOptions.isNotEmpty)
+              DropdownButtonFormField<String>(
+                key: ValueKey(paymentOptions.keys.join(',')),
+                initialValue: payment,
+                decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.payments_outlined)),
+                items: paymentOptions.entries
+                    .map((option) => DropdownMenuItem(
+                        value: option.key, child: Text(option.value)))
+                    .toList(),
+                onChanged: (value) => setState(() => payment = value!),
+              ),
+            if (!demo && remote.isLoading) const LinearProgressIndicator(),
+            if (!demo && remote.hasError)
+              TextButton(
+                  onPressed: () => ref.invalidate(checkoutCartProvider),
+                  child: Text(journeyText(
+                      context,
+                      'No se pudo confirmar el total. Reintentar',
+                      'Could not confirm the total. Retry',
+                      pt: 'Não foi possível confirmar o total. Tentar novamente'))),
+            if (!demo && confirmedTotal == null)
+              Text(journeyText(
+                  context,
+                  'Importe provisional: pendiente de impuestos y entrega.',
+                  'Provisional amount: tax and delivery have not been confirmed.',
+                  pt: 'Valor provisório: impostos e entrega por confirmar.')),
             const Divider(),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text(copy.total,
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w800)),
-              Text(StoreMoney.formatCents(totalFor(currency), currency),
+              Text(
+                  displayTotal == null
+                      ? copy.priceOnRequest
+                      : StoreMoney.formatCents(displayTotal, currency),
                   style: const TextStyle(
                       fontSize: 18,
                       color: GvColors.accentCyan,
                       fontWeight: FontWeight.w800))
             ]),
             const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                StoreCurrency.values
-                    .map((target) =>
-                        StoreMoney.formatCents(totalFor(target), target))
-                    .join('  ·  '),
-                style: const TextStyle(color: GvColors.textMuted, fontSize: 11),
-              ),
-            ),
             const SizedBox(height: 18),
             FilledButton(
-                onPressed: checkingOut ||
+                onPressed: displayTotal == null ||
+                        !totalReady ||
+                        paymentOptions.isEmpty ||
+                        lines.any((line) => line.product.requiresEnquiry) ||
+                        checkingOut ||
                         sync.isLoading ||
                         sync.hasError ||
                         addressController.text.trim().isEmpty
@@ -219,10 +265,31 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           icon: Icon(result.success ? Icons.check_circle : Icons.error_outline,
               color: result.success ? GvColors.accentGreen : GvColors.critical),
           title: Text(result.success ? copy.orderCreated : copy.checkoutFailed),
-          content: Text(result.success
-              ? 'Referência ${result.orderNumber ?? result.orderId ?? ''}. '
-                  '${result.paymentRequired ? copy.paymentInstructions : copy.demoNoPayment}'
-              : result.error ?? copy.couldNotCreate),
+          content: SingleChildScrollView(
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(result.success
+                    ? '${journeyText(context, 'Referencia', 'Reference', pt: 'Referência')} ${result.orderNumber ?? result.orderId ?? ''}. '
+                        '${result.paymentRequired ? copy.paymentInstructions : copy.demoNoPayment}'
+                    : result.error ?? copy.couldNotCreate),
+                if (result.success &&
+                    result.paymentData['transfer_details'] is Map)
+                  for (final entry
+                      in (result.paymentData['transfer_details'] as Map)
+                          .entries)
+                    if (const [
+                      'iban',
+                      'bic',
+                      'bank_name',
+                      'beneficiary',
+                      'reference',
+                      'amount',
+                      'currency'
+                    ].contains(entry.key))
+                      SelectableText('${entry.key}: ${entry.value}'),
+              ])),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),

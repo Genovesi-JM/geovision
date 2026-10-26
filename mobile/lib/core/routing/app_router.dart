@@ -1,3 +1,5 @@
+import '../../features/devices/presentation/device_control_screen.dart';
+import '../../features/orders/presentation/quantity_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -54,7 +56,8 @@ Widget _capability(String capability, String title, Widget child) =>
     );
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authControllerProvider);
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authControllerProvider, (_, __) => refresh.value++);
 
   String? safeReturn(String? value) {
     if (value == null || !value.startsWith('/') || value.startsWith('//')) {
@@ -65,14 +68,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     return value;
   }
 
-  return GoRouter(
+  final router = GoRouter(
+    refreshListenable: refresh,
     initialLocation: '/home',
     redirect: (context, state) {
+      final auth = ref.read(authControllerProvider);
       final authRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
       if (auth.mode == AuthMode.unknown) return null;
       if (!auth.isSignedIn) {
-        if (authRoute) return null;
+        if (authRoute || state.matchedLocation == '/reset-password') {
+          return null;
+        }
         return Uri(
           path: '/login',
           queryParameters: {'return': state.uri.toString()},
@@ -133,8 +140,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/assets',
-                builder: (context, state) =>
-                    _capability('assets', 'Assets', const AssetsScreen()),
+                builder: (context, state) => _capability(
+                    'assets',
+                    'Assets',
+                    AssetsScreen(
+                        monitoringSetup: state.uri.queryParameters['setup'] ==
+                            'monitoring')),
                 routes: [
                   GoRoute(
                     path: 'new',
@@ -232,9 +243,23 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => _capability(
                   'services',
                   'Services',
-                  const OrdersScreen(),
+                  OrdersScreen(assetId: state.uri.queryParameters['asset_id']),
                 ),
                 routes: [
+                  GoRoute(
+                    path: 'shop',
+                    builder: (context, state) => _capability(
+                        'services',
+                        'Shop',
+                        OrdersScreen(
+                            shopOnly: true,
+                            assetId: state.uri.queryParameters['asset_id'])),
+                  ),
+                  GoRoute(
+                    path: 'quantity',
+                    builder: (context, state) => _capability(
+                        'services', 'Quantity', const QuantityScreen()),
+                  ),
                   GoRoute(
                     path: 'cart',
                     builder: (context, state) =>
@@ -247,6 +272,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                       'Service detail',
                       ProductDetailScreen(
                         productId: state.pathParameters['id']!,
+                        assetId: state.uri.queryParameters['asset_id'],
                       ),
                     ),
                   ),
@@ -318,7 +344,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => _capability(
                       'services',
                       'Request service',
-                      const NewRequestScreen(),
+                      NewRequestScreen(
+                        assetId: state.uri.queryParameters['asset_id'],
+                        initialDescription:
+                            state.uri.queryParameters['description'],
+                        initialType: state.uri.queryParameters['type'],
+                      ),
                     ),
                   ),
                   GoRoute(
@@ -377,6 +408,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/assistant',
                 builder: (context, state) => GaiaScreen(
                   siteId: state.uri.queryParameters['site'],
+                  deviceId: state.uri.queryParameters['device'],
                   productId: state.uri.queryParameters['product'],
                   sourcePage: state.uri.queryParameters['from'] ?? 'assistant',
                 ),
@@ -434,8 +466,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => _capability(
                   'devices',
                   'Devices',
-                  const DevicesScreen(),
+                  DevicesScreen(assetId: state.uri.queryParameters['asset_id']),
                 ),
+                routes: [
+                  GoRoute(
+                      path: ':id',
+                      builder: (context, state) => _capability(
+                          'devices',
+                          'Equipment control',
+                          DeviceControlScreen(
+                              deviceId: state.pathParameters['id']!)))
+                ],
               ),
               GoRoute(
                 path: '/drones',
@@ -447,4 +488,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(() {
+    router.dispose();
+    refresh.dispose();
+  });
+  return router;
 });

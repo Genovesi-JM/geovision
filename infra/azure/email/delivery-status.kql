@@ -1,0 +1,8 @@
+// Use the existing log-geovision-pilot-hcwka3w Log Analytics workspace.
+// Do not send another message merely to run this read-only query.
+ACSEmailStatusUpdateOperational
+| where TimeGenerated > ago(24h)
+| where SenderDomain == "notify.geovisionops.com"
+| project TimeGenerated, DeliveryStatus, SmtpStatusCode,
+    EnhancedSmtpStatusCode, FailureReason, FailureMessage, CorrelationId
+| order by TimeGenerated desc

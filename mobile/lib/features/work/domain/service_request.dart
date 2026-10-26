@@ -1,3 +1,5 @@
+import 'evidence.dart';
+
 enum ServiceType {
   droneOperation,
   inspection,
@@ -36,6 +38,7 @@ class ServiceRequest {
     this.progressPercent = 0,
     this.pendingSync = false,
     this.attachments = const [],
+    this.attachmentFiles = const [],
     this.assignedTeam,
     this.resultTitle,
     this.resultSummary,
@@ -55,6 +58,7 @@ class ServiceRequest {
   final int progressPercent;
   final bool pendingSync;
   final List<String> attachments;
+  final List<UploadedEvidence> attachmentFiles;
   final String? assignedTeam;
   final String? resultTitle;
   final String? resultSummary;
@@ -67,7 +71,7 @@ class ServiceRequest {
     return ServiceRequest(
       id: j['id'].toString(),
       type: (j['type'] ?? 'inspection').toString(),
-      siteId: (j['site_id'] ?? '').toString(),
+      siteId: (j['asset_id'] ?? j['site_id'] ?? '').toString(),
       siteName: (j['site_name'] ?? '').toString(),
       urgency: (j['urgency'] ?? 'normal').toString(),
       description: (j['description'] ?? '').toString(),
@@ -79,6 +83,11 @@ class ServiceRequest {
       attachments:
           (j['attachments'] as List?)?.map((e) => e.toString()).toList() ??
               const [],
+      attachmentFiles: (j['attachment_files'] as List? ?? const [])
+          .whereType<Map>()
+          .map((file) =>
+              UploadedEvidence.fromJson(Map<String, dynamic>.from(file)))
+          .toList(),
       assignedTeam: j['assigned_team'] as String?,
       resultTitle: result['title']?.toString(),
       resultSummary: result['summary']?.toString(),
@@ -100,6 +109,8 @@ class ServiceRequest {
         'progress_percent': progressPercent,
         'pending_sync': pendingSync,
         'attachments': attachments,
+        'attachment_files':
+            attachmentFiles.map((file) => file.toJson()).toList(),
         'assigned_team': assignedTeam,
         if (resultTitle != null || resultReportId != null)
           'result': {

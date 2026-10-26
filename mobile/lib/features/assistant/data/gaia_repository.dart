@@ -1,11 +1,13 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/networking/api_client.dart';
 import '../../alerts/data/alerts_repository.dart';
+import '../../account/data/customer_experience_repository.dart';
+import '../../assets/data/assets_repository.dart';
 import '../../devices/data/devices_repository.dart';
 import '../../orders/data/orders_repository.dart';
-import '../../sites/data/sites_repository.dart';
 import '../../work/data/work_repository.dart';
 
 class GaiaMessage {
@@ -26,11 +28,13 @@ class GaiaRepository {
     String? language,
     String? siteId,
     String? productId,
+    String? deviceId,
     String sourcePage = 'assistant',
   }) async {
     final appContext = await _buildAppContext(
       siteId: siteId,
       productId: productId,
+      deviceId: deviceId,
       sourcePage: sourcePage,
     );
     final response = await _api.raw.post<Map<String, dynamic>>(
@@ -39,7 +43,6 @@ class GaiaRepository {
         'messages': messages.map((message) => message.toJson()).toList(),
         'page': '/mobile/$sourcePage',
         'page_title': 'GeoVision mobile · $sourcePage',
-        'sector': 'Geral',
         'page_text': 'Preferred language: ${language ?? 'pt'}.\n$appContext',
       },
     );
@@ -53,62 +56,104 @@ class GaiaRepository {
   Future<String> _buildAppContext({
     String? siteId,
     String? productId,
+    String? deviceId,
     required String sourcePage,
   }) async {
-    final sites = (await _ref.read(sitesRepositoryProvider).getSites()).value;
-    final alerts =
-        (await _ref.read(alertsRepositoryProvider).getAlerts()).value;
-    final devices = await _ref.read(devicesRepositoryProvider).getDevices();
-    final requests = await _ref.read(workRepositoryProvider).getRequests();
-    final products = await _ref.read(ordersRepositoryProvider).catalogue();
-
-    final selectedId = siteId ?? _ref.read(selectedSiteIdProvider);
-    final selected = sites.where((item) => item.id == selectedId).firstOrNull ??
-        (sites.isEmpty ? null : sites.first);
-    final selectedProduct =
-        products.where((item) => item.id == productId).firstOrNull;
-
+    final experience = await _ref.read(customerExperienceProvider.future);
+    final workspace = experience.activeWorkspaceId;
     final lines = <String>[
       'AUTHORIZED APP CONTEXT (customer-visible data only)',
+      'Workspace: ${experience.activeWorkspace?.name ?? 'none selected'}',
+      'Sector: ${experience.activeWorkspace?.sector ?? 'not specified'}',
       'Current section: $sourcePage',
-      'Totals: ${sites.length} sites, ${alerts.where((a) => !a.resolved).length} open alerts, ${devices.length} devices, ${requests.where((r) => r.status != 'completed').length} active service requests.',
+      'Context assembled at: ${DateTime.now().toUtc().toIso8601String()}. This is not a measurement timestamp.',
     ];
-    if (selected != null) {
-      lines.add(
-          'Selected site: ${selected.name} | ${selected.location} | ${selected.totalHectares.toStringAsFixed(1)} ha | status ${selected.status.name}.');
-      for (final area in selected.areas.take(8)) {
-        final kpis = area.kpis
-            .take(4)
-            .map((k) => '${k.label} ${k.value}${k.unit ?? ''} (${k.status})')
-            .join(', ');
+    Future<T?> optional<T>(String source, Future<T> Function() fetch) async {
+      try {
+        return await fetch();
+      } on DioException catch (error) {
+        if (error.response?.statusCode == 401 ||
+            error.response?.statusCode == 403) {
+          rethrow;
+        }
         lines.add(
-            'Area: ${area.name} | crop ${area.crop} | ${area.hectares.toStringAsFixed(1)} ha${kpis.isEmpty ? '' : ' | $kpis'}.');
+            'Unavailable context source: $source. Do not infer its values.');
+        return null;
+      } catch (_) {
+        lines.add(
+            'Unavailable context source: $source. Do not infer its values.');
+        return null;
       }
-      final siteKpis = selected.kpis
-          .take(8)
-          .map((k) =>
-              '${k.label}=${k.value}${k.unit ?? ''} (${k.status}, ${k.trend})')
-          .join('; ');
-      if (siteKpis.isNotEmpty) lines.add('Site KPIs: $siteKpis.');
     }
-    for (final alert in alerts.where((item) => !item.resolved).take(6)) {
+
+    final assets = await optional(
+        'assets', () => _ref.read(assetsRepositoryProvider).list());
+    final devices = await optional(
+        'devices', () => _ref.read(devicesRepositoryProvider).getDevices());
+    final device = devices?.where((d) => d.id == deviceId).firstOrNull;
+    final selectedId = siteId ?? device?.assetId;
+    final asset = assets?.value.where((a) => a.id == selectedId).firstOrNull;
+    if (assets != null) {
       lines.add(
-          'Alert: ${alert.title} | ${alert.severity} | ${alert.location ?? alert.siteId ?? 'site unknown'} | recommendation ${alert.recommendation ?? 'not recorded'}.');
+          'Assets source: ${assets.fromCache ? 'cached' : 'server'}; synced ${assets.syncedAt?.toIso8601String() ?? 'unknown'}.');
     }
-    for (final device in devices.take(6)) {
+    if (asset != null) {
       lines.add(
-          'Device: ${device.name} | ${device.siteName} | ${device.status} | battery ${device.batteryPercent}% | latest ${device.lastReadingLabel ?? 'not available'}.');
+          'Selected asset: ${asset.id} | ${asset.name} | ${asset.sector} | ${asset.locationLabel}.');
+    } else {
+      lines.add(
+          'No verified asset selected. Ask the customer to select a location before giving location-specific advice. Never choose the first asset.');
     }
-    for (final request in requests.take(5)) {
+    if (deviceId != null && device == null) {
       lines.add(
-          'Service request: ${request.type} | ${request.siteName} | ${request.status} | progress ${request.progressPercent}%.');
+          'Requested device is unavailable in this workspace. Do not substitute another device.');
     }
-    if (selectedProduct != null) {
+    if (device != null && siteId != null && device.assetId != siteId) {
+      throw StateError('The device does not belong to the selected asset.');
+    }
+    final relevantDevices = deviceId != null
+        ? (devices ?? []).where((d) => d.id == deviceId)
+        : (devices ?? []).where((d) => asset != null && d.assetId == asset.id);
+    for (final d in relevantDevices.take(8)) {
       lines.add(
-          'Open product: ${selectedProduct.name} | ${selectedProduct.category} | ${selectedProduct.description} | includes ${selectedProduct.deliverables.join(', ')}.');
+          'Device: ${d.id} | ${d.name} | ${d.siteName} | ${d.status} | battery ${d.batteryPercent == null ? 'unknown' : '${d.batteryPercent}%'} | reading ${d.lastReadingLabel ?? 'unavailable'} | measured at ${d.lastReadingAt?.toUtc().toIso8601String() ?? 'unknown'}.');
+    }
+    if (asset != null) {
+      final alerts = await optional(
+          'alerts', () => _ref.read(alertsRepositoryProvider).getAlerts());
+      if (alerts != null) {
+        lines.add(
+            'Alerts source: ${alerts.fromCache ? 'cached' : 'server'}; synced ${alerts.syncedAt?.toIso8601String() ?? 'unknown'}.');
+        for (final a in alerts.value
+            .where((a) => a.siteId == asset.id && !a.resolved)
+            .take(6)) {
+          lines.add(
+              'Alert: ${a.title} | ${a.severity} | ${a.recommendation ?? 'no recommendation recorded'}.');
+        }
+      }
+      final requests = await optional('service requests',
+          () => _ref.read(workRepositoryProvider).getRequests());
+      for (final request
+          in (requests ?? []).where((r) => r.siteId == asset.id).take(5)) {
+        lines.add(
+            'Service request: ${request.id} | ${request.type} | ${request.status}.');
+      }
+    }
+    if (productId != null) {
+      final products = await optional(
+          'catalogue', () => _ref.read(ordersRepositoryProvider).catalogue());
+      final product = products?.where((p) => p.id == productId).firstOrNull;
+      lines.add(product == null
+          ? 'Requested product unavailable. Do not invent price or availability.'
+          : 'Selected product: ${product.id} | ${product.name} | ${product.description} | includes ${product.deliverables.join(', ')}.');
+    }
+    if (_ref.read(customerExperienceProvider).valueOrNull?.activeWorkspaceId !=
+        workspace) {
+      throw StateError(
+          'Workspace changed. Start a new question in the selected workspace.');
     }
     lines.add(
-        'Answer from these facts first. If a requested value is absent, say it is not recorded; never invent it.');
+        'Use only these facts for customer-specific answers. Cite the device/asset and measurement time. Cached or old data is not a live state. Explain missing evidence. Do not promise planned features, execute commands or claim a physical action occurred.');
     return lines.join('\n');
   }
 }

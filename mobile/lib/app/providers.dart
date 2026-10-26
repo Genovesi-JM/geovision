@@ -102,7 +102,9 @@ final paymentProviderProvider = Provider<PaymentProvider>((ref) {
       return const BankTransferProvider();
     // 'stripe' / 'multicaixa' are gated on credentials — see HUMAN_GATES.md
     default:
-      return const MockPaymentProvider();
+      return cfg.demoMode
+          ? const MockPaymentProvider()
+          : UnavailablePaymentProvider(cfg.paymentProvider);
   }
 });
 
@@ -127,9 +129,10 @@ final pushNotificationTapProvider = StreamProvider<PushMessage>(
 );
 
 final iotProviderProvider = Provider<IotProvider>((ref) {
+  final config = ref.watch(appConfigProvider);
   const provider =
       String.fromEnvironment('GV_IOT_PROVIDER', defaultValue: 'mock');
-  if (provider == 'backend') {
+  if (!config.demoMode || provider == 'backend') {
     return BackendIotProvider(ref.watch(apiClientProvider));
   }
   return const MockIotProvider();

@@ -6,6 +6,7 @@ import '../../../core/errors/failures.dart';
 import '../../../core/networking/api_client.dart';
 import '../../../core/storage/local_store.dart';
 import '../domain/customer_experience.dart';
+import '../../authentication/presentation/auth_controller.dart';
 
 class CustomerExperienceException implements Exception {
   const CustomerExperienceException(this.message, {this.statusCode});
@@ -123,8 +124,20 @@ final customerExperienceRepositoryProvider =
 
 class CustomerExperienceController extends AsyncNotifier<CustomerExperience> {
   @override
-  Future<CustomerExperience> build() =>
-      ref.watch(customerExperienceRepositoryProvider).load();
+  Future<CustomerExperience> build() async {
+    if (!ref.watch(appConfigProvider).demoMode) {
+      // Re-resolve membership after every login. Data providers watching this
+      // future must not reuse a previous session's workspace or screen data.
+      final session = ref.watch(authControllerProvider);
+      if (!session.isSignedIn || session.isDemo) {
+        ref.read(apiClientProvider).selectWorkspace(null);
+        throw const CustomerExperienceException(
+            'Sign in to load your workspace.',
+            statusCode: 401);
+      }
+    }
+    return ref.watch(customerExperienceRepositoryProvider).load();
+  }
 
   Future<bool> switchWorkspace(String workspaceId) async {
     if (state.valueOrNull?.activeWorkspaceId == workspaceId) return true;

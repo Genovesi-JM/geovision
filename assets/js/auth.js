@@ -152,7 +152,9 @@
       if (wizardNext) wizardNext.style.display = wizardStep < WIZ_TOTAL ? '' : 'none';
       if (createSubmit) createSubmit.style.display = wizardStep < WIZ_TOTAL ? 'none' : '';
       const first = createForm.querySelector(`.wizard-step[data-step="${wizardStep}"] input, .wizard-step[data-step="${wizardStep}"] select`);
-      if (first) setTimeout(() => first.focus(), 30);
+      // Focus before the user or password manager fills the next field.
+      // A delayed callback can steal focus midway through autofill/typing.
+      if (first) first.focus();
     }
 
     function validateWizardStep(n) {

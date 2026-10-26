@@ -1,0 +1,29 @@
+{
+  "checked_at": "2026-09-22T23:18:50.820390+00:00",
+  "checks": [
+    {
+      "path": "/_pilot/api/auth/me",
+      "method": "GET",
+      "status": 401,
+      "anonymous_denied": true
+    },
+    {
+      "path": "/_pilot/api/operations/providers",
+      "method": "GET",
+      "status": 401,
+      "anonymous_denied": true
+    },
+    {
+      "path": "/_pilot/api/ai/chat",
+      "method": "POST",
+      "status": 401,
+      "anonymous_denied": true
+    },
+    {
+      "path": "/_pilot/api/intelligence/weather/observations",
+      "method": "POST",
+      "status": 401,
+      "anonymous_denied": true
+    }
+  ]
+}

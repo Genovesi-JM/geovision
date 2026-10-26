@@ -1,3 +1,4 @@
+import '../../../core/localization/journey_copy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,7 +16,9 @@ class CustomerWorkspaceBar extends ConsumerWidget {
     final experience = ref.watch(customerExperienceProvider);
     return experience.when(
       loading: () => Semantics(
-        label: 'Loading workspace',
+        label: journeyText(
+            context, 'Cargando el espacio de trabajo', 'Loading workspace',
+            pt: 'A carregar o espaço de trabalho'),
         liveRegion: true,
         child: const LinearProgressIndicator(minHeight: 2),
       ),
@@ -23,16 +26,25 @@ class CustomerWorkspaceBar extends ConsumerWidget {
         color: GvColors.surfaceDeep,
         child: Semantics(
           button: true,
-          label: 'Workspace unavailable. Retry.',
+          label: journeyText(
+              context,
+              'Espacio de trabajo no disponible. Reintentar.',
+              'Workspace unavailable. Retry.',
+              pt: 'Espaço de trabalho indisponível. Tente novamente.'),
           child: InkWell(
             onTap: () => ref.read(customerExperienceProvider.notifier).reload(),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
                   horizontal: GvSpacing.lg, vertical: GvSpacing.sm),
               child: Row(children: [
-                Icon(Icons.sync_problem, size: 17, color: GvColors.high),
-                SizedBox(width: GvSpacing.sm),
-                Expanded(child: Text('Workspace unavailable · Tap to retry')),
+                const Icon(Icons.sync_problem, size: 17, color: GvColors.high),
+                const SizedBox(width: GvSpacing.sm),
+                Expanded(
+                    child: Text(journeyText(
+                        context,
+                        'Espacio no disponible · Toca para reintentar',
+                        'Workspace unavailable · Tap to retry',
+                        pt: 'Espaço indisponível · Toque para tentar novamente'))),
               ]),
             ),
           ),
@@ -41,12 +53,16 @@ class CustomerWorkspaceBar extends ConsumerWidget {
       data: (data) {
         final active = data.activeWorkspace;
         if (active == null) {
-          return const Material(
+          return Material(
             color: GvColors.surfaceDeep,
             child: Padding(
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                   horizontal: GvSpacing.lg, vertical: GvSpacing.sm),
-              child: Text('No customer workspace is available.'),
+              child: Text(journeyText(
+                  context,
+                  'No hay un espacio de trabajo disponible.',
+                  'No customer workspace is available.',
+                  pt: 'Nenhum espaço de trabalho disponível.')),
             ),
           );
         }
@@ -56,8 +72,14 @@ class CustomerWorkspaceBar extends ConsumerWidget {
           child: Semantics(
             button: switchable,
             label: switchable
-                ? 'Current workspace ${active.name}. Switch workspace.'
-                : 'Current workspace ${active.name}.',
+                ? journeyText(
+                    context,
+                    'Espacio actual ${active.name}. Cambiar espacio.',
+                    'Current workspace ${active.name}. Switch workspace.',
+                    pt: 'Espaço atual ${active.name}. Mudar de espaço.')
+                : journeyText(context, 'Espacio actual ${active.name}.',
+                    'Current workspace ${active.name}.',
+                    pt: 'Espaço atual ${active.name}.'),
             child: InkWell(
               onTap: switchable
                   ? () => _chooseWorkspace(
@@ -105,8 +127,12 @@ class CustomerWorkspaceBar extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Switch workspace',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            Text(
+                journeyText(
+                    context, 'Cambiar espacio de trabajo', 'Switch workspace',
+                    pt: 'Mudar de espaço de trabalho'),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             const SizedBox(height: GvSpacing.sm),
             for (final workspace in workspaces)
               ListTile(
@@ -129,7 +155,10 @@ class CustomerWorkspaceBar extends ConsumerWidget {
         .switchWorkspace(selected);
     if (!switched && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Workspace could not be changed.')),
+        SnackBar(
+            content: Text(journeyText(context, 'No se pudo cambiar de espacio.',
+                'Workspace could not be changed.',
+                pt: 'Não foi possível mudar de espaço.'))),
       );
     }
   }
@@ -153,11 +182,16 @@ class CustomerCapabilityPage extends ConsumerWidget {
     return experience.when(
       loading: () => Scaffold(
           appBar: AppBar(title: Text(title)),
-          body: const GvLoading(label: 'Loading workspace access…')),
+          body: GvLoading(
+              label: journeyText(context, 'Comprobando el acceso…',
+                  'Loading workspace access…',
+                  pt: 'A verificar o acesso…'))),
       error: (_, __) => Scaffold(
         appBar: AppBar(title: Text(title)),
         body: GvErrorState(
-          message: 'Workspace access could not be loaded.',
+          message: journeyText(context, 'No se pudo comprobar el acceso.',
+              'Workspace access could not be loaded.',
+              pt: 'Não foi possível verificar o acesso.'),
           onRetry: () => ref.read(customerExperienceProvider.notifier).reload(),
         ),
       ),
@@ -167,8 +201,11 @@ class CustomerCapabilityPage extends ConsumerWidget {
               appBar: AppBar(title: Text(title)),
               body: GvEmpty(
                 icon: Icons.lock_outline,
-                message:
+                message: journeyText(
+                    context,
+                    'Esta función no está disponible en este espacio. Contacta con un administrador si necesitas acceso.',
                     '$title is not enabled for this workspace. Ask a workspace administrator if you need access.',
+                    pt: 'Esta função não está disponível neste espaço. Contacte um administrador se precisar de acesso.'),
               ),
             ),
     );

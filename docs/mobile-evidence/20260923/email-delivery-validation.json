@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-23",
+  "messages_sent": 2,
+  "smtp_acceptance_utc": "04:01",
+  "delivery_status": "Failed",
+  "smtp_status_code": "550",
+  "delivery_failure_utc": "04:04",
+  "user_report": "Not received yet",
+  "detailed_rejection_reason_available": false,
+  "domain_spf_dkim_verified": true,
+  "delivery_diagnostics_enabled_after_test": true,
+  "second_test": {
+    "separately_authorized": true,
+    "smtp_acceptance_utc": "04:20",
+    "delivery_status": "Failed",
+    "smtp_status_code": "550",
+    "delivery_failure_utc": "04:24",
+    "detailed_rejection_reason_available": false
+  }
+}

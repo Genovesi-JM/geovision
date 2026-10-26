@@ -201,6 +201,10 @@ def test_internal_route_families_keep_canonical_authorization_dependencies(clien
             "/operations/experience",
             "/operations/dashboard",
             "/operations/queues",
+            # Provider routes use InternalActor plus the stricter integration
+            # administrator capability check, covered by the marked provider test.
+            "/operations/providers",
+            "/operations/providers/{provider}/check",
         }:
             required = "require_internal_actor"
         elif route.path.startswith("/operations/contractor/me"):

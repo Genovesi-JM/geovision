@@ -1,0 +1,263 @@
+{
+  "checked_at": "2026-09-23T00:10:13.702534+00:00",
+  "checks": [
+    {
+      "host": "geovisionops.com",
+      "path": "/",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "artifact_matches": true
+    },
+    {
+      "host": "geovisionops.com",
+      "path": "/login.html",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "artifact_matches": true
+    },
+    {
+      "host": "geovisionops.com",
+      "path": "/assets/js/config.js",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "artifact_matches": true
+    },
+    {
+      "host": "geovisionops.com",
+      "path": "/_site/health",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "geovisionops.com",
+      "path": "/.env",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 404,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "geovisionops.com",
+      "path": "/backend/.env",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 404,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "artifact_matches": true
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/login.html",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "artifact_matches": true
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/assets/js/config.js",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "artifact_matches": true
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/_site/health",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/.env",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 404,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/backend/.env",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 404,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/health",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/ready",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/auth/me",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 401,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/admin/users",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 401,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/operations/providers",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 401,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/ai/chat",
+      "method": "POST",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 403,
+      "tls_verified": true,
+      "passed": true
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/auth/me",
+      "method": "OPTIONS",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "origin": "https://geovisionops.com",
+      "allow_origin": "https://geovisionops.com"
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/auth/me",
+      "method": "OPTIONS",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 200,
+      "tls_verified": true,
+      "passed": true,
+      "origin": "https://www.geovisionops.com",
+      "allow_origin": "https://www.geovisionops.com"
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/auth/me",
+      "method": "OPTIONS",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 400,
+      "tls_verified": true,
+      "passed": true,
+      "origin": "https://example.invalid",
+      "allow_origin": null
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/auth/google/login",
+      "method": "GET",
+      "resolution": "azure_ip_with_tls_sni",
+      "status": 307,
+      "tls_verified": true,
+      "passed": true,
+      "redirect_host": "accounts.google.com",
+      "callback": "https://api.geovisionops.com/auth/google/callback",
+      "pkce_method": "S256"
+    },
+    {
+      "host": "geovisionops.com",
+      "path": "/_site/health",
+      "method": "GET",
+      "resolution": "normal_dns",
+      "status": 404,
+      "tls_verified": true,
+      "passed": false
+    },
+    {
+      "host": "www.geovisionops.com",
+      "path": "/_site/health",
+      "method": "GET",
+      "resolution": "normal_dns",
+      "status": 301,
+      "tls_verified": true,
+      "passed": false
+    },
+    {
+      "host": "api.geovisionops.com",
+      "path": "/health",
+      "method": "GET",
+      "resolution": "normal_dns",
+      "status": 0,
+      "tls_verified": false,
+      "passed": false
+    }
+  ],
+  "dns": [
+    {
+      "host": "geovisionops.com",
+      "type": "A",
+      "authoritative_tcp_answer": "geovisionops.com.\t14400\tIN\tA\t68.221.208.37"
+    },
+    {
+      "host": "www.geovisionops.com",
+      "type": "CNAME",
+      "authoritative_tcp_answer": "www.geovisionops.com.\t1800\tIN\tCNAME\tgeovision-public-web.nicepebble-b3698140.spaincentral.azurecontainerapps.io."
+    },
+    {
+      "host": "api.geovisionops.com",
+      "type": "CNAME",
+      "authoritative_tcp_answer": "api.geovisionops.com.\t1800\tIN\tCNAME\tgeovision-api.nicepebble-b3698140.spaincentral.azurecontainerapps.io."
+    }
+  ],
+  "all_azure_checks_passed": true
+}

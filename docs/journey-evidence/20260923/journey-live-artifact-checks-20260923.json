@@ -1,0 +1,18 @@
+[
+  {
+    "path": "login.html",
+    "artifact_matches": true
+  },
+  {
+    "path": "assets/js/auth.js",
+    "artifact_matches": true
+  },
+  {
+    "path": "assets/js/chatbot.js",
+    "artifact_matches": true
+  },
+  {
+    "path": "assets/js/customer-portal.js",
+    "artifact_matches": true
+  }
+]

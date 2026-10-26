@@ -226,6 +226,7 @@ class ProductResponse(BaseModel):
     is_active: bool
     requires_site: bool
     requires_scheduling: Optional[bool] = False
+    price_model: str = "FIXED"
     min_area_ha: Optional[int] = None
     duration_hours: Optional[int] = None
     deliverables: Optional[List[str]] = None
@@ -334,6 +335,7 @@ async def list_products(
             is_active=p.get("is_active", True),
             requires_site=p.get("requires_site", False),
             requires_scheduling=p.get("requires_scheduling", False),
+            price_model=p.get("price_model", "FIXED"),
             min_area_ha=p.get("min_area_ha"),
             duration_hours=p.get("duration_hours"),
             deliverables=p.get("deliverables"),
@@ -372,6 +374,7 @@ async def get_product(product_id: str, db: Session = Depends(get_db)):
         is_active=product.get("is_active", True),
         requires_site=product.get("requires_site", False),
         requires_scheduling=product.get("requires_scheduling", False),
+        price_model=product.get("price_model", "FIXED"),
         min_area_ha=product.get("min_area_ha"),
         duration_hours=product.get("duration_hours"),
         deliverables=product.get("deliverables"),
@@ -918,20 +921,22 @@ def get_stripe_config():
 def get_payment_methods():
     """Which payment methods actually settle in this deployment.
 
-    Bank/IBAN transfer always works (manual confirmation, no gateway). The
-    gateway methods are only advertised when their credentials are configured,
-    so the storefront never offers a method that would silently return a mock
-    payment. ``settles`` marks a fully real path.
+    Manual transfers require explicit operator activation after bank details
+    have been verified. Sandbox credentials never advertise real settlement.
     """
     stripe_ready = bool(settings.stripe_secret_key)
     multicaixa_ready = settings.multicaixa_configuration_complete
     paypal_ready = bool(settings.paypal_client_id and settings.paypal_secret)
+    angola_ready = bool(settings.bank_transfer_angola_enabled and settings.company_iban)
+    international_ready = bool(settings.bank_transfer_international_enabled and settings.company_iban_intl)
+    stripe_live = stripe_ready and str(settings.stripe_secret_key).startswith("sk_live_")
+    paypal_live = paypal_ready and settings.paypal_mode == "live"
     methods = [
-        {"method": "iban_angola", "enabled": True, "settles": True, "gateway": False},
+        {"method": "iban_angola", "enabled": angola_ready, "settles": angola_ready, "gateway": False},
         {
             "method": "iban_international",
-            "enabled": True,
-            "settles": True,
+            "enabled": international_ready,
+            "settles": international_ready,
             "gateway": False,
         },
         {
@@ -943,19 +948,19 @@ def get_payment_methods():
         {
             "method": "visa_mastercard",
             "enabled": stripe_ready,
-            "settles": stripe_ready,
+            "settles": stripe_live,
             "gateway": True,
         },
         {
             "method": "paypal",
             "enabled": paypal_ready,
-            "settles": paypal_ready,
+            "settles": paypal_live,
             "gateway": True,
         },
     ]
     return {
         "methods": methods,
-        "any_gateway_live": stripe_ready or multicaixa_ready or paypal_ready,
+        "any_gateway_live": stripe_live or multicaixa_ready or paypal_live,
     }
 
 
@@ -1005,6 +1010,11 @@ async def checkout(
             detail=f"Método {payment_method.value} não disponível para {req_currency}. "
             f"Opções: {', '.join(m.value for m in allowed)}",
         )
+
+    available = {entry["method"] for entry in get_payment_methods()["methods"]
+                 if entry["enabled"] and entry["settles"]}
+    if payment_method.value not in available:
+        raise HTTPException(status_code=409, detail="Payment method is not available. No order was created.")
 
     order_service = get_order_service(db)
 

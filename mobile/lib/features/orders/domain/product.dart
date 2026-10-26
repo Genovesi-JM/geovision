@@ -11,11 +11,15 @@ class GvProduct {
     this.priceEurCents,
     this.description = '',
     this.unit,
-    this.stockStatus = 'in_stock',
+    this.stockStatus = 'unknown',
+    this.priceAvailable = true,
     this.featured = false,
     this.sectors = const [],
     this.deliverables = const [],
     this.indicativePrice = true,
+    this.requiresSite = false,
+    this.requiresScheduling = false,
+    this.priceModel = 'FIXED',
     this.image,
     this.translations = const {},
   });
@@ -23,6 +27,7 @@ class GvProduct {
   final String name;
   final String category; // service|hardware|subscription|input|report
   final int priceCents;
+  final bool priceAvailable;
   final String currency;
   final int? priceAkzCents;
   final int? priceEurCents;
@@ -33,6 +38,17 @@ class GvProduct {
   final List<String> sectors;
   final List<String> deliverables;
   final bool indicativePrice;
+  final bool requiresSite;
+  final bool requiresScheduling;
+  final String priceModel;
+  bool get requiresEnquiry =>
+      !priceAvailable ||
+      stockStatus != 'in_stock' ||
+      category == 'service' ||
+      category == 'subscription' ||
+      requiresSite ||
+      requiresScheduling ||
+      priceModel.toUpperCase() != 'FIXED';
 
   /// Bundled asset path in demo mode or HTTPS URL supplied by the commerce API.
   final String? image;
@@ -53,41 +69,8 @@ class GvProduct {
     if (translated is List) {
       return translated.map((item) => item.toString()).toList();
     }
-    if (languageCode == 'pt') return deliverables;
-    final kind = category == 'service' ? 'service' : 'hardware';
-    const generic = {
-      'service': {
-        'en': [
-          'Mapped visual evidence',
-          'Technical summary',
-          'Agreed output files'
-        ],
-        'es': [
-          'Evidencia visual cartografiada',
-          'Resumen técnico',
-          'Archivos de entrega acordados'
-        ],
-        'fr': [
-          'Preuves visuelles cartographiées',
-          'Synthèse technique',
-          'Fichiers de livraison convenus'
-        ],
-      },
-      'hardware': {
-        'en': ['Selected hardware', 'Connection guide', 'Compatibility check'],
-        'es': [
-          'Hardware seleccionado',
-          'Guía de conexión',
-          'Verificación de compatibilidad'
-        ],
-        'fr': [
-          'Matériel sélectionné',
-          'Guide de connexion',
-          'Vérification de compatibilité'
-        ],
-      },
-    };
-    return generic[kind]?[languageCode] ?? deliverables;
+    // Missing translations must not invent deliverables or guarantees.
+    return deliverables;
   }
 
   String get priceLabel => '${(priceCents / 100).toStringAsFixed(2)} $currency';
@@ -99,12 +82,17 @@ class GvProduct {
         priceCents: (j['price_cents'] as num?)?.toInt() ??
             (j['price_usd'] as num?)?.toInt() ??
             0,
-        currency: (j['currency'] ?? 'USD').toString(),
+        priceAvailable: j['price_cents'] is num || j['price_usd'] is num,
+        currency: j['price_cents'] is num
+            ? (j['currency'] ?? '').toString()
+            : j['price_usd'] is num
+                ? 'USD'
+                : '',
         priceAkzCents: (j['price'] as num?)?.toInt(),
         priceEurCents: (j['price_eur'] as num?)?.toInt(),
         description: (j['description'] ?? '').toString(),
         unit: (j['unit'] ?? j['unit_label']) as String?,
-        stockStatus: (j['stock_status'] ?? 'in_stock').toString(),
+        stockStatus: (j['stock_status'] ?? 'unknown').toString(),
         featured: j['featured'] == true || j['is_featured'] == true,
         sectors: (j['sectors'] as List?)
                 ?.map((value) => canonicalSectorId(value.toString()))
@@ -115,6 +103,9 @@ class GvProduct {
             (j['deliverables'] as List?)?.map((v) => v.toString()).toList() ??
                 const [],
         indicativePrice: j['indicative_price'] != false,
+        requiresSite: j['requires_site'] == true,
+        requiresScheduling: j['requires_scheduling'] == true,
+        priceModel: (j['price_model'] ?? 'QUOTE').toString(),
         image: (j['image_url'] ?? j['image'])?.toString(),
         translations: (j['translations'] as Map?)?.map((key, value) => MapEntry(
                   key.toString(),

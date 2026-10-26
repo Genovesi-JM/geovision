@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
@@ -11,6 +13,22 @@ class ReportsRepository {
   ReportsRepository(this._config, this._api);
   final AppConfig _config;
   final ApiClient _api;
+
+  Future<Uint8List> download(String reportId) async {
+    if (_config.demoMode) throw StateError('Demo reports do not contain a PDF');
+    final response = await _api.raw.get<List<int>>(
+      '/reports/${Uri.encodeComponent(reportId)}/download',
+      options:
+          Options(responseType: ResponseType.bytes, followRedirects: false),
+    );
+    final bytes = Uint8List.fromList(response.data ?? const []);
+    if (bytes.length < 5 ||
+        bytes.length > 50 * 1024 * 1024 ||
+        String.fromCharCodes(bytes.take(5)) != '%PDF-') {
+      throw const FormatException('Invalid PDF response');
+    }
+    return bytes;
+  }
 
   Future<List<GvReport>> getReports({String? assetId}) async {
     if (_config.demoMode) return DemoData.reports();

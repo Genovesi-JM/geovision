@@ -1,0 +1,26 @@
+{
+  "checked_at": "2026-09-22T23:14:29.014867+00:00",
+  "checks": {
+    "queue_preflight": {
+      "schedules": 0,
+      "acquisitions": 0
+    },
+    "worker_cycle": {
+      "status": "verified_empty_queue",
+      "stats": {
+        "schedules_claimed": 0,
+        "schedules_completed": 0,
+        "runs_claimed": 0,
+        "runs_completed": 0,
+        "runs_failed": 0
+      }
+    },
+    "app_configuration": {
+      "available": true,
+      "state": "healthy",
+      "reason_code": "feature_flag_snapshot_current",
+      "synthetic_unknown_flag_denied": true
+    }
+  },
+  "runtime_revision": "geovision-pilot-hcwka3w-api--0000004"
+}

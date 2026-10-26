@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
@@ -13,7 +14,8 @@ import '../domain/customer_asset.dart';
 enum _AssetsView { list, map }
 
 class AssetsScreen extends ConsumerStatefulWidget {
-  const AssetsScreen({super.key});
+  const AssetsScreen({super.key, this.monitoringSetup = false});
+  final bool monitoringSetup;
 
   @override
   ConsumerState<AssetsScreen> createState() => _AssetsScreenState();
@@ -34,20 +36,25 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
     final experience = ref.watch(customerExperienceProvider).valueOrNull;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Assets'),
+        title: Text(journeyText(context, 'Activos', 'Assets', pt: 'Ativos')),
         actions: [
           if (experience?.hasPermission('asset:create') == true)
             IconButton(
-              tooltip: 'Add asset',
+              tooltip: journeyText(context, 'Añadir activo', 'Add asset',
+                  pt: 'Adicionar ativo'),
               onPressed: () => context.push('/assets/new'),
               icon: const Icon(Icons.add_location_alt_outlined),
             ),
         ],
       ),
       body: assets.when(
-        loading: () => const GvLoading(label: 'Loading assets…'),
+        loading: () => GvLoading(
+            label: journeyText(context, 'Cargando activos…', 'Loading assets…',
+                pt: 'A carregar ativos…')),
         error: (_, __) => GvErrorState(
-          message: 'Assets could not be loaded.',
+          message: journeyText(context, 'No se pudieron cargar los activos.',
+              'Assets could not be loaded.',
+              pt: 'Não foi possível carregar os ativos.'),
           onRetry: () => ref.invalidate(customerAssetsProvider),
         ),
         data: (envelope) {
@@ -61,6 +68,14 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
           }).toList();
           return Column(
             children: [
+              if (widget.monitoringSetup)
+                Padding(
+                    padding: const EdgeInsets.all(GvSpacing.md),
+                    child: Text(journeyText(
+                        context,
+                        'Selecciona o añade el activo que quieres monitorizar. En Servicios podrás solicitar la instalación y un plan de seguimiento. Si GeoVision ya lo ha creado, acepta tu invitación.',
+                        'Select or add the asset you want to monitor. Under Services you can request installation and a monitoring plan. If GeoVision has already created it, accept your invitation.',
+                        pt: 'Selecione ou adicione o ativo que pretende acompanhar. Em Serviços, pode pedir instalação e um plano de monitorização. Se a GeoVision já o criou, aceite o seu convite.'))),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   GvSpacing.lg,
@@ -70,9 +85,11 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
                 ),
                 child: TextField(
                   onChanged: (value) => setState(() => _query = value),
-                  decoration: const InputDecoration(
-                    hintText: 'Search every asset',
-                    prefixIcon: Icon(Icons.search),
+                  decoration: InputDecoration(
+                    hintText: journeyText(
+                        context, 'Buscar activos', 'Search every asset',
+                        pt: 'Pesquisar todos os ativos'),
+                    prefixIcon: const Icon(Icons.search),
                   ),
                 ),
               ),
@@ -82,16 +99,18 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
                   children: [
                     SegmentedButton<_AssetsView>(
                       showSelectedIcon: false,
-                      segments: const [
+                      segments: [
                         ButtonSegment(
                           value: _AssetsView.list,
-                          icon: Icon(Icons.view_list_outlined),
-                          label: Text('List'),
+                          icon: const Icon(Icons.view_list_outlined),
+                          label: Text(journeyText(context, 'Lista', 'List',
+                              pt: 'Lista')),
                         ),
                         ButtonSegment(
                           value: _AssetsView.map,
-                          icon: Icon(Icons.map_outlined),
-                          label: Text('Map'),
+                          icon: const Icon(Icons.map_outlined),
+                          label: Text(
+                              journeyText(context, 'Mapa', 'Map', pt: 'Mapa')),
                         ),
                       ],
                       selected: {_view},
@@ -108,11 +127,13 @@ class _AssetsScreenState extends ConsumerState<AssetsScreen> {
                 ),
               ),
               if (envelope.fromCache)
-                const Padding(
-                  padding: EdgeInsets.only(top: GvSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.only(top: GvSpacing.sm),
                   child: Text(
-                    'Offline copy',
-                    style: TextStyle(color: GvColors.medium, fontSize: 11),
+                    journeyText(context, 'Copia guardada', 'Offline copy',
+                        pt: 'Cópia sem ligação'),
+                    style:
+                        const TextStyle(color: GvColors.medium, fontSize: 11),
                   ),
                 ),
               const SizedBox(height: GvSpacing.sm),

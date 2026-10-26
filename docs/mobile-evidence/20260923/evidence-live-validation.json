@@ -1,0 +1,12 @@
+{
+  "health": 200,
+  "asset_preserved": true,
+  "upload_download_bytes_match": true,
+  "metadata_confirmed": true,
+  "idempotent_replay": 200,
+  "anonymous_download": 401,
+  "fabricated_attachment": 400,
+  "synthetic_request_id": "d17fdae9-3cdf-404f-befc-7c9a84ca2c31",
+  "dataset_id": "15ada3fb-6203-4351-9890-133bf1a06984",
+  "file_id": "bf4143b1-2222-4072-896f-f7213806d043"
+}

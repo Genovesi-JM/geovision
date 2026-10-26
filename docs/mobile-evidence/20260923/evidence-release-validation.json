@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-23",
+  "revision": "geovision-api--evidence0923",
+  "health": "Healthy",
+  "traffic_percent": 100,
+  "image_digest": "sha256:dba2e8c8e3e68899042143ab7a8c086ee3ff833da11533e16ad5e01977cd3396",
+  "backend_tests_passed": 39,
+  "flutter_tests_passed": 106,
+  "flutter_tests_skipped": 2,
+  "flutter_analysis": "clean",
+  "native_debug_build": "passed",
+  "native_screen_acceptance": "passed: iPhone 15, real Azure login/asset/form/upload/request/download/logout",
+  "report_gate": "QA has report:read only and zero published reports",
+  "email_gate": "Two separately authorized tests failed with SMTP 550; detailed rejection reason unavailable",
+  "preexisting_ios_lock_edit": "preserved, 0 additions / 44 deletions",
+  "normal_azure_app_restored": true
+}

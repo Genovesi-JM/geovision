@@ -1,0 +1,15 @@
+{
+  "source_database_export": "geovision_n6bw",
+  "archive_sha256": "8d21320590be502829590cef787b5d0c9cec03b0d23180167588cb0c6f3ac701",
+  "archive_bytes": 10240,
+  "table_entries": 0,
+  "data_entries": 0,
+  "configured_source_database": "geovision_62hw",
+  "configured_source_resource": "dpg-d67dk6h4tr6s7399m9v0-a",
+  "source_dashboard_status": "does_not_exist",
+  "decision": "User explicitly selected Proceed with existing Azure data",
+  "import_performed": false,
+  "existing_azure_primary_users": 1,
+  "existing_azure_primary_companies": 0,
+  "existing_azure_accounts_customers": 0
+}

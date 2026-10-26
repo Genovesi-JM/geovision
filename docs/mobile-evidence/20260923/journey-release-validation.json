@@ -1,0 +1,40 @@
+{
+  "backend_tests": {
+    "commerce_service_journey": 19,
+    "readiness_security_erp": 36,
+    "passed": true
+  },
+  "flutter_tests": {
+    "passed": 101,
+    "skipped": 2,
+    "followup_catalog_report_request_tests": 18
+  },
+  "flutter_analyze": "clean",
+  "ios_simulator_build": "passed",
+  "ios_live_azure_test": {
+    "passed": true,
+    "covers": [
+      "login",
+      "workspace",
+      "home",
+      "canonical assets",
+      "exact asset selection in request",
+      "logout",
+      "login again"
+    ]
+  },
+  "azure_revision": "geovision-api--journey0923",
+  "azure_health": "Healthy",
+  "traffic_percent": 100,
+  "app_store_release": false,
+  "evidence_uploads": "disabled_pending_implementation",
+  "payments": "disabled_pending_activation",
+  "published_azure_pdf_test": "pending_no_published_report",
+  "native_pdf_viewer_test": {
+    "passed": true,
+    "synthetic_document_rendered": true,
+    "preview_dismissed": true,
+    "screenshot": "journey-native-pdf.png"
+  },
+  "normal_azure_app_reinstalled_and_launched": true
+}

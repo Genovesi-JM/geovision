@@ -350,11 +350,24 @@ class PortalApi {
     };
     if (workspaceId && safeId(workspaceId)) headers["X-Workspace-ID"] = workspaceId;
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
-    const response = await fetch(`${this.apiBase}${path}`, {
-      method: options.method || "GET",
-      headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    let response;
+    try {
+      response = await fetch(`${this.apiBase}${path}`, {
+        method: options.method || "GET",
+        headers,
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new PortalApiError(0, "The server took too long to respond. Please try again.");
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
     if (response.status === 401) {
       localStorage.removeItem("gv_token");
       const returnTo = rememberSafeReturn();

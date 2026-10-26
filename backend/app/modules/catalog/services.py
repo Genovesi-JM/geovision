@@ -1058,6 +1058,7 @@ def legacy_product(item: CatalogItem) -> dict[str, Any]:
         "duration_hours": item.duration_hours,
         "requires_site": item.requires_site,
         "requires_scheduling": item.requires_scheduling,
+        "price_model": item.price_model,
         "min_area_ha": content.get("minimum_area_hectares")
         or metadata.get("min_area_ha"),
         "sectors": _ordered_public_sectors(_json_list(item.sectors_json)),

@@ -3,6 +3,10 @@
 import json
 import asyncio
 import uuid
+import hashlib
+from io import BytesIO
+from pathlib import PurePath
+from urllib.parse import quote
 from datetime import datetime
 from typing import Any
 
@@ -53,8 +57,12 @@ from app.modules.operations.mobile_services import (
     mobile_home,
     mobile_service_result,
     require_mobile_workspace,
+    service_request_attachment_files,
+    EVIDENCE_MIME_TYPES,
+    EVIDENCE_PREFIX,
 )
 from app.services.erp_sync import publish_account_event
+from app.services.storage import StorageService, get_storage_service
 from app.sector_taxonomy import PUBLIC_SECTORS, normalize_public_sector
 
 router = APIRouter(prefix="/mobile", tags=["mobile"])
@@ -91,6 +99,8 @@ def _mobile_error(exc: MobileExperienceError) -> HTTPException:
         "workspace_not_found",
     }:
         status_code = status.HTTP_404_NOT_FOUND
+    elif exc.code in {"invalid_request", "invalid_attachment"}:
+        status_code = status.HTTP_400_BAD_REQUEST
     elif exc.code == "idempotency_conflict":
         status_code = status.HTTP_409_CONFLICT
     else:
@@ -276,7 +286,8 @@ def create_site(
 
 
 class ServiceRequestCreate(BaseModel):
-    site_id: str
+    asset_id: str | None = None
+    site_id: str | None = None
     site_name: str = Field(min_length=1, max_length=200)
     type: str = Field(min_length=1, max_length=50)
     urgency: str = Field(default="normal", pattern="^(low|normal|high|critical)$")
@@ -287,6 +298,7 @@ class ServiceRequestCreate(BaseModel):
 def _request_payload(
     item: MobileServiceRequest,
     *,
+    db: Session,
     result: Any = None,
 ) -> dict[str, Any]:
     try:
@@ -308,6 +320,16 @@ def _request_payload(
         "status": item.status,
         "progress_percent": item.progress_percent,
         "attachments": attachments,
+        "attachment_files": [
+            {"id": file.id, "dataset_id": file.dataset_id, "filename": file.filename,
+             "size_bytes": file.file_size,
+             "mime_type": EVIDENCE_MIME_TYPES[PurePath(file.filename).suffix.lower()],
+             "sha256_hash": file.sha256_hash}
+            for file in service_request_attachment_files(
+                db, organization_id=item.organization_id, workspace_id=item.workspace_id,
+                asset_id=item.asset_id, references=attachments,
+            )
+        ],
         "assigned_team": item.assigned_team,
         "lifecycle_version": item.lifecycle_version,
         "created_at": item.created_at.isoformat(),
@@ -325,6 +347,7 @@ def list_service_requests(
         return [
             _request_payload(
                 item,
+                db=db,
                 result=mobile_service_result(db, context=context, request=item),
             )
             for item in list_mobile_service_requests(db, context=context)
@@ -352,6 +375,7 @@ def read_service_request(
         )
         return _request_payload(
             item,
+            db=db,
             result=mobile_service_result(
                 db,
                 context=context,
@@ -386,6 +410,7 @@ def create_service_request(
             actor=user,
             context=context,
             site_id=payload.site_id,
+            asset_id=payload.asset_id,
             request_type=payload.type,
             urgency=payload.urgency,
             description=payload.description,
@@ -400,7 +425,49 @@ def create_service_request(
     if replayed:
         response.status_code = status.HTTP_200_OK
         response.headers["Idempotency-Replayed"] = "true"
-    return _request_payload(item)
+    return _request_payload(item, db=db)
+
+
+def _attachment_storage() -> StorageService:
+    return get_storage_service()
+
+
+@router.get("/service-requests/{request_id}/attachments/{file_id}")
+def download_service_request_attachment(
+    request_id: str, file_id: str,
+    context: AuthorizationContext = Depends(get_authorization_context),
+    db: Session = Depends(get_db),
+    storage: StorageService = Depends(_attachment_storage),
+):
+    try:
+        item = get_mobile_service_request(db, context=context, request_id=request_id)
+    except MobileExperienceError as exc:
+        raise _mobile_error(exc) from exc
+    references = json.loads(item.attachments_json or "[]")
+    reference = f"{EVIDENCE_PREFIX}{file_id}"
+    if reference not in references:
+        raise HTTPException(status_code=404, detail="Attachment was not found")
+    files = service_request_attachment_files(
+        db, organization_id=item.organization_id, workspace_id=item.workspace_id,
+        asset_id=item.asset_id, references=[reference],
+    )
+    if not files:
+        raise HTTPException(status_code=404, detail="Attachment is no longer available")
+    file = files[0]
+    if storage.provider_name != file.storage_provider:
+        raise HTTPException(status_code=503, detail="Attachment storage is unavailable")
+    try:
+        content = storage.download_file(file.storage_key)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail="Attachment could not be retrieved") from exc
+    if len(content) != file.file_size or hashlib.sha256(content).hexdigest() != file.sha256_hash:
+        raise HTTPException(status_code=503, detail="Attachment integrity check failed")
+    return StreamingResponse(
+        BytesIO(content),
+        media_type=EVIDENCE_MIME_TYPES[PurePath(file.filename).suffix.lower()],
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(file.filename, safe='')}",
+                 "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
 
 
 class AircraftCreate(BaseModel):

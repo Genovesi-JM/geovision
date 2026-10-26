@@ -18,3 +18,24 @@ abstract interface class PaymentProvider {
       required String currency,
       required String orderId});
 }
+
+/// A live account must never receive a simulated payment approval.
+class UnavailablePaymentProvider implements PaymentProvider {
+  const UnavailablePaymentProvider(this.id);
+  @override
+  final String id;
+  @override
+  bool get requiresCredentials => true;
+
+  @override
+  Future<PaymentResult> createIntent({
+    required int amountCents,
+    required String currency,
+    required String orderId,
+  }) async =>
+      const PaymentResult(
+        status: 'failed',
+        reference: '',
+        message: 'Online payments are not available yet.',
+      );
+}

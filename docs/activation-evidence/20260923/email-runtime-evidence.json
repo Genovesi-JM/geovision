@@ -1,0 +1,12 @@
+{
+  "checks": {
+    "smtp_provider_selected": true,
+    "smtp_configuration_complete": true,
+    "sender_expected": true,
+    "smtp_authentication_passed": true
+  },
+  "email_sent": false,
+  "smtp_auth_code": 235,
+  "notification_delivery_counts": [],
+  "runtime_revision": "geovision-api--smtp0923"
+}

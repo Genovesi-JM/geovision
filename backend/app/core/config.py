@@ -406,6 +406,8 @@ class Settings(BaseSettings):
     stripe_secret_key: Optional[str] = Field(default=None, repr=False)
     stripe_publishable_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = Field(default=None, repr=False)
+    bank_transfer_angola_enabled: bool = False
+    bank_transfer_international_enabled: bool = False
     company_iban: str = Field(default="AO06004400005506300102101", repr=False)
     company_bic: str = "BFAOAOAO"
     company_bank_name: str = "Banco de Fomento Angola"

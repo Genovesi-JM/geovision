@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/localization/journey_copy.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/gv_card.dart';
 import '../../../core/widgets/gv_states.dart';
@@ -19,7 +20,9 @@ import 'product_image.dart';
 import 'store_copy.dart';
 
 class OrdersScreen extends ConsumerStatefulWidget {
-  const OrdersScreen({super.key});
+  const OrdersScreen({super.key, this.assetId, this.shopOnly = false});
+  final String? assetId;
+  final bool shopOnly;
   @override
   ConsumerState<OrdersScreen> createState() => _OrdersScreenState();
 }
@@ -70,7 +73,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     final currency = ref.watch(storeCurrencyProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Services'),
+        title: Text(widget.shopOnly ? copy.shop : copy.services),
         actions: [
           DropdownButtonHideUnderline(
             child: DropdownButton<StoreCurrency>(
@@ -105,15 +108,36 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       body: ListView(
         padding: const EdgeInsets.all(GvSpacing.lg),
         children: [
+          if (!widget.shopOnly)
+            Card(
+                child: ListTile(
+              leading: const Icon(Icons.storefront_outlined),
+              title: Text(copy.shop),
+              subtitle: Text(journeyText(
+                  context,
+                  'Equipos y materiales · solo lo necesario',
+                  'Equipment and materials · only what you need',
+                  pt: 'Equipamentos e materiais · só o necessário')),
+              trailing: const Icon(Icons.arrow_forward),
+              onTap: () => context.push('/services/shop'),
+            )),
+          if (widget.shopOnly)
+            OutlinedButton.icon(
+              onPressed: () => context.push('/services/quantity'),
+              icon: const Icon(Icons.calculate_outlined),
+              label: Text(journeyText(context, 'Comprar solo lo necesario',
+                  'Buy only what you need',
+                  pt: 'Comprar só o necessário')),
+            ),
           _CommerceHero(
               copy: copy, onOrders: () => setState(() => showOrders = true)),
           const SizedBox(height: GvSpacing.md),
           SegmentedButton<bool>(
             segments: [
-              const ButtonSegment(
+              ButtonSegment(
                   value: false,
-                  label: Text('Explore'),
-                  icon: Icon(Icons.storefront)),
+                  label: Text(widget.shopOnly ? copy.shop : copy.services),
+                  icon: const Icon(Icons.storefront)),
               ButtonSegment(
                   value: true,
                   label: Text(copy.orders),
@@ -124,6 +148,13 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 setState(() => showOrders = value.first),
           ),
           const SizedBox(height: GvSpacing.lg),
+          OutlinedButton.icon(
+            onPressed: () => context.push('/work'),
+            icon: const Icon(Icons.home_repair_service_outlined),
+            label: Text(journeyText(
+                context, 'Mis solicitudes de servicio', 'My service requests',
+                pt: 'Os meus pedidos de serviço')),
+          ),
           if (!showOrders) ...[
             TextField(
               onChanged: (value) => setState(() => query = value.trim()),
@@ -139,8 +170,8 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 scrollDirection: Axis.horizontal,
                 children: {
                   'all': copy.all,
-                  'hardware': copy.hardware,
-                  'service': copy.services,
+                  if (widget.shopOnly) 'hardware': copy.hardware,
+                  if (!widget.shopOnly) 'service': copy.services,
                 }
                     .entries
                     .map((e) => Padding(
@@ -186,8 +217,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               data: (products) {
                 final normalizedQuery = query.toLowerCase();
                 final filtered = products.where((product) {
+                  final commercialType = const ['service', 'subscription']
+                      .contains(product.category);
                   final categoryMatches =
-                      category == 'all' || product.category == category;
+                      (widget.shopOnly ? !commercialType : commercialType) &&
+                          (category == 'all' || product.category == category);
                   final sectorMatches =
                       sector == 'all' || product.sectors.contains(sector);
                   final queryMatches = normalizedQuery.isEmpty ||
@@ -220,7 +254,10 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                   ),
                   itemCount: filtered.length,
                   itemBuilder: (_, i) => _ProductCard(
-                      product: filtered[i], copy: copy, language: language),
+                      product: filtered[i],
+                      copy: copy,
+                      language: language,
+                      assetId: widget.assetId),
                 );
               },
             ),
@@ -337,14 +374,21 @@ class _CommerceHero extends StatelessWidget {
 
 class _ProductCard extends ConsumerWidget {
   const _ProductCard(
-      {required this.product, required this.copy, required this.language});
+      {required this.product,
+      required this.copy,
+      required this.language,
+      this.assetId});
   final GvProduct product;
+  final String? assetId;
+  String get detailPath => Uri(
+      path: '/services/product/${product.id}',
+      queryParameters: {if (assetId != null) 'asset_id': assetId!}).toString();
   final StoreCopy copy;
   final String language;
   @override
   Widget build(BuildContext context, WidgetRef ref) => GvCard(
         padding: EdgeInsets.zero,
-        onTap: () => context.push('/services/product/${product.id}'),
+        onTap: () => context.push(detailPath),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: ProductImage(
@@ -364,24 +408,45 @@ class _ProductCard extends ConsumerWidget {
                       fontWeight: FontWeight.w700, fontSize: 13)),
               const SizedBox(height: 5),
               Text(
-                  StoreMoney.formatProduct(
-                      product, ref.watch(storeCurrencyProvider)),
+                  product.priceModel.toUpperCase() == 'QUOTE'
+                      ? journeyText(
+                          context, 'Precio a consultar', 'Price on request',
+                          pt: 'Preço sob consulta')
+                      : StoreMoney.formatProduct(
+                          product, ref.watch(storeCurrencyProvider),
+                          unavailable: copy.priceOnRequest),
                   style: const TextStyle(
                       color: GvColors.accentCyan, fontWeight: FontWeight.w800)),
               Row(children: [
                 Expanded(
-                    child: Text(copy.inStock,
+                    child: Text(
+                        product.requiresEnquiry
+                            ? journeyText(
+                                context, 'Bajo presupuesto', 'Quote required',
+                                pt: 'Sujeito a orçamento')
+                            : product.stockStatus == 'in_stock'
+                                ? copy.inStock
+                                : copy.availabilityUnknown,
                         style: const TextStyle(
                             color: GvColors.accentGreen, fontSize: 10))),
                 IconButton.filledTonal(
                   visualDensity: VisualDensity.compact,
                   onPressed: () {
+                    if (product.requiresEnquiry ||
+                        StoreMoney.productCents(
+                                product, ref.read(storeCurrencyProvider)) ==
+                            null) {
+                      context.push(detailPath);
+                      return;
+                    }
                     ref.read(cartProvider.notifier).add(product);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content:
                             Text(copy.added(product.localizedName(language)))));
                   },
-                  icon: const Icon(Icons.add, size: 17),
+                  icon: Icon(
+                      product.requiresEnquiry ? Icons.chevron_right : Icons.add,
+                      size: 17),
                 ),
               ]),
             ]),

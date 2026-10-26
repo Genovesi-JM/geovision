@@ -1,3 +1,8 @@
+import '../../devices/data/devices_repository.dart';
+import 'package:dio/dio.dart';
+import '../../../core/localization/journey_copy.dart';
+import '../../assets/data/assets_repository.dart';
+import '../../account/data/customer_experience_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,12 +15,14 @@ class GaiaScreen extends ConsumerStatefulWidget {
   const GaiaScreen({
     this.siteId,
     this.productId,
+    this.deviceId,
     this.sourcePage = 'assistant',
     super.key,
   });
 
   final String? siteId;
   final String? productId;
+  final String? deviceId;
   final String sourcePage;
 
   @override
@@ -27,6 +34,10 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
   final scroll = ScrollController();
   final messages = <GaiaMessage>[];
   bool sending = false;
+  String? errorMessage;
+  String? selectedSite;
+  bool contextInitialized = false;
+  String? conversationWorkspace;
 
   @override
   void didChangeDependencies() {
@@ -48,6 +59,28 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
   Widget build(BuildContext context) {
     final language = Localizations.localeOf(context).languageCode;
     final copy = _Copy(language);
+    final experience = ref.watch(customerExperienceProvider).valueOrNull;
+    final assets = ref.watch(customerAssetsProvider).valueOrNull?.value ?? [];
+    final currentDevice = ref
+        .watch(devicesProvider)
+        .valueOrNull
+        ?.where((d) => d.id == widget.deviceId)
+        .firstOrNull;
+    if (!contextInitialized) {
+      selectedSite = widget.siteId;
+      contextInitialized = true;
+    }
+    ref.listen(customerExperienceProvider, (previous, next) {
+      if (previous?.valueOrNull?.activeWorkspaceId !=
+          next.valueOrNull?.activeWorkspaceId) {
+        setState(() {
+          messages.clear();
+          input.clear();
+          selectedSite = null;
+          errorMessage = null;
+        });
+      }
+    });
     return Scaffold(
       appBar: AppBar(
         title: const Column(
@@ -66,6 +99,37 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
         ],
       ),
       body: Column(children: [
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(experience?.activeWorkspace?.name ?? '',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              if (widget.deviceId != null)
+                Text(
+                    '${currentDevice?.name ?? widget.deviceId} · ID: ${widget.deviceId}'),
+              DropdownButton<String>(
+                isExpanded: true,
+                value: assets.any(
+                        (a) => a.id == (selectedSite ?? currentDevice?.assetId))
+                    ? (selectedSite ?? currentDevice?.assetId)
+                    : null,
+                hint: Text(journeyText(
+                    context, 'Seleccionar contexto', 'Select context',
+                    pt: 'Selecionar contexto')),
+                items: [
+                  for (final a in assets)
+                    DropdownMenuItem(value: a.id, child: Text(a.name))
+                ],
+                onChanged: sending || widget.deviceId != null
+                    ? null
+                    : (value) => setState(() {
+                          selectedSite = value;
+                          messages.clear();
+                          errorMessage = null;
+                        }),
+              ),
+            ])),
         Container(
           width: double.infinity,
           padding:
@@ -99,6 +163,12 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
                   .toList(),
             ),
           ),
+        if (errorMessage != null)
+          Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(errorMessage!,
+                  key: const ValueKey('gaia-error'),
+                  style: const TextStyle(color: GvColors.high))),
         SafeArea(
           top: false,
           child: Padding(
@@ -140,25 +210,58 @@ class _GaiaScreenState extends ConsumerState<GaiaScreen> {
     setState(() {
       messages.add(GaiaMessage(role: 'user', content: text));
       sending = true;
+      errorMessage = null;
+      conversationWorkspace =
+          ref.read(customerExperienceProvider).valueOrNull?.activeWorkspaceId;
     });
     _scrollDown();
     try {
       final reply = await ref.read(gaiaRepositoryProvider).send(
             messages,
             language: Localizations.localeOf(context).languageCode,
-            siteId: widget.siteId,
+            siteId: selectedSite,
+            deviceId: widget.deviceId,
             productId: widget.productId,
             sourcePage: widget.sourcePage,
           );
-      if (mounted) {
+      if (mounted &&
+          conversationWorkspace ==
+              ref
+                  .read(customerExperienceProvider)
+                  .valueOrNull
+                  ?.activeWorkspaceId) {
         setState(
             () => messages.add(GaiaMessage(role: 'assistant', content: reply)));
       }
-    } catch (_) {
-      if (mounted) {
-        final copy = _Copy(Localizations.localeOf(context).languageCode);
-        setState(() => messages.add(
-            GaiaMessage(role: 'assistant', content: copy.offlineReply(text))));
+    } catch (error) {
+      if (mounted &&
+          conversationWorkspace ==
+              ref
+                  .read(customerExperienceProvider)
+                  .valueOrNull
+                  ?.activeWorkspaceId) {
+        setState(() {
+          // An error is UI state, never fabricated assistant content or history.
+          if (messages.isNotEmpty && messages.last.role == 'user') {
+            messages.removeLast();
+          }
+          input.text = text;
+          final status =
+              error is DioException ? error.response?.statusCode : null;
+          errorMessage = status == 401
+              ? journeyText(context, 'La sesión ha caducado. Vuelve a entrar.',
+                  'Your session expired. Sign in again.',
+                  pt: 'A sessão expirou. Entre novamente.')
+              : status == 403
+                  ? journeyText(context, 'No tienes acceso a estos datos.',
+                      'You do not have access to this data.',
+                      pt: 'Não tem acesso a estes dados.')
+                  : journeyText(
+                      context,
+                      'No se pudo obtener una respuesta. Tu pregunta se conserva; vuelve a intentarlo o solicita ayuda.',
+                      'No answer could be retrieved. Your question is preserved; retry or contact support.',
+                      pt: 'Não foi possível obter uma resposta. A pergunta foi preservada; tente novamente ou contacte o suporte.');
+        });
       }
     } finally {
       if (mounted) setState(() => sending = false);
@@ -228,20 +331,6 @@ class _Copy {
       'I could not reach the assistant. Please try again or contact GeoVision support.',
       'No pude conectar con el asistente. Inténtelo de nuevo o contacte con soporte.',
       'Je ne peux pas joindre l’assistant. Réessayez ou contactez le support.');
-  String offlineReply(String question) {
-    final normalized = question.toLowerCase();
-    if (normalized.contains('indoor') ||
-        normalized.contains('vertical') ||
-        normalized.contains('hidropon')) {
-      return t(
-          'Modo offline: a agricultura indoor será um módulo GeoVision para salas e zonas de cultivo, ciclos, receitas, inventário e sensores de temperatura, humidade, CO₂, luz, pH, EC, água e energia. Alertas e tarefas funcionarão na mesma app; comandos de bombas, luzes e climatização exigirão regras seguras e confirmação humana.',
-          'Offline mode: indoor agriculture will be a GeoVision module for grow rooms and zones, cycles, recipes, inventory, and temperature, humidity, CO₂, light, pH, EC, water and energy sensors. Alerts and tasks stay in the same app; pump, light and climate commands require safe rules and human confirmation.',
-          'Modo sin conexión: la agricultura indoor será un módulo GeoVision para salas y zonas, ciclos, recetas, inventario y sensores de temperatura, humedad, CO₂, luz, pH, EC, agua y energía. Los comandos requieren reglas seguras y confirmación humana.',
-          'Mode hors ligne : l’agriculture indoor sera un module GeoVision pour salles et zones, cycles, recettes, stocks et capteurs de température, humidité, CO₂, lumière, pH, EC, eau et énergie. Les commandes exigent des règles sûres et une confirmation humaine.');
-    }
-    return offline;
-  }
-
   List<String> get prompts => [
         t('Como instalar um sensor?', 'How do I install a sensor?',
             '¿Cómo instalo un sensor?', 'Comment installer un capteur ?'),

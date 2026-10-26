@@ -191,6 +191,7 @@ def test_not_selected_refuses_io():
         public_provider_check("copernicus", SimpleNamespace(satellite_provider="none", gis_provider="none"))
 
 
+@pytest.mark.security_regression
 def test_routes_enforce_platform_admin_and_reject_input(monkeypatch):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient

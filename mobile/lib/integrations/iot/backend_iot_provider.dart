@@ -49,7 +49,7 @@ class BackendIotProvider implements IotProvider {
       yield DeviceReading(
         deviceId: deviceId,
         label: (data['label'] ?? data['value'] ?? '').toString(),
-        at: DateTime.tryParse('${data['at'] ?? ''}') ?? DateTime.now(),
+        at: DateTime.tryParse('${data['at'] ?? ''}'),
       );
       await Future<void>.delayed(const Duration(seconds: 30));
     }
@@ -71,9 +71,10 @@ class BackendIotProvider implements IotProvider {
   Future<IotOperationResult> sendCommand(DeviceCommand command) =>
       _operation('/iot/devices/${command.deviceId}/commands', data: {
         'name': command.name,
-        'arguments': command.arguments,
-        'confirmed': !command.requiresExplicitConfirmation ||
-            command.arguments['confirmed'] == true,
+        'arguments': Map<String, Object?>.from(command.arguments)
+          ..remove('confirmed'),
+        'reason': command.reason.trim(),
+        'confirmed': command.arguments['confirmed'] == true,
       });
 
   Future<IotOperationResult> _operation(String path,
@@ -84,36 +85,53 @@ class BackendIotProvider implements IotProvider {
           ? Map<String, dynamic>.from(response.data as Map)
           : <String, dynamic>{};
       return IotOperationResult(
-        _outcome('${body['outcome'] ?? 'success'}'),
+        _outcome('${body['outcome'] ?? 'error'}'),
         message: body['message']?.toString(),
-        retryable: body['retryable'] == true,
-        data: Map<String, Object?>.from(body['data'] as Map? ?? const {}),
+        retryable: !path.endsWith('/commands') && body['retryable'] == true,
+        data: Map<String, Object?>.from(body['data'] as Map? ?? body),
       );
     } on DioException catch (error) {
       final code = error.response?.statusCode;
-      if (code == 401 || code == 403) {
+      if (code == 401) {
         return const IotOperationResult(IotOutcome.credentialsRequired,
             message: 'Provider authorization is required.');
       }
-      if (code == 404 || code == 422) {
-        return const IotOperationResult(IotOutcome.unsupported,
-            message: 'This device or operation is not supported.');
+      if (code == 403) {
+        return const IotOperationResult(IotOutcome.permissionRequired,
+            message: 'Your role does not allow this operation.');
+      }
+      if (code == 404) {
+        return const IotOperationResult(IotOutcome.notFound,
+            message: 'This device or operation is unavailable.');
+      }
+      if (code == 422) {
+        return const IotOperationResult(IotOutcome.invalidInput,
+            message: 'Review the command details and reason.');
+      }
+      if (code == 409) {
+        return const IotOperationResult(IotOutcome.rejected,
+            message:
+                'The device conditions do not allow this command. Refresh its status.');
       }
       if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.receiveTimeout ||
           error.type == DioExceptionType.sendTimeout) {
-        return const IotOperationResult(IotOutcome.timeout,
-            message: 'The device provider timed out.', retryable: true);
+        return IotOperationResult(IotOutcome.timeout,
+            message:
+                'No confirmation received. Check device state before sending another command.',
+            retryable: !path.endsWith('/commands'));
       }
       if (error.type == DioExceptionType.connectionError) {
-        return const IotOperationResult(IotOutcome.offline,
-            message: 'The GeoVision IoT bridge is offline.', retryable: true);
+        return IotOperationResult(IotOutcome.offline,
+            message: 'The GeoVision IoT bridge is offline.',
+            retryable: !path.endsWith('/commands'));
       }
       return IotOperationResult(IotOutcome.error,
-          message: _api.mapError(error).message, retryable: true);
+          message: _api.mapError(error).message,
+          retryable: !path.endsWith('/commands'));
     } catch (error) {
       return IotOperationResult(IotOutcome.error,
-          message: '$error', retryable: true);
+          message: '$error', retryable: !path.endsWith('/commands'));
     }
   }
 

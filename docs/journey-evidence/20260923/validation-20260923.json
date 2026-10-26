@@ -1,0 +1,14 @@
+{
+  "login_and_customer_portal": {
+    "passed": 19,
+    "skipped": 1
+  },
+  "chatbot": {
+    "passed": 2
+  },
+  "static_server_routing": {
+    "passed": 2
+  },
+  "deployed_browser_checks_passed": true,
+  "deployed_api_checks_passed": true
+}

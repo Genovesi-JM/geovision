@@ -9,6 +9,7 @@ import '../../../core/networking/connectivity_service.dart';
 import '../../../core/storage/offline_queue.dart';
 import '../../account/data/customer_experience_repository.dart';
 import '../domain/service_request.dart';
+import '../domain/evidence.dart';
 
 /// Work / service requests. New requests are enqueued durably; if offline they
 /// stay in the pending queue and surface with a "pending sync" badge — no
@@ -82,22 +83,25 @@ class WorkRepository {
   Future<ServiceRequest> submit({
     required ServiceType type,
     required String siteId,
+    bool canonicalAsset = false,
     required String siteName,
     required String urgency,
     required String description,
     List<String> attachments = const [],
+    List<UploadedEvidence> attachmentFiles = const [],
   }) async {
     final payload = {
       'id':
           'mobile-${DateTime.now().microsecondsSinceEpoch}-${siteId.hashCode.abs()}',
       'type': type.name,
-      'site_id': siteId,
+      if (canonicalAsset) 'asset_id': siteId else 'site_id': siteId,
       'site_name': siteName,
       'urgency': urgency,
       'description': description,
       'status': 'submitted',
       'created_at': DateTime.now().toUtc().toIso8601String(),
       'attachments': attachments,
+      'attachment_files': attachmentFiles.map((file) => file.toJson()).toList(),
       if (_api.workspaceId case final workspaceId?) 'workspace_id': workspaceId,
     };
 
@@ -113,7 +117,10 @@ class WorkRepository {
         );
         return ServiceRequest.fromJson(
             (res.data as Map).cast<String, dynamic>());
-      } catch (_) {
+      } on DioException catch (error) {
+        // A rejected request will not become valid by being replayed offline.
+        final status = error.response?.statusCode;
+        if (status != null && status >= 400 && status < 500) rethrow;
         await _queue.enqueue('service_request', payload);
         return ServiceRequest.fromJson({...payload, 'pending_sync': true});
       }

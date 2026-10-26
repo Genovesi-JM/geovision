@@ -1,0 +1,9 @@
+{
+  "GV_FLAVOR": "staging",
+  "GV_DEMO_MODE": "false",
+  "GV_API_BASE_URL": "https://geovision-api.nicepebble-b3698140.spaincentral.azurecontainerapps.io",
+  "GV_MAP_PROVIDER": "openstreetmap",
+  "GV_IOT_PROVIDER": "backend",
+  "GV_PAYMENT_PROVIDER": "disabled",
+  "GV_PUSH_PROVIDER": "disabled"
+}
