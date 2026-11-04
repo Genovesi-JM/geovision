@@ -1,6 +1,14 @@
 using './main.bicep'
 
-param location = 'westeurope'
+// Adopt the EXISTING staging resources, which were deployed with the pilot cost
+// profile in Spain Central. The name token is geovision-<resourceEnvironmentName>-<suffix>,
+// and resourceEnvironmentName is 'pilot' only when deploymentProfile='pilot'. Without
+// this, a deploy would create a parallel geovision-staging-<suffix> stack in a new
+// region; with it, names resolve to the already-deployed geovision-pilot-bcjrgnh-*.
+param deploymentProfile = 'pilot'
+param location = 'spaincentral'
+// The resource group's own metadata region (the group is named -weu).
+param resourceGroupLocation = 'westeurope'
 param resourceGroupName = 'rg-geovision-staging-weu'
 param workloadName = 'geovision'
 param environmentName = 'staging'
