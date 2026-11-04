@@ -17,7 +17,9 @@ concurrency:
 
 jobs:
   deploy-staging:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # The current staging parameter set names new resources. Keep this release
+    # opt-in until its resource identity is reconciled with the existing pilot.
+    if: (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') && vars.GEOVISION_STAGING_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     environment: staging
