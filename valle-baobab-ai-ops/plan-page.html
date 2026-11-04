@@ -1,0 +1,338 @@
+<title>Valle Baobab AI Operations</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: fixed left rail of section links; single scrolling column of banded sections. */
+  :root {
+    --bg: #f6f5f1;
+    --surface: #ffffff;
+    --surface-2: #eeece4;
+    --fg: #22231f;
+    --muted: #5f6157;
+    --line: #dcd9ce;
+    --accent: #9a5b1e;       /* baobab bark / ochre */
+    --accent-soft: #f0e3d3;
+    --deep: #1f3a34;         /* savanna canopy green */
+    --deep-soft: #dde6e1;
+    --good: #2f6b43;
+    --warn: #9a6b00;
+    --crit: #a3331f;
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17181a;
+      --surface: #202225;
+      --surface-2: #2a2d31;
+      --fg: #ececea;
+      --muted: #a4a69d;
+      --line: #35383d;
+      --accent: #d8954f;
+      --accent-soft: #3a2c1c;
+      --deep: #8fc3b2;
+      --deep-soft: #23312d;
+      --good: #6fb98a;
+      --warn: #d9ad5a;
+      --crit: #e08a78;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17181a;
+    --surface: #202225;
+    --surface-2: #2a2d31;
+    --fg: #ececea;
+    --muted: #a4a69d;
+    --line: #35383d;
+    --accent: #d8954f;
+    --accent-soft: #3a2c1c;
+    --deep: #8fc3b2;
+    --deep-soft: #23312d;
+    --good: #6fb98a;
+    --warn: #d9ad5a;
+    --crit: #e08a78;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--body);
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 0;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  /* ---- side rail ---- */
+  nav.rail {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    align-self: start;
+    height: 100vh;
+    padding: 28px 18px 28px max(18px, env(safe-area-inset-left, 0px));
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+  }
+  .brand { font-family: var(--display); font-weight: 600; font-size: 1.15rem; line-height: 1.2; letter-spacing: -0.01em; }
+  .brand span { display: block; color: var(--accent); font-size: 0.72rem; font-family: var(--body); font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 6px; }
+  .rail ol { list-style: none; counter-reset: s; margin: 24px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .rail a { counter-increment: s; display: flex; gap: 10px; align-items: baseline; color: var(--muted); text-decoration: none; font-size: 0.86rem; padding: 6px 8px; border-radius: 6px; }
+  .rail a::before { content: counter(s, decimal-leading-zero); font-family: var(--mono); font-size: 0.7rem; color: var(--accent); }
+  .rail a:hover { background: var(--surface-2); color: var(--fg); }
+
+  /* ---- main ---- */
+  main { min-width: 0; padding: 0 max(20px, env(safe-area-inset-right, 0px)) 80px 28px; }
+  section { padding-block: 44px; border-bottom: 1px solid var(--line); scroll-margin-top: 24px; }
+  section:last-child { border-bottom: none; }
+  h2 { font-family: var(--display); font-weight: 600; font-size: clamp(1.35rem, 3vw, 1.9rem); letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance; }
+  .eyebrow { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin: 0 0 14px; }
+  p { max-width: 68ch; }
+  .muted { color: var(--muted); }
+  a.inline { color: var(--accent); }
+
+  /* hero */
+  header.hero { padding: clamp(40px, 7vw, 72px) max(20px, env(safe-area-inset-right, 0px)) 48px 28px; }
+  header.hero h1 { font-family: var(--display); font-weight: 600; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.04; letter-spacing: -0.02em; margin: 14px 0 0; text-wrap: balance; }
+  .lede { font-size: clamp(1.02rem, 2.4vw, 1.22rem); max-width: 60ch; margin-top: 20px; }
+  .lede b { color: var(--accent); font-weight: 600; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .chip { font-size: 0.76rem; padding: 5px 11px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+
+  /* generic cards */
+  .grid { display: grid; gap: 14px; margin-top: 22px; }
+  .g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .g4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .card h3 { margin: 0 0 6px; font-size: 0.98rem; }
+  .card .k { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); letter-spacing: 0.04em; }
+  .card p { font-size: 0.88rem; color: var(--muted); margin: 6px 0 0; }
+
+  /* agent table */
+  .tbl-scroll { overflow-x: auto; margin-top: 20px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; min-width: 540px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+  td .num { font-family: var(--mono); color: var(--accent); }
+  td b { font-weight: 600; }
+  tr .ph { font-family: var(--mono); font-size: 0.74rem; white-space: nowrap; }
+  .ph1 { color: var(--accent); }
+  .ph2 { color: var(--deep); }
+  .ph3 { color: var(--muted); }
+
+  /* flow */
+  .flow { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; font-size: 0.9rem; }
+  .flow .step { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 11px 14px; }
+  .flow .step b { font-weight: 600; }
+  .flow .arrow { color: var(--muted); text-align: center; font-size: 0.8rem; margin: -4px 0; }
+
+  /* cost table semantic */
+  .decision { font-weight: 600; font-size: 0.82rem; }
+  .keep { color: var(--good); }
+  .use { color: var(--deep); }
+  .opt { color: var(--muted); }
+
+  /* budget tiers */
+  .tiers { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-top: 20px; }
+  .tier { border: 1px solid var(--line); border-radius: 12px; padding: 16px; background: var(--surface); }
+  .tier.pick { border-color: var(--accent); background: var(--accent-soft); }
+  .tier .name { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .tier.pick .name { color: var(--accent); }
+  .tier .val { font-family: var(--display); font-size: 1.5rem; font-weight: 600; margin-top: 6px; }
+  .tier .note { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+  /* checklist */
+  ol.checklist { counter-reset: c; list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 10px; }
+  ol.checklist li { counter-increment: c; display: grid; grid-template-columns: 30px 1fr; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  ol.checklist li::before { content: counter(c); font-family: var(--mono); font-size: 0.82rem; color: var(--accent); background: var(--accent-soft); border-radius: 6px; width: 28px; height: 28px; display: grid; place-items: center; }
+  ol.checklist b { font-weight: 600; }
+  ol.checklist .sub { color: var(--muted); font-size: 0.86rem; }
+
+  .callout { background: var(--deep-soft); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-top: 22px; font-size: 0.92rem; }
+  .callout b { color: var(--deep); }
+
+  ul.clean { padding-left: 1.1em; margin-top: 14px; }
+  ul.clean li { margin-bottom: 6px; max-width: 68ch; }
+
+  footer { padding: 28px max(20px, env(safe-area-inset-right, 0px)) 40px 28px; color: var(--muted); font-size: 0.8rem; max-width: 1180px; margin: 0 auto; }
+
+  @media (max-width: 760px) {
+    .wrap { grid-template-columns: 1fr; }
+    nav.rail { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 20px max(16px, env(safe-area-inset-left,0px)); }
+    .rail ol { flex-direction: row; flex-wrap: wrap; }
+    main { padding: 0 max(16px, env(safe-area-inset-right,0px)) 60px; }
+    header.hero { padding: 36px max(16px, env(safe-area-inset-right,0px)) 32px; }
+    .g2, .g4, .tiers { grid-template-columns: 1fr; }
+    .g4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+</style>
+
+<div class="wrap">
+  <nav class="rail">
+    <div class="brand">Valle Baobab<span>AI Operations</span></div>
+    <ol>
+      <li><a href="#systems">Core systems</a></li>
+      <li><a href="#agents">The nine agents</a></li>
+      <li><a href="#connect">How it connects</a></li>
+      <li><a href="#costs">Costs</a></li>
+      <li><a href="#evaluate">Also evaluate</a></li>
+      <li><a href="#workflow">Daily workflow</a></li>
+      <li><a href="#priorities">November plan</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <p class="eyebrow">AI Agent Installation Plan · November 2026</p>
+      <h1>Nine agents, four systems, run on what you already pay for.</h1>
+      <p class="lede">A plan to operate AI agents across <b>Kasa</b>, <b>Kaya Saúde</b> and <b>GeoVision</b> — Azure-first, GitHub-controlled, with at most <b>2–3 coding agents</b> running at once. The agents are configurations, not nine new subscriptions.</p>
+      <div class="meta-row">
+        <span class="chip">Azure + GitHub + Codex + Claude Code</span>
+        <span class="chip">Staging first, humans merge</span>
+        <span class="chip">Every task has a budget &amp; an exit</span>
+      </div>
+    </header>
+
+    <section id="systems">
+      <p class="eyebrow">01 · Foundation</p>
+      <h2>The four core systems</h2>
+      <p class="muted">The nine agents are configurations — instructions, restricted tools, an approved queue, a budget — built on top of these four products. Not nine pieces of software to buy.</p>
+      <div class="grid g2">
+        <div class="card"><span class="k">AZURE</span><h3>Automation infrastructure</h3><p>Scheduled jobs, service monitoring, cloud identity, secret protection (Key Vault), cost tracking. The main cloud platform.</p></div>
+        <div class="card"><span class="k">GITHUB</span><h3>Development control center</h3><p>Three repos, agent assignments, CI tests, branches, PRs, approval history, the Projects board.</p></div>
+        <div class="card"><span class="k">OPENAI CODEX</span><h3>Cloud coding &amp; review</h3><p>Works approved tasks, creates changes, reviews code without step-by-step supervision.</p></div>
+        <div class="card"><span class="k">CLAUDE CODE</span><h3>Engineering &amp; debugging</h3><p>Architecture, integrations, hard problems and Azure scripts — on the Claude Pro allowance.</p></div>
+      </div>
+      <div class="callout"><b>On subscriptions vs. API:</b> ChatGPT Plus and Claude Pro power <i>interactive</i> sessions. A custom Azure job doing <i>unattended</i> model calls generally needs separately metered API access — plan allowances are not unlimited API credits.</div>
+    </section>
+
+    <section id="agents">
+      <p class="eyebrow">02 · Roles</p>
+      <h2>The nine agents</h2>
+      <p class="muted">Activate <b>1, 2, 3, 8</b> first — the management + reliability foundation. Builders work against that stable base; Design Guardian and Market Scout are additive.</p>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>#</th><th>Agent</th><th>Purpose</th><th>Activate</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td><b>Baobab Control Tower</b><br><span class="muted">AI PM</span></td><td>Coordinate work across all three businesses without mixing priorities.</td><td><span class="ph ph1">Phase 1</span></td></tr>
+            <tr><td class="num">2</td><td><b>Azure Sentinel</b><br><span class="muted">Cloud / DevOps</span></td><td>Infra reliability, monitoring, pipelines, cloud cost.</td><td><span class="ph ph1">Phase 1</span></td></tr>
+            <tr><td class="num">3</td><td><b>Integration Architect</b><br><span class="muted">API / Backend</span></td><td>Microsoft auth, payments, maps, notifications, third-party APIs.</td><td><span class="ph ph1">Phase 1</span></td></tr>
+            <tr><td class="num">4</td><td><b>Kasa Builder</b></td><td>Marketplace, listings, messaging, landlord workflows.</td><td><span class="ph ph2">Phase 2</span></td></tr>
+            <tr><td class="num">5</td><td><b>Kaya Builder</b></td><td>Booking, integrations, partner config, stability. Clinical logic stays human.</td><td><span class="ph ph2">Phase 2</span></td></tr>
+            <tr><td class="num">6</td><td><b>GeoVision Builder</b></td><td>Field-data ingestion, dashboards, reports, device integrations.</td><td><span class="ph ph2">Phase 2</span></td></tr>
+            <tr><td class="num">7</td><td><b>Design Guardian</b><br><span class="muted">UI / UX</span></td><td>Visual consistency, responsive layout, accessibility.</td><td><span class="ph ph3">Phase 3</span></td></tr>
+            <tr><td class="num">8</td><td><b>Quality Gatekeeper</b><br><span class="muted">QA / Security</span></td><td>Reviews PRs, tests, dependency vulns, tenant isolation &amp; auth.</td><td><span class="ph ph1">Phase 1</span></td></tr>
+            <tr><td class="num">9</td><td><b>Market Scout</b><br><span class="muted">Business</span></td><td>Competitor research, partnership briefs, pricing, pilot lists. Prepares, never sends.</td><td><span class="ph ph3">Phase 3</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="connect">
+      <p class="eyebrow">03 · Architecture</p>
+      <h2>How it connects</h2>
+      <p class="muted">A trigger wakes the Control Tower, which dispatches within the concurrency cap and spend limits. Every change flows through issues, branches and PRs, past automated checks and a human approval, to staging first.</p>
+      <div class="flow">
+        <div class="step">Schedule · GitHub event · Azure alert</div>
+        <div class="arrow">↓</div>
+        <div class="step"><b>Baobab Control Tower</b> — approved backlog · priority · spend caps</div>
+        <div class="arrow">↓ dispatch (max 2–3 coding agents) ↓</div>
+        <div class="step"><b>Coding agents</b> (Codex / Claude Code) &nbsp;+&nbsp; <b>Operations agents</b> (Azure Jobs / model APIs)</div>
+        <div class="arrow">↓</div>
+        <div class="step">GitHub Issues → Branches → Pull Requests</div>
+        <div class="arrow">↓</div>
+        <div class="step">Automated checks (tests · security · UI) + <b>human approval</b></div>
+        <div class="arrow">↓</div>
+        <div class="step">Staging first → controlled production</div>
+      </div>
+      <div class="callout"><b>Installation sequence:</b> (1) Configure Azure auth — test login before creating resources. (2) Create the GitHub board. (3) Configure agent roles in version-controlled files. (4) Connect Codex &amp; Claude Code. (5) Add triggers (Actions + Azure Jobs). (6) Add cost, security &amp; release controls. <i>Creating the files does not start the agents — the platform must load them.</i></div>
+    </section>
+
+    <section id="costs">
+      <p class="eyebrow">04 · Budget</p>
+      <h2>Costs</h2>
+      <p class="muted">Public list prices, checked November 2026. Taxes, regional rates and optional usage can change totals. Selected stack: Azure + GitHub + Codex + Claude Code, plus one optional orchestrator later.</p>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Product</th><th>Published price</th><th>Decision</th></tr></thead>
+          <tbody>
+            <tr><td>ChatGPT Plus + Codex</td><td>already subscribed; ~$20/mo</td><td class="decision keep">Keep</td></tr>
+            <tr><td>Claude Pro + Claude Code</td><td>already subscribed; ~$20/mo</td><td class="decision keep">Keep</td></tr>
+            <tr><td>GitHub Actions</td><td>Free tier · 2,000 private min/mo</td><td class="decision use">Use now</td></tr>
+            <tr><td>Azure Container Apps Jobs</td><td>consumption-based</td><td class="decision use">Scheduled work</td></tr>
+            <tr><td>Azure Logic Apps Consumption</td><td>metered; first 4,000 actions free</td><td class="decision use">Azure-native option</td></tr>
+            <tr><td>GitHub Copilot Pro</td><td>$10/mo/user</td><td class="decision opt">Optional</td></tr>
+            <tr><td>n8n Starter Cloud</td><td>€20/mo billed annually</td><td class="decision opt">Optional</td></tr>
+            <tr><td>Microsoft Foundry Agent Service</td><td>usage-billed</td><td class="decision opt">Consider later</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tiers">
+        <div class="tier"><div class="name">Lean</div><div class="val">$0–25</div><div class="note">Extra-AI spend cap</div></div>
+        <div class="tier pick"><div class="name">Balanced · chosen</div><div class="val">$25–75</div><div class="note">Fund a small amount first</div></div>
+        <div class="tier"><div class="name">Intensive</div><div class="val">$100–250</div><div class="note">Extra-AI spend cap</div></div>
+      </div>
+      <div class="callout"><b>Azure is budgeted separately.</b> Databases, networking and logs cost money even with zero AI activity. An Azure-only setup is not automatically a cheap one. Raise the cap only after you can measure successful tasks per dollar.</div>
+    </section>
+
+    <section id="evaluate">
+      <p class="eyebrow">05 · Later</p>
+      <h2>Also worth evaluating — in order, not all at once</h2>
+      <div class="grid g2">
+        <div class="card"><h3>Microsoft Foundry</h3><p>Best Azure-native candidate for permanent multi-agent hosting: model selection, tools, tracing, identity.</p></div>
+        <div class="card"><h3>n8n</h3><p>Visual automation (API / DB / webhook / AI nodes). Self-hostable on Azure, but you maintain it.</p></div>
+        <div class="card"><h3>LangGraph / LangSmith</h3><p>Precise control over multi-agent workflows, persistence, routing, observability. More technical.</p></div>
+        <div class="card"><h3>CrewAI · GitHub Copilot</h3><p>Role-based agent teams worth testing; Copilot for assigning issues to cloud agents and async PRs ($10/mo).</p></div>
+      </div>
+      <p class="muted" style="margin-top:16px">Don't buy extra Copilot, Cursor, CrewAI enterprise or a paid n8n plan right now. First learn what the existing subscriptions + GitHub can do.</p>
+    </section>
+
+    <section id="workflow">
+      <p class="eyebrow">06 · Operation</p>
+      <h2>The daily workflow</h2>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr><th>Trigger</th><th>Automated response</th></tr></thead>
+          <tbody>
+            <tr><td>Every morning</td><td>Control Tower checks approved tasks, reports blockers</td></tr>
+            <tr><td>New GitHub issue</td><td>Categorize; decide if it meets automation criteria</td></tr>
+            <tr><td>Approved dev task</td><td>Dispatch to an available coding agent</td></tr>
+            <tr><td>New pull request</td><td>Run unit tests, security checks, relevant UI tests</td></tr>
+            <tr><td>Failed CI build</td><td>Azure Sentinel / QA investigates, prepares a diagnosis</td></tr>
+            <tr><td>API / hosting alert</td><td>Investigate; escalate or propose a safe fix</td></tr>
+            <tr><td>Weekly</td><td>Send business, technical and cost reports</td></tr>
+            <tr><td>Usage limit reached</td><td>Pause new AI tasks, preserve the backlog</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout"><b>Never a repair loop.</b> Every task has a max runtime, retry count, spend allowance and exit condition. If the GeoVision Azure login fails again, the system names the missing config, reports the required admin action and <b>stops</b> — it does not keep generating infrastructure or retrying a broken deploy.</div>
+    </section>
+
+    <section id="priorities">
+      <p class="eyebrow">07 · This month</p>
+      <h2>November priorities</h2>
+      <p class="muted">A planning checklist. These steps and the files beside them do not start any agent.</p>
+      <ol class="checklist">
+        <li><div><b>Verify Azure OIDC connection</b><div class="sub">Resolve GeoVision staging authentication.</div></div></li>
+        <li><div><b>Establish GitHub backlog</b><div class="sub">Separate the three company workstreams.</div></div></li>
+        <li><div><b>Configure Control Tower</b><div class="sub">Scheduling, priorities and reports.</div></div></li>
+        <li><div><b>Configure Azure Sentinel</b><div class="sub">Cloud health, errors and cost monitoring.</div></div></li>
+        <li><div><b>Configure Integration Architect</b><div class="sub">Provider inventory and integration tests.</div></div></li>
+        <li><div><b>Connect three development agents</b><div class="sub">Kasa, Kaya and GeoVision.</div></div></li>
+        <li><div><b>Activate quality controls</b><div class="sub">CI tests, security and review gates.</div></div></li>
+        <li><div><b>Add design and business agents</b><div class="sub">Usability and commercial research.</div></div></li>
+        <li><div><b>Test one automated task cycle</b><div class="sub">One approved issue through a verified PR.</div></div></li>
+      </ol>
+      <div class="callout"><b>The evidence of success</b> is one complete lifecycle: an approved issue is assigned, an agent produces code, tests pass, a human approves, and the system records cost and outcome. The first technical objective stays the <b>GeoVision Azure auth blocker</b>, then a verified staging deploy — giving the agents a working environment rather than more automation around a failed deployment.</div>
+    </section>
+  </main>
+</div>
+<footer>Valle Baobab Group · AI Operations plan, November 2026. Prices and model names are point-in-time and should be re-checked before committing spend.</footer>
