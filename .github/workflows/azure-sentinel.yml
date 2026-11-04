@@ -1,0 +1,36 @@
+name: Azure Sentinel - GeoVision
+
+on:
+  schedule:
+    # 07:45 Madrid in winter, 08:45 in summer: before the 09:00 Control Tower.
+    - cron: '45 6 * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['CI - delivery gates']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: azure-sentinel-geovision
+  cancel-in-progress: false
+
+jobs:
+  staging-and-public-health:
+    if: github.repository == 'Genovesi-JM/geovision' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: staging
+    steps:
+      - uses: actions/checkout@v7
+      - name: Sign in with the read-only staging identity
+        uses: azure/login@v2
+        with:
+          client-id: 9be83428-1c75-4ffb-8e4d-79873c2d59ad
+          tenant-id: 69f1c4f2-ab5f-4267-b68b-10c033e56613
+          subscription-id: 50874a30-a81d-4c8a-aac7-13564bd1641d
+      - name: Check staging resources and public routes
+        run: python3 scripts/agent_ops/azure_sentinel.py
