@@ -12,7 +12,11 @@ import urllib.request
 
 
 GROUP = "rg-geovision-staging-weu"
-DATABASE = "psql-geovision-pilot-bcjrgnh"
+DATABASE_ARM_URL = (
+    "https://management.azure.com/subscriptions/50874a30-a81d-4c8a-aac7-13564bd1641d/"
+    "resourceGroups/rg-geovision-staging-weu/providers/Microsoft.DBforPostgreSQL/"
+    "flexibleServers/psql-geovision-pilot-bcjrgnh?api-version=2024-08-01"
+)
 API = "geovision-pilot-bcjrgnh-api"
 PUBLIC_URLS = (
     "https://geovisionops.com/",
@@ -39,8 +43,8 @@ def main() -> int:
 
     try:
         result = subprocess.run(
-            ["az", "postgres", "flexible-server", "show", "--resource-group", GROUP,
-             "--name", DATABASE, "--query", "state", "--output", "tsv"],
+            ["az", "rest", "--method", "get", "--url", DATABASE_ARM_URL,
+             "--query", "properties.state", "--output", "tsv"],
             text=True, capture_output=True, timeout=35, check=False,
         )
         if result.returncode:
