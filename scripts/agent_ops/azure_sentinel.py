@@ -16,17 +16,8 @@ DATABASE = "psql-geovision-pilot-bcjrgnh"
 API = "geovision-pilot-bcjrgnh-api"
 PUBLIC_URLS = (
     "https://geovisionops.com/",
-    "https://api.geovisionops.com/health",
+    "https://api.geovisionops.com/ready",
 )
-
-
-def azure_value(*args: str) -> str:
-    command = ["az", *args, "--output", "tsv"]
-    result = subprocess.run(command, text=True, capture_output=True, timeout=35, check=False)
-    if result.returncode:
-        # Azure CLI errors can include account details. Keep the report generic.
-        raise RuntimeError(f"Azure read failed for {args[0]} {args[1]}")
-    return result.stdout.strip()
 
 
 def url_status(url: str) -> int:
@@ -35,6 +26,8 @@ def url_status(url: str) -> int:
         try:
             with urllib.request.urlopen(request, timeout=20) as response:
                 return response.status
+        except urllib.error.HTTPError as error:
+            return error.code
         except (urllib.error.URLError, TimeoutError):
             if attempt == 0:
                 time.sleep(2)
@@ -45,16 +38,28 @@ def main() -> int:
     checks: list[tuple[str, bool, str]] = []
 
     try:
-        state = azure_value("postgres", "flexible-server", "show", "--resource-group", GROUP,
-                            "--name", DATABASE, "--query", "state")
+        result = subprocess.run(
+            ["az", "postgres", "flexible-server", "show", "--resource-group", GROUP,
+             "--name", DATABASE, "--query", "state", "--output", "tsv"],
+            text=True, capture_output=True, timeout=35, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError("Azure PostgreSQL read failed")
+        state = result.stdout.strip()
         checks.append(("Staging PostgreSQL", state == "Ready", state or "unknown"))
     except (RuntimeError, subprocess.TimeoutExpired):
         checks.append(("Staging PostgreSQL", False, "read failed"))
 
     try:
-        state = azure_value("resource", "show", "--resource-group", GROUP, "--name", API,
-                            "--resource-type", "Microsoft.App/containerApps",
-                            "--query", "properties.provisioningState")
+        result = subprocess.run(
+            ["az", "resource", "show", "--resource-group", GROUP, "--name", API,
+             "--resource-type", "Microsoft.App/containerApps",
+             "--query", "properties.provisioningState", "--output", "tsv"],
+            text=True, capture_output=True, timeout=35, check=False,
+        )
+        if result.returncode:
+            raise RuntimeError("Azure Container App read failed")
+        state = result.stdout.strip()
         checks.append(("Staging API resource", state == "Succeeded", state or "unknown"))
     except (RuntimeError, subprocess.TimeoutExpired):
         checks.append(("Staging API resource", False, "read failed"))
