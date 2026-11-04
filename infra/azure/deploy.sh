@@ -42,6 +42,7 @@ if ! command -v az >/dev/null 2>&1; then
 fi
 
 providers=(
+  Microsoft.AlertsManagement
   Microsoft.App
   Microsoft.AppConfiguration
   Microsoft.Authorization
