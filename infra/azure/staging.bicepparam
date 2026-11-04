@@ -1,6 +1,6 @@
 using './main.bicep'
 
-param location = 'westeurope'
+param location = 'spaincentral'
 param resourceGroupName = 'rg-geovision-staging-weu'
 param workloadName = 'geovision'
 param environmentName = 'staging'

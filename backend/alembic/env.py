@@ -19,7 +19,9 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+# ConfigParser uses percent signs for interpolation, while URL-encoded
+# credentials legitimately contain them. Preserve the URL when it is read back.
+config.set_main_option("sqlalchemy.url", DATABASE_URL.replace("%", "%%"))
 
 
 def run_migrations_offline() -> None:
