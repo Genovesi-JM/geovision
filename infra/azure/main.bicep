@@ -19,6 +19,9 @@ param workloadName string = 'geovision'
 ])
 param environmentName string = 'dev'
 
+@description('Existing Azure resource name token when it differs from the runtime environment label.')
+param resourceNameEnvironment string = environmentName
+
 @description('Deploy API, worker apps, and the manual migration job. Keep false for the first registry bootstrap deployment.')
 param deployApplications bool = false
 
@@ -98,6 +101,7 @@ module environment './environment.bicep' = {
     location: location
     workloadName: workloadName
     environmentName: environmentName
+    resourceNameEnvironment: resourceNameEnvironment
     deployApplications: deployApplications
     deployMigrationJob: deployMigrationJob
     imageTag: imageTag

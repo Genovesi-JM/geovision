@@ -3,7 +3,9 @@ using './main.bicep'
 param location = 'spaincentral'
 param resourceGroupName = 'rg-geovision-staging-weu'
 param workloadName = 'geovision'
+// Existing resources in this isolated group use the pilot name token.
 param environmentName = 'staging'
+param resourceNameEnvironment = 'pilot'
 
 param deployApplications = false
 param deployMigrationJob = false

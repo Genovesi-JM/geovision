@@ -3,6 +3,7 @@ targetScope = 'resourceGroup'
 param location string
 param workloadName string
 param environmentName string
+param resourceNameEnvironment string
 param deployApplications bool
 param deployMigrationJob bool
 param imageTag string
@@ -26,8 +27,8 @@ param tags object
 
 var compactWorkloadName = replace(toLower(workloadName), '-', '')
 var uniqueSuffix = take(uniqueString(subscription().subscriptionId, resourceGroup().id), 7)
-var compactToken = '${compactWorkloadName}${environmentName}${uniqueSuffix}'
-var nameToken = '${toLower(workloadName)}-${environmentName}-${uniqueSuffix}'
+var compactToken = '${compactWorkloadName}${resourceNameEnvironment}${uniqueSuffix}'
+var nameToken = '${toLower(workloadName)}-${resourceNameEnvironment}-${uniqueSuffix}'
 
 var names = {
   acr: take(compactToken, 50)
